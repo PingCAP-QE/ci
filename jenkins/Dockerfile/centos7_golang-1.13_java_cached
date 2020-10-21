@@ -1,0 +1,32 @@
+FROM hub.pingcap.net/jenkins/centos7_golang-1.13_java as builder
+
+MAINTAINER Liu Yin <liuy@pingcap.com>
+
+WORKDIR /git
+
+COPY --chown=jenkins:jenkins src/github.com/pingcap/tidb-test ./tidb-test
+RUN cd tidb-test && go mod download
+
+RUN git clone https://github.com/pingcap/tidb.git \
+	&& git clone https://github.com/tikv/tikv.git \
+	&& git clone https://github.com/pingcap/pd.git \
+	&& git clone https://github.com/pingcap/tidb-lightning.git \
+        && git clone https://github.com/pingcap/tidb-binlog.git
+
+
+RUN cd tidb && go mod download
+RUN cd pd && go mod download
+#RUN cd dm && go mod download
+RUN cd tidb-lightning && go mod download
+RUN cd tidb-binlog && go mod download
+
+RUN cd tidb && GO111MODULE=on go get github.com/pingcap/gofail
+
+RUN cd tidb-test/jdbc_test && mvn clean test dependency:resolve -U -Dmaven.test.skip=true
+
+RUN curl -L https://github.com/pingcap/mybatis-3/archive/travis-tidb.zip -o travis-tidb.zip && unzip travis-tidb.zip \
+	&& cd mybatis-3-travis-tidb && mvn clean test dependency:resolve -U -Dmaven.test.skip=true
+
+FROM hub.pingcap.net/jenkins/centos7_golang-1.13_java
+COPY --chown=jenkins:jenkins --from=builder /go/. /go
+COPY --chown=jenkins:jenkins --from=builder /maven/. /maven

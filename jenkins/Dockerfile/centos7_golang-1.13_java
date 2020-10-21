@@ -1,0 +1,25 @@
+FROM hub.pingcap.net/jenkins/centos7_golang-1.13
+
+MAINTAINER Liu Yin <liuy@pingcap.com>
+
+USER root
+WORKDIR /root
+
+COPY epel-apache-maven.repo /etc/yum.repos.d/epel-apache-maven.repo
+
+RUN yum makecache \
+	&& yum update -y \
+	&& yum install -y java-1.8.0-openjdk \
+	&& yum install -y apache-maven \
+	&& yum clean all
+
+ENV M2_HOME /usr/share/apache-maven
+ENV MAVEN_HOME /usr/share/apache-maven
+ENV PATH $MAVEN_HOME/bin:$PATH
+
+RUN mkdir -p /maven/.m2/repository && chown -R jenkins:jenkins /maven
+COPY settings.xml ${MAVEN_HOME}/conf/settings.xml
+
+USER jenkins
+WORKDIR /home/jenkins
+

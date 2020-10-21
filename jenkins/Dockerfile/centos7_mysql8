@@ -1,0 +1,107 @@
+##
+## MySQL 8.0
+##
+FROM hub.pingcap.net/jenkins/centos:7
+
+# Version
+# Check for Updates:
+# https://dev.mysql.com/downloads/repo/yum/
+ENV YUM_REPO_URL="https://dev.mysql.com/get/mysql57-community-release-el7-10.noarch.rpm "
+#ENV YUM_LIBSTIC_DEV_URL="https://rpmfind.net/linux/fedora/linux/development/rawhide/Everything/x86_64/os/Packages/l/libstdc++-devel-9.0.1-0.4.fc30.x86_64.rpm"
+# ENV YUM_LIBSTIC_URL="https://rpmfind.net/linux/fedora/linux/development/rawhide/Everything/x86_64/os/Packages/l/libstdc++-static-9.0.1-0.4.fc30.x86_64.rpm"
+
+RUN yum -y install epel-release 
+RUN rpm -ivh ${YUM_REPO_URL}
+# RUN rpm -ivh ${YUM_LIBSTIC_DEV_URL} 
+# RUN rpm -ivh ${YUM_LIBSTIC_URL} && \
+RUN yum-config-manager --disable mysql55-community && \
+	yum-config-manager --disable mysql56-community && \
+	yum-config-manager --disable  mysql57-community && \
+	yum-config-manager --enable mysql80-community && \
+	yum clean all
+
+RUN yum -y update
+RUN yum -y install mysql-community-devel && mv /usr/lib64/mysql/libmysqlclient.so /usr/lib64/mysql/libmysqlclient.so~
+
+RUN yum install -y \
+	git \
+	less \
+	file \
+	mc \
+	vim-enhanced \
+	telnet \
+	net-tools \
+	which \
+	bash-completion \
+	openssh-clients \
+	libusb-devel \
+	libusbx-devel \
+	cmake \
+	wget \
+	git \
+	pkgconfig \
+	gcc \
+	make \
+	glibc \
+	autoconf \
+	automake \
+	filesystem \
+	libtool \
+	strace \
+	iproute \
+	traceroute
+
+# Install GCC 7
+WORKDIR /tmp
+RUN wget https://ftp.gnu.org/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz && \
+        tar xfz gcc-7.3.0.tar.gz
+RUN yum install -y \
+	libmpc-devel \
+	mpfr-devel \
+	gmp-devel \
+	gcc-c++ \
+	gcc-c++-devel \
+	zlib-devel \
+	zlib
+RUN cd gcc-7.3.0 && \
+	./configure --with-system-zlib --disable-multilib --enable-languages=c,c++ && \
+	make -j 8 && \
+	make install && \
+	rm -rf /tmp/gcc-7.3.0	
+
+# Update GLIBC
+RUN yum groupinstall -y "Development tools"
+RUN yum install -y \
+	glibc-devel.i686 \
+	glibc-i686
+
+WORKDIR /tmp
+RUN wget https://ftp.gnu.org/gnu/glibc/glibc-2.19.tar.gz && \
+	tar -xvzf glibc-2.19.tar.gz
+RUN cd glibc-2.19 && \
+	mkdir glibc-build && \
+	cd glibc-build && \
+	../configure --prefix='/usr' && \
+	make && \
+	make install && \
+	rm -rf /tmp/glibc-2.19
+
+ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/:${PKG_CONFIG_PATH}"
+
+ADD local-lib64.conf /etc/ld.so.conf.d/local-lib64.conf
+ADD local-lib.conf /etc/ld.so.conf.d/local-lib.conf
+RUN ldconfig 
+
+RUN gcc --version
+RUN ldd --version
+
+
+RUN yum -y install git cmake make mysql-devel glib2-static zlib-static pcre-static openssl-static glibc-static  
+RUN yum -y install centos-release-scl-rh
+RUN yum -y install devtoolset-3-libstdc++-devel
+
+RUN git clone https://github.com/pingcap/mydumper.git &&\
+    rm -f /usr/lib64/mysql/libmysqlclient.so* && \
+    cd mydumper && \
+    cmake . && \
+    make

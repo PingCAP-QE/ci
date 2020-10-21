@@ -1,0 +1,46 @@
+FROM hub.pingcap.net/jenkins/centos7_golang-1.13
+
+MAINTAINER Liu Yin <liuy@pingcap.com>
+
+USER root
+WORKDIR /root
+
+RUN curl -L http://172.16.30.25/download/tools/cmake-3.10.0.tar.gz -o cmake-3.10.0.tar.gz \
+	&& tar xzf cmake-3.10.0.tar.gz \
+	&& cd cmake-3.10.0 \
+	&& ./bootstrap \
+	&& make \
+	&& make install \
+	&& cmake --version \
+	&& rm -rf /cmake-3.10.0.tar.gz /cmake-3.10.0
+
+RUN curl -L https://github.com/gflags/gflags/archive/v2.1.2.tar.gz -o gflags.tar.gz \
+	&& tar xf gflags.tar.gz \
+	&& cd gflags-2.1.2 \
+	&& cmake . \
+	&& make -j \
+	&& make install \
+	&& rm -rf /gflags.tar.gz /gflags-2.1.2
+
+RUN curl -OL https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip \
+	&& unzip -o protoc-3.3.0-linux-x86_64.zip -d /usr/local bin/protoc \
+	&& rm -f protoc-3.3.0-linux-x86_64.zip
+
+RUN mkdir /rust && chown jenkins:jenkins /rust
+
+USER jenkins
+WORKDIR /rust
+
+ENV RUSTUP_HOME /rust
+ENV CARGO_HOME /rust
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly-2018-07-18 -y \
+	&& $RUSTUP_HOME/bin/rustup default nightly-2018-07-18
+
+ENV PATH $CARGO_HOME/bin:$RUSTUP_HOME/bin:$PATH
+
+RUN rustup component add rustfmt-preview
+RUN rustup component add clippy-preview
+
+USER jenkins
+WORKDIR /home/jenkins

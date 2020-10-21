@@ -1,0 +1,15 @@
+FROM hub.pingcap.net/jenkins/centos:7
+# RUN yum install centos-release-scl -y
+# RUN yum install devtoolset-7-gcc* -y
+# RUN scl enable devtoolset-3 bash
+RUN yum -y install epel-release
+RUN yum -y update
+ADD mysql8.repo /etc/yum.repos.d
+ADD RPM-GPG-KEY-mysql /etc/pki/rpm-gpg
+# RUN yum install git cmake make mysql-devel glib2-static zlib-static pcre-static openssl-static glibc-static libstdc++-static -y 
+RUN yum install gcc gcc-c++ git cmake make mysql-devel glib2-static zlib-static pcre-static openssl-static glibc-static libstdc++-static -y 
+RUN git clone https://github.com/pingcap/mydumper.git &&\
+    rm -f /usr/lib64/mysql/libmysqlclient.so* && \
+    cd mydumper && \
+    cmake . && \
+    make
