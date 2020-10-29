@@ -1,18 +1,5 @@
 def notRun = 1
-if (!params.force){
-    node("${GO_BUILD_SLAVE}"){
-		container("golang"){
-		 	notRun = sh(returnStatus: true, script: """
-			if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-			""")   
-		}
-	}
-}
 
-if (notRun == 0){
-	println "the ${ghprbActualCommit} has been tested"
-	return
-}
 def slackcolor = 'good'
 def githash
 
@@ -64,6 +51,22 @@ if (ghprbPullTitle != null && (ghprbPullTitle.find("DNM") != null || ghprbPullTi
 }
 
 try {
+    stage("Pre-check") {
+        if (!params.force){
+            node("${GO_BUILD_SLAVE}"){
+                container("golang"){
+                    notRun = sh(returnStatus: true, script: """
+                    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+                    """)   
+                }
+            }
+        }
+
+        if (notRun == 0){
+            println "the ${ghprbActualCommit} has been tested"
+            return
+        }
+    }
     stage("Prepare") {
         def clippy = {
             node("build_tikv") {
