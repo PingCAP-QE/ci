@@ -155,17 +155,6 @@ try {
                                 make clippy || (echo Please fix the clippy error; exit 1)
                                 """
 
-                                sh label: 'Run lint: clippy (PROST codec)', script: """
-                                export RUSTFLAGS=-Dwarnings
-                                export FAIL_POINT=1
-                                export ROCKSDB_SYS_SSE=1
-                                export RUST_BACKTRACE=1
-                                export LOG_LEVEL=INFO
-                                if [ \"${ghprbTargetBranch}\" != \"v2.1.17-hotfix\" ] && [ \"${ghprbTargetBranch}\" != \"release-2.0\" ] && [ \"${ghprbTargetBranch}\" != \"release-2.1\" ] && [ \"${ghprbTargetBranch}\" != \"release-3.1\" ]; then
-                                    PROST=1 make clippy || (echo Please fix the clippy error; exit 1)
-                                fi
-                                """
-
                                 sh label: 'Post-lint: Save lint status', script: """
                                 echo 1 > lint_passed
                                 curl -F tikv_test/${ghprbActualCommit}/lint_passed=@lint_passed ${FILE_SERVER2_URL}/upload
