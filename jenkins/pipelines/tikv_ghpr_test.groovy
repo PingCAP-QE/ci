@@ -751,14 +751,16 @@ try {
         parallel tests
     }
     currentBuild.result = "SUCCESS"
-    node("${GO_BUILD_SLAVE}"){
-		container("golang"){
-		    sh """
-		    echo "done" > done
-		    curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
-	    }
-	}  
+    stage('Post-test') {
+        node("${GO_BUILD_SLAVE}"){
+            container("golang"){
+                sh """
+                echo "done" > done
+                curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
+    }  
 } catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {
