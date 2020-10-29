@@ -56,12 +56,13 @@ try {
 
                         timeout(30) {
                             sh """
+                            while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
+
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                             curl ${tidb_test_url} | tar xz
 
                             cd ${test_dir}
 
-                            while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
                             (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
 
                             while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
