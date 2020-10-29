@@ -81,7 +81,7 @@ try {
     }
 
     stage('Integration Compatibility Test') {
-        node(test_node) {
+        node(GO_TEST_SLAVE) {
             def ws = pwd()
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
