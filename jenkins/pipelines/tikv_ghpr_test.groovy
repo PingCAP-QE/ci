@@ -64,7 +64,7 @@ try {
 
         if (notRun == 0){
             println "the ${ghprbActualCommit} has been tested"
-            return
+            throw new RuntimeException("hasBeenTested")
         }
     }
     stage("Prepare") {
@@ -762,9 +762,14 @@ try {
 } catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {
-    currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
-    echo "${e}"
+    errorDescription = e.getMessage()
+    if (errorDescription == "hasBeenTested") {
+        currentBuild.result = 'SUCCESS'
+    } else {
+        currentBuild.result = "FAILURE"
+        slackcolor = 'danger'
+        echo "${e}"
+    }
 }
 
 stage('Summary') {
