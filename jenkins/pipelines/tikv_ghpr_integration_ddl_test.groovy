@@ -23,9 +23,7 @@ def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m3) {
     TIDB_TEST_BRANCH = "${m3[0][1]}"
 }
-// if (TIDB_TEST_BRANCH == "release-3.0" || TIDB_TEST_BRANCH == "release-3.1") {
-    // TIDB_TEST_BRANCH = "release-3.0"
-// }
+
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
