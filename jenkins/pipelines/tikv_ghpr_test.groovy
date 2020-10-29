@@ -18,9 +18,7 @@ def githash
 
 def chunk_count = 20
 def ci_chunks = []
-// use default golang test pod
-//def GO_TEST_SLAVE = "test_go1120"
-//def GO_TEST_SLAVE = "test_go1130_tikv"
+
 ci_chunks.add("_0_ci_setup:")
 ci_chunks.add("_1_check_system_requirement:")
 
@@ -96,15 +94,6 @@ try {
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
                             }
                             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                                // sh label: 'Download lint dependencies', script: """
-                                // if curl ${FILE_SERVER2_URL}/download/rust_cache/${ghprbPullId}/dep_lint.tar.lz4 | lz4 -d - | tar x -C \$CARGO_HOME --warning=no-timestamp; then
-                                //     set +o pipefail
-                                // else
-                                //     if curl ${FILE_SERVER2_URL}/download/rust_cache/branch_${ghprbTargetBranch}/dep_lint.tar.lz4 | lz4 -d - | tar x -C \$CARGO_HOME --warning=no-timestamp; then
-                                //         set +o pipefail
-                                //     fi
-                                // fi
-                                // """
                                 timeout(30){
                                     sh label: 'Download lint cache', script: """
                                     # set -o pipefail
@@ -151,7 +140,7 @@ try {
 
                                 sh label: 'Run lint: format', script: """
                                 export RUSTFLAGS=-Dwarnings
-                                [ \"${ghprbTargetBranch}\" != \"release-2.0\" ] && ( make format && git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1) )
+                                make format && git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
                                 """
 
                                 sh label: 'Run lint: clippy', script: """
@@ -160,10 +149,7 @@ try {
                                 export ROCKSDB_SYS_SSE=1
                                 export RUST_BACKTRACE=1
                                 export LOG_LEVEL=INFO
-                                # export CARGO_LOG=cargo::core::compiler::fingerprint=debug
-                                if [ \"${ghprbTargetBranch}\" != \"v2.1.17-hotfix\" ] && [ \"${ghprbTargetBranch}\" != \"release-2.0\" ] && [ \"${ghprbTargetBranch}\" != \"release-2.1\" ] && [ \"${ghprbTargetBranch}\" != \"release-3.1\" ]; then
-                                    make clippy || (echo Please fix the clippy error; exit 1)
-                                fi
+                                make clippy || (echo Please fix the clippy error; exit 1)
                                 """
 
                                 sh label: 'Run lint: clippy (PROST codec)', script: """
@@ -309,17 +295,7 @@ try {
                                         rustup override unset
                                         rustc --version
                                         """
-                                        
-                                        // sh label: 'Check error code meta', script: """
-                                        // if [ "${ghprbTargetBranch}" == "release-4.0" ] || [ "${ghprbTargetBranch}" == "master" ]; then
-                                        //     make error-code
-                                        //     if [ `git --no-pager diff | wc -c` -ne 0 ]; then
-                                        //         echo "Please run `make error-code` to clean up"
-                                        //         git --no-pager diff
-                                        //         exit 1
-                                        //     fi
-                                        // fi
-                                        // """
+                                    
     
                                         sh label: 'Build test artifact', script: """
                                         export RUSTFLAGS=-Dwarnings
@@ -329,30 +305,20 @@ try {
                                         export LOG_LEVEL=INFO
                                         # export CARGO_LOG=cargo::core::compiler::fingerprint=debug
     
-                                        if [ "${ghprbTargetBranch}" = "release-2.1" ]; then
-                                            if LOG_LEVEL=INFO RUST_BACKTRACE=1 ROCKSDB_SYS_SSE=1 cargo test --features "default portable sse" --no-run --message-format=json --all --exclude tikv_fuzz > test.json ; then
-                                                echo ""
-                                            else
-                                                LOG_LEVEL=INFO RUST_BACKTRACE=1 ROCKSDB_SYS_SSE=1 cargo test --features "default portable sse" --no-run --all --exclude tikv_fuzz
-                                                exit 1
-                                            fi
+                                        set -o pipefail
+                                        
+                                        test="test"
+                                        if grep ci_test Makefile; then
+                                            test="ci_test"
+                                        fi
+                                        if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
+                                            set +o pipefail
                                         else
-                                            set -o pipefail
-                                            # export PROST=1
-                                            # replace `make dev` with `FAIL_POINT=1 make test` to accelerate build
-                                            test="test"
-                                            if grep ci_test Makefile; then
-                                                test="ci_test"
-                                            fi
-                                            if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
+                                            if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
                                                 set +o pipefail
                                             else
-                                                if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
-                                                    set +o pipefail
-                                                else
-                                                    EXTRA_CARGO_ARGS="--no-run" make test
-                                                    exit 1
-                                                fi
+                                                EXTRA_CARGO_ARGS="--no-run" make test
+                                                exit 1
                                             fi
                                         fi
                                         """
@@ -582,50 +548,6 @@ try {
             }
         }
 
-        def run_exact = { componment, exclude ->
-            node("${GO_TEST_SLAVE}") {
-                dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                    container("golang") {
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
-                        deleteDir()
-                        retry(retryCount) {timeout(30) {
-                            sh """
-                            export RUSTFLAGS=-Dwarnings
-                            export FAIL_POINT=1
-                            export RUST_BACKTRACE=1
-                            export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$(pwd)/lib
-                            curl -O ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/test_stash.gz
-                            tar xf test_stash.gz
-                            ls -la
-                            mkdir -p target/debug
-                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;chmod +x \$i;CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${exclude} --nocapture;done 2>&1 | tee tests.out
-                            curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
-                            chunk_count=`cat test.list | grep -E 'debug/([^/]*/)*${componment}' | wc -l`
-                            ok_count=`grep "test result: ok" tests.out | wc -l`
-                            if [ "\$chunk_count" -eq "\$ok_count" ]; then
-                              echo "test pass"
-                            else
-                              # test failed
-                              status=1
-                              curl -O http://fileserver.pingcap.net/download/builds/pingcap/ee/print-logs.py
-                              # python print-logs.py target/my_test.log
-                              printf "\n\n ===== cat target/my_test.log =====\n"
-                              cat target/my_test.log
-                            fi
-                            if cat tests.out | grep 'core dumped' > /dev/null 2>&1
-                            then
-                                # there is a core dumped, which should not happen.
-                                status=1
-                                echo 'there is a core dumped, which should not happen'
-                            fi
-                            exit \$status
-                            """
-                        }}
-                    }
-                }
-            }
-        }
 
         def run_root_exact = { componment, exclude ->
             node("${GO_TEST_SLAVE}") {
