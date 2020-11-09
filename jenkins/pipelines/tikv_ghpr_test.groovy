@@ -427,7 +427,7 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-								gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
@@ -474,7 +474,7 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-								gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
@@ -521,7 +521,7 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-								gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
@@ -583,7 +583,7 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-								gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
@@ -648,7 +648,7 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-								gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
