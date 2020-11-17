@@ -5,7 +5,7 @@ package parser
 //{“env”:[“unknown”]}  不能归类的都可以划分为 环境问题的 unknown 类型
 //{“case”:[“unknown”]}
 
-func ParseCILog(job string, ID string) map[string][]string {
+func ParseCILog(job string, ID int64) (map[string][]string, error) {
 
-	return nil
+	return nil, nil
 }

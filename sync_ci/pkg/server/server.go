@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/bndr/gojenkins"
 	"github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
+	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -93,11 +96,34 @@ type SyncHandler struct {
 }
 
 func (h *SyncHandler) syncData(c *gin.Context) {
-	//b, err := h.jenkins.GetBuild("tidb_ghpr_unit_test", 58291)
-	//if err != nil {
-	//	log.S().Error(err)
-	//}
-	//parameters := b.GetParameters()
-	//log.S().Info(parameters)
-	c.JSON(http.StatusOK, "resource")
+	var req model.SyncReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//job := "tidb_ghpr_unit_test"
+	//ID := 58291
+	ciData, err := parser.ParseCIJob(h.jenkins, req.Job, req.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	analysisRes, err := parser.ParseCILog(req.Job, req.ID)
+	if err != nil {
+		log.S().Error(err)
+	}
+	analysisResByt, err := json.Marshal(analysisRes)
+	if err != nil {
+		log.S().Error(err)
+	}
+	ciData.AnalysisRes = sql.NullString{
+		String: string(analysisResByt),
+		Valid:  err == nil && analysisRes != nil,
+	}
+	res := h.db.Create(ciData)
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.AbortWithStatus(http.StatusOK)
 }
