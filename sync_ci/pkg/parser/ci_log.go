@@ -46,21 +46,21 @@ func ParseCILog(job string, ID int64) (CIMatchResult, error) {
 
 	resultSet := CIMatchSet{}
 	caseSet := CICaseSet{}
-	rulesMatched, caseMatched := false, false
+	//rulesMatched, caseMatched := false, false
 
 	line, readErr := buffer.ReadString('\n')
 	nextLine, readErr := buffer.ReadString('\n')
 	secondNextLine, readErr := buffer.ReadString('\n')
 	for readErr == nil {
-		rulesMatched = rulesMatched || matchRules(ciMatchRules, line, resultSet)
-		caseMatched = caseMatched || matchCase(line, secondNextLine, caseSet)
+		matchRules(ciMatchRules, line, resultSet)
+		matchCase(line, secondNextLine, caseSet)
 		line, nextLine = nextLine, secondNextLine
 		secondNextLine, readErr = buffer.ReadString('\n')
 	}
-	rulesMatched = rulesMatched || matchRules(ciMatchRules, line, resultSet)
-	caseMatched = caseMatched || matchCase(line, "", caseSet)
-	rulesMatched = rulesMatched || matchRules(ciMatchRules, nextLine, resultSet)
-	caseMatched = caseMatched || matchCase(line, nextLine, caseSet)
+	matchRules(ciMatchRules, line, resultSet)
+	matchCase(line, "", caseSet)
+	matchRules(ciMatchRules, nextLine, resultSet)
+	matchCase(line, "", caseSet)
 	_ = fp.Close()
 	matchResult := resultSetToJson(resultSet, caseSet)
 
