@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -15,9 +16,11 @@ type CIMatchSet map[string]map[string]bool
 type CICaseSet map[string]int
 type CIMatchResult map[string][]string
 
-const logPathFormat = "/mnt/disks/87fd0455-804f-406e-a3ea-129debf3479b/jobs/%s/builds/%s/log"
+const logPathFormat = "/mnt/disks/87fd0455-804f-406e-a3ea-129debf3479b/jobs/%s/builds/%d/log"
 
+//const logPathFormat = "%s%d.log"
 var ciMatchRules = getRulesFromFile()
+
 const miscGroupName = "env"
 const miscProblemName = "unknown"
 
@@ -34,12 +37,11 @@ func getRulesFromFile() CIMatchRules {
 //{“env”:[“unknown”]}  不能归类的都可以划分为 环境问题的 unknown 类型
 //{“case”:[“unknown”]}
 func ParseCILog(job string, ID int64) (CIMatchResult, error) {
-  IDstr := string(ID)
-	logPath := fmt.Sprintf(logPathFormat, job, IDstr)
+	logPath := fmt.Sprintf(logPathFormat, job, ID)
 	fp, err := os.Open(logPath)
-  if err != nil {
-    return nil, err
-  }
+	if err != nil {
+		return nil, err
+	}
 	buffer := bufio.NewReader(fp)
 
 	resultSet := CIMatchSet{}
@@ -62,7 +64,7 @@ func ParseCILog(job string, ID int64) (CIMatchResult, error) {
 	_ = fp.Close()
 	matchResult := resultSetToJson(resultSet, caseSet)
 
-	return matchResult
+	return matchResult, nil
 }
 
 func resultSetToJson(resultSet CIMatchSet, caseSet CICaseSet) CIMatchResult {
@@ -70,7 +72,6 @@ func resultSetToJson(resultSet CIMatchSet, caseSet CICaseSet) CIMatchResult {
 	result := CIMatchResult{}
 	matchedResult := false
 	for groupName, group := range resultSet {
-		result[groupName] = make([]string, len(group))
 		for problem, exists := range group {
 			if exists {
 				matchedResult = true
@@ -146,7 +147,6 @@ func matchCase(line string, secondNextLine string, caseSet CICaseSet) bool {
 			}
 			caseSet[failFunc]++
 		}
-
 		return true
 	}
 	return false
@@ -154,7 +154,6 @@ func matchCase(line string, secondNextLine string, caseSet CICaseSet) bool {
 
 func assert(err error, msg string) {
 	if err != nil {
-		print(msg + ": " + err.Error())
-		os.Exit(1)
+		log.Fatal(msg + ": " + err.Error())
 	}
 }
