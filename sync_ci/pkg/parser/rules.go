@@ -2,7 +2,6 @@ package parser
 
 import (
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -16,14 +15,14 @@ var envRules = map[string]string{
 	"rewrite_error":       "Rewrite error",
 	"connection_closed":   "java\\.nio\\.channels\\.ClosedByInterruptException",
 	"connection_reset":    "[Cc]onnection reset",
-	"socket_timeout":      "java.net.SocketTimeoutException",
-	"socket_close":        "java.net.SocketException: Socket closed",
+	"socket_timeout":      "java\\.net\\.SocketTimeoutException",
+	"socket_close":        "java\\.net\\.SocketException: Socket closed",
 }
 var envParsers = []parser{
 	&envParser{envRules},
 }
-var caseParser = []parser{
-	&tidbUtParser{[]string{"tidb_ghpr_unit_test", "tidb_ghpr_check", "tidb_ghpr_check_2"}},
+var caseParsers = []parser{
+	&tidbUtParser{map[string]bool{"tidb_ghpr_unit_test": true, "tidb_ghpr_check": true, "tidb_ghpr_check_2": true}},
 }
 
 type parser interface {
@@ -31,14 +30,14 @@ type parser interface {
 }
 
 type tidbUtParser struct {
-	jobs []string
+	jobs map[string]bool
 }
 
 func (t *tidbUtParser) Parse(job string, lines []string) []string {
 	var res []string
 	pattern := `FAIL:|PANIC:|WARNING: DATA RACE`
 	r := regexp.MustCompile(pattern)
-	if len(t.jobs) == sort.SearchStrings(t.jobs, job) {
+	if _, ok := t.jobs[job]; !ok {
 		return res
 	}
 	if strings.Contains(lines[0], "FAIL: TestT") {

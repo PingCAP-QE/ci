@@ -34,16 +34,34 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		"case":    []string{},
 		"unknown": []string{},
 	}
+	envFilter := map[string]bool{}
+	caseFilter := map[string]bool{}
+
 	for {
 		//parse env failed job
 		for _, p := range envParsers {
-			res["env"] = append(res["env"], p.Parse(job, lines)...)
+			envRes := p.Parse(job, lines)
+			for _, v := range envRes {
+				if _, ok := envFilter[v]; ok {
+					res["env"] = append(res["env"], v)
+				} else {
+					envFilter[v] = true
+				}
+			}
 		}
 
 		//parse case failed job
-		for _, p := range caseParser {
-			res["case"] = append(res["case"], p.Parse(job, lines)...)
+		for _, p := range caseParsers {
+			caseRes := p.Parse(job, lines)
+			for _, v := range caseRes {
+				if _, ok := caseFilter[v]; ok {
+					res["case"] = append(res["case"], v)
+				} else {
+					caseFilter[v] = true
+				}
+			}
 		}
+
 		line, err := readLines(buffer, 1)
 		if err != nil && err != io.EOF {
 			return nil, err
