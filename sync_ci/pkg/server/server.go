@@ -108,6 +108,11 @@ func (h *SyncHandler) syncData(c *gin.Context) {
 }
 
 func (h *SyncHandler) syncDataJob(job string, ID int64) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.S().Errorf("recovery from panic , [error] %v", r)
+		}
+	}()
 	timeout := 10 * time.Minute
 	err := wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
 		jobStatus, err := parser.GetJobStatus(h.jenkins, job, ID)

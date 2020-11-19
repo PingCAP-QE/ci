@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 )
 
 const PreReadLines = 10
@@ -23,6 +22,7 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer fp.Close()
 	buffer := bufio.NewReader(fp)
 	//some parse rule need pre read lines
 	lines, err := readLines(buffer, PreReadLines)
@@ -54,7 +54,6 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		lines = append(lines, line[0])
 		lines = lines[1:]
 	}
-	reflect.ValueOf(res).MapKeys()
 	return res, nil
 }
 
