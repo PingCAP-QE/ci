@@ -26,14 +26,14 @@ var caseParsers = []parser{
 }
 
 type parser interface {
-	Parse(job string, lines []string) []string
+	parse(job string, lines []string) []string
 }
 
 type tidbUtParser struct {
 	jobs map[string]bool
 }
 
-func (t *tidbUtParser) Parse(job string, lines []string) []string {
+func (t *tidbUtParser) parse(job string, lines []string) []string {
 	var res []string
 	pattern := `FAIL:|PANIC:|WARNING: DATA RACE`
 	r := regexp.MustCompile(pattern)
@@ -66,7 +66,7 @@ type envParser struct {
 	rules map[string]string
 }
 
-func (t *envParser) Parse(job string, lines []string) []string {
+func (t *envParser) parse(job string, lines []string) []string {
 	var res []string
 	for rule, pattern := range t.rules {
 		matched, _ := regexp.MatchString(pattern, lines[0])

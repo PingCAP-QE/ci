@@ -39,28 +39,10 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 
 	for {
 		//parse env failed job
-		for _, p := range envParsers {
-			envRes := p.Parse(job, lines)
-			for _, v := range envRes {
-				if _, ok := envFilter[v]; ok {
-					res["env"] = append(res["env"], v)
-				} else {
-					envFilter[v] = true
-				}
-			}
-		}
+		res["env"] = append(res["env"], parse(job, lines, envParsers, envFilter)...)
 
 		//parse case failed job
-		for _, p := range caseParsers {
-			caseRes := p.Parse(job, lines)
-			for _, v := range caseRes {
-				if _, ok := caseFilter[v]; ok {
-					res["case"] = append(res["case"], v)
-				} else {
-					caseFilter[v] = true
-				}
-			}
-		}
+		res["case"] = append(res["case"], parse(job, lines, caseParsers, caseFilter)...)
 
 		line, err := readLines(buffer, 1)
 		if err != nil && err != io.EOF {
@@ -74,6 +56,19 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	}
 	reflect.ValueOf(res).MapKeys()
 	return res, nil
+}
+
+func parse(job string, lines []string, ps []parser, filter map[string]bool) (res []string) {
+	for _, p := range ps {
+		pRes := p.parse(job, lines)
+		for _, v := range pRes {
+			if _, ok := filter[v]; !ok {
+				res = append(res, v)
+				filter[v] = true
+			}
+		}
+	}
+	return
 }
 
 func readLines(buffer *bufio.Reader, n int) (lines []string, err error) {
