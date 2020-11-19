@@ -2,15 +2,19 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/bndr/gojenkins"
 	"github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
+	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"os/signal"
@@ -52,7 +56,8 @@ func (s *Server) setupDB() (*gorm.DB, error) {
 	d.SetMaxIdleConns(10)
 	d.SetMaxOpenConns(100)
 	d.SetConnMaxIdleTime(time.Hour)
-	return db, nil
+	res := db.Exec(model.TableCreateSql)
+	return db, res.Error
 }
 
 func (s *Server) setupHttpServer() (httpServer *http.Server) {
@@ -93,11 +98,48 @@ type SyncHandler struct {
 }
 
 func (h *SyncHandler) syncData(c *gin.Context) {
-	//b, err := h.jenkins.GetBuild("tidb_ghpr_unit_test", 58291)
-	//if err != nil {
-	//	log.S().Error(err)
-	//}
-	//parameters := b.GetParameters()
-	//log.S().Info(parameters)
-	c.JSON(http.StatusOK, "resource")
+	var req model.SyncReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	go h.syncDataJob(req.Job, req.ID)
+	c.AbortWithStatus(http.StatusOK)
+}
+
+func (h *SyncHandler) syncDataJob(job string, ID int64) {
+	timeout := 10 * time.Minute
+	err := wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
+		jobStatus, err := parser.GetJobStatus(h.jenkins, job, ID)
+		_, ok := map[string]bool{"FAILURE": true, "SUCCESS": true, "ABORTED": true}[jobStatus]
+		if ok {
+			return true, err
+		}
+		return false, err
+	})
+	if err != nil {
+		log.S().Errorf("wait poll job status error, [job] %v,[ID] %v,[error] %v", job, ID, err)
+		return
+	}
+	ciData, err := parser.ParseCIJob(h.jenkins, job, ID)
+	if err != nil {
+		log.S().Errorf("parse ci job api error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+		return
+	}
+	analysisRes, err := parser.ParseCILog(job, ID)
+	if err != nil {
+		log.S().Errorf("parse ci job log error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+	}
+	analysisResByt, err := json.Marshal(analysisRes)
+	if err != nil {
+		log.S().Errorf("json marshal error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+	}
+	ciData.AnalysisRes = sql.NullString{
+		String: string(analysisResByt),
+		Valid:  err == nil && analysisRes != nil,
+	}
+	res := h.db.Create(ciData)
+	if res.Error != nil {
+		log.S().Errorf("database create record error , [job] %v,[ID] %v,[error] %v", job, ID, res.Error)
+	}
 }

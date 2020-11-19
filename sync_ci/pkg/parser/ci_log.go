@@ -17,7 +17,7 @@ type CIMatchResult map[string][]string
 
 const logPathFormat = "/mnt/disks/87fd0455-804f-406e-a3ea-129debf3479b/jobs/%s/builds/%s/log"
 
-var ciMatchRules = getRulesFromFile() // todo: whether static or dynamic load
+var ciMatchRules = getRulesFromFile()
 const miscGroupName = "env"
 const miscProblemName = "unknown"
 
@@ -25,7 +25,7 @@ func getRulesFromFile() CIMatchRules {
 	data, err := ioutil.ReadFile("rules.json") // todo: ensure project root
 	assert(err, "Cannot load parsing rules from file")
 	rules := CIMatchRules{}
-	assert(json.Unmarshal(data, &rules), "Check file rules format")
+	assert(json.Unmarshal(data, &rules), "Check json rules format")
 	return rules
 }
 
@@ -33,10 +33,13 @@ func getRulesFromFile() CIMatchRules {
 //{“env”:[“socket timeout”,”kill process”],”case”:[“executor_test.go:testCoprCache.TestIntegrationCopCache”]}
 //{“env”:[“unknown”]}  不能归类的都可以划分为 环境问题的 unknown 类型
 //{“case”:[“unknown”]}
-func ParseCILog(job string, ID string) CIMatchResult {
-	logPath := fmt.Sprintf(logPathFormat, job, ID)
+func ParseCILog(job string, ID int64) (CIMatchResult, error) {
+  IDstr := string(ID)
+	logPath := fmt.Sprintf(logPathFormat, job, IDstr)
 	fp, err := os.Open(logPath)
-	assert(err, "Cannot load log file")
+  if err != nil {
+    return nil, err
+  }
 	buffer := bufio.NewReader(fp)
 
 	resultSet := CIMatchSet{}

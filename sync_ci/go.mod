@@ -12,4 +12,5 @@ require (
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
 	gorm.io/driver/mysql v1.0.3
 	gorm.io/gorm v1.20.6
+	k8s.io/apimachinery v0.19.4
 )
