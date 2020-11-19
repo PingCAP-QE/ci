@@ -126,17 +126,19 @@ func (h *SyncHandler) syncDataJob(job string, ID int64) {
 		log.S().Errorf("parse ci job api error , [job] %v,[ID] %v,[error] %v", job, ID, err)
 		return
 	}
-	analysisRes, err := parser.ParseCILog(job, ID)
-	if err != nil {
-		log.S().Errorf("parse ci job log error , [job] %v,[ID] %v,[error] %v", job, ID, err)
-	}
-	analysisResByt, err := json.Marshal(analysisRes)
-	if err != nil {
-		log.S().Errorf("json marshal error , [job] %v,[ID] %v,[error] %v", job, ID, err)
-	}
-	ciData.AnalysisRes = sql.NullString{
-		String: string(analysisResByt),
-		Valid:  err == nil && analysisRes != nil,
+	if ciData.Status != "SUCCESS" {
+		analysisRes, err := parser.ParseCILog(job, ID)
+		if err != nil {
+			log.S().Errorf("parse ci job log error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+		}
+		analysisResByt, err := json.Marshal(analysisRes)
+		if err != nil {
+			log.S().Errorf("json marshal error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+		}
+		ciData.AnalysisRes = sql.NullString{
+			String: string(analysisResByt),
+			Valid:  err == nil && analysisRes != nil,
+		}
 	}
 	res := h.db.Create(ciData)
 	if res.Error != nil {
