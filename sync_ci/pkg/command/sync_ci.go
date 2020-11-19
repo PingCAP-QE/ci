@@ -22,7 +22,7 @@ func (*SyncCICommand) Usage() string {
 }
 
 func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&s.Dsn, "dsn", "root:123456@tcp(172.16.5.219:3306)/sync_ci_data", "dsn")
+	f.StringVar(&s.Dsn, "dsn", "root:@tcp(127.0.0.1:3306)/sync_ci_data", "dsn")
 	f.StringVar(&s.Port, "port", "36000", "http service port")
 }
 

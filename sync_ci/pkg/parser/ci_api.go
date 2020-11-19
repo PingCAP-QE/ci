@@ -7,8 +7,7 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 )
 
-//重试，幂等
-//如果 job 在 building，等待
+
 func ParseCIJob(jenkins *gojenkins.Jenkins, job string, ID int64) (*model.CiData, error) {
 	build, err := jenkins.GetBuild(job, ID)
 	if err != nil {
@@ -49,4 +48,12 @@ func ParseCIJob(jenkins *gojenkins.Jenkins, job string, ID int64) (*model.CiData
 	}
 
 	return &ciData, nil
+}
+
+func GetJobStatus(jenkins *gojenkins.Jenkins, job string, ID int64) (string, error) {
+	build, err := jenkins.GetBuild(job, ID)
+	if err != nil {
+		return "", err
+	}
+	return build.GetResult(), nil
 }
