@@ -37,7 +37,7 @@ type tidbUtParser struct {
 func (t *tidbUtParser) Parse(job string, lines []string) []string {
 	var res []string
 	pattern := `FAIL:|PANIC:|WARNING: DATA RACE`
-	r, _ := regexp.Compile(pattern)
+	r := regexp.MustCompile(pattern)
 	if len(t.jobs) == sort.SearchStrings(t.jobs, job) {
 		return res
 	}
@@ -50,10 +50,11 @@ func (t *tidbUtParser) Parse(job string, lines []string) []string {
 	}
 	if matchedStr == "WARNING: DATA RACE" {
 		failLine := strings.TrimSpace(lines[2])
-		failDetail := strings.Join([]string{"DATA RACE", strings.Split(failLine, " ")[1]}, ":")
+		failDetail := strings.Join([]string{"DATA RACE", regexp.MustCompile("[^\\s]+").FindAllString(failLine, -1)[1]}, ":")
 		res = append(res, failDetail)
 		return res
 	}
+	//parse panic or func fail
 	failLine := strings.TrimSpace(lines[0])
 	failCodePosition := strings.Split(
 		strings.Split(failLine, " ")[2], ":")[0]

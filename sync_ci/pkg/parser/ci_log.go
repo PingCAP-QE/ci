@@ -3,7 +3,9 @@ package parser
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
+	"reflect"
 )
 
 const PreReadLines = 10
@@ -32,7 +34,7 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		"case":    []string{},
 		"unknown": []string{},
 	}
-	for err == nil {
+	for {
 		//parse env failed job
 		for _, p := range envParsers {
 			res["env"] = append(res["env"], p.Parse(job, lines)...)
@@ -43,12 +45,16 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 			res["case"] = append(res["case"], p.Parse(job, lines)...)
 		}
 		line, err := readLines(buffer, 1)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, err
+		}
+		if err == io.EOF {
+			break
 		}
 		lines = append(lines, line[0])
 		lines = lines[1:]
 	}
+	reflect.ValueOf(res).MapKeys()
 	return res, nil
 }
 
@@ -56,7 +62,7 @@ func readLines(buffer *bufio.Reader, n int) (lines []string, err error) {
 	for i := 0; i < n; i++ {
 		line, err := buffer.ReadString('\n')
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 		lines = append(lines, line)
 	}
