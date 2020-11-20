@@ -18,7 +18,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 
 [Service]
 User=root
-ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}"
+ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}" -lp "$(INSTALL_DIR)/log"
 Restart=always
 
 [Install]
@@ -31,6 +31,7 @@ install:
 	@make binary
 	@mv bin/sync-ci-service $(INSTALL_DIR)/sync-ci-service
 	@echo "$$data" > /etc/systemd/system/sync-ci.service
+	@systemctl daemon-reload
 
 clean:
 	rm -rf bin/
