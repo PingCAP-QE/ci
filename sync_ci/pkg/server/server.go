@@ -108,6 +108,11 @@ func (h *SyncHandler) syncData(c *gin.Context) {
 }
 
 func (h *SyncHandler) syncDataJob(job string, ID int64) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.S().Errorf("recovery from panic , [error] %v", r)
+		}
+	}()
 	timeout := 10 * time.Minute
 	err := wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
 		jobStatus, err := parser.GetJobStatus(h.jenkins, job, ID)
@@ -126,17 +131,19 @@ func (h *SyncHandler) syncDataJob(job string, ID int64) {
 		log.S().Errorf("parse ci job api error , [job] %v,[ID] %v,[error] %v", job, ID, err)
 		return
 	}
-	analysisRes, err := parser.ParseCILog(job, ID)
-	if err != nil {
-		log.S().Errorf("parse ci job log error , [job] %v,[ID] %v,[error] %v", job, ID, err)
-	}
-	analysisResByt, err := json.Marshal(analysisRes)
-	if err != nil {
-		log.S().Errorf("json marshal error , [job] %v,[ID] %v,[error] %v", job, ID, err)
-	}
-	ciData.AnalysisRes = sql.NullString{
-		String: string(analysisResByt),
-		Valid:  err == nil && analysisRes != nil,
+	if ciData.Status != "SUCCESS" {
+		analysisRes, err := parser.ParseCILog(job, ID)
+		if err != nil {
+			log.S().Errorf("parse ci job log error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+		}
+		analysisResByt, err := json.Marshal(analysisRes)
+		if err != nil {
+			log.S().Errorf("json marshal error , [job] %v,[ID] %v,[error] %v", job, ID, err)
+		}
+		ciData.AnalysisRes = sql.NullString{
+			String: string(analysisResByt),
+			Valid:  err == nil && analysisRes != nil,
+		}
 	}
 	res := h.db.Create(ciData)
 	if res.Error != nil {
