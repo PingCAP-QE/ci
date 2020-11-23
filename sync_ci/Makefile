@@ -31,6 +31,7 @@ install:
 	@make binary
 	@mv bin/sync-ci-service $(INSTALL_DIR)/sync-ci-service
 	@echo "$$data" > /etc/systemd/system/sync-ci.service
+	@systemctl enable sync-ci.service
 	@systemctl daemon-reload
 
 clean:

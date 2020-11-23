@@ -11,7 +11,7 @@ const TableCreateSql = `CREATE TABLE if not exists ci_data (
   status enum('SUCCESS','FAILURE','ABORTED') NOT NULL,
   duration int(10) unsigned DEFAULT NULL,
   time datetime DEFAULT NULL,
-  commit varchar(100) DEFAULT NULL,
+  commit text,
   branch varchar(100) DEFAULT NULL,
   comment varchar(100) DEFAULT NULL,
   repo varchar(100) DEFAULT NULL,
@@ -35,7 +35,7 @@ type CiData struct {
 	Time        time.Time      `gorm:"column:time;type:datetime;"`
 	Commit      sql.NullString `gorm:"column:commit;type:varchar;size:100;"`
 	Branch      sql.NullString `gorm:"column:branch;type:varchar;size:100;"`
-	Comment     sql.NullString `gorm:"column:comment;type:varchar;size:100;"`
+	Comment     sql.NullString `gorm:"column:comment;type:text;size:65535;"`
 	AnalysisRes sql.NullString `gorm:"column:analysis_res;type:json;"`
 	Description sql.NullString `gorm:"column:description;type:json;"`
 	Repo        sql.NullString `gorm:"column:repo;type:varchar;size:100;"`
