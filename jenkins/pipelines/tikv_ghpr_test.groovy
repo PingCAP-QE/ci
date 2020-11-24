@@ -411,7 +411,7 @@ try {
                                 CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --nocapture 2>&1 | tee tmp_tests.out;
                                 cat tmp_tests.out >> tests.out;
                                 if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
-                                    core_file=`ls -t core.* | head -1` gdb \$i $core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
                                 fi;
                             done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
@@ -466,7 +466,7 @@ try {
                                 CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --skip ${exclude1} --skip ${exclude2} --skip ${exclude3} --skip ${exclude4} --skip ${exclude5} --nocapture  2>&1 | tee tmp_tests.out;
                                 cat tmp_tests.out >> tests.out;
                                 if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
-                                    core_file=`ls -t core.* | head -1` gdb \$i $core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
                                 fi;
                             done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
@@ -522,7 +522,7 @@ try {
                                 CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --skip ${exclude1} --skip ${exclude2} --skip ${exclude3} --nocapture 2>&1 | tee tmp_tests.out;
                                 cat tmp_tests.out >> tests.out;
                                 if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
-                                    core_file=`ls -t core.* | head -1` gdb \$i $core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
                                 fi;
                             done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
@@ -592,7 +592,7 @@ try {
                                 chmod +x \$i;CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${exclude} --nocapture 2>&1 | tee tmp_tests.out;
                                 cat tmp_tests.out >> tests.out;
                                 if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
-                                    core_file=`ls -t core.* | head -1` gdb \$i $core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
                                 fi;
                             done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
@@ -662,7 +662,7 @@ try {
                                 CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${skipStr} --nocapture 2>&1 | tee tmp_tests.out;
                                 cat tmp_tests.out >> tests.out;
                                 if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
-                                    core_file=`ls -t core.* | head -1` gdb \$i $core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
                                 fi;
                             done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
