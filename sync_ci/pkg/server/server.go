@@ -31,6 +31,9 @@ func NewServer(cfg *model.Config) *Server {
 }
 
 func (s *Server) Run() {
+	if err:=model.InitLog(s.cfg.LogPath);err!=nil{
+		log.S().Fatalf("init log error , [error]", err)
+	}
 	httpServer := s.setupHttpServer()
 	go httpServer.ListenAndServe()
 
@@ -61,6 +64,7 @@ func (s *Server) setupDB() (*gorm.DB, error) {
 }
 
 func (s *Server) setupHttpServer() (httpServer *http.Server) {
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	logger := log.L()
 	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))

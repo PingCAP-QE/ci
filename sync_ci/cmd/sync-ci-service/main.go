@@ -13,7 +13,6 @@ import (
 
 func main() {
 	defer log.Sync()
-
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")

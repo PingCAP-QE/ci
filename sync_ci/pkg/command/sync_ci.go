@@ -24,6 +24,7 @@ func (*SyncCICommand) Usage() string {
 func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.Dsn, "dsn", "root:@tcp(127.0.0.1:3306)/sync_ci_data", "dsn")
 	f.StringVar(&s.Port, "port", "36000", "http service port")
+	f.StringVar(&s.LogPath,"lp","log","log path")
 }
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
