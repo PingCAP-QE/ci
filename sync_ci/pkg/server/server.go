@@ -31,11 +31,12 @@ func NewServer(cfg *model.Config) *Server {
 }
 
 func (s *Server) Run() {
-	if err:=model.InitLog(s.cfg.LogPath);err!=nil{
+	if err := model.InitLog(s.cfg.LogPath); err != nil {
 		log.S().Fatalf("init log error , [error]", err)
 	}
 	httpServer := s.setupHttpServer()
 	go httpServer.ListenAndServe()
+	go parser.UpdateRulesPeriodic(10 * time.Second)
 
 	ch := make(chan os.Signal)
 	defer close(ch)

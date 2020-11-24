@@ -1,8 +1,13 @@
 package parser
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var envRules = map[string]string{
@@ -18,6 +23,9 @@ var envRules = map[string]string{
 	"socket_timeout":      "java\\.net\\.SocketTimeoutException",
 	"socket_close":        "java\\.net\\.SocketException: Socket closed",
 }
+
+const EnvRuleFilePath = "envrules.json"
+
 var envParsers = []parser{
 	&envParser{envRules},
 }
@@ -75,4 +83,37 @@ func (t *envParser) parse(job string, lines []string) []string {
 		}
 	}
 	return res
+}
+
+func UpdateRules() error {
+	// assumed one level json dictionary
+	file, err := os.Open(EnvRuleFilePath)
+	if err != nil {
+		return err // file not exist
+	}
+	defer file.Close()
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err // io error
+	}
+
+	newEnvRules := map[string]string{}
+	err = json.Unmarshal(content, &newEnvRules)
+	if err != nil {
+		return err // invalid json format
+	}
+	envRules = newEnvRules
+
+	return nil
+}
+
+func UpdateRulesPeriodic(period time.Duration) {
+	for {
+		err := UpdateRules()
+		if err != nil {
+			log.Print("Rules update error - ", err)
+		}
+		time.Sleep(period)
+	}
 }
