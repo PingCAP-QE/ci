@@ -3,26 +3,14 @@ package parser
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
+	"github.com/pingcap/log"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 )
 
-var envRules = map[string]string{
-	"plugin_ver_mismatch": "[FATAL].*?plugin was built with a different version of package",
-	"dns_resolve_failure": "Could not resolve host",
-	"pod_vanish":          "\\[get\\]  for kind: \\[Pod\\]  with name: \\[(.*?)\\]  in namespace: \\[jenkins-ci\\]  failed",
-	"http_500":            "500 Internal Server Error",
-	"kill_signal":         "signal killed|signal interrupt",
-	"core_dumped":         "core dumped",
-	"rewrite_error":       "Rewrite error",
-	"connection_closed":   "java\\.nio\\.channels\\.ClosedByInterruptException",
-	"connection_reset":    "[Cc]onnection reset",
-	"socket_timeout":      "java\\.net\\.SocketTimeoutException",
-	"socket_close":        "java\\.net\\.SocketException: Socket closed",
-}
+var envRules = map[string]string{}
 
 const EnvRuleFilePath = "envrules.json"
 
