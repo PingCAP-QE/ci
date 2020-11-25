@@ -31,11 +31,17 @@ func NewServer(cfg *model.Config) *Server {
 }
 
 func (s *Server) Run() {
-	if err:=model.InitLog(s.cfg.LogPath);err!=nil{
+	if err := model.InitLog(s.cfg.LogPath); err != nil {
 		log.S().Fatalf("init log error , [error]", err)
 	}
+	ruleFilePath := s.cfg.RulePath
+	if err := parser.UpdateRules(ruleFilePath); err != nil { // init log fail
+		log.S().Fatalf("init rule file error, [error]", err)
+	}
+
 	httpServer := s.setupHttpServer()
 	go httpServer.ListenAndServe()
+	go parser.UpdateRulesPeriodic(ruleFilePath, 10*time.Second)
 
 	ch := make(chan os.Signal)
 	defer close(ch)

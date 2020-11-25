@@ -1,23 +1,19 @@
 package parser
 
 import (
+	"encoding/json"
+	"github.com/pingcap/log"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
-var envRules = map[string]string{
-	"plugin_ver_mismatch": "[FATAL].*?plugin was built with a different version of package",
-	"dns_resolve_failure": "Could not resolve host",
-	"pod_vanish":          "\\[get\\]  for kind: \\[Pod\\]  with name: \\[(.*?)\\]  in namespace: \\[jenkins-ci\\]  failed",
-	"http_500":            "500 Internal Server Error",
-	"kill_signal":         "signal killed|signal interrupt",
-	"core_dumped":         "core dumped",
-	"rewrite_error":       "Rewrite error",
-	"connection_closed":   "java\\.nio\\.channels\\.ClosedByInterruptException",
-	"connection_reset":    "[Cc]onnection reset",
-	"socket_timeout":      "java\\.net\\.SocketTimeoutException",
-	"socket_close":        "java\\.net\\.SocketException: Socket closed",
-}
+var envRules = map[string]string{}
+
+//var EnvRuleFilePath = "envrules.json"
+
 var envParsers = []parser{
 	&envParser{envRules},
 }
@@ -75,4 +71,37 @@ func (t *envParser) parse(job string, lines []string) []string {
 		}
 	}
 	return res
+}
+
+func UpdateRules(rulePath string) error {
+	// assumed one level json dictionary
+	file, err := os.Open(rulePath)
+	if err != nil {
+		return err // file not exist
+	}
+	defer file.Close()
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err // io error
+	}
+
+	newEnvRules := map[string]string{}
+	err = json.Unmarshal(content, &newEnvRules)
+	if err != nil {
+		return err // invalid json format
+	}
+	envRules = newEnvRules
+
+	return nil
+}
+
+func UpdateRulesPeriodic(rulePath string, period time.Duration) {
+	for {
+		err := UpdateRules(rulePath)
+		if err != nil {
+			log.S().Errorf("Rules update failed: [error]", err)
+		}
+		time.Sleep(period)
+	}
 }
