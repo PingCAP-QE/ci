@@ -2,8 +2,8 @@ package parser
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"github.com/pingcap/log"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -12,7 +12,7 @@ import (
 
 var envRules = map[string]string{}
 
-const EnvRuleFilePath = "envrules.json"
+//var EnvRuleFilePath = "envrules.json"
 
 var envParsers = []parser{
 	&envParser{envRules},
@@ -73,9 +73,9 @@ func (t *envParser) parse(job string, lines []string) []string {
 	return res
 }
 
-func UpdateRules() error {
+func UpdateRules(rulePath string) error {
 	// assumed one level json dictionary
-	file, err := os.Open(EnvRuleFilePath)
+	file, err := os.Open(rulePath)
 	if err != nil {
 		return err // file not exist
 	}
@@ -96,11 +96,11 @@ func UpdateRules() error {
 	return nil
 }
 
-func UpdateRulesPeriodic(period time.Duration) {
+func UpdateRulesPeriodic(rulePath string, period time.Duration) {
 	for {
-		err := UpdateRules()
+		err := UpdateRules(rulePath)
 		if err != nil {
-			log.Print("Rules update error - ", err)
+			log.Error("Rules update error - ", err)
 		}
 		time.Sleep(period)
 	}
