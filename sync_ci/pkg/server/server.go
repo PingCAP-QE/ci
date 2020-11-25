@@ -34,7 +34,7 @@ func (s *Server) Run() {
 	if err := model.InitLog(s.cfg.LogPath); err != nil {
 		log.S().Fatalf("init log error , [error]", err)
 	}
-	ruleFilePath := s.cfg.ConfigPath
+	ruleFilePath := s.cfg.RulePath
 	if err := parser.UpdateRules(ruleFilePath); err != nil { // init log fail
 		log.S().Fatalf("init rule file error, [error]", err)
 	}
