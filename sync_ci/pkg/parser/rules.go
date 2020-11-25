@@ -100,7 +100,7 @@ func UpdateRulesPeriodic(rulePath string, period time.Duration) {
 	for {
 		err := UpdateRules(rulePath)
 		if err != nil {
-			log.Error("Rules update error - ", err)
+			log.Error("Rules update error")
 		}
 		time.Sleep(period)
 	}
