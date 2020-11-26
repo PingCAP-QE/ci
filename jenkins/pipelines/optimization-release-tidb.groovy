@@ -79,7 +79,7 @@ catchError {
         builds = [:]
 
         builds["Build on linux/amd64"] = {
-            build job: "build-linux-amd64-4.0",
+            build job: "optimization-build-tidb-linux-amd",
                     wait: true,
 //                    dumpling
                     parameters: [
@@ -100,7 +100,7 @@ catchError {
         }
 
         builds["Build on linux/arm64"] = {
-            build job: "build-linux-arm64-4.0",
+            build job: "optimization-build-tidb-linux-arm",
                     wait: true,
                     parameters: [
                             [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
@@ -121,7 +121,7 @@ catchError {
         }
 
         builds["Build on darwin/amd64"] = {
-            build job: "build-darwin-amd64-4.0",
+            build job: "optimization-build-tidb-darwin-amd",
                     wait: true,
                     parameters: [
                             [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
@@ -161,12 +161,12 @@ catchError {
             stage('download') {
                 dir('centos7') {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
-
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer.tar.gz | tar xz"
+
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
@@ -596,7 +596,7 @@ __EOF__
                     docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
                 }
             }
-
+//ticdc 编译，制作镜像，push
             builds["Push cdc Docker"] = {
                 build job: 'release_cdc_docker',
                         wait: true,
