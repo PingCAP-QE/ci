@@ -17,6 +17,8 @@ def githash
 def os = "linux"
 def arch = "amd64"
 
+// 为了和之前兼容，linux amd 的 build 和上传包的内容都采用 build_xxx_multi_branch 中的 build 脚本
+// linux arm 和 Darwin amd 保持不变
 try {
     node("build_go1130") {
         container("golang") {
@@ -253,8 +255,8 @@ try {
                         sh """
                         git tag -d ${RELEASE_TAG} || true
                         git tag ${RELEASE_TAG} ${TIKV_HASH}
-                        CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
-                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
+                        CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make dist_release
+                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }

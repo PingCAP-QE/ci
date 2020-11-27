@@ -28,9 +28,9 @@ def build_upload = { product, hash, binary ->
             }
 
             def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
-            def filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${binary}.tar.gz"
+            def filepath = "builds/pingcap/${product}/${hash}/darwin/${binary}.tar.gz"
             if (product == "br") {
-                filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
+                filepath = "builds/pingcap/${product}/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
             }
             if (product == "tidb-ctl") {
                 sh """
@@ -115,7 +115,7 @@ try {
         stage("Build TiKV") {
             dir("go/src/github.com/pingcap/tikv") {
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/darwin/tikv-server.tar.gz"
+                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -144,7 +144,7 @@ try {
         stage("Build Importer") {
             dir("go/src/github.com/pingcap/importer") {
                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/darwin/importer.tar.gz"
+                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/darwin/importer.tar.gz"
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
@@ -172,7 +172,7 @@ try {
             stage("build tiflash") {
                 dir("tics") {
                     def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
+                    def filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                     retry(20) {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()

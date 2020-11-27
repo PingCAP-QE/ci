@@ -151,7 +151,6 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                                 string(name: 'BR_BRANCH_AND_COMMIT', value: release_info.release_branch + "/" + release_info.br_commit),
                                 string(name: 'TICDC_BRANCH_OR_COMMIT', value: release_info.ticdc_commit),
                                 string(name: 'TOOLS_BRANCH_OR_COMMIT', value: release_info.tools_commit),
-//                                release-4.0/2e2ca33f72f8594041f0df83d60e6ddaf228f797
                                 string(name: 'TIFLASH_BRANCH_AND_COMMIT', value: release_info.release_branch + "/" + release_info.tiflash_commit),
                         ]
                         build(job: "tidb_and_tools_e2e_test", parameters: params)

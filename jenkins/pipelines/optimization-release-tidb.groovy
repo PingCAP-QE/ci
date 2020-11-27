@@ -64,7 +64,7 @@ catchError {
                         importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
                         cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
-//                        release stage 只编译 tikv 和 importer
+//                        考虑到 tikv 和 importer 的 bump version，release stage 只编译 tikv 和 importer
                         BUILD_TIKV_IMPORTER = "true"
                     }
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
@@ -81,7 +81,6 @@ catchError {
         builds["Build on linux/amd64"] = {
             build job: "optimization-build-tidb-linux-amd",
                     wait: true,
-//                    dumpling
                     parameters: [
                             [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
                             [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
@@ -92,6 +91,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
@@ -177,19 +177,19 @@ catchError {
                 }
 
                 dir('arm') {
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${tidb_sha1}/centos7/tidb-server-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${tikv_sha1}/centos7/tikv-server-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_sha1}/centos7/pd-server-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${tidb_lightning_sha1}/centos7/tidb-lightning-linux-arm64.tar.gz | tar xz"
 
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools-linux-arm64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${dumpling_sha1}/centos7/dumpling-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/${importer_sha1}/centos7/importer-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools-linux-arm64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling-linux-arm64.tar.gz | tar xz"
                     // sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash-linux-arm64.tar.gz | tar xz"
                 }
 
                 dir('etcd') {
@@ -612,7 +612,7 @@ __EOF__
                         wait: true,
                         parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
             }
-
+// monitoring 编译，upload
             stage("trigger release monitor") {
                 build job: 'release-monitor',
                         wait: true,
@@ -636,7 +636,7 @@ __EOF__
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
                         ]
             }
-
+// 从 https://download.pingcap.org 下载和上传 latest 标志的包
             if (RELEASE_LATEST == "true") {
                 stage('Publish Latest') {
                     build job: 'release_tidb_latest', wait: true, parameters: [
