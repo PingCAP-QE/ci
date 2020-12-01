@@ -7,7 +7,6 @@
 	"kill_signal": "signal killed|signal interrupt",
 	"plugin_ver_mismatch": "[FATAL].*?plugin was built with a different version of package",
 	"pod_vanish": "\\[get\\]  for kind: \\[Pod\\]  with name: \\[(.*?)\\]  in namespace: \\[jenkins-ci\\]  failed",
-	"rewrite_error": "Rewrite error",
 	"socket_close": "java\\.net\\.SocketException: Socket closed",
 	"socket_timeout": "java\\.net\\.SocketTimeoutException"
 }

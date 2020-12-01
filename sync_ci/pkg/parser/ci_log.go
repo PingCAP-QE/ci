@@ -14,7 +14,6 @@ const logPathFormat = "/mnt/disks/87fd0455-804f-406e-a3ea-129debf3479b/jobs/%s/b
 //res_analysis -- 错误分析结果 （json 形式），如
 //{“env”:[“socket timeout”,”kill process”],”case”:[“executor_test.go:testCoprCache.TestIntegrationCopCache”]}
 //{“case”:[“executor_test.go:testCoprCache.TestIntegrationCopCache”]}
-//{“unknown”:[]} 不能归类的都划分为 unknown
 
 func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	logPath := fmt.Sprintf(logPathFormat, job, ID)
@@ -30,12 +29,12 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		return nil, err
 	}
 	res := map[string][]string{
-		"env":     []string{},
-		"case":    []string{},
-		"unknown": []string{},
+		"env":  []string{},
+		"case": []string{},
 	}
 	envFilter := map[string]bool{}
 	caseFilter := map[string]bool{}
+	compileFilter := map[string]bool{}
 
 	for {
 		//parse env failed job
@@ -43,6 +42,9 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 
 		//parse case failed job
 		res["case"] = append(res["case"], parse(job, lines, caseParsers, caseFilter)...)
+
+		//compile failed job
+		res["compile"] = append(res["compile"], parse(job, lines, compileParsers, compileFilter)...)
 
 		line, err := readLines(buffer, 1)
 		if err != nil && err != io.EOF {
@@ -54,7 +56,16 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		lines = append(lines, line[0])
 		lines = lines[1:]
 	}
+	refineParseRes(res)
 	return res, nil
+}
+
+func refineParseRes(res map[string][]string) {
+	for _, v := range []string{"env", "case", "compile"} {
+		if len(res[v]) == 0 {
+			delete(res, v)
+		}
+	}
 }
 
 func parse(job string, lines []string, ps []parser, filter map[string]bool) (res []string) {
