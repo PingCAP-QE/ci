@@ -123,6 +123,8 @@ func (h *SyncHandler) syncDataJob(job string, ID int64) {
 			log.S().Errorf("recovery from panic , [error] %v", r)
 		}
 	}()
+	// wait for the correct job status
+	time.Sleep(1 * time.Minute)
 	timeout := 10 * time.Minute
 	err := wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
 		jobStatus, err := parser.GetJobStatus(h.jenkins, job, ID)

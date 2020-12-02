@@ -22,11 +22,31 @@ var caseParsers = []parser{
 var compileParsers = []parser{
 	&simpleTidbCompileParser{rules: map[string]string{
 		"rewrite error": "Rewrite error",
-	}},
+		"go.mod error":  "go: errors parsing go.mod",
+		"plugin error":  "compile plugin source code failure",
+		"syntax error":  "syntax error:",
+	}}, &makefileCompileParser{},
 }
 
 type parser interface {
 	parse(job string, lines []string) []string
+}
+
+type makefileCompileParser struct {
+}
+
+//TODO quick and dirty
+func (t *makefileCompileParser) parse(job string, lines []string) []string {
+	var res []string
+	if job == "tidb_ghpr_build" {
+		pattern := `make: \*\*\* \[(server|importer)\] Error`
+		r := regexp.MustCompile(pattern)
+		matchedStr := r.FindString(lines[0])
+		if len(matchedStr) != 0 {
+			res = append(res, matchedStr)
+		}
+	}
+	return res
 }
 
 type simpleTidbCompileParser struct {
