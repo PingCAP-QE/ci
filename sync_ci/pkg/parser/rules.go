@@ -165,7 +165,7 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 			break
 		}
 		caseMatchedStr := regexp.MustCompile(`^\[.+\]\s+([A-Za-z0-9:_]+)`).FindString(lines[i])
-		if len(caseMatchedStr) != 0 && strings.Contains(caseMatchedStr, "failures:") {
+		if len(caseMatchedStr) != 0 && !strings.Contains(caseMatchedStr, "failures:") {
 			failDetail := strings.TrimSpace(strings.Split(caseMatchedStr, "]")[1])
 			res = append(res, failDetail)
 		}
