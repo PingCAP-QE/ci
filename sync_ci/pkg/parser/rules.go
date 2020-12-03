@@ -66,7 +66,7 @@ func (s *simpleParser) parse(job string, lines []string) []string {
 			}
 		}
 		if ! matched {
-			break
+			continue
 		}
 		for _, p := range r.patterns {
 			matched, _ = regexp.MatchString(p, lines[0])
@@ -151,23 +151,23 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 	if job != "tikv_ghpr_test" {
 		return res
 	}
-	startMatchedStr := regexp.MustCompile(`^\[.+\]\s+failures:$`).FindString(lines[0])
-	if len(startMatchedStr) == 0 {
-		return res
-	}
 	if strings.Contains(lines[0], "there is a core dumped, which should not happen") {
 		res = append(res, "core dumped")
 		return res
 	}
+	startMatchedStr := regexp.MustCompile(`^\[.+\]\s+failures:`).FindString(lines[0])
+	if len(startMatchedStr) == 0 {
+		return res
+	}
 	for i, _ := range lines {
-		caseMatchedStr := regexp.MustCompile(`^\[.+\]\s+([A-Za-z0-9:_]+)$`).FindString(lines[0])
-		if len(caseMatchedStr) != 0 {
-			failDetail := strings.TrimSpace(strings.Split(caseMatchedStr, "]")[1])
-			res = append(res, failDetail)
-		}
 		endMatchedStr := regexp.MustCompile(`\[.+\] test result: (\S+)\. (\d+) passed; (\d+) failed; .*`).FindString(lines[i])
 		if len(endMatchedStr) != 0 {
 			break
+		}
+		caseMatchedStr := regexp.MustCompile(`^\[.+\]\s+([A-Za-z0-9:_]+)`).FindString(lines[i])
+		if len(caseMatchedStr) != 0 && strings.Contains(caseMatchedStr, "failures:") {
+			failDetail := strings.TrimSpace(strings.Split(caseMatchedStr, "]")[1])
+			res = append(res, failDetail)
 		}
 	}
 	return res
