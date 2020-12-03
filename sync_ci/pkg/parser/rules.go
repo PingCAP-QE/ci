@@ -28,10 +28,10 @@ var compileParsers = []parser{
 		{name: "plugin error", patterns: []string{"compile plugin source code failure"}},
 		{name: "syntax error", patterns: []string{"syntax error:"}},
 		{name: "build failpoint error", patterns: []string{`make: \*\*\* \[failpoint-enable\] Error`}},
-		{jobs: []string{"tidb_ghpr_check"}, name: "server_check build error", patterns: []string{`make: \*\*\* [server_check] Error`}},
+		{jobs: []string{"tidb_ghpr_check"}, name: "server_check build error", patterns: []string{`make: \*\*\* \[server_check\] Error`}},
 		{jobs: []string{"tidb_ghpr_check_2"}, name: "replace parser error", patterns: []string{`replace.*github.com/pingcap/parser`}},
 		{jobs: []string{"tidb_ghpr_check_2"}, name: "build error", patterns: []string{`\[build failed\]`}},
-		{jobs: []string{"tidb_ghpr_check_2"}, name: "build error", patterns: []string{`make: \*\*\* \[(server|importer)\] Error`}},
+		{jobs: []string{"tidb_ghpr_build"}, name: "build error", patterns: []string{`make: \*\*\* \[(server|importer)\] Error`}},
 	}},
 }
 
@@ -71,7 +71,7 @@ func (s *simpleParser) parse(job string, lines []string) []string {
 		for _, p := range r.patterns {
 			matched, _ = regexp.MatchString(p, lines[0])
 			if matched {
-				res = append(res, p)
+				res = append(res, r.name)
 				break
 			}
 		}

@@ -46,7 +46,7 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		res["compile"] = append(res["compile"], parse(job, lines, compileParsers, compileFilter)...)
 
 		//check failed job
-		res["check"] = append(res["compile"], parse(job, lines, checkParsers, checkFilter)...)
+		res["check"] = append(res["check"], parse(job, lines, checkParsers, checkFilter)...)
 
 		line, err := readLines(buffer, 1)
 		if err != nil && err != io.EOF {
