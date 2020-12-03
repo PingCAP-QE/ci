@@ -17,49 +17,63 @@ var envParsers = []parser{
 }
 var caseParsers = []parser{
 	&tidbUtParser{map[string]bool{"tidb_ghpr_unit_test": true, "tidb_ghpr_check": true, "tidb_ghpr_check_2": true}},
+	&tidbITParser{`^tidb_ghpr`},
+	&tikvUtParser{},
 }
 
 var compileParsers = []parser{
-	&simpleTidbCompileParser{rules: map[string]string{
-		"rewrite error": "Rewrite error",
-		"go.mod error":  "go: errors parsing go.mod",
-		"plugin error":  "compile plugin source code failure",
-		"syntax error":  "syntax error:",
-	}}, &makefileCompileParser{},
+	&simpleParser{rules: []rule{
+		{name: "rewrite error", patterns: []string{"Rewrite error"}},
+		{name: "go.mod error", patterns: []string{"go: errors parsing go.mod"}},
+		{name: "plugin error", patterns: []string{"compile plugin source code failure"}},
+		{name: "syntax error", patterns: []string{"syntax error:"}},
+		{name: "build failpoint error", patterns: []string{`make: \*\*\* \[failpoint-enable\] Error`}},
+		{jobs: []string{"tidb_ghpr_check"}, name: "server_check build error", patterns: []string{`make: \*\*\* [server_check] Error`}},
+		{jobs: []string{"tidb_ghpr_check_2"}, name: "replace parser error", patterns: []string{`replace.*github.com/pingcap/parser`}},
+		{jobs: []string{"tidb_ghpr_check_2"}, name: "build error", patterns: []string{`\[build failed\]`}},
+		{jobs: []string{"tidb_ghpr_check_2"}, name: "build error", patterns: []string{`make: \*\*\* \[(server|importer)\] Error`}},
+	}},
+}
+
+var checkParsers = []parser{
+	&simpleParser{rules: []rule{
+		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
+		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+	}},
 }
 
 type parser interface {
 	parse(job string, lines []string) []string
 }
 
-type makefileCompileParser struct {
+// if job is empty , it matches all jobs
+type rule struct {
+	jobs     []string
+	name     string
+	patterns []string
+}
+type simpleParser struct {
+	rules []rule
 }
 
-//TODO quick and dirty
-func (t *makefileCompileParser) parse(job string, lines []string) []string {
+func (s *simpleParser) parse(job string, lines []string) []string {
 	var res []string
-	if job == "tidb_ghpr_build" {
-		pattern := `make: \*\*\* \[(server|importer)\] Error`
-		r := regexp.MustCompile(pattern)
-		matchedStr := r.FindString(lines[0])
-		if len(matchedStr) != 0 {
-			res = append(res, matchedStr)
+	for _, r := range s.rules {
+		matched := len(r.jobs) == 0
+		for _, j := range r.jobs {
+			if j == job {
+				matched = true
+			}
 		}
-	}
-	return res
-}
-
-type simpleTidbCompileParser struct {
-	//name->pattern
-	rules map[string]string
-}
-
-func (t *simpleTidbCompileParser) parse(job string, lines []string) []string {
-	var res []string
-	for rule, pattern := range t.rules {
-		matched, _ := regexp.MatchString(pattern, lines[0])
-		if matched {
-			res = append(res, rule)
+		if ! matched {
+			break
+		}
+		for _, p := range r.patterns {
+			matched, _ = regexp.MatchString(p, lines[0])
+			if matched {
+				res = append(res, p)
+				break
+			}
 		}
 	}
 	return res
@@ -71,7 +85,7 @@ type tidbUtParser struct {
 
 func (t *tidbUtParser) parse(job string, lines []string) []string {
 	var res []string
-	pattern := `FAIL:|panic: runtime error:|WARNING: DATA RACE|leaktest.go.* Test .* check-count .* appears to have leaked: .*`
+	pattern := `FAIL:|panic: runtime error:.*|panic: test timed out|WARNING: DATA RACE|leaktest.go.* Test .* check-count .* appears to have leaked: .*`
 	r := regexp.MustCompile(pattern)
 	if _, ok := t.jobs[job]; !ok {
 		return res
@@ -93,10 +107,8 @@ func (t *tidbUtParser) parse(job string, lines []string) []string {
 		res = append(res, failDetail)
 		return res
 	}
-	if strings.ToLower(matchedStr) == "panic: runtime error:" {
-		failLine := strings.TrimSpace(lines[0])
-		failDetail := strings.TrimSpace(strings.Split(failLine, "]")[1])
-		res = append(res, failDetail)
+	if strings.Contains(strings.ToLower(matchedStr), "panic:") {
+		res = append(res, matchedStr)
 		return res
 	}
 	//parse func fail
@@ -108,6 +120,56 @@ func (t *tidbUtParser) parse(job string, lines []string) []string {
 		strings.Split(failLine, " ")[2], ":")[0]
 	failDetail := strings.Join([]string{failCodePosition, strings.Split(failLine, " ")[3]}, ":")
 	res = append(res, failDetail)
+	return res
+}
+
+type tidbITParser struct {
+	jobPattern string
+}
+
+//TODO require other rules
+func (t *tidbITParser) parse(job string, lines []string) []string {
+	var res []string
+	if len(regexp.MustCompile(t.jobPattern).FindString(job)) == 0 {
+		return res
+	}
+	pattern := `level=fatal msg=.*`
+	r := regexp.MustCompile(pattern)
+	matchedStr := r.FindString(lines[0])
+	if len(matchedStr) == 0 {
+		return res
+	}
+	res = append(res, matchedStr)
+	return res
+}
+
+type tikvUtParser struct {
+}
+
+func (t *tikvUtParser) parse(job string, lines []string) []string {
+	var res []string
+	if job != "tikv_ghpr_test" {
+		return res
+	}
+	startMatchedStr := regexp.MustCompile(`^\[.+\]\s+failures:$`).FindString(lines[0])
+	if len(startMatchedStr) == 0 {
+		return res
+	}
+	if strings.Contains(lines[0], "there is a core dumped, which should not happen") {
+		res = append(res, "core dumped")
+		return res
+	}
+	for i, _ := range lines {
+		caseMatchedStr := regexp.MustCompile(`^\[.+\]\s+([A-Za-z0-9:_]+)$`).FindString(lines[0])
+		if len(caseMatchedStr) != 0 {
+			failDetail := strings.TrimSpace(strings.Split(caseMatchedStr, "]")[1])
+			res = append(res, failDetail)
+		}
+		endMatchedStr := regexp.MustCompile(`\[.+\] test result: (\S+)\. (\d+) passed; (\d+) failed; .*`).FindString(lines[i])
+		if len(endMatchedStr) != 0 {
+			break
+		}
+	}
 	return res
 }
 
