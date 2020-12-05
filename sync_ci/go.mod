@@ -3,6 +3,7 @@ module github.com/pingcap/ci/sync_ci
 go 1.15
 
 require (
+	github.com/asmcos/requests v0.0.0-20200816142649-95abc76c8cac
 	github.com/bndr/gojenkins v1.0.1
 	github.com/gin-contrib/zap v0.0.1
 	github.com/gin-gonic/gin v1.6.3
