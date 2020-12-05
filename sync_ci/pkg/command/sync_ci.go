@@ -2,11 +2,15 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/subcommands"
+	"github.com/pingcap/ci/sync_ci/pkg/detect"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/server"
+	"github.com/pingcap/log"
+	"time"
 )
 
 type SyncCICommand struct {
@@ -22,7 +26,11 @@ func (*SyncCICommand) Usage() string {
 }
 
 func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&s.Dsn, "dsn", "root:@tcp(127.0.0.1:3306)/sync_ci_data", "dsn")
+	f.StringVar(&s.Dsn, "dsn", "root:@tcp(127.0.0.1:3306)/sync_ci_data", "CI Database dsn")
+	f.StringVar(&s.CaseDsn, "cs", "root:@tcp(127.0.0.1:3306)/issue_case", "Case-issues Database dsn")
+	f.StringVar(&s.GithubDsn, "gh", "root:@tcp(127.0.0.1:3306)/issues", "Github Issues Database dsn")
+	f.StringVar(&s.GithubToken, "tk", "", "Github token to automatically create issues")
+
 	f.StringVar(&s.Port, "port", "36000", "http service port")
 	f.StringVar(&s.LogPath, "lp", "log", "log path")
 	f.StringVar(&s.RulePath, "rp", "pkg/parser/envrules.json", "env rule file path")
@@ -30,5 +38,31 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	server.NewServer(&s.Config).Run()
+	go RunCaseIssueRoutine(s.Config)
 	return subcommands.ExitSuccess
+}
+
+func RunCaseIssueRoutine(cfg model.Config) {
+	if err := model.InitLog(cfg.LogPath); err != nil {
+		log.S().Fatalf("init log error , [error]", err)
+	}
+
+	for {
+		inspectStart := time.Now().Add(-detect.PrInspectLimit)
+		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
+		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart)
+		for _, c := range cases {
+			bts := []byte{}
+			_ = json.Unmarshal(bts, c)
+			println(string(bts))
+		}
+		if err != nil {
+			log.S().Error(err)
+		}
+		//err = detect.CreateIssueForCases(cfg, cases)
+		if err != nil {
+			log.S().Error(err)
+		}
+		time.Sleep(time.Duration(cfg.UpdateInterval) * time.Second)
+	}
 }
