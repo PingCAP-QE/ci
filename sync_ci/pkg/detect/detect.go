@@ -5,16 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/asmcos/requests"
+	"github.com/google/go-github/github"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
-	"strconv"
+	"reflect"
 	"time"
 )
 
-const searchIssueIntervalStr = "168h"
+const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time) ([]*model.CaseIssue, error) {
 	cidb, err := SetupCIDB(cfg)
+	//baselink := "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect"  // job name / job id
 	if err != nil {
 		return nil, err
 	}
@@ -32,12 +34,15 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 
 	caseSet := map[string]map[string]bool{}
 	repoPrCases := map[string]map[string]string{} // repo -> pr -> case
+	//caseBuildLinks := map[string] []string {}
 	for rows.Next() {
 		var rawCase []byte
 		var cases []string
 		var pr string
 		var repo string
-		_ = rows.Scan(&repo, &pr, &rawCase)
+		var jobid string
+		var job string
+		_ = rows.Scan(&repo, &pr, &rawCase, &jobid, &job)
 		_ = json.Unmarshal(rawCase, &cases)
 		for _, c := range cases {
 			if _, ok := repoPrCases[repo]; !ok {
@@ -76,6 +81,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 			recentCaseSet[repo][c] = true
 		}
 	}
+
 
 	// Validate repo cases
 	dbIssueCase, err := SetupCaseIssueDB(cfg)
@@ -125,7 +131,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	return issueCases, nil
 }
 
-func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue) error {
+func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool) error {
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
@@ -135,47 +141,55 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue) error {
 	}
 	// todo: set request header
 	for _, issue := range issues {
-		var url = fmt.Sprint("https://api.github.com/repos/%s/issues", issue.Repo)
-		var resp requests.Response
+		var url string
+		if !test {
+			url = fmt.Sprintf("https://api.github.com/repos/%s/issues", issue.Repo)
+		} else {
+			url = "https://api.github.com/repos/kivenchen/klego/issues"
+		}
+		var resp *requests.Response
 		for i := 0; i < 3; i++ {
-			resp, err := req.PostJson(url, map[string]string{
-				"title":  issue.Case.String + " failed",
-				"body":   "", // todo: fill content templates
-				"labels": "component/test",
+			println("Posting to ", url)
+			resp, err = req.PostJson(url, map[string]string{
+				"title": issue.Case.String + " failed",
+				"body":  "", // todo: fill content templates
+				//"labels": "component/test",
 			})
 			if err != nil {
 				return err
 			} else {
 				if resp.R.StatusCode != 201 {
-					return fmt.Errorf("Create issue failed with %d", resp.R.StatusCode)
+					return fmt.Errorf("Create issue failed")
 				} else {
+					println("Creation success")
 					break
 				}
 			}
 		}
-		responseDict := map[string]string{}
-		_ = resp.Json(&responseDict)
-		if num, ok1 := responseDict["number"]; ok1 {
-			if link, ok2 := responseDict["link"]; ok2 {
-				if _, ok3 := responseDict["created_at"]; ok3 {
-					issue.IssueNo, err = strconv.ParseInt(num, 10, 32)
-					if err != nil {
-						return err
-					}
-					issue.IssueLink = sql.NullString{
-						String: link,
-						Valid:  true,
-					}
-
-					//log db
-					dbIssueCase.Create(issue)
-				}
-			}
+		responseDict := github.Issue{}
+		err = resp.Json(&responseDict)
+		if err != nil {
+			println("parse response failed", err)
 		}
+
+		num := responseDict.Number
+		link := reflect.ValueOf(responseDict.URL).Elem().String()
+		_ = responseDict.CreatedAt
+		issue.IssueNo = reflect.ValueOf(num).Elem().Int()
+		if err != nil {
+			return err
+		}
+		issue.IssueLink = sql.NullString{
+			String: link,
+			Valid:  true,
+		}
+		//log db
+		dbIssueCase.Create(issue)
+		dbIssueCase.Commit()
 	}
-	return fmt.Errorf("Unable to log db with issue creation response")
+	return nil
 }
 
 func formatT(t time.Time) string {
-	return t.Format("%Y-%m-%d %H:%M:%S")
+	return t.Format("2006-01-02 15:04:05")
 }

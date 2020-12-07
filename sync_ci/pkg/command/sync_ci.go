@@ -38,11 +38,11 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	server.NewServer(&s.Config).Run()
-	go RunCaseIssueRoutine(s.Config)
+	go RunCaseIssueRoutine(s.Config, false)
 	return subcommands.ExitSuccess
 }
 
-func RunCaseIssueRoutine(cfg model.Config) {
+func RunCaseIssueRoutine(cfg model.Config, test bool) {
 	if err := model.InitLog(cfg.LogPath); err != nil {
 		log.S().Fatalf("init log error , [error]", err)
 	}
@@ -51,17 +51,27 @@ func RunCaseIssueRoutine(cfg model.Config) {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
 		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart)
+		if len(cases) == 0 {
+			println("no selected cases")
+			log.S().Info("No selected cases")
+		}
 		for _, c := range cases {
 			bts := []byte{}
-			_ = json.Unmarshal(bts, c)
+			bts, err = json.Marshal(c)
+			if err != nil{
+				println(err)
+			}
 			println(string(bts))
 		}
 		if err != nil {
 			log.S().Error(err)
 		}
-		//err = detect.CreateIssueForCases(cfg, cases)
+		err = detect.CreateIssueForCases(cfg, cases, test)
 		if err != nil {
 			log.S().Error(err)
+		}
+		if test {
+			break
 		}
 		time.Sleep(time.Duration(cfg.UpdateInterval) * time.Second)
 	}

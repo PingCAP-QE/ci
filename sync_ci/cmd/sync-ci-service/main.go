@@ -7,7 +7,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/command"
 	"os"
 	"os/signal"
-
 	"github.com/pingcap/log"
 )
 
