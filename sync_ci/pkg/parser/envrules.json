@@ -1,7 +1,6 @@
 {
   "connection_closed": "java\\.nio\\.channels\\.ClosedByInterruptException",
   "connection_reset": "[Cc]onnection reset",
-  "core_dumped": "core dumped",
   "dns_resolve_failure": "Could not resolve host",
   "http_500": "500 Internal Server Error",
   "kill_signal": "signal killed|signal interrupt",
