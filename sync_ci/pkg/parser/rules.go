@@ -32,6 +32,7 @@ var compileParsers = []parser{
 		{jobs: []string{"tidb_ghpr_check_2"}, name: "replace parser error", patterns: []string{`replace.*github.com/pingcap/parser`}},
 		{jobs: []string{"tidb_ghpr_check_2"}, name: "build error", patterns: []string{`\[build failed\]`}},
 		{jobs: []string{"tidb_ghpr_build"}, name: "build error", patterns: []string{`make: \*\*\* \[(server|importer)\] Error`}},
+		{jobs: []string{"tikv_ghpr_test", "tikv_ghpr_integration_common_test"}, name: "build error", patterns: []string{`error: could not compile`}},
 	}},
 }
 
@@ -39,6 +40,8 @@ var checkParsers = []parser{
 	&simpleParser{rules: []rule{
 		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
 		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
+		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
 }
 
