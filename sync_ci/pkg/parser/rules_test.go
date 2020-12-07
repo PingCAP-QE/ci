@@ -86,3 +86,66 @@ func TestTikvUtParser_Parse(t *testing.T) {
 		}
 	}
 }
+
+func TestSimpleParser_Check_Parse(t *testing.T) {
+	testData := []struct {
+		text string
+		res  string
+		job  string
+	}{
+		{`[2020-12-07T11:17:06.744Z] make: *** [fmt] Error 1
+script returned exit code 2`,
+			"check error",
+			"tidb_ghpr_check",
+		},
+		{`[2020-12-03T21:34:10.051Z] make: *** [errcheck] Error 1
+script returned exit code 2`,
+			"check error",
+			"tidb_ghpr_check",
+		},
+	}
+
+	for _, item := range testData {
+		res := parse(item.job, strings.Split(item.text, "\n"), checkParsers, map[string]bool{})
+		if len(item.res) == 0 {
+			var a []string
+			assert.Equal(t, res, a)
+		} else {
+			assert.Equal(t, res, []string{item.res})
+		}
+	}
+}
+
+func TestSimpleParser_Compile_Parse(t *testing.T) {
+	testData := []struct {
+		text string
+		res  string
+		job  string
+	}{
+		{`[2020-12-07T11:23:08.669Z] 2020/12/07 19:23:08 compile plugin source code failure, exit status 1
+script returned exit code 1`,
+			"plugin error",
+			"",
+		},
+		{`[2020-12-07T10:48:02.592Z] FAIL	github.com/pingcap/tidb/session [build failed]`,
+			"build error",
+			"tidb_ghpr_check_2",
+		},
+		{
+			`[2020-12-07T03:58:53.038Z] replace github.com/pingcap/parser v0.0.0-20201201081851-e13818a9916a => github.com/lance6716/parser v0.0.0-20201207021157-8da8773e26fa
+script returned exit code 1`,
+			"replace parser error",
+			"tidb_ghpr_check_2",
+		},
+	}
+
+	for _, item := range testData {
+		res := parse(item.job, strings.Split(item.text, "\n"), compileParsers, map[string]bool{})
+		if len(item.res) == 0 {
+			var a []string
+			assert.Equal(t, res, a)
+		} else {
+			assert.Equal(t, res, []string{item.res})
+		}
+	}
+}
