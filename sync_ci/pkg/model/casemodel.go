@@ -19,7 +19,9 @@ const GetCICaseSql = `
 select
 	repo,
 	json_extract(description, '$.ghprbPullId') as pr,
-	json_extract(analysis_res, '$.case') as ` + "`case`" + `
+	json_extract(analysis_res, '$.case') as ` + "`case`" + `,
+	job_id,
+	job
 from sync_ci_data.ci_data
 where time between ? and ?
 having json_length(` + "`case`" + `)>0 and repo is not null and pr != '';
@@ -44,8 +46,8 @@ where url like '%?'  -- match number
 `
 
 type CaseIssue struct {
-	IssueNo   int64          `gorm:"primary_key;column:issue_no;type:int;size:11;"`
-	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;"`
-	IssueLink sql.NullString `gorm:"column:issue_link;type:varchar;size:100;"`
-	Case      sql.NullString `gorm:"column:case;type:varchar;size:100;"`
+	IssueNo   int64          `gorm:"primary_key;column:issue_no;type:int;size:11;" json:"IssueNo" binding:"required"`
+	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;" json:"Repo" binding:"required"`
+	IssueLink sql.NullString `gorm:"column:issue_link;type:varchar;size:100;" json:"IssueLink" binding:"required"`
+	Case      sql.NullString `gorm:"column:case;type:varchar;size:100;" json:"Case" binding:"required"`
 }
