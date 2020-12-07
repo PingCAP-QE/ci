@@ -76,7 +76,7 @@ func TestTikvUtParser_Parse(t *testing.T) {
 			"server::kv_service::test_split_region"},
 		{`[2020-12-03T03:48:56.377Z] test server::kv_service::test_split_region ... thread 'raftstore-1-0' panicked at 'called Result::unwrap() on an Err value: channel has been closed', components/raftstore/src/coprocessor/region_info_accessor.rs:152:14
 [2020-12-03T03:48:56.377Z] stack backtrace:`,
-			"test server::kv_service::test_split_region"},
+			"server::kv_service::test_split_region"},
 	}
 	p := &tikvUtParser{}
 	for _, item := range testData {

@@ -176,7 +176,7 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 	}
 	matchedStr := regexp.MustCompile(`test .* panicked at`).FindString(lines[0])
 	if len(matchedStr) != 0 {
-		detail := strings.TrimSpace(strings.Split(strings.Split(matchedStr, "...")[0], "test")[1])
+		detail := strings.TrimSpace(strings.Split(strings.Split(matchedStr, "...")[0], "test ")[1])
 		res = append(res, detail)
 	}
 	return res
