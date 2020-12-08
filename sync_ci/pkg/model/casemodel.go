@@ -23,22 +23,30 @@ select
 	job_id,
 	job
 from sync_ci_data.ci_data
-where time between ? and ?
-having json_length(` + "`case`" + `)>0 and repo is not null and pr != '';
+where time between ? and ? and repo is not null
+having json_length(` + "`case`" + `)>0 and pr != '0';
 `
 
-// get CI
+const GetCINightlyCase = `
+select
+	json_extract(analysis_res, '$.case') as ` + "`case`" + `,
+	job_id,
+	job
+from sync_ci_data.ci_data
+where (time between ? and ?) and repo is null
+having json_length(` + "`case`" + `) > 0;
+`
+
 const IfValidIssuesExistSql = `
 select issue_no
-from issue_case ic
+from issue_case
 where ` + "`case`" + ` = ? and repo = ?
 order by issue_no desc
 limit 1;
 `
 
-// used with GitHub lib, but you can only do string comparisons
 const CheckClosedTimeSql = `
-select * from issue
+select url from issue
 where url like '%?'  -- match number
 	and url like '%/?/%'  -- match repo
 	and (closed_time is null

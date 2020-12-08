@@ -30,7 +30,7 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.CaseDsn, "cs", "root:@tcp(127.0.0.1:3306)/issue_case", "Case-issues Database dsn")
 	f.StringVar(&s.GithubDsn, "gh", "root:@tcp(127.0.0.1:3306)/issues", "Github Issues Database dsn")
 	f.StringVar(&s.GithubToken, "tk", "", "Github token to automatically create issues")
-
+	f.Int64Var(&s.UpdateInterval, "ui", 3600, "The interval (secs) to update")
 	f.StringVar(&s.Port, "port", "36000", "http service port")
 	f.StringVar(&s.LogPath, "lp", "log", "log path")
 	f.StringVar(&s.RulePath, "rp", "pkg/parser/envrules.json", "env rule file path")
@@ -50,18 +50,26 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 	for {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
-		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart)
+		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, false)
+		if err != nil {
+			log.S().Error(err)
+		}
+
+		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now())
+		if err != nil {
+			log.S().Error(err)
+		}
+
 		if len(cases) == 0 {
-			println("no selected cases")
 			log.S().Info("No selected cases")
 		}
 		for _, c := range cases {
-			bts := []byte{}
+			var bts []byte
 			bts, err = json.Marshal(c)
-			if err != nil{
-				println(err)
+			if err != nil {
+				log.S().Error(err)
 			}
-			println(string(bts))
+			log.S().Info("acquired new cases: ", string(bts))
 		}
 		if err != nil {
 			log.S().Error(err)
@@ -70,6 +78,11 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 		if err != nil {
 			log.S().Error(err)
 		}
+		err = detect.CreateIssueForCases(cfg, nightlyCaseIssues, test)
+		if err != nil {
+			log.S().Error(err)
+		}
+
 		if test {
 			break
 		}
