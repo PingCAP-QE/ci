@@ -169,7 +169,7 @@ script returned exit code 1`,
 }
 
 func TestEnvParser_Parse(t *testing.T) {
-	if err := UpdateRules("envrules.json"); err != nil {
+	if err := UpdateRules("./pkg/parser/envrules.json"); err != nil {
 		t.Error(err)
 	}
 	testData := []struct {

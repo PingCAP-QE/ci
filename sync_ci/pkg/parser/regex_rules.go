@@ -12,23 +12,23 @@ import (
 )
 
 var (
-	regexRules unsafe.Pointer
-	rulePath = "regex_rules.json"
+	reRules  unsafe.Pointer
+	rulePath = "./regex_rules.json"
 
 	timeRegexp = regexp.MustCompile(`\[20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]Z\]`)
 )
 
-type RegexRule struct {
-	Jobs []string `json:"jobs"`
-	Rule string   `json:"regex"`
-	Key  string   `json:"key"`
-	Lines int     `json:"lines";default:"1"`
+type RegexpRule struct {
+	Jobs  []string `json:"jobs"`
+	Rule  string   `json:"regex"`
+	Key   string   `json:"key"`
+	Lines int      `json:"lines";default:"1"`
 
 	r *regexp.Regexp `json:"-"`
 	m map[string]int `json:"-"`
 }
 
-func (r *RegexRule) Prepare() {
+func (r *RegexpRule) Prepare() {
 	if r.Rule == "" {
 		panic(errors.New("invalid regexp rule"))
 	}
@@ -44,7 +44,7 @@ func (r *RegexRule) Prepare() {
 	r.r = regexp.MustCompile(r.Rule)
 }
 
-func (r *RegexRule) RemoveTime(log string) string {
+func (r *RegexpRule) RemoveTime(log string) string {
 	return timeRegexp.ReplaceAllString(log, "")
 }
 
@@ -53,7 +53,7 @@ type KeyValue struct {
 	Value string
 }
 
-func (r *RegexRule) Suitable(job string) bool {
+func (r *RegexpRule) Suitable(job string) bool {
 	if len(r.m) == 0 {
 		return true
 	} else {
@@ -63,32 +63,32 @@ func (r *RegexRule) Suitable(job string) bool {
 }
 
 func StartUpdateRegexRules() {
-	updateRegexRules(rulePath)
+	updateRegexpRules(rulePath)
 
 	go func() {
 		t := time.NewTicker(time.Duration(time.Second * 60))
 		defer t.Stop()
 
 		for {
-			<- t.C
-			updateRegexRules(rulePath)
+			<-t.C
+			updateRegexpRules(rulePath)
 		}
 	}()
 }
 
-func updateRegexRules(path string) {
+func updateRegexpRules(path string) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.S().Errorf("Update rules failed. [error] %v", err)
 		}
-	} ()
+	}()
 
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
-	rules := &[]RegexRule{}
+	rules := &[]RegexpRule{}
 	if err := json.Unmarshal([]byte(file), rules); err != nil {
 		panic(err)
 	}
@@ -97,17 +97,17 @@ func updateRegexRules(path string) {
 		(*rules)[i].Prepare()
 	}
 
-	atomic.StorePointer(&regexRules, unsafe.Pointer(rules))
+	atomic.StorePointer(&reRules, unsafe.Pointer(rules))
 	log.S().Infof("Regexp rules updated. %+v", rules)
 }
 
-func getSuitableRules(job string) *[]RegexRule {
-	rulesNow := (*[]RegexRule)(atomic.LoadPointer(&regexRules))
+func getSuitableRules(job string) *[]RegexpRule {
+	rulesNow := (*[]RegexpRule)(atomic.LoadPointer(&reRules))
 	if rulesNow == nil {
 		return nil
 	}
 
-	suitableRules := make([]RegexRule, 0)
+	suitableRules := make([]RegexpRule, 0)
 	for _, r := range *rulesNow {
 		if r.Suitable(job) {
 			suitableRules = append(suitableRules, r)
@@ -117,7 +117,7 @@ func getSuitableRules(job string) *[]RegexRule {
 	return &suitableRules
 }
 
-func ApplyRegexRules(job string, log string) *[]KeyValue {
+func ApplyRegexRulesToFullLog(job string, log string) *[]KeyValue {
 	rulesNow := getSuitableRules(job)
 	if rulesNow == nil {
 		return nil
@@ -128,7 +128,7 @@ func ApplyRegexRules(job string, log string) *[]KeyValue {
 		matches := rule.r.FindAllString(log, 5)
 		if matches != nil {
 			for _, match := range matches {
-				ret = append(ret, KeyValue{rule.Key, match})
+				ret = append(ret, KeyValue{rule.Key, rule.RemoveTime(match)})
 			}
 		}
 	}
@@ -136,7 +136,7 @@ func ApplyRegexRules(job string, log string) *[]KeyValue {
 	return &ret
 }
 
-func ApplyRegexpRulesToLines(job string, lines[]string) *[]KeyValue {
+func ApplyRegexpRulesToLines(job string, lines []string) *[]KeyValue {
 	rulesNow := getSuitableRules(job)
 	if rulesNow == nil {
 		return nil
@@ -149,7 +149,7 @@ func ApplyRegexpRulesToLines(job string, lines[]string) *[]KeyValue {
 			if rule.Lines > 1 {
 				// support concat multiple lines and apply regexp.
 				for j := 1; j < rule.Lines && i+j < len(lines); j++ {
-					line += lines[i + j]
+					line += lines[i+j]
 				}
 			}
 

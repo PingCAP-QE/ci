@@ -8,7 +8,7 @@ import (
 )
 
 func TestRegex_TestRules(t *testing.T) {
-	updateRegexRules("./pkg/parser/regex_rules.json")
+	updateRegexpRules("./pkg/parser/regex_rules.json")
 	lines := FilesToLines("./pkg/parser/rules_test/integration_fatal_error.log")
 	result := ApplyRegexpRulesToLines("tidb_ghpr_check", lines)
 	if result == nil || len(*result) != 2 {
@@ -41,7 +41,7 @@ func FilesToLines(path string) []string {
 }
 
 func TestRegexp_TiKVCompileError(t *testing.T) {
-	updateRegexRules("./pkg/parser/regex_rules.json")
+	updateRegexpRules("./pkg/parser/regex_rules.json")
 	lines := FilesToLines("./pkg/parser/rules_test/tikv_compile_error.log")
 
 	info := ApplyRegexpRulesToLines("tikv_ghpr_test", lines)
@@ -55,7 +55,7 @@ func TestRegexp_TiKVCompileError(t *testing.T) {
 }
 
 func TestRegexp_TiDBPanic(t *testing.T) {
-	updateRegexRules("./pkg/parser/regex_rules.json")
+	updateRegexpRules("./pkg/parser/regex_rules.json")
 	lines := FilesToLines("./pkg/parser/rules_test/tidb_panic.log")
 
 	info := ApplyRegexpRulesToLines("tidb_ghpr_check", lines)
@@ -69,7 +69,7 @@ func TestRegexp_TiDBPanic(t *testing.T) {
 }
 
 func TestRegexp_ReferenceError(t *testing.T) {
-	updateRegexRules("./pkg/parser/regex_rules.json")
+	updateRegexpRules("./pkg/parser/regex_rules.json")
 	lines := FilesToLines("./pkg/parser/rules_test/replace_error.log")
 
 	info := ApplyRegexpRulesToLines("tidb_ghpr_check", lines)
@@ -82,3 +82,75 @@ func TestRegexp_ReferenceError(t *testing.T) {
 	t.Error("Reference error missed.")
 }
 
+func TestRegexp_TiKVTomlError(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/tikv_toml_error.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	for _, o := range *info {
+		if o.Key == "compile" && strings.Contains(o.Value, "could not parse input as TOML") {
+			return
+		}
+	}
+
+	t.Error("TiKV toml error missed.")
+}
+
+func TestRegex_TicsFail(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/tics_fail.log")
+
+	info := ApplyRegexpRulesToLines("tidb_ghpr_tics_test", lines)
+	for _, o := range *info {
+		if o.Key == "case" && strings.Contains(o.Value, "Failed in branch TiCS Test") {
+			return
+		}
+	}
+
+	t.Error("TiCS failure missed.")
+}
+
+func TestRegex_CoprTest(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/copr_test_case.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	for _, o := range *info {
+		if o.Key == "case" && strings.Contains(o.Value, "sql/randgen-topn/5_math_2.sql") {
+			return
+		}
+	}
+
+	t.Error("Copr test case missed.")
+}
+
+func TestRegex_TiDBRaceBuildFailed(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/tidb_race_build_failed.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	for _, o := range *info {
+		if o.Key == "compile" && strings.Contains(o.Value, "setup failed") {
+			return
+		}
+	}
+
+	t.Error("tidb race setup failed missed.")
+}
+
+func TestRegex_TiDB_IntegrationCommonTest(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/FAIL_integration_common_test.log")
+
+	info := ApplyRegexpRulesToLines("tidb_ghpr_integration_common_test", lines)
+	if len(*info) != 2 {
+		t.Error("integration common test failed.")
+	}
+	for _, o := range *info {
+		if o.Key == "case" && strings.Contains(o.Value, "coprocessor_cache_test.go:102: testCoprocessorSuite.TestAdmission") {
+			return
+		}
+	}
+
+	t.Error("integration common test failed.")
+}
