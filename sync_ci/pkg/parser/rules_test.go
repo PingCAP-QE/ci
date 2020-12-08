@@ -74,6 +74,9 @@ func TestTikvUtParser_Parse(t *testing.T) {
 [2020-12-03T17:29:15.428Z] 
 [2020-12-03T17:29:15.428Z] test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 354 filtered out`,
 			"server::kv_service::test_split_region"},
+		{`[2020-12-03T03:48:56.377Z] test server::kv_service::test_split_region ... thread 'raftstore-1-0' panicked at 'called Result::unwrap() on an Err value: channel has been closed', components/raftstore/src/coprocessor/region_info_accessor.rs:152:14
+[2020-12-03T03:48:56.377Z] stack backtrace:`,
+			"server::kv_service::test_split_region"},
 	}
 	p := &tikvUtParser{}
 	for _, item := range testData {
@@ -102,6 +105,12 @@ script returned exit code 2`,
 script returned exit code 2`,
 			"check error",
 			"tidb_ghpr_check",
+		},
+		{
+			`[2020-12-07T04:51:27.319Z] Please make format and run tests before creating a PR
+[2020-12-07T04:51:27.319Z] + exit 1`,
+			"check error",
+			"tikv_ghpr_test",
 		},
 	}
 
@@ -137,10 +146,78 @@ script returned exit code 1`,
 			"replace parser error",
 			"tidb_ghpr_check_2",
 		},
+		{
+			`[2020-12-07T11:52:25.547Z] error: could not compile tikv
+[2020-12-07T11:52:25.547Z]
+[2020-12-07T11:52:25.547Z] To learn more, run the command again with --verbose.
+[2020-12-07T11:52:25.547Z] warning: build failed, waiting for other jobs to finish...
+[2020-12-07T11:52:28.829Z] error: aborting due to 5 previous errors`,
+			"build error",
+			"tikv_ghpr_integration_common_test",
+		},
 	}
 
 	for _, item := range testData {
 		res := parse(item.job, strings.Split(item.text, "\n"), compileParsers, map[string]bool{})
+		if len(item.res) == 0 {
+			var a []string
+			assert.Equal(t, res, a)
+		} else {
+			assert.Equal(t, res, []string{item.res})
+		}
+	}
+}
+
+func TestEnvParser_Parse(t *testing.T) {
+	if err := UpdateRules("envrules.json"); err != nil {
+		t.Error(err)
+	}
+	testData := []struct {
+		text string
+		res  string
+	}{
+		//{
+		//	`[2020-12-06T16:06:47.263Z] curl: (56) Recv failure: Connection reset by peer`,
+		//	"Recv failure: Connection reset by peer",
+		//},
+		{
+			`[2020-12-05T11:11:16.528Z] 2020/12/05 19:11:14.046 util.go:48: [error] open db failed dial tcp 127.0.0.1:4001: connect: connection refused, take time 30.032809965s
+[2020-12-05T11:11:16.528Z] 2020/12/05 19:11:14.046 main.go:255: [fatal] dial tcp 127.0.0.1:4001: connect: connection refused`,
+			`open db failed dial tcp`,
+		},
+	}
+	for _, item := range testData {
+		p := envParser{envRules}
+		res := p.parse("", strings.Split(item.text, "\n"))
+		if len(item.res) == 0 {
+			var a []string
+			assert.Equal(t, res, a)
+		} else {
+			assert.Equal(t, res, []string{item.res})
+		}
+	}
+}
+
+func TestIntegrationTestParser(t *testing.T) {
+	testData := []struct {
+		text string
+		res  string
+	}{
+		{
+			`[2020-12-06T14:19:39.699Z] 2020/12/06 22:19:39 2020/12/06 22:19:37 Test fail: Outputs are not matching.
+[2020-12-06T14:19:39.699Z] Test case: sql/randgen-topn/8_encrypt.sql
+[2020-12-06T14:19:39.699Z] Statement: #908 -  SELECT SHA1( col_float ) AS field1, ENCODE( '2033-10-15 04:49:31.015619', 0 ) AS field2, '18:39:16.010280' DIV '22:36:17.036724' AS field3, SHA2( NULL, col_bit ) AS field4 FROM table10_int_autoinc WHERE SHA1( col_year ) ORDER BY field1, field2, field3, field4 LIMIT 8 /* QNO 910 CON_ID 152 */ ;
+[2020-12-06T14:19:39.699Z] NoPushDown Output:`,
+			"sql/randgen-topn/8_encrypt.sql",
+		},
+		{
+			`[2020-12-04T17:31:17.697Z] time="2020-12-05T01:31:17+08:00" level=fatal msg="run test [window_functions] err: sql:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);: failed to run query \n\"SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\" \n around line 81, \nwe need(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n1\t2.3333\t1\n2\t2.3333\t3\n3\t2.3333\t6\n4\t2.3333\t10\n\nbut got(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n4\t2.3333\t4\n1\t2.3333\t5\n2\t2.3333\t7\n3\t2.3333\t10\n\n"`,
+			`level=fatal msg="run test [window_functions] err: sql:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);: failed to run query \n\"SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\" \n around line 81, \nwe need(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n1\t2.3333\t1\n2\t2.3333\t3\n3\t2.3333\t6\n4\t2.3333\t10\n\nbut got(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n4\t2.3333\t4\n1\t2.3333\t5\n2\t2.3333\t7\n3\t2.3333\t10\n\n"`,
+		},
+	}
+	for _, item := range testData {
+		p := integrationTestParser{}
+		res := p.parse("", strings.Split(item.text, "\n"))
 		if len(item.res) == 0 {
 			var a []string
 			assert.Equal(t, res, a)

@@ -17,7 +17,7 @@ var envParsers = []parser{
 }
 var caseParsers = []parser{
 	&tidbUtParser{map[string]bool{"tidb_ghpr_unit_test": true, "tidb_ghpr_check": true, "tidb_ghpr_check_2": true}},
-	&tidbITParser{`^tidb_ghpr`},
+	&integrationTestParser{},
 	&tikvUtParser{},
 }
 
@@ -32,6 +32,7 @@ var compileParsers = []parser{
 		{jobs: []string{"tidb_ghpr_check_2"}, name: "replace parser error", patterns: []string{`replace.*github.com/pingcap/parser`}},
 		{jobs: []string{"tidb_ghpr_check_2"}, name: "build error", patterns: []string{`\[build failed\]`}},
 		{jobs: []string{"tidb_ghpr_build"}, name: "build error", patterns: []string{`make: \*\*\* \[(server|importer)\] Error`}},
+		{jobs: []string{"tikv_ghpr_test", "tikv_ghpr_integration_common_test"}, name: "build error", patterns: []string{`error: could not compile`}},
 	}},
 }
 
@@ -39,6 +40,8 @@ var checkParsers = []parser{
 	&simpleParser{rules: []rule{
 		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
 		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
+		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
 }
 
@@ -123,23 +126,25 @@ func (t *tidbUtParser) parse(job string, lines []string) []string {
 	return res
 }
 
-type tidbITParser struct {
-	jobPattern string
+type integrationTestParser struct {
 }
 
 //TODO require other rules
-func (t *tidbITParser) parse(job string, lines []string) []string {
+func (t *integrationTestParser) parse(job string, lines []string) []string {
 	var res []string
-	if len(regexp.MustCompile(t.jobPattern).FindString(job)) == 0 {
-		return res
-	}
-	pattern := `level=fatal msg=.*`
-	r := regexp.MustCompile(pattern)
+	r := regexp.MustCompile(`level=fatal msg=.*`)
 	matchedStr := r.FindString(lines[0])
-	if len(matchedStr) == 0 {
+	if len(matchedStr) != 0 {
+		res = append(res, matchedStr)
 		return res
 	}
-	res = append(res, matchedStr)
+
+	r = regexp.MustCompile(`Test fail: Outputs are not matching`)
+	if len(r.FindString(lines[0])) != 0 {
+		detail := strings.TrimSpace(strings.Split(lines[1], "Test case:")[1])
+		res = append(res, detail)
+		return res
+	}
 	return res
 }
 
@@ -156,19 +161,23 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 		return res
 	}
 	startMatchedStr := regexp.MustCompile(`^\[.+\]\s+failures:`).FindString(lines[0])
-	if len(startMatchedStr) == 0 {
-		return res
+	if len(startMatchedStr) != 0 {
+		for i, _ := range lines {
+			endMatchedStr := regexp.MustCompile(`\[.+\] test result: (\S+)\. (\d+) passed; (\d+) failed; .*`).FindString(lines[i])
+			if len(endMatchedStr) != 0 {
+				break
+			}
+			caseMatchedStr := regexp.MustCompile(`^\[.+\]\s+([A-Za-z0-9:_]+)`).FindString(lines[i])
+			if len(caseMatchedStr) != 0 && !strings.Contains(caseMatchedStr, "failures:") {
+				failDetail := strings.TrimSpace(strings.Split(caseMatchedStr, "]")[1])
+				res = append(res, failDetail)
+			}
+		}
 	}
-	for i, _ := range lines {
-		endMatchedStr := regexp.MustCompile(`\[.+\] test result: (\S+)\. (\d+) passed; (\d+) failed; .*`).FindString(lines[i])
-		if len(endMatchedStr) != 0 {
-			break
-		}
-		caseMatchedStr := regexp.MustCompile(`^\[.+\]\s+([A-Za-z0-9:_]+)`).FindString(lines[i])
-		if len(caseMatchedStr) != 0 && !strings.Contains(caseMatchedStr, "failures:") {
-			failDetail := strings.TrimSpace(strings.Split(caseMatchedStr, "]")[1])
-			res = append(res, failDetail)
-		}
+	matchedStr := regexp.MustCompile(`test .* panicked at`).FindString(lines[0])
+	if len(matchedStr) != 0 {
+		detail := strings.TrimSpace(strings.Split(strings.Split(matchedStr, "...")[0], "test ")[1])
+		res = append(res, detail)
 	}
 	return res
 }
