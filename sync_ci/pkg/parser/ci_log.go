@@ -14,7 +14,6 @@ const logPathFormat = "/mnt/disks/87fd0455-804f-406e-a3ea-129debf3479b/jobs/%s/b
 //res_analysis -- 错误分析结果 （json 形式），如
 //{“env”:[“socket timeout”,”kill process”],”case”:[“executor_test.go:testCoprCache.TestIntegrationCopCache”]}
 //{“case”:[“executor_test.go:testCoprCache.TestIntegrationCopCache”]}
-//{“unknown”:[]} 不能归类的都划分为 unknown
 
 func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	logPath := fmt.Sprintf(logPathFormat, job, ID)

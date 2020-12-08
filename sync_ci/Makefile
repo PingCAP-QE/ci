@@ -33,7 +33,7 @@ install:
 	@mkdir -p $(INSTALL_DIR)
 	@make binary
 	@mv bin/sync-ci-service $(INSTALL_DIR)/sync-ci-service
-	@cp sync_ci/parser/envrules.json $(INSTALL_DIR)/envrules.json
+	@cp pkg/parser/envrules.json $(INSTALL_DIR)/envrules.json
 	@echo "$$data" > /etc/systemd/system/sync-ci.service
 	@systemctl enable sync-ci.service
 	@systemctl daemon-reload
