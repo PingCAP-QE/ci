@@ -50,4 +50,5 @@ type CaseIssue struct {
 	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;" json:"Repo" binding:"required"`
 	IssueLink sql.NullString `gorm:"column:issue_link;type:varchar;size:100;" json:"IssueLink" binding:"required"`
 	Case      sql.NullString `gorm:"column:case;type:varchar;size:100;" json:"Case" binding:"required"`
+	JobLink   sql.NullString `gorm:"column:joblink;type:varchar;size:100;"`
 }
