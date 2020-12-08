@@ -105,3 +105,12 @@ func UpdateRulesPeriodic(rulePath string, period time.Duration) {
 		time.Sleep(period)
 	}
 }
+
+func MatchAndParseSQLStmtTest(logLine string) (bool, string) {
+	if !strings.Contains(logLine, "level=fatal msg=") {
+		return false, ""
+	}
+	testStmt := strings.Split(logLine, "\\\"")[1]
+	testName := strings.Split(strings.Split(logLine, "run test[")[1], "] err")[0]
+	return true, "Test failed [" + testName + "]:" + testStmt
+}

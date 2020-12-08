@@ -7,6 +7,7 @@ import (
 	"github.com/asmcos/requests"
 	"github.com/google/go-github/github"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
+	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"reflect"
 	"time"
 )
@@ -16,7 +17,7 @@ const PrInspectLimit = time.Hour * 24 * 7
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time) ([]*model.CaseIssue, error) {
 	cidb, err := SetupCIDB(cfg)
-	//baselink := "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect"  // job name / job id
+	baselink := "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job name / job id
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +33,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 		return nil, err
 	}
 
-	caseSet := map[string]map[string]bool{}
+	caseSet := map[string]map[string][]string{}
 	repoPrCases := map[string]map[string]string{} // repo -> pr -> case
 	//caseBuildLinks := map[string] []string {}
 	for rows.Next() {
@@ -52,14 +53,14 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 				repoPrCases[repo][c] = pr
 			} else {
 				if _, ok = caseSet[repo]; !ok {
-					caseSet[repo] = map[string]bool{}
+					caseSet[repo] = map[string][]string{}
 				}
-				caseSet[repo][c] = true
+				caseSet[repo][c] = append(caseSet[repo][c], fmt.Sprintf(baselink, job, jobid))
 			}
 		}
 	}
 
-	recentCaseSet := map[string]map[string]bool{}
+	recentCaseSet := map[string]map[string][]string{}
 	for recentRows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -76,12 +77,15 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 				continue
 			}
 			if _, ok := recentCaseSet[repo]; !ok {
-				recentCaseSet[repo] = map[string]bool{}
+				recentCaseSet[repo] = map[string][]string{}
 			}
-			recentCaseSet[repo][c] = true
+			if matched, name := parser.MatchAndParseSQLStmtTest(c); matched {
+				recentCaseSet[repo][name] = caseSet[repo][c]
+			} else {
+				recentCaseSet[repo][c] = caseSet[repo][c]
+			}
 		}
 	}
-
 
 	// Validate repo cases
 	dbIssueCase, err := SetupCaseIssueDB(cfg)
@@ -95,7 +99,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	// assumed `cases` param has no reps
 	issueCases := []*model.CaseIssue{}
 	for repo, repoCases := range recentCaseSet {
-		for c, _ := range repoCases {
+		for c, v := range repoCases {
 			existedCases, err := dbIssueCase.Raw(model.IfValidIssuesExistSql, c, repo).Rows()
 			if err != nil {
 				return nil, err
@@ -106,6 +110,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 					Repo:      repo,
 					IssueLink: sql.NullString{},
 					Case:      sql.NullString{c, true},
+					JobLink:   sql.NullString{v[0], true},
 				}
 				issueCases = append(issueCases, &issueCase)
 			} else { // already nexted
@@ -121,6 +126,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 						Repo:      repo,
 						IssueLink: sql.NullString{},
 						Case:      sql.NullString{c, true},
+						JobLink:   sql.NullString{v[0], true},
 					}
 					issueCases = append(issueCases, &issueCase)
 				}
@@ -152,7 +158,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 			println("Posting to ", url)
 			resp, err = req.PostJson(url, map[string]string{
 				"title": issue.Case.String + " failed",
-				"body":  "", // todo: fill content templates
+				"body":  "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
 				//"labels": "component/test",
 			})
 			if err != nil {
