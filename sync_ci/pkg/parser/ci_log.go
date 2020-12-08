@@ -30,6 +30,10 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	}
 	res := map[string][]string{
 	}
+
+	// to support regexpRules, store all content in this slice.
+	regexRulesLines := lines
+
 	envFilter := map[string]bool{}
 	caseFilter := map[string]bool{}
 	compileFilter := map[string]bool{}
@@ -49,6 +53,7 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		res["check"] = append(res["check"], parse(job, lines, checkParsers, checkFilter)...)
 
 		line, err := readLines(buffer, 1)
+		regexRulesLines = append(regexRulesLines, line[0])
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -58,6 +63,14 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		lines = append(lines, line[0])
 		lines = lines[1:]
 	}
+
+	results := ApplyRegexpRulesToLines(job, regexRulesLines)
+	if results != nil {
+		for _, kv := range *results {
+			res[kv.Key] = append(res[kv.Key], kv.Value)
+		}
+	}
+
 	refineParseRes(res)
 	return res, nil
 }

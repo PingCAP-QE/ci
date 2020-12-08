@@ -1,0 +1,6 @@
+[
+  {"jobs": [], "regex": "\\[FATAL\\].*?\\[error=\".*?we need", "key": "case"},
+  {"jobs": [], "regex": "error: could not compile `[_a-z1-9]*`", "key": "compile"},
+  {"jobs": [], "regex": "PANIC: .*? Panic: runtime error:", "key": "case", "lines": 5},
+  {"jobs": [], "regex": "fatal: reference is not a tree: [0-9a-f]*", "key": "env"}
+]

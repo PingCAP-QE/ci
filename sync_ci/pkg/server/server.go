@@ -42,6 +42,7 @@ func (s *Server) Run() {
 	httpServer := s.setupHttpServer()
 	go httpServer.ListenAndServe()
 	go parser.UpdateRulesPeriodic(ruleFilePath, 10*time.Second)
+	go parser.StartUpdateRegexRules()
 
 	ch := make(chan os.Signal)
 	defer close(ch)
