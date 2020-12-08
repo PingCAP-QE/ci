@@ -133,7 +133,11 @@ func (t *integrationTestParser) parse(job string, lines []string) []string {
 	r := regexp.MustCompile(`level=fatal msg=.*`)
 	matchedStr := r.FindString(lines[0])
 	if len(matchedStr) != 0 {
-		res = append(res, matchedStr)
+		if matched, title := MatchAndParseSQLStmtTest(matchedStr); matched {
+			res = append(res, title)
+		} else {
+			res = append(res, matchedStr)
+		}
 		return res
 	}
 
@@ -234,5 +238,5 @@ func MatchAndParseSQLStmtTest(logLine string) (bool, string) {
 	}
 	testStmt := strings.Split(logLine, "\\\"")[1]
 	testName := strings.Split(strings.Split(logLine, "run test[")[1], "] err")[0]
-	return true, "Test failed [" + testName + "]:" + testStmt
+	return true, "[" + testName + "]:" + testStmt
 }
