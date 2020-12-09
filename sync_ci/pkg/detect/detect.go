@@ -120,14 +120,21 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 	return issueCases, nil
 }
 
-func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time) ([]*model.CaseIssue, error) {
+func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool) ([]*model.CaseIssue, error) {
 	cidb, err := SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
-
+	ghdb, err := SetupDB(cfg.GithubDsn)
+	if err != nil {
+		return nil, err
+	}
+	csdb, err := SetupDB(cfg.CaseDsn)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := cidb.Raw(model.GetCINightlyCase, formatT(filterStartTime), formatT(now)).Rows()
-	RepoNightlyCase := map[string]map[string]bool{}
+	RepoNightlyCase := map[string]map[string] []string {}
 	issueCases := []*model.CaseIssue{}
 
 	if err != nil {
@@ -155,20 +162,26 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time) ([]*model
 
 		for _, c := range cases {
 			if _, ok := RepoNightlyCase[repo]; !ok {
-				RepoNightlyCase[repo] = map[string]bool{}
+				RepoNightlyCase[repo] = map[string] []string{}
 			}
 			if _, ok := RepoNightlyCase[repo][c]; !ok {
-				RepoNightlyCase[repo][c] = true
+				link := fmt.Sprintf(baselink, job, jobid)
+				RepoNightlyCase[repo][c] = []string {link}
+
 				issueCase := model.CaseIssue{
 					IssueNo:   0,
 					Repo:      repo,
 					IssueLink: sql.NullString{},
 					Case:      sql.NullString{c, true},
-					JobLink:   sql.NullString{fmt.Sprintf(baselink, job, jobid), true},
+					JobLink:   sql.NullString{link, true},
 				}
 				issueCases = append(issueCases, &issueCase)
 			}
 		}
+	}
+	issueCases, err = handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, test)
+	if err != nil {
+		log.S().Error("Failed to handle existing issue case", err)
 	}
 
 	return issueCases, nil

@@ -55,7 +55,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			log.S().Error(err)
 		}
 
-		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now())
+		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now(), test)
 		if err != nil {
 			log.S().Error(err)
 		}
@@ -78,6 +78,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 		if err != nil {
 			log.S().Error(err)
 		}
+
 		err = detect.CreateIssueForCases(cfg, nightlyCaseIssues, test)
 		if err != nil {
 			log.S().Error(err)
