@@ -20,7 +20,7 @@ const PrInspectLimit = time.Hour * 24 * 7
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := SetupCIDB(cfg)
+	cidb, err := SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -43,11 +43,11 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	getDuplicatesFromHistory(recentRows, caseSet, recentCaseSet)
 
 	// Validate repo cases
-	dbIssueCase, err := SetupCaseIssueDB(cfg)
+	dbIssueCase, err := SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return nil, err
 	}
-	dbGithub, err := SetupGHDB(cfg)
+	dbGithub, err := SetupDB(cfg.GithubDsn)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 }
 
 func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time) ([]*model.CaseIssue, error) {
-	cidb, err := SetupCIDB(cfg)
+	cidb, err := SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +290,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
-	dbIssueCase, err := SetupCaseIssueDB(cfg)
+	dbIssueCase, err := SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return err
 	}
@@ -306,8 +306,8 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		for i := 0; i < 3; i++ {
 			println("Posting to ", url)
 			resp, err = req.PostJson(url, map[string]string{
-				"title": issue.Case.String + " failed",
-				"body":  "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
+				"title":  issue.Case.String + " failed",
+				"body":   "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
 				"labels": "component/test",
 			})
 			if err != nil {
