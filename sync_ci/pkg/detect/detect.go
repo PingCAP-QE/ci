@@ -86,6 +86,10 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 					continue
 				}
 				issueCases, err = handleCaseIfHistoryExists(cfg, dbGithub, issueNumStr, repo, c, v, issueCases, test)
+				if err != nil {
+					log.S().Error("failed to respond to issueCases", err)
+					continue
+				}
 			}
 
 		}
@@ -114,12 +118,14 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 		err = stillValidIssues.Scan(&url)
 		if err != nil {
 			log.S().Error("failed to extract existing issue url", err)
+			return nil, err
 		}
 
 		issueId := strings.Split(url, "/issues/")[1]
 		err = MentionIssue(cfg, repo, issueId, joblinks[0], test)
 		if err != nil {
 			log.S().Error(err)
+			return nil, err
 		}
 	}
 	return issueCases, nil
@@ -368,11 +374,10 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		if err != nil {
 			log.S().Error("parse response failed", err)
 			continue
-		}
+		}case
 
 		num := responseDict.Number
 		link := reflect.ValueOf(responseDict.URL).Elem().String()
-		_ = responseDict.CreatedAt
 		issue.IssueNo = reflect.ValueOf(num).Elem().Int()
 		issue.IssueLink = sql.NullString{
 			String: link,
