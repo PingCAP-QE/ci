@@ -48,41 +48,43 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 	}
 
 	for {
-		inspectStart := time.Now().Add(-detect.PrInspectLimit)
-		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
+		inspectStart := time.Now().Add(-detect.PrInspectLimit).Add(detect.TimeDiffFix)
+		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second).Add(detect.TimeDiffFix)
 		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, false)
 		if err != nil {
 			log.S().Error("get cases failed", err)
-			continue
 		}
 
 		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now(), test)
 		if err != nil {
 			log.S().Error("get nightly cases failed", err)
-			continue
 		}
 
-		if len(cases) == 0 {
-			log.S().Info("No selected cases")
-		}
+		if cases != nil {
+			if len(cases) == 0 {
+				log.S().Info("No selected cases")
+			}
 
-		for _, c := range cases {
-			var bts []byte
-			bts, err = json.Marshal(c)
+			for _, c := range cases {
+				var bts []byte
+				bts, err = json.Marshal(c)
+				if err != nil {
+					log.S().Error(err)
+				}
+				log.S().Info("acquired new cases: ", string(bts))
+			}
+
+			err = detect.CreateIssueForCases(cfg, cases, test)
 			if err != nil {
 				log.S().Error(err)
 			}
-			log.S().Info("acquired new cases: ", string(bts))
 		}
 
-		err = detect.CreateIssueForCases(cfg, cases, test)
-		if err != nil {
-			log.S().Error(err)
-		}
-
-		err = detect.CreateIssueForCases(cfg, nightlyCaseIssues, test)
-		if err != nil {
-			log.S().Error(err)
+		if nightlyCaseIssues != nil {
+			err = detect.CreateIssueForCases(cfg, nightlyCaseIssues, test)
+			if err != nil {
+				log.S().Error(err)
+			}
 		}
 
 		if test {

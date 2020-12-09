@@ -18,6 +18,7 @@ import (
 
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
+const TimeDiffFix = - time.Hour * 8
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
@@ -27,7 +28,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	}
 
 	// Get failed cases from CI data
-	now := time.Now()
+	now := time.Now().Add(TimeDiffFix)
 
 	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
 	if err != nil {
