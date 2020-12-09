@@ -2,10 +2,9 @@ package command
 
 import (
 	"github.com/pingcap/ci/sync_ci/pkg/model"
-	"testing"
 )
 
-func TestRunCaseIssueRoutine(t *testing.T) {
+func RunCustomizedCaseIssue() {
 	cfg := model.Config{
 		Port:           "",
 		Dsn:            "root:123456@tcp(172.16.5.219:3306)/sync_ci_data",

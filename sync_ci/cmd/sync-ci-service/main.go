@@ -5,9 +5,9 @@ import (
 	"flag"
 	"github.com/google/subcommands"
 	"github.com/pingcap/ci/sync_ci/pkg/command"
+	"github.com/pingcap/log"
 	"os"
 	"os/signal"
-	"github.com/pingcap/log"
 )
 
 func main() {

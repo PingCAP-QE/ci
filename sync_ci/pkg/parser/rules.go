@@ -38,8 +38,10 @@ var compileParsers = []parser{
 
 var checkParsers = []parser{
 	&simpleParser{rules: []rule{
-		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns: []string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
-		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns: []string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
+		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
+			[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
+			[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
 }
 
