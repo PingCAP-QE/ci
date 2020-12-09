@@ -29,7 +29,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	// Get failed cases from CI data
 	now := time.Now()
 
-	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(now)).Rows()
+	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +40,8 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	if err != nil {
 		return nil, err
 	}
-	recentCaseSet := map[string]map[string][]string{}
-	getDuplicatesFromHistory(recentRows, caseSet, recentCaseSet)
+	DupRecentCaseSet := map[string]map[string][]string{}
+	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
 
 	// Validate repo cases
 	dbIssueCase, err := SetupDB(cfg.CaseDsn)
@@ -53,7 +53,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 		return nil, err
 	}
 	// assumed `cases` param has no reps
-	issueCases, err := handleCasesIfIssueExists(cfg, recentCaseSet, dbIssueCase, dbGithub, test)
+	issueCases, err := handleCasesIfIssueExists(cfg, allRecentCases, dbIssueCase, dbGithub, test)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,8 @@ func extractRepoFromJobName(job string) string {
 	return "others"
 }
 
-func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[string][]string, recentCaseSet map[string]map[string][]string) {
+func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[string][]string, recentCaseSet map[string]map[string][]string) map[string]map[string][]string {
+	allRecentCases := map[string]map[string][]string {}
 	for recentRows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -228,12 +229,19 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 		}
 
 		for _, c := range cases {
-			if _, ok := caseSet[repo]; !ok {
-				caseSet[repo] = map[string][]string{}
+			if _, ok := allRecentCases[repo]; !ok {
+				allRecentCases[repo] = map[string][]string{}
 			}
-			if _, ok := caseSet[repo][c]; !ok {
-				continue
+			if _, ok := allRecentCases[repo][c]; !ok {
+				allRecentCases[repo][c] = []string{}
 			}
+			allRecentCases[repo][c] = append(allRecentCases[repo][c], fmt.Sprintf(baselink, job, jobid))
+			//if _, ok := caseSet[repo]; !ok {
+			//	caseSet[repo] = map[string][]string{}
+			//}
+			//if _, ok := caseSet[repo][c]; !ok {
+			//	continue
+			//}
 			if _, ok := recentCaseSet[repo]; !ok {
 				recentCaseSet[repo] = map[string][]string{}
 			}
@@ -244,6 +252,7 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 			}
 		}
 	}
+	return allRecentCases
 }
 
 func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, baselink string) {
