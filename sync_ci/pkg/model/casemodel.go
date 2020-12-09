@@ -25,7 +25,7 @@ select
 from sync_ci_data.ci_data
 where time between ? and ? and repo is not null
 having json_length(` + "`case`" + `)>0 and pr != '0'
-order by repo, time desc';
+order by repo, time desc;
 `
 
 const GetCINightlyCase = `
@@ -49,10 +49,10 @@ limit 1;
 
 const CheckClosedTimeSql = `
 select url from issue
-where url like '%?'  -- match number
-	and url like '%/?/%'  -- match repo
-	and (closed_time is null
-		or 	timediff(now(), closed_time) < ?);
+where url like ?  -- match number
+	and url like ?  -- match repo
+	and (closed_at is null
+		or 	timediff(now(), closed_at) < ?);
 `
 
 type CaseIssue struct {
@@ -60,5 +60,9 @@ type CaseIssue struct {
 	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;" json:"Repo" binding:"required"`
 	IssueLink sql.NullString `gorm:"column:issue_link;type:varchar;size:100;" json:"IssueLink" binding:"required"`
 	Case      sql.NullString `gorm:"column:case;type:varchar;size:100;" json:"Case" binding:"required"`
-	JobLink   sql.NullString `gorm:"column:joblink;type:varchar;size:100;"`
+	JobLink   sql.NullString `gorm:"column:joblink;type:varchar;size:200;"`
+}
+
+func (*CaseIssue) TableName() string {
+	return "issue_case"
 }

@@ -94,7 +94,9 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 }
 
 func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, test bool) ([]*model.CaseIssue, error) {
-	stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumStr, repo, searchIssueIntervalStr).Rows()
+	issueNumberLike := "%" + issueNumStr
+	repoLike := "%/" + repo + "/%"
+	stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +285,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
+	baseComment := `Yet another case failure: <a href="%s">%s</a>`
 	var url string
 	if !test {
 		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
@@ -293,7 +296,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	for i := 0; i < 3; i++ {
 		log.S().Info("Posting to ", url)
 		resp, err := req.PostJson(url, map[string]string{
-			"body": "#" + issueId + ": new failure !(jenkins link)[" + joblink + "]", // todo: fill content templates
+			"body": fmt.Sprintf(baseComment, joblink, joblink),
 		})
 		if err != nil {
 			log.S().Error("Error commenting issue ", url, ". Retry")
@@ -301,7 +304,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 			if resp.R.StatusCode != 201 {
 				log.S().Error("Error commenting issue ", url, ". Retry")
 			} else {
-				log.S().Info("Created comment %s/#%s mentioning %s", repo, issueId, joblink)
+				log.S().Infof("Created comment %s/#%s mentioning %s", repo, issueId, joblink)
 				return nil
 			}
 		}
@@ -328,16 +331,17 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		var resp *requests.Response
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
-			resp, err = req.PostJson(url, map[string]string{
+			resp, err = req.PostJson(url, map[string] interface{} {
 				"title":  issue.Case.String + " failed",
 				"body":   "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
-				"labels": "component/test",
+				"labels": []string {"component/test"},
 			})
 			if err != nil {
-				log.S().Error("Error commenting issue ", url, ". Retry")
+				log.S().Error("Error creating issue ", url, ". Retry")
 			} else {
 				if resp.R.StatusCode != 201 {
-					return fmt.Errorf("Create issue failed")
+					log.S().Error("Error creating issue ", url, ". Retry")
+					log.S().Error("Create issue failed: ", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
 					break
@@ -354,15 +358,13 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		err = resp.Json(&responseDict)
 		if err != nil {
 			log.S().Error("parse response failed", err)
+			continue
 		}
 
 		num := responseDict.Number
 		link := reflect.ValueOf(responseDict.URL).Elem().String()
 		_ = responseDict.CreatedAt
 		issue.IssueNo = reflect.ValueOf(num).Elem().Int()
-		if err != nil {
-			return err
-		}
 		issue.IssueLink = sql.NullString{
 			String: link,
 			Valid:  true,
