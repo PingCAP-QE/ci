@@ -308,7 +308,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 			resp, err = req.PostJson(url, map[string]string{
 				"title": issue.Case.String + " failed",
 				"body":  "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
-				//"labels": "component/test",
+				"labels": "component/test",
 			})
 			if err != nil {
 				return err

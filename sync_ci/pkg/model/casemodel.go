@@ -24,7 +24,8 @@ select
 	job
 from sync_ci_data.ci_data
 where time between ? and ? and repo is not null
-having json_length(` + "`case`" + `)>0 and pr != '0';
+having json_length(` + "`case`" + `)>0 and pr != '0'
+order by repo, time desc';
 `
 
 const GetCINightlyCase = `
@@ -34,7 +35,8 @@ select
 	job
 from sync_ci_data.ci_data
 where (time between ? and ?) and repo is null
-having json_length(` + "`case`" + `) > 0;
+having json_length(` + "`case`" + `) > 0
+order by job, time desc;
 `
 
 const IfValidIssuesExistSql = `
