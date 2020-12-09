@@ -13,7 +13,7 @@ func SetupDB(Dsn string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	d, err := db.DB()
+	d, err := db.DB()/**/
 	if err != nil {
 		return nil, err
 	}

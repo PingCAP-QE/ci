@@ -7,9 +7,9 @@ import (
 func RunCustomizedCaseIssue() {
 	cfg := model.Config{
 		Port:           "",
-		Dsn:            "root:123456@tcp(172.16.5.219:3306)/sync_ci_data",
-		GithubDsn:      "root:123456@tcp(172.16.5.219:3307)/github_info",
-		CaseDsn:        "root:123456@tcp(172.16.5.219:3306)/sync_ci_data",
+		Dsn:            "",
+		GithubDsn:      "",
+		CaseDsn:        "",
 		LogPath:        "",
 		GithubToken:    "",
 		UpdateInterval: 3600 * 24 * 5,

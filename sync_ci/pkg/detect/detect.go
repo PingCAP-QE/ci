@@ -11,6 +11,7 @@ import (
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -65,7 +66,8 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 		for c, v := range repoCases {
 			existedCases, err := dbIssueCase.Raw(model.IfValidIssuesExistSql, c, repo).Rows()
 			if err != nil {
-				return nil, err
+				log.S().Error("failed to check existing [case, repo]: ", c, repo)
+				continue
 			}
 			if !existedCases.Next() {
 				issueCase := model.CaseIssue{
@@ -81,6 +83,7 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 				err = existedCases.Scan(&issueNumStr)
 				if err != nil {
 					log.S().Error("failed to obtain issue num", err)
+					continue
 				}
 				issueCases, err = handleCaseIfHistoryExists(cfg, dbGithub, issueNumStr, repo, c, v, issueCases, test)
 			}
@@ -188,13 +191,16 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 }
 
 func extractRepoFromJobName(job string) string {
-	if strings.Contains(job, "tidb") {
+	tidb_regex := regexp.MustCompile("^tidb_ghpr")
+	tikv_regex := regexp.MustCompile("^tikv_ghpr")
+	pd_regex := regexp.MustCompile("^pd_ghpr")
+	if tidb_regex.MatchString(job) {
 		return "pingcap/tidb"
 	}
-	if strings.Contains(job, "tikv") {
+	if tikv_regex.MatchString(job) {
 		return "pingcap/tidb"
 	}
-	if strings.Contains(job, "pd") {
+	if pd_regex.MatchString(job) {
 		return "tikv/pd"
 	}
 	return "others"
@@ -247,11 +253,16 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 		var repo string
 		var jobid string
 		var job string
-		_ = rows.Scan(&repo, &pr, &rawCase, &jobid, &job)
-		if pr == "0" {
-
+		err := rows.Scan(&repo, &pr, &rawCase, &jobid, &job)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
 		}
-		_ = json.Unmarshal(rawCase, &cases)
+		err = json.Unmarshal(rawCase, &cases)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
+		}
 		for _, c := range cases {
 			if _, ok := repoPrCases[repo]; !ok {
 				repoPrCases[repo] = map[string]string{}
@@ -280,23 +291,22 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	}
 
 	for i := 0; i < 3; i++ {
-		println("Posting to ", url)
+		log.S().Info("Posting to ", url)
 		resp, err := req.PostJson(url, map[string]string{
 			"body": "#" + issueId + ": new failure !(jenkins link)[" + joblink + "]", // todo: fill content templates
 		})
 		if err != nil {
-			return err
+			log.S().Error("Error commenting issue ", url, ". Retry")
 		} else {
 			if resp.R.StatusCode != 201 {
-				return fmt.Errorf("create comment failed")
+				log.S().Error("Error commenting issue ", url, ". Retry")
 			} else {
 				log.S().Info("Created comment %s/#%s mentioning %s", repo, issueId, joblink)
-				break
+				return nil
 			}
 		}
 	}
-
-	return nil
+	return fmt.Errorf("failed to mention existing issue at %s for job at %s", url, joblink)
 }
 
 func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool) error {
@@ -317,27 +327,33 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		}
 		var resp *requests.Response
 		for i := 0; i < 3; i++ {
-			println("Posting to ", url)
+			log.S().Info("Posting to ", url)
 			resp, err = req.PostJson(url, map[string]string{
 				"title":  issue.Case.String + " failed",
 				"body":   "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
 				"labels": "component/test",
 			})
 			if err != nil {
-				return err
+				log.S().Error("Error commenting issue ", url, ". Retry")
 			} else {
 				if resp.R.StatusCode != 201 {
 					return fmt.Errorf("Create issue failed")
 				} else {
-					println("Creation success")
+					log.S().Info("create issue success for job", issue.JobLink.String)
 					break
 				}
 			}
 		}
+
+		if resp == nil {
+			log.S().Error("Error commenting issue ", url, ". Skipped")
+			continue
+		}
+
 		responseDict := github.Issue{}
 		err = resp.Json(&responseDict)
 		if err != nil {
-			println("parse response failed", err)
+			log.S().Error("parse response failed", err)
 		}
 
 		num := responseDict.Number
@@ -353,7 +369,13 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		}
 		//log db
 		dbIssueCase.Create(issue)
+		if dbIssueCase.Error != nil {
+			log.S().Error("Log issue_case db failed", dbIssueCase.Error)
+		}
 		dbIssueCase.Commit()
+		if dbIssueCase.Error != nil {
+			log.S().Error("Log issue_case db commit failed", dbIssueCase.Error)
+		}
 	}
 	return nil
 }
