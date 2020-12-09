@@ -200,7 +200,7 @@ func extractRepoFromJobName(job string) string {
 		return "pingcap/tidb"
 	}
 	if tikv_regex.MatchString(job) {
-		return "pingcap/tidb"
+		return "tikv/tikv"
 	}
 	if pd_regex.MatchString(job) {
 		return "tikv/pd"
