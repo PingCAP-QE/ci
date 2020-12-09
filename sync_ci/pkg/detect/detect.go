@@ -54,14 +54,16 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 		return nil, err
 	}
 	// assumed `cases` param has no reps
-	issueCases, err := handleCasesIfIssueExists(cfg, allRecentCases, dbIssueCase, dbGithub, test)
+	_, err = handleCasesIfIssueExists(cfg, allRecentCases, dbIssueCase, dbGithub, true, test)
+	issuesToCreate, err := handleCasesIfIssueExists(cfg, DupRecentCaseSet, dbIssueCase, dbGithub, false, test)
 	if err != nil {
 		return nil, err
 	}
-	return issueCases, nil
+	return issuesToCreate, nil
 }
 
-func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[string][]string, dbIssueCase *gorm.DB, dbGithub *gorm.DB, test bool) ([]*model.CaseIssue, error) {
+
+func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[string][]string, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueCases := []*model.CaseIssue{}
 	for repo, repoCases := range recentCaseSet {
 		for c, v := range repoCases {
@@ -86,19 +88,19 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 					log.S().Error("failed to obtain issue num", err)
 					continue
 				}
-				issueCases, err = handleCaseIfHistoryExists(cfg, dbGithub, issueNumStr, repo, c, v, issueCases, test)
+
+				issueCases, err = handleCaseIfHistoryExists(cfg, dbGithub, issueNumStr, repo, c, v, issueCases, mentionExisted, test)
 				if err != nil {
 					log.S().Error("failed to respond to issueCases", err)
 					continue
 				}
 			}
-
 		}
 	}
 	return issueCases, nil
 }
 
-func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, test bool) ([]*model.CaseIssue, error) {
+func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueNumberLike := "%" + issueNumStr
 	repoLike := "%/" + repo + "/%"
 	stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
@@ -114,7 +116,7 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 			JobLink:   sql.NullString{joblinks[0], true},
 		}
 		issueCases = append(issueCases, &issueCase)
-	} else { // mention existing issue
+	} else if mentionExisted { // mention existing issue
 		var url string
 		err = stillValidIssues.Scan(&url)
 		if err != nil {
@@ -191,7 +193,7 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 			}
 		}
 	}
-	issueCases, err = handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, test)
+	issueCases, err = handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, true, test)
 	if err != nil {
 		log.S().Error("Failed to handle existing issue case", err)
 	}
@@ -375,7 +377,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		if err != nil {
 			log.S().Error("parse response failed", err)
 			continue
-		}case
+		}
 
 		num := responseDict.Number
 		link := reflect.ValueOf(responseDict.URL).Elem().String()

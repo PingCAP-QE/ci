@@ -49,7 +49,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.S().Fatal("recovering from panic and exiting: ", r)
+			log.S().Error("recovering from panic: ", r)
 		}
 	}()
 
