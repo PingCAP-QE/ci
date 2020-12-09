@@ -47,6 +47,12 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 		log.S().Fatalf("init log error , [error]", err)
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.S().Fatal("recovering from panic and exiting: ", r)
+		}
+	}()
+
 	for {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit).Add(detect.TimeDiffFix)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second).Add(detect.TimeDiffFix)
