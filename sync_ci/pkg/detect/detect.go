@@ -342,7 +342,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 			log.S().Info("Posting to ", url)
 			resp, err = req.PostJson(url, map[string] interface{} {
 				"title":  issue.Case.String + " failed",
-				"body":   "Latest build: !(Jenkins)[" + issue.JobLink.String + "]", // todo: fill content templates
+				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">"+issue.JobLink.String + "</a>", // todo: fill content templates
 				"labels": []string {"component/test"},
 			})
 			if err != nil {
