@@ -66,7 +66,7 @@ func StartUpdateRegexRules() {
 	updateRegexpRules(rulePath)
 
 	go func() {
-		t := time.NewTicker(time.Duration(time.Second * 60))
+		t := time.NewTicker(time.Second * 60)
 		defer t.Stop()
 
 		for {
@@ -89,7 +89,7 @@ func updateRegexpRules(path string) {
 	}
 
 	rules := &[]RegexpRule{}
-	if err := json.Unmarshal([]byte(file), rules); err != nil {
+	if err := json.Unmarshal(file, rules); err != nil {
 		panic(err)
 	}
 
