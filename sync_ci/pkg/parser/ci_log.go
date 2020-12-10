@@ -30,10 +30,13 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	}
 	res := map[string][]string{
 	}
+
 	envFilter := map[string]bool{}
 	caseFilter := map[string]bool{}
 	compileFilter := map[string]bool{}
 	checkFilter := map[string]bool{}
+
+	regexResults := make([]KeyValue, 0)
 
 	for {
 		//parse env failed job
@@ -48,7 +51,12 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		//check failed job
 		res["check"] = append(res["check"], parse(job, lines, checkParsers, checkFilter)...)
 
+		if result := ApplyRegexpRulesToLines(job, lines); result != nil {
+			regexResults = append(regexResults, *result...)
+		}
+
 		line, err := readLines(buffer, 1)
+
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -58,6 +66,27 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		lines = append(lines, line[0])
 		lines = lines[1:]
 	}
+
+	// merge into res.
+	for _, kv := range regexResults {
+		res[kv.Key] = append(res[kv.Key], kv.Value)
+	}
+
+	// remove redundant errors.
+	for k, v := range res {
+		newV := make([]string, 0)
+		filter := make(map[string]bool)
+
+		for _, item := range v {
+			if _, ok := filter[item]; !ok {
+				filter[item] = true
+				newV = append(newV, item)
+			}
+		}
+
+		res[k] = newV
+	}
+
 	refineParseRes(res)
 	return res, nil
 }

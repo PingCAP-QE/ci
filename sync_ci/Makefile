@@ -18,6 +18,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 
 [Service]
 User=root
+WorkingDirectory=$(INSTALL_DIR)
 ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}" -cs "${cs}" -gh "${gh}" -tk "${tk}" -ui "${ui}" -lp "$(INSTALL_DIR)/log" -rp  "$(INSTALL_DIR)/envrules.json"
 Restart=always
 
@@ -34,6 +35,7 @@ install:
 	@make binary
 	@mv bin/sync-ci-service $(INSTALL_DIR)/sync-ci-service
 	@cp pkg/parser/envrules.json $(INSTALL_DIR)/envrules.json
+	@cp pkg/parser/regex_rules.json $(INSTALL_DIR)/regex_rules.json
 	@echo "$$data" > /etc/systemd/system/sync-ci.service
 	@systemctl enable sync-ci.service
 	@systemctl daemon-reload
