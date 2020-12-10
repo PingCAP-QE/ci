@@ -61,7 +61,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			log.S().Error("get cases failed", err)
 		}
 
-		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now(), test)
+		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now().Add(detect.TimeDiffFix), test)
 		if err != nil {
 			log.S().Error("get nightly cases failed", err)
 		}
