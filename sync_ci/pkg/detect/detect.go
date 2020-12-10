@@ -101,7 +101,7 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 }
 
 func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, mentionExisted, test bool) ([]*model.CaseIssue, error) {
-	issueNumberLike := "%" + issueNumStr
+	issueNumberLike := "%/" + issueNumStr
 	repoLike := "%/" + repo + "/%"
 	stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
 	if err != nil {
@@ -123,7 +123,7 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 			log.S().Error("failed to extract existing issue url", err)
 			return nil, err
 		}
-
+		log.S().Info("Mentioning issue located at ", url)
 		issueId := strings.Split(url, "/issues/")[1]
 		err = MentionIssue(cfg, repo, issueId, joblinks[0], test)
 		if err != nil {
@@ -258,7 +258,6 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 					recentCaseSet[repo][c] = caseSet[repo][c]
 				}
 			}
-
 		}
 	}
 	return allRecentCases
@@ -308,7 +307,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	if !test {
 		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
 	} else {
-		url = "https://api.github.com/repos/kivenchen/klego/issues/1/comments"
+		url = "https://api.github.com/repos/kivenchen/klego/issues/" + issueId + "/comments"
 	}
 
 	for i := 0; i < 3; i++ {
