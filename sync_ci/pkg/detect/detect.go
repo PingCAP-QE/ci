@@ -18,7 +18,7 @@ import (
 
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
-const TimeDiffFix = - time.Hour * 8
+const TimeDiffFix = -time.Hour * 8
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
@@ -61,7 +61,6 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	}
 	return issuesToCreate, nil
 }
-
 
 func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[string][]string, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueCases := []*model.CaseIssue{}
@@ -148,7 +147,7 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 		return nil, err
 	}
 	rows, err := cidb.Raw(model.GetCINightlyCase, formatT(filterStartTime), formatT(now)).Rows()
-	RepoNightlyCase := map[string]map[string] []string {}
+	RepoNightlyCase := map[string]map[string][]string{}
 	issueCases := []*model.CaseIssue{}
 
 	if err != nil {
@@ -176,11 +175,11 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 
 		for _, c := range cases {
 			if _, ok := RepoNightlyCase[repo]; !ok {
-				RepoNightlyCase[repo] = map[string] []string{}
+				RepoNightlyCase[repo] = map[string][]string{}
 			}
 			if _, ok := RepoNightlyCase[repo][c]; !ok {
 				link := fmt.Sprintf(baselink, job, jobid)
-				RepoNightlyCase[repo][c] = []string {link}
+				RepoNightlyCase[repo][c] = []string{link}
 
 				issueCase := model.CaseIssue{
 					IssueNo:   0,
@@ -218,7 +217,7 @@ func extractRepoFromJobName(job string) string {
 }
 
 func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[string][]string, recentCaseSet map[string]map[string][]string) map[string]map[string][]string {
-	allRecentCases := map[string]map[string][]string {}
+	allRecentCases := map[string]map[string][]string{}
 	for recentRows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -348,10 +347,10 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		var resp *requests.Response
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
-			resp, err = req.PostJson(url, map[string] interface{} {
+			resp, err = req.PostJson(url, map[string]interface{}{
 				"title":  issue.Case.String + " failed",
-				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">"+issue.JobLink.String + "</a>", // todo: fill content templates
-				"labels": []string {"component/test"},
+				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">" + issue.JobLink.String + "</a>", // todo: fill content templates
+				"labels": []string{"component/test"},
 			})
 			if err != nil {
 				log.S().Error("Error creating issue ", url, ". Retry")
@@ -359,6 +358,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 				if resp.R.StatusCode != 201 {
 					log.S().Error("Error creating issue ", url, ". Retry")
 					log.S().Error("Create issue failed: ", string(resp.Content()))
+					err = fmt.Errorf("%s", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
 					break
@@ -366,7 +366,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 			}
 		}
 
-		if resp == nil {
+		if resp == nil || resp.R.StatusCode != 201 {
 			log.S().Error("Error commenting issue ", url, ". Skipped")
 			continue
 		}

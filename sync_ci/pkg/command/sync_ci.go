@@ -37,8 +37,8 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 }
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	server.NewServer(&s.Config).Run()
 	go RunCaseIssueRoutine(s.Config, false)
+	server.NewServer(&s.Config).Run()
 	return subcommands.ExitSuccess
 }
 
@@ -52,7 +52,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			log.S().Error("recovering from panic: ", r)
 		}
 	}()
-
+	log.S().Info("RunCaseIssueRoutine initiated")
 	for {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit).Add(detect.TimeDiffFix)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second).Add(detect.TimeDiffFix)
