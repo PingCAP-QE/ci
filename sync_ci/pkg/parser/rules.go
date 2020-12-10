@@ -39,9 +39,9 @@ var compileParsers = []parser{
 var checkParsers = []parser{
 	&simpleParser{rules: []rule{
 		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
-		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+			[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
 		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
-		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
+			[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
 }
 
@@ -68,7 +68,7 @@ func (s *simpleParser) parse(job string, lines []string) []string {
 				matched = true
 			}
 		}
-		if ! matched {
+		if !matched {
 			continue
 		}
 		for _, p := range r.patterns {
@@ -135,7 +135,11 @@ func (t *integrationTestParser) parse(job string, lines []string) []string {
 	r := regexp.MustCompile(`level=fatal msg=.*`)
 	matchedStr := r.FindString(lines[0])
 	if len(matchedStr) != 0 {
-		res = append(res, matchedStr)
+		if matched, title := MatchAndParseSQLStmtTest(matchedStr); matched {
+			res = append(res, title)
+		} else {
+			res = append(res, matchedStr)
+		}
 		return res
 	}
 
@@ -228,4 +232,17 @@ func UpdateRulesPeriodic(rulePath string, period time.Duration) {
 		}
 		time.Sleep(period)
 	}
+}
+
+func MatchAndParseSQLStmtTest(logLine string) (bool, string) {
+	if !strings.Contains(logLine, "level=fatal msg=") {
+		return false, ""
+	}
+	testStmt := strings.Split(logLine, "\\\"")[1]
+	testSplit := strings.Split(logLine, "run test[")
+	if len(testSplit) < 2 {
+		return false, ""
+	}
+	testName := strings.Split(testSplit[1], "] err")[0]
+	return true, "[" + testName + "]:" + testStmt
 }
