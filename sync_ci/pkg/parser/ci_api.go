@@ -7,7 +7,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 )
 
-
 func ParseCIJob(jenkins *gojenkins.Jenkins, job string, ID int64) (*model.CiData, error) {
 	build, err := jenkins.GetBuild(job, ID)
 	if err != nil {
