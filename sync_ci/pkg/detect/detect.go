@@ -245,20 +245,20 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 				allRecentCases[repo][c] = []string{}
 			}
 			allRecentCases[repo][c] = append(allRecentCases[repo][c], fmt.Sprintf(baselink, job, jobid))
-			//if _, ok := caseSet[repo]; !ok {
-			//	caseSet[repo] = map[string][]string{}
-			//}
-			//if _, ok := caseSet[repo][c]; !ok {
-			//	continue
-			//}
-			if _, ok := recentCaseSet[repo]; !ok {
-				recentCaseSet[repo] = map[string][]string{}
+			if _, ok := caseSet[repo]; !ok {
+				caseSet[repo] = map[string][]string{}
 			}
-			if matched, name := parser.MatchAndParseSQLStmtTest(c); matched {
-				recentCaseSet[repo][name] = caseSet[repo][c]
-			} else {
-				recentCaseSet[repo][c] = caseSet[repo][c]
+			if _, ok := caseSet[repo][c]; ok {
+				if _, ok := recentCaseSet[repo]; !ok {
+					recentCaseSet[repo] = map[string][]string{}
+				}
+				if matched, name := parser.MatchAndParseSQLStmtTest(c); matched {
+					recentCaseSet[repo][name] = caseSet[repo][c]
+				} else {
+					recentCaseSet[repo][c] = caseSet[repo][c]
+				}
 			}
+
 		}
 	}
 	return allRecentCases
