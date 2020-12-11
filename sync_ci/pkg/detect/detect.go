@@ -301,6 +301,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
+	req.Header.Set("accept", "application/vnd.github.v3+json")
 	baseComment := `Yet another case failure: <a href="%s">%s</a>`
 	var url string
 	if !test {
@@ -332,6 +333,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
+	req.Header.Set("accept", "application/vnd.github.v3+json")
 	dbIssueCase, err := SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return err
