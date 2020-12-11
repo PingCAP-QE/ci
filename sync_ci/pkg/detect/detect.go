@@ -356,8 +356,8 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 				log.S().Error("Error creating issue '", url, "'; Error: ", err, "; Retry")
 			} else {
 				if resp.R.StatusCode != 201 {
-					log.S().Error("Error creating issue ", url, ". Retry")
-					log.S().Error("Create issue failed: ", string(resp.R.StatusCode), string(resp.Content()))
+					log.S().Error("Error creating issue '", url, "'. Retry")
+					log.S().Error("Create issue failed: ", resp.R.StatusCode, string(resp.Content()))
 					err = fmt.Errorf("%s", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
