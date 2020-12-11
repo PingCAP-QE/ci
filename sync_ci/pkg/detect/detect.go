@@ -315,7 +315,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 			"body": fmt.Sprintf(baseComment, joblink, joblink),
 		})
 		if err != nil {
-			log.S().Error("Error creating issue '", url, "'; Error: ", err, "; Retry")
+			log.S().Error("Error commenting issue '", url, "'; Error: ", err, "; Retry")
 		} else {
 			if resp.R.StatusCode != 201 {
 				log.S().Error("Error commenting issue ", url, ". Retry")
@@ -368,6 +368,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 
 		if resp == nil || resp.R.StatusCode != 201 {
 			log.S().Error("Error commenting issue ", url, ". Skipped")
+			log.S().Error("Create issue failed: ", resp.R.StatusCode, string(resp.Content()))
 			continue
 		}
 
