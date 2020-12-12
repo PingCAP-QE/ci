@@ -301,6 +301,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
+	req.Header.Set("accept", "application/vnd.github.v3+json")
 	baseComment := `Yet another case failure: <a href="%s">%s</a>`
 	var url string
 	if !test {
@@ -315,7 +316,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 			"body": fmt.Sprintf(baseComment, joblink, joblink),
 		})
 		if err != nil {
-			log.S().Error("Error creating issue '", url, "'; Error: ", err, "; Retry")
+			log.S().Error("Error commenting issue '", url, "'; Error: ", err, "; Retry")
 		} else {
 			if resp.R.StatusCode != 201 {
 				log.S().Error("Error commenting issue ", url, ". Retry")
@@ -332,6 +333,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
+	req.Header.Set("accept", "application/vnd.github.v3+json")
 	dbIssueCase, err := SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return err
@@ -356,8 +358,8 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 				log.S().Error("Error creating issue '", url, "'; Error: ", err, "; Retry")
 			} else {
 				if resp.R.StatusCode != 201 {
-					log.S().Error("Error creating issue ", url, ". Retry")
-					log.S().Error("Create issue failed: ", string(resp.Content()))
+					log.S().Error("Error creating issue '", url, "'. Retry")
+					log.S().Error("Create issue failed: ", resp.R.StatusCode, string(resp.Content()))
 					err = fmt.Errorf("%s", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
@@ -368,6 +370,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 
 		if resp == nil || resp.R.StatusCode != 201 {
 			log.S().Error("Error commenting issue ", url, ". Skipped")
+			log.S().Error("Create issue failed: ", resp.R.StatusCode, string(resp.Content()))
 			continue
 		}
 
