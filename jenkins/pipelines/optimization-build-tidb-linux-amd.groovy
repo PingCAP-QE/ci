@@ -71,7 +71,7 @@ try {
                         git checkout .
                         WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
                         git checkout .
-                        make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
+                        make failpoint-enable && git checkout . && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
                         git checkout .
                         make server_coverage || true
                         git checkout .
@@ -285,8 +285,8 @@ try {
                         dir("importer_tmp") {
                             deleteDir()
                             sh """
-                            curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${TIKV_HASH}/centos7/importer.tar.gz
-                            curl -F builds/pingcap/importer/optimization/${TIKV_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
+                            curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer.tar.gz
+                            curl -F builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
                             """
                         }
                     } else {
