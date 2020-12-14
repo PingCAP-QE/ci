@@ -45,8 +45,9 @@ def build_upload = { product, hash, binary ->
 
             if (product in ["tidb", "tidb-binlog", "tidb-lightning", "pd"]) {
                 sh """
-                    git tag -d ${RELEASE_TAG} || true
-                    git tag ${RELEASE_TAG} ${hash}
+                    git tag -f ${RELEASE_TAG} ${hash}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
                     if [ ${product} != "pd" ]; then
@@ -66,8 +67,9 @@ def build_upload = { product, hash, binary ->
             }
             if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
                 sh """
-                    git tag -d ${RELEASE_TAG} || true
-                    git tag ${RELEASE_TAG} ${hash}
+                    git tag -f ${RELEASE_TAG} ${hash}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
                     if [ ${product} = "tidb-tools" ]; then
@@ -124,8 +126,11 @@ try {
                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
                 }
                 if (BUILD_TIKV_IMPORTER == "false") {
-                    sh "git tag -d ${RELEASE_TAG} || true"
-                    sh "git tag ${RELEASE_TAG} ${TIKV_HASH}"
+                    sh """
+                    git tag -f ${RELEASE_TAG} ${TIKV_HASH}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
+                    """
                 }
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
@@ -152,8 +157,11 @@ try {
                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
                 }
                 if (BUILD_TIKV_IMPORTER == "false") {
-                    sh "git tag -d ${RELEASE_TAG} || true"
-                    sh "git tag ${RELEASE_TAG} ${IMPORTER_HASH}"
+                    sh """
+                    git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
+                    """
                 }
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
@@ -179,8 +187,11 @@ try {
                         }
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
                     }
-                    sh "git tag -d ${RELEASE_TAG} || true"
-                    sh "git tag ${RELEASE_TAG} ${TIFLASH_HASH}"
+                    sh """
+                        git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
+                            """
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/

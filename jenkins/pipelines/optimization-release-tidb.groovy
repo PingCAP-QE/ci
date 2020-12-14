@@ -422,7 +422,7 @@ catchError {
                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
-//tiflash linux arm version 有 release ci，不需要再次上传到公有云
+//tiflash linux amd linux version 有 release ci，不需要再次上传到公有云
                 }
 
                 def push_arm_tiflash = { target ->
@@ -635,6 +635,21 @@ __EOF__
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
                         ]
+            }
+            stage("build ucloud image") {
+                build job: 'build-ucloud-image',
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_TAG', value: TIDB_TAG],
+                                [$class: 'StringParameterValue', name: 'TIKV_TAG', value: TIKV_TAG],
+                                [$class: 'StringParameterValue', name: 'PD_TAG', value: PD_TAG],
+                                [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: BINLOG_TAG],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: LIGHTNING_TAG],
+                                [$class: 'StringParameterValue', name: 'BR_TAG', value: BR_TAG],
+                                [$class: 'StringParameterValue', name: 'CDC_TAG', value: CDC_TAG],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: TIFLASH_TAG],
+                        ]
+
             }
 // 从 https://download.pingcap.org 下载和上传 latest 标志的包
             if (RELEASE_LATEST == "true") {

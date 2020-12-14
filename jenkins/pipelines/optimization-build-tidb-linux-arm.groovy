@@ -42,8 +42,9 @@ def build_upload = { product, hash, binary ->
             }
             if (product in ["tidb", "tidb-binlog", "tidb-lightning", "pd"]) {
                 sh """
-                    git tag -d ${RELEASE_TAG} || true
-                    git tag ${RELEASE_TAG} ${hash}
+                    git tag -f ${RELEASE_TAG} ${hash}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
                     if [ ${product} != "pd" ]; then
                         make clean
                     fi;
@@ -58,8 +59,9 @@ def build_upload = { product, hash, binary ->
             }
             if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
                 sh """
-                    git tag -d ${RELEASE_TAG} || true
-                    git tag ${RELEASE_TAG} ${hash}
+                    git tag -f ${RELEASE_TAG} ${hash}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
                     fi;                    
@@ -109,8 +111,11 @@ try {
                 def filepath = "builds/pingcap/tikv/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
                 checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
                 if (BUILD_TIKV_IMPORTER == "false") {
-                    sh "git tag -d ${RELEASE_TAG} || true"
-                    sh "git tag ${RELEASE_TAG} ${TIKV_HASH}"
+                    sh """
+                    git tag -f ${RELEASE_TAG} ${TIKV_HASH}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
+                    """
                 }
                 sh """
                 CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
@@ -134,8 +139,11 @@ try {
                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
                 }
                 if (BUILD_TIKV_IMPORTER == "false") {
-                    sh "git tag -d ${RELEASE_TAG} || true"
-                    sh "git tag ${RELEASE_TAG} ${IMPORTER_HASH}"
+                    sh """
+                    git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
+                    """
                 }
                 sh """
                 ROCKSDB_SYS_SSE=0 make release
@@ -176,8 +184,11 @@ try {
                                 }
                                 checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
                             }
-                            sh "git tag -d ${RELEASE_TAG} || true"
-                            sh "git tag ${RELEASE_TAG} ${TIFLASH_HASH}"
+                            sh """
+                            git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
+                            git branch -D refs/tags/${RELEASE_TAG} || true
+                            git checkout -b refs/tags/${RELEASE_TAG}
+                            """
                             sh """
                                 NPROC=12 release-centos7/build/build-release.sh
                                 cd release-centos7/

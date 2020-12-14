@@ -61,21 +61,29 @@ try {
                         def filepath = "builds/pingcap/tidb/optimization/${TIDB_HASH}/centos7/tidb-server.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${TIDB_HASH}
+                        git tag -f ${RELEASE_TAG} ${TIDB_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make clean
+                        git checkout .
                         go version
                         WITH_RACE=1 make && mv bin/tidb-server bin/tidb-server-race
+                        git checkout .
                         WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
+                        git checkout .
                         make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
+                        git checkout .
                         make server_coverage || true
+                        git checkout .
                         make
 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
+                            git checkout .
                             GOPATH=${ws}/go make ddltest
                         fi
                         
                         if [ \$(grep -E "^importer:" Makefile) ]; then
+                            git checkout .
                             GOPATH=${ws}/go make importer
                         fi
                         
@@ -95,8 +103,9 @@ try {
                         def filepath = "builds/pingcap/tidb-binlog/optimization/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${BINLOG_HASH}
+                        git tag -f ${RELEASE_TAG} ${BINLOG_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make clean
                         go version
                         make
@@ -115,8 +124,9 @@ try {
                         def filepath = "builds/pingcap/tidb-lightning/optimization/${LIGHTNING_HASH}/centos7/tidb-lightning.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${LIGHTNING_HASH}
+                        git tag -f ${RELEASE_TAG} ${LIGHTNING_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make clean
                         go version
                         make
@@ -135,8 +145,7 @@ try {
                         def filepath = "builds/pingcap/tidb-tools/optimization/${TOOLS_HASH}/centos7/tidb-tools.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TOOLS_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-tools.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${TOOLS_HASH}
+                        git tag -f ${RELEASE_TAG} ${TOOLS_HASH}
                         make clean
                         go version
                         make build
@@ -156,10 +165,12 @@ try {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PD_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/pd.git']]]
 
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${PD_HASH}
+                        git tag -f ${RELEASE_TAG} ${PD_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         go version
                         make
+                        git checkout .
                         make tools
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
@@ -176,8 +187,9 @@ try {
                         def filepath = "builds/pingcap/ticdc/optimization/${CDC_HASH}/centos7/ticdc-linux-amd64.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${CDC_HASH}
+                        git tag -f ${RELEASE_TAG} ${CDC_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make build
                         mkdir -p ${target}/bin
                         mv bin/cdc ${target}/bin/
@@ -195,8 +207,9 @@ try {
                         def filepath = "builds/pingcap/dumpling/optimization/${DUMPLING_HASH}/centos7/dumpling.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/dumpling.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${DUMPLING_HASH}
+                        git tag -f ${RELEASE_TAG} ${DUMPLING_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make build
                         tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz *
                         curl -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload
@@ -216,8 +229,9 @@ try {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/br.git']]]
 
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${BR_HASH}
+                        git tag -f ${RELEASE_TAG} ${BR_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make build
                         tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
@@ -253,8 +267,9 @@ try {
                         def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${TIKV_HASH}
+                        git tag -f ${RELEASE_TAG} ${TIKV_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make dist_release
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
@@ -282,8 +297,9 @@ try {
                         def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
                         sh """
-                        git tag -d ${RELEASE_TAG} || true
-                        git tag ${RELEASE_TAG} ${IMPORTER_HASH}
+                        git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
                         make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
                         tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
@@ -329,8 +345,9 @@ try {
                             }
 
                             sh """
-                                git tag -d ${RELEASE_TAG} || true
-                                git tag ${RELEASE_TAG} ${TIFLASH_HASH}
+                                git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
+                                git branch -D refs/tags/${RELEASE_TAG} || true
+                                git checkout -b refs/tags/${RELEASE_TAG}
                                 NPROC=12 release-centos7/build/build-release.sh
                                 ls release-centos7/build-release/
                                 ls release-centos7/tiflash/
