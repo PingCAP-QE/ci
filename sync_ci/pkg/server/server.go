@@ -10,10 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
+	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
@@ -31,7 +30,7 @@ func NewServer(cfg *model.Config) *Server {
 }
 
 func (s *Server) Run() {
-	if err := model.InitLog(s.cfg.LogPath); err != nil {
+	if err := util.InitLog(s.cfg.LogPath); err != nil {
 		log.S().Fatalf("init log error , [error]", err)
 	}
 	ruleFilePath := s.cfg.RulePath
@@ -54,22 +53,6 @@ func (s *Server) Run() {
 	}
 }
 
-func (s *Server) setupDB() (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(s.cfg.Dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
-	if err != nil {
-		return nil, err
-	}
-	d, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-	d.SetMaxIdleConns(10)
-	d.SetMaxOpenConns(100)
-	d.SetConnMaxIdleTime(time.Hour)
-	res := db.Exec(model.TableCreateSql)
-	return db, res.Error
-}
-
 func (s *Server) setupHttpServer() (httpServer *http.Server) {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
@@ -77,8 +60,12 @@ func (s *Server) setupHttpServer() (httpServer *http.Server) {
 	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	router.Use(ginzap.RecoveryWithZap(logger, true))
 
-	db, err := s.setupDB()
+	db, err := util.SetupDB(s.cfg.Dsn)
 	if err != nil {
+		panic(fmt.Sprintf("setup db failed: %v", err))
+	}
+	res := db.Exec(model.TableCreateSql)
+	if res.Error != nil {
 		panic(fmt.Sprintf("setup db failed: %v", err))
 	}
 	jenkins, err := gojenkins.CreateJenkins(nil, "https://internal.pingcap.net/idc-jenkins/").Init()

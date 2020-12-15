@@ -9,6 +9,7 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/detect"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/server"
+	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
 	"time"
 )
@@ -43,7 +44,7 @@ func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...inter
 }
 
 func RunCaseIssueRoutine(cfg model.Config, test bool) {
-	if err := model.InitLog(cfg.LogPath); err != nil {
+	if err := util.InitLog(cfg.LogPath); err != nil {
 		log.S().Fatalf("init log error , [error]", err)
 	}
 
@@ -54,14 +55,14 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 	}()
 
 	for {
-		inspectStart := time.Now().Add(-detect.PrInspectLimit).Add(detect.TimeDiffFix)
-		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second).Add(detect.TimeDiffFix)
+		inspectStart := time.Now().Add(-detect.PrInspectLimit)
+		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
 		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, false)
 		if err != nil {
 			log.S().Error("get cases failed", err)
 		}
 
-		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now().Add(detect.TimeDiffFix), test)
+		nightlyCaseIssues, err := detect.GetNightlyCases(cfg, recentStart, time.Now(), test)
 		if err != nil {
 			log.S().Error("get nightly cases failed", err)
 		}
