@@ -8,5 +8,6 @@
   {"jobs": [], "regex": "Test fail: Outputs are not matching.*?Test case: .*?\\.sql", "key": "case", "lines": 3},
   {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile", "lines": 1},
   {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]*: .*?\\..*", "key": "case"},
-  {"jobs": [], "regex": "Please make format and run tests before creating a PR", "key": "compile"}
+  {"jobs": [], "regex": "Please make format and run tests before creating a PR", "key": "compile"},
+  {"jobs": [], "regex": "error: failed to parse lock file", "key": "compile"}
 ]
