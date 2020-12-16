@@ -1,4 +1,4 @@
-package model
+package util
 
 import "github.com/pingcap/log"
 

@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
+	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
 	"reflect"
@@ -18,17 +19,16 @@ import (
 
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
-const TimeDiffFix = - time.Hour * 8
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := SetupDB(cfg.Dsn)
+	cidb, err := util.SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get failed cases from CI data
-	now := time.Now().Add(TimeDiffFix)
+	now := time.Now()
 
 	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
 	if err != nil {
@@ -45,11 +45,11 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
 
 	// Validate repo cases
-	dbIssueCase, err := SetupDB(cfg.CaseDsn)
+	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return nil, err
 	}
-	dbGithub, err := SetupDB(cfg.GithubDsn)
+	dbGithub, err := util.SetupDB(cfg.GithubDsn)
 	if err != nil {
 		return nil, err
 	}
@@ -135,15 +135,15 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 }
 
 func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := SetupDB(cfg.Dsn)
+	cidb, err := util.SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
-	ghdb, err := SetupDB(cfg.GithubDsn)
+	ghdb, err := util.SetupDB(cfg.GithubDsn)
 	if err != nil {
 		return nil, err
 	}
-	csdb, err := SetupDB(cfg.CaseDsn)
+	csdb, err := util.SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
-	dbIssueCase, err := SetupDB(cfg.CaseDsn)
+	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return err
 	}
