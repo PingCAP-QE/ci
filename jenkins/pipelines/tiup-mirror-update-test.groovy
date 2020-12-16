@@ -220,8 +220,16 @@ def update_ctl = { version, os, arch ->
     }
 
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
+        if (RELEASE_TAG != "nightly" && arch == "amd64" && os == "linux") {
+            sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            """
+        } else {
+            sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            """
+        }
         sh """
-        wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
         tar xf ticdc-${os}-${arch}.tar.gz
         cp ticdc-${os}-${arch}/bin/cdc ctls/
         """

@@ -71,7 +71,7 @@ try {
                         git checkout .
                         WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
                         git checkout .
-                        make failpoint-enable && git checkout . && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
+                        make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
                         git checkout .
                         make server_coverage || true
                         git checkout .
