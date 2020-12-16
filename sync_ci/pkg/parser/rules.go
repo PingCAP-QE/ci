@@ -239,7 +239,7 @@ func MatchAndParseSQLStmtTest(logLine string) (bool, string) {
 		return false, ""
 	}
 	testStmt := strings.Split(logLine, "\\\"")[1]
-	testSplit := strings.Split(logLine, "run test[")
+	testSplit := strings.Split(logLine, "run test [")
 	if len(testSplit) < 2 {
 		return false, ""
 	}
