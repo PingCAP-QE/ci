@@ -20,6 +20,7 @@ import (
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
+const FirstCaseOnly = true
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
 	cidb, err := util.SetupDB(cfg.Dsn)
@@ -61,7 +62,6 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	}
 	return issuesToCreate, nil
 }
-
 
 func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[string][]string, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueCases := []*model.CaseIssue{}

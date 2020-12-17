@@ -116,13 +116,13 @@ const GetCICasesToday = `
 select
 	repo,
 	json_extract(description, '$.ghprbPullId') as pr,
-	json_extract(analysis_res, '$.case') as ` + "`case`" + `,
-	json_extract(analysis_res, '$.env') as envs,
+	ifnull(json_extract(analysis_res, '$.case'), "[]") as ` + "`case`" +`,
+	ifnull(json_extract(analysis_res, '$.env'), "[]") as envs,
 	job_id,
 	job
 from sync_ci_data.ci_data
-where date(time)=date(now())
-having json_length(` + "`case`" + `)>0 and json_length(envs)>0 pr != '0'
+where date(time)=date(now()) and repo is not null
+having json_length(` + "`case`" + `)>0 or json_length(envs)>0 and pr != '0'
 order by repo, time desc;
 `
 
