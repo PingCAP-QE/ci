@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
+	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
 	"reflect"
@@ -16,20 +17,18 @@ import (
 	"time"
 )
 
-const FirstCaseOnly = true  // reduce issues created
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
-const TimeDiffFix = -time.Hour * 8
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := SetupDB(cfg.Dsn)
+	cidb, err := util.SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get failed cases from CI data
-	now := time.Now().Add(TimeDiffFix)
+	now := time.Now()
 
 	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
 	if err != nil {
@@ -46,11 +45,11 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
 
 	// Validate repo cases
-	dbIssueCase, err := SetupDB(cfg.CaseDsn)
+	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return nil, err
 	}
-	dbGithub, err := SetupDB(cfg.GithubDsn)
+	dbGithub, err := util.SetupDB(cfg.GithubDsn)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +61,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	}
 	return issuesToCreate, nil
 }
+
 
 func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[string][]string, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueCases := []*model.CaseIssue{}
@@ -135,20 +135,20 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 }
 
 func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := SetupDB(cfg.Dsn)
+	cidb, err := util.SetupDB(cfg.Dsn)
 	if err != nil {
 		return nil, err
 	}
-	ghdb, err := SetupDB(cfg.GithubDsn)
+	ghdb, err := util.SetupDB(cfg.GithubDsn)
 	if err != nil {
 		return nil, err
 	}
-	csdb, err := SetupDB(cfg.CaseDsn)
+	csdb, err := util.SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := cidb.Raw(model.GetCINightlyCase, formatT(filterStartTime), formatT(now)).Rows()
-	RepoNightlyCase := map[string]map[string][]string{}
+	RepoNightlyCase := map[string]map[string] []string {}
 	issueCases := []*model.CaseIssue{}
 
 	if err != nil {
@@ -176,11 +176,11 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 
 		for _, c := range cases {
 			if _, ok := RepoNightlyCase[repo]; !ok {
-				RepoNightlyCase[repo] = map[string][]string{}
+				RepoNightlyCase[repo] = map[string] []string{}
 			}
 			if _, ok := RepoNightlyCase[repo][c]; !ok {
 				link := fmt.Sprintf(baselink, job, jobid)
-				RepoNightlyCase[repo][c] = []string{link}
+				RepoNightlyCase[repo][c] = []string {link}
 
 				issueCase := model.CaseIssue{
 					IssueNo:   0,
@@ -221,7 +221,7 @@ func extractRepoFromJobName(job string) string {
 }
 
 func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[string][]string, recentCaseSet map[string]map[string][]string) map[string]map[string][]string {
-	allRecentCases := map[string]map[string][]string{}
+	allRecentCases := map[string]map[string][]string {}
 	for recentRows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -288,7 +288,6 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 			log.S().Error("error getting history", err)
 			continue
 		}
-
 		for _, c := range cases {
 			if _, ok := repoPrCases[repo]; !ok {
 				repoPrCases[repo] = map[string]string{}
@@ -312,7 +311,6 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
-	req.Header.Set("accept", "application/vnd.github.v3+json")
 	baseComment := `Yet another case failure: <a href="%s">%s</a>`
 	var url string
 	if !test {
@@ -344,8 +342,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
-	req.Header.Set("accept", "application/vnd.github.v3+json")
-	dbIssueCase, err := SetupDB(cfg.CaseDsn)
+	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
 	if err != nil {
 		return err
 	}
@@ -360,18 +357,17 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		var resp *requests.Response
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
-			resp, err = req.PostJson(url, map[string]interface{}{
+			resp, err = req.PostJson(url, map[string] interface{} {
 				"title":  issue.Case.String + " failed",
-				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">" + issue.JobLink.String + "</a>", // todo: fill content templates
-				"labels": []string{"component/test"},
+				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">"+issue.JobLink.String + "</a>", // todo: fill content templates
+				"labels": []string {"component/test"},
 			})
 			if err != nil {
 				log.S().Error("Error creating issue '", url, "'; Error: ", err, "; Retry")
 			} else {
 				if resp.R.StatusCode != 201 {
-					log.S().Error("Error creating issue '", url, "'. Retry")
-					log.S().Error("Create issue failed: ", resp.R.StatusCode, string(resp.Content()))
-					err = fmt.Errorf("%s", string(resp.Content()))
+					log.S().Error("Error creating issue ", url, ". Retry")
+					log.S().Error("Create issue failed: ", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
 					break

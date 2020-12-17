@@ -130,7 +130,7 @@ func TestRegex_TiDBRaceBuildFailed(t *testing.T) {
 
 	info := ApplyRegexpRulesToLines("", lines)
 	for _, o := range *info {
-		if o.Key == "compile" && strings.Contains(o.Value, "setup failed") {
+		if o.Key == "compile" && strings.Contains(o.Value, "FAIL	github.com/pingcap/tidb/planner/core [setup failed]") {
 			return
 		}
 	}

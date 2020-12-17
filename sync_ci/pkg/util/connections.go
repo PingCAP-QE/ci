@@ -1,4 +1,4 @@
-package detect
+package util
 
 import (
 	"gorm.io/driver/mysql"
@@ -7,13 +7,14 @@ import (
 	"time"
 )
 
-func SetupDB(Dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(Dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+//dsn doesn't contain parameters
+func SetupDB(dsn string) (*gorm.DB, error) {
+	db, err := gorm.Open(mysql.Open(dsn+"?loc=Asia%2FShanghai"), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		return nil, err
 	}
 
-	d, err := db.DB()/**/
+	d, err := db.DB() /**/
 	if err != nil {
 		return nil, err
 	}
