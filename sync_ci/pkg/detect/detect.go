@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+const FirstCaseOnly = true  // reduce issues created
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
 const TimeDiffFix = -time.Hour * 8
@@ -190,6 +191,9 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 				}
 				issueCases = append(issueCases, &issueCase)
 			}
+			if FirstCaseOnly {
+				break
+			}
 		}
 	}
 	issueCases, err = handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, true, test)
@@ -257,6 +261,9 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 					recentCaseSet[repo][c] = caseSet[repo][c]
 				}
 			}
+			if FirstCaseOnly {
+				break
+			}
 		}
 	}
 	return allRecentCases
@@ -281,6 +288,7 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 			log.S().Error("error getting history", err)
 			continue
 		}
+
 		for _, c := range cases {
 			if _, ok := repoPrCases[repo]; !ok {
 				repoPrCases[repo] = map[string]string{}
@@ -292,6 +300,9 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 					caseSet[repo] = map[string][]string{}
 				}
 				caseSet[repo][c] = append(caseSet[repo][c], fmt.Sprintf(baselink, job, jobid))
+			}
+			if FirstCaseOnly {
+				break
 			}
 		}
 	}
