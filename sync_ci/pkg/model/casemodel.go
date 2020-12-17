@@ -47,7 +47,7 @@ from
           and status != 'ABORTED' order by time )
     tmp1 join
     (
-        select repo, pr, job, count(*) as cnt from
+        select pr, job, count(*) as cnt from
             (
                 select
                 json_extract(description, '$.ghprbPullId') as pr,
@@ -62,10 +62,11 @@ from
         group by pr, job
         order by cnt desc
     ) tmp3
-    on (tmp1.pr = tmp3.pr and tmp1.job = tmp3.job and tmp1.repo=tmp3.repo)
-where tmp3.cnt >= 2  -- rerun
+    on (tmp1.pr = tmp3.pr and tmp1.job = tmp3.job)
+where tmp3.cnt >= 4  -- more than 3 reruns
     and tmp1.status = 'FAILURE' -- failed cases
     and json_length(analysis_res, '$.case') > 0
+	and date(tmp1.time)=date(now())
 order by analysis_res desc;
 `
 

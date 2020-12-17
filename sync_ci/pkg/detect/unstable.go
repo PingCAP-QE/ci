@@ -9,25 +9,32 @@ import (
 	"strings"
 )
 
+const UnstableRepetitionThreshold = 3
+
 func reportToGroupchat(wecomkey string, caseList []string) error {
 	url := "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + wecomkey
 	content := "Today's unstabled cases: "
 	for _, item := range caseList {
 		content += item + ", "
 	}
-	data := strings.NewReader(`
+	content = `
 {
 	"msgtype": "text",
 	"text": {
-		"content": "`+ content +`"
+		"content": "` + content + `"
 	}
 }
-	`)
+	`
+	data := strings.NewReader(content)
 	_, err := http.Post(url, "application/json", data)
+	if err == nil {
+		log.S().Info("Report to wecom successful: \n", content)
+	}
 	return err
 }
 
-func ScheduleUnstableReport(cfg model.Config, threshold int) {
+
+func ScheduleUnstableReport(cfg model.Config) {
 	scheduler := cron.New()
 	cronSpecs := []string{
 		"0 10 * * 1-5",
@@ -37,7 +44,7 @@ func ScheduleUnstableReport(cfg model.Config, threshold int) {
 	}
 	for _, spec := range cronSpecs {
 		_, err := scheduler.AddFunc(spec, func(){
-			err := reportSigUnstableCasesBody(cfg, threshold)
+			err := reportSigUnstableCasesBody(cfg, UnstableRepetitionThreshold)
 			if err != nil {
 				log.S().Error("Error reporting significant issues", err)
 			}
@@ -46,6 +53,7 @@ func ScheduleUnstableReport(cfg model.Config, threshold int) {
 			log.S().Error("Unstable report: schedule unsuccessful for cron spec ", spec)
 		}
 	}
+	scheduler.Start()
 }
 
 
