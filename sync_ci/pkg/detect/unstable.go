@@ -1,15 +1,16 @@
 package detect
 
 import (
+	"database/sql"
 	"encoding/json"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
-    "github.com/robfig/cron"
-    "github.com/pingcap/log"
+	"github.com/pingcap/log"
+	"github.com/robfig/cron"
 	"net/http"
 	"strings"
 )
 
-const UnstableRepetitionThreshold = 3
+const Threshold = 3
 
 func reportToGroupchat(wecomkey string, caseList []string) error {
 	url := "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + wecomkey
@@ -44,7 +45,7 @@ func ScheduleUnstableReport(cfg model.Config) {
 	}
 	for _, spec := range cronSpecs {
 		_, err := scheduler.AddFunc(spec, func(){
-			err := reportSigUnstableCasesBody(cfg, UnstableRepetitionThreshold)
+			err := reportSigUnstableCasesBody(cfg, Threshold)
 			if err != nil {
 				log.S().Error("Error reporting significant issues", err)
 			}
@@ -64,7 +65,7 @@ func reportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 		return err
 	}
 
-	rows, err := cidb.Raw(model.GetCICaseSql).Rows()
+	rows, err := cidb.Raw(model.GetCICasesToday).Rows()
 	if err != nil {
 		log.S().Error("GroupChat service: failed to log db")
 		return err
@@ -72,45 +73,21 @@ func reportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 
 	caseFrequencies := map[string] int{}
 	sigUnstableCases := []string {}
-	for rows.Next(){
-		var rawCase []byte
-		var cases []string
-		var pr string
-		var repo string
-		var jobid string
-		var job string
+	sigUnstableCases = getUnstableCasesAndEnvs(rows, caseFrequencies, threshold, sigUnstableCases)
 
-		err := rows.Scan(&repo, &pr, &rawCase, &jobid, &job)
-		if err != nil {
-			log.S().Error("error getting history", err)
-			continue
-		}
-
-		err = json.Unmarshal(rawCase, &cases)
-		if err != nil {
-			log.S().Error("error getting history", err)
-			continue
-		}
-
-		for _, c := range cases {
-			if _, ok := caseFrequencies[c]; !ok {
-				caseFrequencies[c] = 1
-			} else {
-				caseFrequencies[c] += 1
-			}
-
-			if caseFrequencies[c] == threshold {  // only log once
-				sigUnstableCases = append(sigUnstableCases, c)
-			}
-		}
-	}
-
-	rows, err = cidb.Raw(model.GetRerunCases).Rows()
+	rows, err = cidb.Raw(model.GetRerunCases, threshold + 1).Rows()
 	if err != nil {
 		log.S().Error("GroupChat service: failed to log db")
 		return err
 	}
-	for rows.Next(){
+	sigUnstableCases = getFrequentRerunCases(rows, caseFrequencies, threshold, sigUnstableCases)
+
+	err = reportToGroupchat(cfg.WecomKey, sigUnstableCases)
+	return err
+}
+
+func getFrequentRerunCases(rows *sql.Rows, caseFrequencies map[string]int, threshold int, sigUnstableCases []string) []string {
+	for rows.Next() {
 		var rawCase []byte
 		var cases []string
 		var pr string
@@ -137,12 +114,66 @@ func reportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 				caseFrequencies[c] += 1
 			}
 
-			if caseFrequencies[c] == threshold {  // only log once
+			if caseFrequencies[c] == threshold { // only log once
 				sigUnstableCases = append(sigUnstableCases, c)
 			}
 		}
 	}
+	return sigUnstableCases
+}
 
-	err = reportToGroupchat(cfg.WecomKey, sigUnstableCases)
-	return err
+func getUnstableCasesAndEnvs(rows *sql.Rows, caseFrequencies map[string]int, threshold int, sigUnstableCases []string) []string {
+	for rows.Next() {
+		var rawCase []byte
+		var rawEnvs []byte
+		var cases []string
+		var envs []string
+		var pr string
+		var repo string
+		var jobid string
+		var job string
+
+		err := rows.Scan(&repo, &pr, &rawCase, &rawEnvs, &jobid, &job)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
+		}
+
+		err = json.Unmarshal(rawCase, &cases)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
+		}
+
+		err = json.Unmarshal(rawEnvs, &envs)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
+		}
+
+		for _, c := range cases {
+			if _, ok := caseFrequencies[c]; !ok {
+				caseFrequencies[c] = 1
+			} else {
+				caseFrequencies[c] += 1
+			}
+
+			if caseFrequencies[c] == threshold { // only log once
+				sigUnstableCases = append(sigUnstableCases, c)
+			}
+		}
+
+		for _, c := range envs {
+			if _, ok := caseFrequencies[c]; !ok {
+				caseFrequencies[c] = 1
+			} else {
+				caseFrequencies[c] += 1
+			}
+
+			if caseFrequencies[c] == threshold { // only log once
+				sigUnstableCases = append(sigUnstableCases, c)
+			}
+		}
+	}
+	return sigUnstableCases
 }

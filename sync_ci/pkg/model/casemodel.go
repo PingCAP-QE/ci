@@ -28,6 +28,47 @@ having json_length(` + "`case`" + `)>0 and pr != '0'
 order by repo, time desc;
 `
 
+const GetUnstableEnvToday = `
+select
+       tmp1.repo,
+       tmp3.pr,
+       json_extract(analysis_res, '$.env') cases,
+       job_id,
+       tmp1.job
+from
+    (select
+            json_extract(description, '$.ghprbPullId') as pr,
+            job, job_id, time, status, analysis_res, repo,
+            json_extract(description, '$.ghprbPullLink') as prLink
+        from ci_data
+        where time >= DATE_SUB(CURDATE(), interval 8 HOUR)
+          and json_extract(description, '$.ghprbPullLink') != ''
+          and status != 'ABORTED' order by time )
+    tmp1 join
+    (
+        select pr, job, count(*) as cnt from
+            (
+                select
+                json_extract(description, '$.ghprbPullId') as pr,
+                job, time, status, repo,
+                analysis_res
+                from ci_data
+                where time >= DATE_SUB(CURDATE(), interval 8 HOUR)
+                   and json_extract(description, '$.ghprbPullLink') != ''
+                    and status != 'ABORTED'
+                order by time
+            ) as tmp2
+        group by pr, job
+        order by cnt desc
+    ) tmp3
+    on (tmp1.pr = tmp3.pr and tmp1.job = tmp3.job)
+where tmp3.cnt >= 2  -- rerun
+    and tmp1.status = 'FAILURE' -- failed cases
+    and json_length(analysis_res, '$.case') > 0
+	and date(tmp1.time)=date(now())
+order by analysis_res desc;
+`
+
 
 const GetRerunCases = `
 select
@@ -63,7 +104,7 @@ from
         order by cnt desc
     ) tmp3
     on (tmp1.pr = tmp3.pr and tmp1.job = tmp3.job)
-where tmp3.cnt >= 4  -- more than 3 reruns
+where tmp3.cnt >= ?  -- more than 3 reruns
     and tmp1.status = 'FAILURE' -- failed cases
     and json_length(analysis_res, '$.case') > 0
 	and date(tmp1.time)=date(now())
@@ -76,11 +117,12 @@ select
 	repo,
 	json_extract(description, '$.ghprbPullId') as pr,
 	json_extract(analysis_res, '$.case') as ` + "`case`" + `,
+	json_extract(analysis_res, '$.env') as envs,
 	job_id,
 	job
 from sync_ci_data.ci_data
 where date(time)=date(now())
-having json_length(` + "`case`" + `)>0 and pr != '0'
+having json_length(` + "`case`" + `)>0 and json_length(envs)>0 pr != '0'
 order by repo, time desc;
 `
 
