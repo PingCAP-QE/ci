@@ -59,7 +59,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 	for {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
-		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, false)
+		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, true)
 		if err != nil {
 			log.S().Error("get cases failed", err)
 		}
