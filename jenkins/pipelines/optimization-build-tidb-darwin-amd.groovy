@@ -30,6 +30,9 @@ def build_upload = { product, hash, binary ->
                 hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
             def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
+            if (product=="ticdc"){
+                target = "${product}-${os}-${arch}"
+            }
             def filepath = "builds/pingcap/${product}/${hash}/darwin/${binary}.tar.gz"
             if (product == "br") {
                 filepath = "builds/pingcap/${product}/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"

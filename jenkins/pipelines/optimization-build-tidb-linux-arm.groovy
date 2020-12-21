@@ -26,10 +26,13 @@ def build_upload = { product, hash, binary ->
                 }
                 checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: "${repo}"]]]
             }
-            if (produce == "tidb-ctl"){
+            if (product == "tidb-ctl") {
                 hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
             def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
+            if (product == "ticdc") {
+                target = "${product}-${os}-${arch}"
+            }
             def filepath = "builds/pingcap/${product}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
             if (product == "br") {
                 filepath = "builds/pingcap/${product}/${RELEASE_TAG}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
