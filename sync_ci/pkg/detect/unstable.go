@@ -82,6 +82,8 @@ func ScheduleUnstableReport(cfg model.Config) {
 		})
 		if err != nil {
 			log.S().Error("Unstable report: schedule unsuccessful for cron spec ", spec)
+		}else{
+			
 		}
 	}
 	scheduler.Start()

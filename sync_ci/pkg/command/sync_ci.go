@@ -55,7 +55,9 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			log.S().Error("recovering from panic: ", r)
 		}
 	}()
+
 	log.S().Info("RunCaseIssueRoutine initiated")
+
 	for {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
@@ -96,9 +98,6 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			}
 		}
 
-		if test {
-			break
-		}
 		time.Sleep(time.Duration(cfg.UpdateInterval) * time.Second)
 	}
 }

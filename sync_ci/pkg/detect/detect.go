@@ -316,7 +316,7 @@ func MentionIssue(cfg model.Config, repo string, issueId string, joblink string,
 	if !test {
 		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
 	} else {
-		url = "https://api.github.com/repos/kivenchen/klego/issues/" + issueId + "/comments"
+		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
 	}
 
 	for i := 0; i < 3; i++ {
