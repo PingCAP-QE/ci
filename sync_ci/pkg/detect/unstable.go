@@ -8,7 +8,7 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	"net/http"
 	"sort"
 	"strings"
@@ -79,11 +79,10 @@ func ScheduleUnstableReport(cfg model.Config) {
 		})
 		if err != nil {
 			log.S().Error("Unstable report: schedule unsuccessful for cron spec ", spec)
-		}else{
-			
 		}
 	}
 	scheduler.Start()
+
 }
 
 
