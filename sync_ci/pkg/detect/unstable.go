@@ -68,10 +68,7 @@ func reportToGroupchat(wecomkey string, caseList map[string] int) error {
 func ScheduleUnstableReport(cfg model.Config) {
 	scheduler := cron.New()
 	cronSpecs := []string{
-		"0 10 * * 1-5",
-		"0 14 * * 1-5",
-		"0 18 * * 1-5",
-		"0 22 * * 1-5",
+		"0 10-22/4 * * 1-5",
 	}
 	for _, spec := range cronSpecs {
 		err := scheduler.AddFunc(spec, func(){
