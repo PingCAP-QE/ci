@@ -71,7 +71,7 @@ func ScheduleUnstableReport(cfg model.Config) {
 		"0 10-22/4 * * 1-5",
 	}
 	for _, spec := range cronSpecs {
-		err := scheduler.AddFunc(spec, func(){
+		_, err := scheduler.AddFunc(spec, func(){
 			err := ReportSigUnstableCasesBody(cfg, Threshold)
 			if err != nil {
 				log.S().Error("Error reporting significant issues", err)
