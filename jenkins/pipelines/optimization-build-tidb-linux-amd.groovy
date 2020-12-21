@@ -61,21 +61,22 @@ try {
                         def filepath = "builds/pingcap/tidb/optimization/${TIDB_HASH}/centos7/tidb-server.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
                         sh """
+                        mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         git tag -f ${RELEASE_TAG} ${TIDB_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
                         make clean
                         git checkout .
                         go version
-                        WITH_RACE=1 make && mv bin/tidb-server bin/tidb-server-race
+                        GOPATH=${ws}/go WITH_RACE=1 make && mv bin/tidb-server bin/tidb-server-race
                         git checkout .
-                        WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
+                        GOPATH=${ws}/go WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
                         git checkout .
-                        make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
+                        GOPATH=${ws}/go make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
                         git checkout .
-                        make server_coverage || true
+                        GOPATH=${ws}/go make server_coverage || true
                         git checkout .
-                        make
+                        GOPATH=${ws}/go make
 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
                             git checkout .
@@ -89,6 +90,46 @@ try {
                         
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                }
+                stage("Build plugins") {
+                    dir("go/src/github.com/pingcap/tidb-build-plugin") {
+                        deleteDir()
+                        timeout(20) {
+                            sh """
+                       cp -R ${ws}/go/src/github.com/pingcap/tidb/. ./
+                       cd cmd/pluginpkg
+                       go build
+                       """
+                        }
+                    }
+                    dir("go/src/github.com/pingcap/enterprise-plugin") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "release-4.0"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:rebelice/enterprise-plugin.git']]]
+                        def plugin_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                    }
+                    def filepath_whitelist = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/whitelist-1.so"
+                    def md5path_whitelist = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/whitelist-1.so.md5"
+                    def filepath_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so"
+                    def md5path_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so.md5"
+                    dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
+                        sh """
+                   GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                   """
+                        sh """
+                            md5sum whitelist-1.so > whitelist-1.so.md5
+                            curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
+                            curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
+                            """
+                    }
+                    dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
+                        sh """
+                   GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                   """
+                        sh """
+                        md5sum audit-1.so > audit-1.so.md5
+                        curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
                         """
                     }
                 }

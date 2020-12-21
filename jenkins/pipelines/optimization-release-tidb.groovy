@@ -569,6 +569,24 @@ __EOF__
                 }
             }
 
+            builds["Push dumpling Docker"] = {
+                dir('dumpling_docker_build') {
+                    sh """
+                        cp ../centos7/bin/dumpling ./
+                        cp /usr/local/go/lib/time/zoneinfo.zip ./
+                        cat > Dockerfile << __EOF__
+FROM pingcap/alpine-glibc
+COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
+COPY dumpling /dumpling
+__EOF__
+                        """
+                }
+
+                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                    docker.build("pingcap/dumpling:${RELEASE_TAG}", "dumpling_docker_build").push()
+                }
+            }
+
             builds["Push tidb-binlog Docker"] = {
                 dir('tidb_binlog_docker_build') {
                     sh """
@@ -647,6 +665,7 @@ __EOF__
                                 [$class: 'StringParameterValue', name: 'BR_TAG', value: BR_TAG],
                                 [$class: 'StringParameterValue', name: 'CDC_TAG', value: CDC_TAG],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: TIFLASH_TAG],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: DUMPLING_TAG],
                         ]
 
             }
