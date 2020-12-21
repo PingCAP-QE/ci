@@ -39,7 +39,7 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 }
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	go RunCaseIssueRoutine(s.Config, true)
+	go RunCaseIssueRoutine(s.Config, false)
 	detect.ScheduleUnstableReport(s.Config)
 	server.NewServer(&s.Config).Run()
 	return subcommands.ExitSuccess
