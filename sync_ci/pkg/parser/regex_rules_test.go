@@ -154,3 +154,17 @@ func TestRegex_TiDB_IntegrationCommonTest(t *testing.T) {
 
 	t.Error("integration common test failed.")
 }
+
+func TestRegex_TiDB_PDBuildFailed(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/pd_build_failed.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "compile" && strings.Contains((*info)[0].Value, "make: *** [swagger-spec] Error 1") {
+			return
+		}
+	}
+
+	t.Error("pd build failed rule not work.")
+}
