@@ -104,24 +104,24 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 }
 
 func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, mentionExisted, test bool) ([]*model.CaseIssue, error) {
-	issueNumberLike := "%/" + issueNumStr
-	repoLike := "%/" + repo + "/%"
-	stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
-	if err != nil {
-		return nil, err
-	}
-	if !stillValidIssues.Next() {
-		issueCase := model.CaseIssue{
-			IssueNo:   0,
-			Repo:      repo,
-			IssueLink: sql.NullString{},
-			Case:      sql.NullString{caseName, true},
-			JobLink:   sql.NullString{joblinks[0], true},
-		}
-		issueCases = append(issueCases, &issueCase)
-	} else if mentionExisted { // mention existing issue
-		var url string
-		err = stillValidIssues.Scan(&url)
+			issueNumberLike := "%/" + issueNumStr
+			repoLike := "%/" + repo + "/%"
+			stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
+			if err != nil {
+				return nil, err
+			}
+			if !stillValidIssues.Next() {
+				issueCase := model.CaseIssue{
+					IssueNo:   0,
+					Repo:      repo,
+					IssueLink: sql.NullString{},
+					Case:      sql.NullString{caseName, true},
+					JobLink:   sql.NullString{joblinks[0], true},
+				}
+				issueCases = append(issueCases, &issueCase)
+			} else if mentionExisted { // mention existing issue
+				var url string
+				err = stillValidIssues.Scan(&url)
 		if err != nil {
 			log.S().Error("failed to extract existing issue url", err)
 			return nil, err
@@ -250,7 +250,8 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 			if _, ok := allRecentCases[repo][c]; !ok {
 				allRecentCases[repo][c] = []string{}
 			}
-			allRecentCases[repo][c] = append(allRecentCases[repo][c], fmt.Sprintf(baselink, job, jobid))
+			jobLink := fmt.Sprintf(baselink, job, jobid)
+			allRecentCases[repo][c] = append(allRecentCases[repo][c], jobLink)
 			if _, ok := caseSet[repo]; !ok {
 				caseSet[repo] = map[string][]string{}
 			}
@@ -259,9 +260,9 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 					recentCaseSet[repo] = map[string][]string{}
 				}
 				if matched, name := parser.MatchAndParseSQLStmtTest(c); matched {
-					recentCaseSet[repo][name] = caseSet[repo][c]
+					recentCaseSet[repo][name] = append([]string{jobLink}, caseSet[repo][c]...)
 				} else {
-					recentCaseSet[repo][c] = caseSet[repo][c]
+					recentCaseSet[repo][c] = append([]string{jobLink}, caseSet[repo][c]...)
 				}
 			}
 			if FirstCaseOnly {
