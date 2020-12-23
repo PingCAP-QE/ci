@@ -111,6 +111,7 @@ func ReportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 	// Reruns are bound to fail. Duplicated
 	// sigUnstableCases = getFrequentRerunCases(rows, caseFrequencies, threshold, sigUnstableCases)
 	err = reportToGroupchat(cfg.WecomKey, caseFrequencies)
+	_ = rows.Close()
 	return err
 }
 

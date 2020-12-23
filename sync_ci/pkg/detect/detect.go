@@ -60,6 +60,9 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	if err != nil {
 		return nil, err
 	}
+
+	_ = rows.Close()
+	_ = recentRows.Close()
 	return issuesToCreate, nil
 }
 
