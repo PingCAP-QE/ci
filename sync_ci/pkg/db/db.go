@@ -12,7 +12,7 @@ type DBDesc struct {
 	InitSql []string
 }
 
-var DBWarehouse map[string]*gorm.DB
+var DBWarehouse map[string]*gorm.DB = make(map[string]*gorm.DB)
 
 const CIDBName = "ci"
 const GithubDBName = "github"
