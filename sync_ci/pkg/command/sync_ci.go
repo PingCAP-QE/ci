@@ -31,6 +31,7 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.CaseDsn, "cs", "root:@tcp(127.0.0.1:3306)/issue_case", "Case-issues Database dsn")
 	f.StringVar(&s.GithubDsn, "gh", "root:@tcp(127.0.0.1:3306)/issues", "Github Issues Database dsn")
 	f.StringVar(&s.GithubToken, "tk", "", "Github token to automatically create issues")
+	f.StringVar(&s.WecomKey, "wc", "", "WeCom key to send unstable case report")
 	f.Int64Var(&s.UpdateInterval, "ui", 3600, "The interval (secs) to update")
 	f.StringVar(&s.Port, "port", "36000", "http service port")
 	f.StringVar(&s.LogPath, "lp", "log", "log path")
@@ -38,8 +39,9 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 }
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	server.NewServer(&s.Config).Run()
 	go RunCaseIssueRoutine(s.Config, false)
+	detect.ScheduleUnstableReport(s.Config)
+	server.NewServer(&s.Config).Run()
 	return subcommands.ExitSuccess
 }
 
@@ -54,10 +56,12 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 		}
 	}()
 
+	log.S().Info("RunCaseIssueRoutine initiated")
+
 	for {
 		inspectStart := time.Now().Add(-detect.PrInspectLimit)
 		recentStart := time.Now().Add(-time.Duration(cfg.UpdateInterval) * time.Second)
-		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, false)
+		cases, err := detect.GetCasesFromPR(cfg, recentStart, inspectStart, test)
 		if err != nil {
 			log.S().Error("get cases failed", err)
 		}
@@ -94,9 +98,6 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			}
 		}
 
-		if test {
-			break
-		}
 		time.Sleep(time.Duration(cfg.UpdateInterval) * time.Second)
 	}
 }

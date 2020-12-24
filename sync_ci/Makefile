@@ -19,7 +19,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 [Service]
 User=root
 WorkingDirectory=$(INSTALL_DIR)
-ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}" -cs "${cs}" -gh "${gh}" -tk "${tk}" -ui "${ui}" -lp "$(INSTALL_DIR)/log" -rp  "$(INSTALL_DIR)/envrules.json"
+ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}" -cs "${cs}" -gh "${gh}" -tk "${tk}" -ui "${ui}" -wc "${wc}" -lp "$(INSTALL_DIR)/log" -rp  "$(INSTALL_DIR)/envrules.json"
 Restart=always
 
 [Install]
