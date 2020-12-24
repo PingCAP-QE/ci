@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
-	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
 	"github.com/robfig/cron/v3"
 	"net/http"
@@ -87,12 +87,7 @@ func ScheduleUnstableReport(cfg model.Config) {
 
 
 func ReportSigUnstableCasesBody(cfg model.Config, threshold int) error {
-	cidb, err := util.SetupDB(cfg.Dsn)
-	if err != nil {
-		log.S().Error("GroupChat service: failed to log db")
-		return err
-	}
-
+	cidb := db.DBWarehouse[db.CIDBName]
 	rows, err := cidb.Raw(model.GetCICasesToday).Rows()
 	if err != nil {
 		log.S().Error("GroupChat service: failed to log db")

@@ -8,6 +8,7 @@ import (
 	"github.com/bndr/gojenkins"
 	"github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/ci/sync_ci/pkg/util"
@@ -60,19 +61,11 @@ func (s *Server) setupHttpServer() (httpServer *http.Server) {
 	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	router.Use(ginzap.RecoveryWithZap(logger, true))
 
-	db, err := util.SetupDB(s.cfg.Dsn)
-	if err != nil {
-		panic(fmt.Sprintf("setup db failed: %v", err))
-	}
-	res := db.Exec(model.TableCreateSql)
-	if res.Error != nil {
-		panic(fmt.Sprintf("setup db failed: %v", err))
-	}
 	jenkins, err := gojenkins.CreateJenkins(nil, "https://internal.pingcap.net/idc-jenkins/").Init()
 	if err != nil {
 		panic(fmt.Sprintf("setup jenkins failed: %v", err))
 	}
-	syncHandler := &SyncHandler{db, jenkins}
+	syncHandler := &SyncHandler{db.DBWarehouse[db.CIDBName], jenkins}
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})

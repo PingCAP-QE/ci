@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/asmcos/requests"
 	"github.com/google/go-github/github"
+	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
-	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
 	"reflect"
@@ -23,10 +23,7 @@ const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/red
 const FirstCaseOnly = true
 
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := util.SetupDB(cfg.Dsn)
-	if err != nil {
-		return nil, err
-	}
+	cidb := db.DBWarehouse[db.CIDBName]
 
 	// Get failed cases from CI data
 	now := time.Now()
@@ -46,14 +43,8 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
 
 	// Validate repo cases
-	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
-	if err != nil {
-		return nil, err
-	}
-	dbGithub, err := util.SetupDB(cfg.GithubDsn)
-	if err != nil {
-		return nil, err
-	}
+	dbIssueCase := db.DBWarehouse[db.CIDBName]
+	dbGithub := db.DBWarehouse[db.GithubDBName]
 	// assumed `cases` param has no reps
 	_, err = handleCasesIfIssueExists(cfg, allRecentCases, dbIssueCase, dbGithub, true, test)
 	issuesToCreate, err := handleCasesIfIssueExists(cfg, DupRecentCaseSet, dbIssueCase, dbGithub, false, test)
@@ -104,24 +95,24 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[str
 }
 
 func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, mentionExisted, test bool) ([]*model.CaseIssue, error) {
-			issueNumberLike := "%/" + issueNumStr
-			repoLike := "%/" + repo + "/%"
-			stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
-			if err != nil {
-				return nil, err
-			}
-			if !stillValidIssues.Next() {
-				issueCase := model.CaseIssue{
-					IssueNo:   0,
-					Repo:      repo,
-					IssueLink: sql.NullString{},
-					Case:      sql.NullString{caseName, true},
-					JobLink:   sql.NullString{joblinks[0], true},
-				}
-				issueCases = append(issueCases, &issueCase)
-			} else if mentionExisted { // mention existing issue
-				var url string
-				err = stillValidIssues.Scan(&url)
+	issueNumberLike := "%/" + issueNumStr
+	repoLike := "%/" + repo + "/%"
+	stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
+	if err != nil {
+		return nil, err
+	}
+	if !stillValidIssues.Next() {
+		issueCase := model.CaseIssue{
+			IssueNo:   0,
+			Repo:      repo,
+			IssueLink: sql.NullString{},
+			Case:      sql.NullString{caseName, true},
+			JobLink:   sql.NullString{joblinks[0], true},
+		}
+		issueCases = append(issueCases, &issueCase)
+	} else if mentionExisted { // mention existing issue
+		var url string
+		err = stillValidIssues.Scan(&url)
 		if err != nil {
 			log.S().Error("failed to extract existing issue url", err)
 			return nil, err
@@ -138,20 +129,11 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 }
 
 func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool) ([]*model.CaseIssue, error) {
-	cidb, err := util.SetupDB(cfg.Dsn)
-	if err != nil {
-		return nil, err
-	}
-	ghdb, err := util.SetupDB(cfg.GithubDsn)
-	if err != nil {
-		return nil, err
-	}
-	csdb, err := util.SetupDB(cfg.CaseDsn)
-	if err != nil {
-		return nil, err
-	}
+	cidb := db.DBWarehouse[db.CIDBName]
+	ghdb := db.DBWarehouse[db.GithubDBName]
+	csdb := db.DBWarehouse[db.CIDBName]
 	rows, err := cidb.Raw(model.GetCINightlyCase, formatT(filterStartTime), formatT(now)).Rows()
-	RepoNightlyCase := map[string]map[string] []string {}
+	RepoNightlyCase := map[string]map[string][]string{}
 	issueCases := []*model.CaseIssue{}
 
 	if err != nil {
@@ -179,11 +161,11 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 
 		for _, c := range cases {
 			if _, ok := RepoNightlyCase[repo]; !ok {
-				RepoNightlyCase[repo] = map[string] []string{}
+				RepoNightlyCase[repo] = map[string][]string{}
 			}
 			if _, ok := RepoNightlyCase[repo][c]; !ok {
 				link := fmt.Sprintf(baselink, job, jobid)
-				RepoNightlyCase[repo][c] = []string {link}
+				RepoNightlyCase[repo][c] = []string{link}
 
 				issueCase := model.CaseIssue{
 					IssueNo:   0,
@@ -224,7 +206,7 @@ func extractRepoFromJobName(job string) string {
 }
 
 func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[string][]string, recentCaseSet map[string]map[string][]string) map[string]map[string][]string {
-	allRecentCases := map[string]map[string][]string {}
+	allRecentCases := map[string]map[string][]string{}
 	for recentRows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -346,10 +328,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)
-	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
-	if err != nil {
-		return err
-	}
+	dbIssueCase := db.DBWarehouse[db.CIDBName]
 	// todo: set request header
 	for _, issue := range issues {
 		var url string
@@ -361,10 +340,10 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		var resp *requests.Response
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
-			resp, err = req.PostJson(url, map[string] interface{} {
+			resp, err := req.PostJson(url, map[string]interface{}{
 				"title":  issue.Case.String + " failed",
-				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">"+issue.JobLink.String + "</a>", // todo: fill content templates
-				"labels": []string {"component/test"},
+				"body":   "Latest build: <a href=\"" + issue.JobLink.String + "\">" + issue.JobLink.String + "</a>", // todo: fill content templates
+				"labels": []string{"component/test"},
 			})
 			if err != nil {
 				log.S().Error("Error creating issue '", url, "'; Error: ", err, "; Retry")
@@ -386,7 +365,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		}
 
 		responseDict := github.Issue{}
-		err = resp.Json(&responseDict)
+		err := resp.Json(&responseDict)
 		if err != nil {
 			log.S().Error("parse response failed", err)
 			continue
