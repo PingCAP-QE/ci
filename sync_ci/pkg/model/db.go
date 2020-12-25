@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const TableCreateSql = `CREATE TABLE if not exists ci_data (
+const CiDataTableCreateSql = `CREATE TABLE if not exists ci_data (
   job varchar(100) NOT NULL,
   job_id int(10) unsigned NOT NULL,
   status enum('SUCCESS','FAILURE','ABORTED') NOT NULL,
