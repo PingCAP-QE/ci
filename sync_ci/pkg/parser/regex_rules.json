@@ -6,8 +6,13 @@
   {"jobs": [], "regex": "Caused by:.*?could not parse input as TOML", "key": "compile", "lines": 3},
   {"jobs": ["tidb_ghpr_tics_test"], "regex": "Failed in branch TiCS Test", "key": "case"},
   {"jobs": [], "regex": "Test fail: Outputs are not matching.*?Test case: .*?\\.sql", "key": "case", "lines": 3},
-  {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile", "lines": 1},
-  {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]*: .*?\\..*", "key": "case"},
+  {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
+  {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]+:.*?\\..*", "key": "case"},
   {"jobs": [], "regex": "Please make format and run tests before creating a PR", "key": "compile"},
-  {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server)\\] Error [1-9]", "key": "compile"}
+  {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server|release)\\] Error [1-9]*", "key": "compile"},
+  {"jobs": [], "regex": "tar: Error is not recoverable: exiting now", "key": "env"},
+  {"jobs": [], "regex": "\\* Fail to start TiDB", "key": "env"},
+  {"jobs": [], "regex": "tar: This does not look like a tar archive", "key": "env"},
+  {"jobs": [], "regex": "gzip: stdin: not in gzip format", "key": "env"},
+  {"jobs": [], "regex": "\\[fatal\\] run test [\\[\\]_a-zA-Z]*? err:.*?we need", "key": "case", "lines": 5}
 ]
