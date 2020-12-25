@@ -9,7 +9,7 @@
   {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
   {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]+:.*?\\..*", "key": "case"},
   {"jobs": [], "regex": "Please make format and run tests before creating a PR", "key": "compile"},
-  {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server|release)\\] Error [1-9]*", "key": "compile"},
+  {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server|release)\\] Error [0-9]*", "key": "compile"},
   {"jobs": [], "regex": "tar: Error is not recoverable: exiting now", "key": "env"},
   {"jobs": [], "regex": "\\* Fail to start TiDB", "key": "env"},
   {"jobs": [], "regex": "tar: This does not look like a tar archive", "key": "env"},
