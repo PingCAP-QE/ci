@@ -76,10 +76,13 @@ func StartUpdateRegexRules() {
 	}()
 }
 
-func updateRegexpRules(path string) {
+func updateRegexpRules(path string) bool {
+	isSuc := true
+
 	defer func() {
 		if err := recover(); err != nil {
 			log.S().Errorf("Update rules failed. [error] %v", err)
+			isSuc = false
 		}
 	}()
 
@@ -99,6 +102,7 @@ func updateRegexpRules(path string) {
 
 	atomic.StorePointer(&reRules, unsafe.Pointer(rules))
 	log.S().Infof("Regexp rules updated. %+v", rules)
+	return isSuc
 }
 
 func getSuitableRules(job string) *[]RegexpRule {
