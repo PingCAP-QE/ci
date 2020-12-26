@@ -17,7 +17,6 @@
 * @STAGE
 */
 
-def BUILD_BRANCH = "release-4.0"
 def BUILD_TIKV_IMPORTER = "false"
 env.DOCKER_HOST = "tcp://localhost:2375"
 
@@ -96,6 +95,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                     ]
         }
 
