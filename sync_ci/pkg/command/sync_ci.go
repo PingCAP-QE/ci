@@ -6,6 +6,7 @@ import (
 	"flag"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/subcommands"
+	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/detect"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/server"
@@ -28,7 +29,6 @@ func (*SyncCICommand) Usage() string {
 
 func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.Dsn, "dsn", "root:@tcp(127.0.0.1:3306)/sync_ci_data", "CI Database dsn")
-	f.StringVar(&s.CaseDsn, "cs", "root:@tcp(127.0.0.1:3306)/issue_case", "Case-issues Database dsn")
 	f.StringVar(&s.GithubDsn, "gh", "root:@tcp(127.0.0.1:3306)/issues", "Github Issues Database dsn")
 	f.StringVar(&s.GithubToken, "tk", "", "Github token to automatically create issues")
 	f.StringVar(&s.WecomKey, "wc", "", "WeCom key to send unstable case report")
@@ -39,6 +39,7 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 }
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	db.InitDB(s.Config)
 	go RunCaseIssueRoutine(s.Config, false)
 	detect.ScheduleUnstableReport(s.Config)
 	server.NewServer(&s.Config).Run()

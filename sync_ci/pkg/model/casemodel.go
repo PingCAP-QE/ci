@@ -138,7 +138,6 @@ having json_length(` + "`case`" + `) > 0
 order by job, time desc;
 `
 
-
 const IfValidIssuesExistSql = `
 select issue_no
 from issue_case
@@ -155,7 +154,6 @@ where url like ?  -- match number
 		or 	timediff(now(), closed_at) < ?);
 `
 
-
 type CaseIssue struct {
 	IssueNo   int64          `gorm:"primary_key;column:issue_no;type:int;size:11;" json:"IssueNo" binding:"required"`
 	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;" json:"Repo" binding:"required"`
@@ -163,7 +161,6 @@ type CaseIssue struct {
 	Case      sql.NullString `gorm:"column:case;type:varchar;size:100;" json:"Case" binding:"required"`
 	JobLink   sql.NullString `gorm:"column:joblink;type:varchar;size:200;"`
 }
-
 
 func (*CaseIssue) TableName() string {
 	return "issue_case"

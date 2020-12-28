@@ -7,6 +7,12 @@ import (
 	"testing"
 )
 
+func TestRegex_Load(t *testing.T) {
+	if updateRegexpRules("./pkg/parser/regex_rules.json") != true {
+		t.Error("load rule failed")
+	}
+}
+
 func TestRegex_TestRules(t *testing.T) {
 	updateRegexpRules("./pkg/parser/regex_rules.json")
 	lines := FilesToLines("./pkg/parser/rules_test/integration_fatal_error.log")
@@ -18,7 +24,7 @@ func TestRegex_TestRules(t *testing.T) {
 
 	for _, r := range *result {
 		if r.Key != "case" ||
-			r.Value != `[FATAL] [main.go:694] ["run test"] [test=select] [error="sql:SELECT c2 from t where not (c2 > 2);: run \"SELECT c2 from t where not (c2 > 2);\" at line 85 err, we need` {
+			strings.Contains(r.Value, `[FATAL] [main.go:694] ["run test"] [test=select] [error="sql:SELECT c2 from t where not (c2 > 2);: run` ) == false {
 			t.Error("test failed")
 		}
 	}
@@ -153,4 +159,49 @@ func TestRegex_TiDB_IntegrationCommonTest(t *testing.T) {
 	}
 
 	t.Error("integration common test failed.")
+}
+
+func TestRegex_TiDB_IntegrationCommonTest2(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/tidb_integration_fail.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if info == nil || len(*info) != 1 {
+		t.Error("integration common test2 failed.")
+	}
+	for _, o := range *info {
+		if o.Key == "case" && strings.Contains(o.Value, "lock_test.go:655: testLockSuite.TestBatchResolveTxnFallenBackFromAsyncCommit") {
+			return
+		}
+	}
+
+	t.Error("integration common test2 failed.")
+}
+
+func TestRegex_TiDB_PDBuildFailed(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/pd_build_failed.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "compile" && strings.Contains((*info)[0].Value, "make: *** [swagger-spec] Error 1") {
+			return
+		}
+	}
+
+	t.Error("pd build failed rule not work.")
+}
+
+func TestRegex_TiDB_MysqlTestError(t *testing.T) {
+	updateRegexpRules("./pkg/parser/regex_rules.json")
+	lines := FilesToLines("./pkg/parser/rules_test/mysql_test_error.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "case" && strings.Contains((*info)[0].Value, "[fatal] run test [window_functions] err: sql:SHOW CREATE VIEW v;: failed to run query") {
+			return
+		}
+	}
+
+	t.Error("pd build failed rule not work.")
 }
