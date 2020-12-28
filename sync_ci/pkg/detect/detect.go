@@ -22,8 +22,21 @@ const PrInspectLimit = time.Hour * 24 * 7
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
 const FirstCaseOnly = true
 
+type repoPrCases map[string]map[string][]string
+type repoCasePrSet map[string]map[string]map[string]bool
+
+
 func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.CaseIssue, error) {
 	cidb, err := util.SetupDB(cfg.Dsn)
+	if err != nil {
+		return nil, err
+	}
+	// Validate repo cases
+	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
+	if err != nil {
+		return nil, err
+	}
+	dbGithub, err := util.SetupDB(cfg.GithubDsn)
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +48,8 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	if err != nil {
 		return nil, err
 	}
-	caseSet := map[string]map[string][]string{}
-	getHistoryCases(rows, caseSet, baselink)
+	caseSet := repoPrCases{}
+	_ = getHistoryCases(rows, caseSet, baselink)
 
 	recentRows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
 	if err != nil {
@@ -45,15 +58,16 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	DupRecentCaseSet := map[string]map[string][]string{}
 	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
 
-	// Validate repo cases
-	dbIssueCase, err := util.SetupDB(cfg.CaseDsn)
+	// create alerts and filter requiredCases
+	rowsToRemindPr, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
 	if err != nil {
 		return nil, err
 	}
-	dbGithub, err := util.SetupDB(cfg.GithubDsn)
-	if err != nil {
-		return nil, err
-	}
+	casesToRemind := getHistoryCases(rowsToRemindPr, repoPrCases{}, baselink)
+	handlePrReminder(cfg, dbGithub, dbIssueCase, casesToRemind, test)
+
+
+
 	// assumed `cases` param has no reps
 	_, err = handleCasesIfIssueExists(cfg, allRecentCases, dbIssueCase, dbGithub, true, test)
 	issuesToCreate, err := handleCasesIfIssueExists(cfg, DupRecentCaseSet, dbIssueCase, dbGithub, false, test)
@@ -66,7 +80,47 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	return issuesToCreate, nil
 }
 
-func handleCasesIfIssueExists(cfg model.Config, recentCaseSet map[string]map[string][]string, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
+func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB, recentCases repoCasePrSet, test bool){
+	for r, casePrs := range recentCases {
+		for c, prSet := range casePrs{
+			// Check if issue exists and fetch latest
+			existedCases, err := dbIssueCase.Raw(model.IfValidIssuesExistSql, c, r).Rows()
+			if err != nil {
+				log.S().Error("failed to check existing [case, repo]: ", c, r)
+				continue
+			}
+			if !existedCases.Next() {
+				// no issue found. do nothing
+				continue
+			} else {
+				// check time
+				var issueNumStr string
+				err = existedCases.Scan(&issueNumStr)
+				issueNumberLike := "%/" + issueNumStr
+				repoLike := "%/" + r + "/%"
+				stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
+				if err != nil {
+					log.S().Error("failed to check existing [case, repo]: ", c, r)
+					continue
+				}
+				if !stillValidIssues.Next() {
+					continue
+				}
+
+				issueLink := fmt.Sprintf("https://www.github.com/repos/%s/issues/%s", r, issueNumStr)
+				for pr, _ := range prSet {
+					err = RemindMergePr(cfg, r, pr, c, issueLink, test)
+					if err != nil {
+						log.S().Error("failed to remind merge pr: ", c, r)
+						continue
+					}
+				}
+			}
+		}
+	}
+}
+
+func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoPrCases, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueCases := []*model.CaseIssue{}
 	for repo, repoCases := range recentCaseSet {
 		for c, v := range repoCases {
@@ -273,8 +327,8 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 	return allRecentCases
 }
 
-func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, baselink string) {
-	repoPrCases := map[string]map[string]string{} // repo -> pr -> case
+func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, baselink string) map[string]map[string]map[string]bool {
+	repoPrCases := map[string]map[string]map[string]bool{} // repo -> pr -> case
 	for rows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -294,11 +348,12 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 		}
 		for _, c := range cases {
 			if _, ok := repoPrCases[repo]; !ok {
-				repoPrCases[repo] = map[string]string{}
+				repoPrCases[repo] = map[string]map[string]bool{}
 			}
 			if _, ok := repoPrCases[repo][c]; !ok {
-				repoPrCases[repo][c] = pr
+				repoPrCases[repo][c] = map[string]bool{pr: true}
 			} else {
+				repoPrCases[repo][c][pr] = true
 				if _, ok = caseSet[repo]; !ok {
 					caseSet[repo] = map[string][]string{}
 				}
@@ -309,6 +364,7 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 			}
 		}
 	}
+	return repoPrCases
 }
 
 func MentionIssue(cfg model.Config, repo string, issueId string, joblink string, test bool) error {
@@ -399,6 +455,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 			String: link,
 			Valid:  true,
 		}
+
 		//log db
 		dbIssueCase.Create(issue)
 		if dbIssueCase.Error != nil {

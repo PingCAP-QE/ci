@@ -114,14 +114,14 @@ order by analysis_res desc;
 
 const GetCICasesToday = `
 select
-	repo,
+	ifnull(repo, "") as repo,
 	json_extract(description, '$.ghprbPullId') as pr,
 	ifnull(json_extract(analysis_res, '$.case'), "[]") as ` + "`case`" +`,
 	ifnull(json_extract(analysis_res, '$.env'), "[]") as envs,
 	job_id,
 	job
 from sync_ci_data.ci_data
-where date(time)=date(now()) and repo is not null
+where date(time)=date(now()) -- and repo is not null
 having json_length(` + "`case`" + `)>0 or json_length(envs)>0 and pr != '0'
 order by repo, time desc;
 `
@@ -146,7 +146,6 @@ where ` + "`case`" + ` = ? and repo = ?
 order by issue_no desc
 limit 1;
 `
-
 
 const CheckClosedTimeSql = `
 select url from issue

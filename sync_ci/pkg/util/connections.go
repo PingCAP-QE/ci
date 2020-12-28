@@ -20,7 +20,7 @@ func SetupDB(dsn string) (*gorm.DB, error) {
 	}
 
 	d.SetMaxIdleConns(10)
-	d.SetMaxOpenConns(100)
+	d.SetMaxOpenConns(15)  // previous 100. Attempt to reduce connection burden
 	d.SetConnMaxIdleTime(time.Hour)
 	return db, nil
 }
