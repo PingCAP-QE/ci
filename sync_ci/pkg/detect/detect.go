@@ -88,7 +88,7 @@ func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB,
 				err = existedCases.Scan(&issueNumStr)
 				issueNumberLike := "%/" + issueNumStr
 				repoLike := "%/" + r + "/%"
-				stillValidIssues, err := dbGithub.Raw(model.CheckClosedTimeSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
+				stillValidIssues, err := dbGithub.Raw(model.CheckClosedIssue, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
 				if err != nil {
 					log.S().Error("failed to check existing [case, repo]: ", c, r)
 					continue

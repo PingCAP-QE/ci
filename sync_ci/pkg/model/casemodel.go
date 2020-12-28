@@ -154,6 +154,14 @@ where url like ?  -- match number
 		or 	timediff(now(), closed_at) < ?);
 `
 
+const CheckClosedIssue = `
+select url from issue
+where url like ?  -- match number
+	and url like ?  -- match repo
+	and (closed_at is not null)
+order by created_at desc;
+`
+
 type CaseIssue struct {
 	IssueNo   int64          `gorm:"primary_key;column:issue_no;type:int;size:11;" json:"IssueNo" binding:"required"`
 	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;" json:"Repo" binding:"required"`
