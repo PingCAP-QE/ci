@@ -138,7 +138,7 @@ having json_length(` + "`case`" + `) > 0
 order by job, time desc;
 `
 
-const IfValidIssuesExistSql = `
+const IssueCaseExistsSql = `
 select issue_no
 from issue_case
 where ` + "`case`" + ` = ? and repo = ?
@@ -146,12 +146,20 @@ order by issue_no desc
 limit 1;
 `
 
-const CheckClosedTimeSql = `
+const IssueRecentlyOpenSql = `
 select url from issue
 where url like ?  -- match number
 	and url like ?  -- match repo
 	and (closed_at is null
 		or 	timediff(now(), closed_at) < ?);
+`
+
+const IssueClosed = `
+select url, timediff(now(), closed_at) from issue
+where url like ?  -- match number
+	and url like ?  -- match repo
+	and (closed_at is not null
+		and timediff(now(), closed_at) < ?);
 `
 
 const CheckClosedIssue = `
