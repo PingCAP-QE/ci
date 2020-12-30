@@ -1,5 +1,6 @@
 [
-  {"jobs": [], "regex": "\\[FATAL\\].*?\\[error=\".*?we need", "key": "case"},
+  {"jobs": [], "regex": "\\[FATAL\\].*?\\[\\\"run test\\\"\\].*?\\[error=\\\".*?\\\"\\]", "key": "case"},
+  {"jobs": [], "regex": "\\[FATAL\\].*?\\[\\\"open DB failed\\\"\\]", "key": "env"},
   {"jobs": [], "regex": "error: could not compile `[_a-z1-9]*`", "key": "compile"},
   {"jobs": [], "regex": "PANIC:.*?\\.go:[0-9]*: .*?\\..*", "key": "case"},
   {"jobs": [], "regex": "fatal: reference is not a tree: [0-9a-f]*", "key": "env"},
@@ -9,12 +10,12 @@
   {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
   {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]+:.*?\\..*", "key": "case"},
   {"jobs": [], "regex": "Please make format and run tests before creating a PR", "key": "compile"},
-  {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server|release)\\] Error [0-9]*", "key": "compile"},
+  {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server|release|build)\\] Error [0-9]*", "key": "compile"},
   {"jobs": [], "regex": "tar: Error is not recoverable: exiting now", "key": "env"},
   {"jobs": [], "regex": "\\* Fail to start TiDB", "key": "env"},
   {"jobs": [], "regex": "tar: This does not look like a tar archive", "key": "env"},
   {"jobs": [], "regex": "gzip: stdin: not in gzip format", "key": "env"},
-  {"jobs": [], "regex": "\\[fatal\\] run test [\\[\\]_a-zA-Z]*? err:.*?we need", "key": "case", "lines": 5},
+  {"jobs": [], "regex": "\\[fatal\\] run test [\\[\\]_a-zA-Z]*? err:.*?we need\\([0-9]*\\)", "key": "case", "lines": 8},
   {"jobs": [], "regex": "\\* Fail to start TiDB", "key": "env"},
   {"jobs": [], "regex": "tar: Error is not recoverable: exiting now", "key": "env"},
   {"jobs": [], "regex": "\\[fatal\\].*?connection refused", "key": "env"}
