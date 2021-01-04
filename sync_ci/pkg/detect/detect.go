@@ -11,7 +11,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -472,10 +471,10 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		}
 
 		num := responseDict.Number
-		link := reflect.ValueOf(responseDict.URL).Elem().String()
-		issue.IssueNo = reflect.ValueOf(num).Elem().Int()
+		link := responseDict.HTMLURL
+		issue.IssueNo = int64(*num)
 		issue.IssueLink = sql.NullString{
-			String: link,
+			String: *link,
 			Valid:  true,
 		}
 		//log db
