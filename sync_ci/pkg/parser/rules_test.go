@@ -212,7 +212,7 @@ func TestIntegrationTestParser(t *testing.T) {
 		},
 		{
 			`[2020-12-04T17:31:17.697Z] time="2020-12-05T01:31:17+08:00" level=fatal msg="run test [window_functions] err: sql:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);: failed to run query \n\"SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\" \n around line 81, \nwe need(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n1\t2.3333\t1\n2\t2.3333\t3\n3\t2.3333\t6\n4\t2.3333\t10\n\nbut got(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n4\t2.3333\t4\n1\t2.3333\t5\n2\t2.3333\t7\n3\t2.3333\t10\n\n"`,
-			`level=fatal msg="run test [window_functions] err: sql:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);: failed to run query \n\"SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\" \n around line 81, \nwe need(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n1\t2.3333\t1\n2\t2.3333\t3\n3\t2.3333\t6\n4\t2.3333\t10\n\nbut got(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n4\t2.3333\t4\n1\t2.3333\t5\n2\t2.3333\t7\n3\t2.3333\t10\n\n"`,
+			`[window_functions]:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);`,
 		},
 	}
 	for _, item := range testData {

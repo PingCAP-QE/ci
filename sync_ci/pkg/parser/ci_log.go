@@ -84,6 +84,10 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 			}
 		}
 
+		// use the first failed case only, for other cases may cause by this case failure.
+		if k == "case" && len(newV) > 1 {
+			newV = newV[0:1]
+		}
 		res[k] = newV
 	}
 
