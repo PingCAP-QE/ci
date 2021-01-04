@@ -82,7 +82,6 @@ func ScheduleUnstableReport(cfg model.Config) {
 		}
 	}
 	scheduler.Start()
-
 }
 
 
