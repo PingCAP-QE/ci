@@ -47,6 +47,10 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	DupRecentCaseSet := map[string]map[string][]string{}
 	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
 
+	dupCaseStr, err := json.Marshal(DupRecentCaseSet)
+	log.S().Info("Acquired duplicate cases: ", string(dupCaseStr))
+	log.S().Info("Filtering cases to create issue with")
+
 	// Validate repo cases
 	dbIssueCase := db.DBWarehouse[db.CIDBName]
 	dbGithub := db.DBWarehouse[db.GithubDBName]
