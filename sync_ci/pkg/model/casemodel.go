@@ -170,6 +170,8 @@ where url like ?  -- match number
 order by created_at desc;
 `
 
+
+
 type CaseIssue struct {
 	IssueNo   int64          `gorm:"primary_key;column:issue_no;type:int;size:11;" json:"IssueNo" binding:"required"`
 	Repo      string         `gorm:"primary_key;column:repo;type:varchar;size:100;" json:"Repo" binding:"required"`

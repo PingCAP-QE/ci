@@ -22,7 +22,10 @@ const RETRIGGERED_CASE = 1
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
-type repoPrCases map[string]map[string][]string
+type repoCasePr map[string]map[string][]string
+type repoPrCase map[string]map[string][]string
+type repoCaseJoblink map[string]map[string][]string
+
 type repoCasePrSet map[string]map[string]map[string]bool
 
 const FirstCaseOnly = true
@@ -37,15 +40,13 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	if err != nil {
 		return nil, err
 	}
-	caseSet := repoPrCases{}
-	_ = getHistoryCases(rows, caseSet, baselink)
+	_, caseSet := getHistoryCases(rows, baselink)
 
 	recentRows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
 	if err != nil {
 		return nil, err
 	}
-	DupRecentCaseSet := map[string]map[string][]string{}
-	allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, DupRecentCaseSet)
+	DupRecentCaseSet, allRecentCases := getDuplicatesFromHistory(recentRows, caseSet)
 
 	dupCaseStr, err := json.Marshal(DupRecentCaseSet)
 	log.S().Info("Acquired duplicate cases: ", string(dupCaseStr))
@@ -59,7 +60,7 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	if err != nil {
 		return nil, err
 	}
-	casesToRemind := getHistoryCases(rowsToRemindPr, repoPrCases{}, baselink)
+	casesToRemind, _ := getHistoryCases(rowsToRemindPr, baselink)
 	handlePrReminder(cfg, dbGithub, dbIssueCase, casesToRemind, test)
 
 	// assumed `cases` param has no reps
@@ -67,6 +68,13 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	issuesToCreate, err := handleCasesIfIssueExists(cfg, DupRecentCaseSet, dbIssueCase, dbGithub, false, test)
 	if err != nil {
 		return nil, err
+	}else{
+		bytes, err := json.Marshal(issuesToCreate)
+		if err != nil {
+			log.S().Error("Error formatting issuesToCreate")
+		}else {
+			log.S().Info("Acquired cases to create pr: ", string(bytes))
+		}
 	}
 
 	_ = rows.Close()
@@ -114,10 +122,10 @@ func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB,
 	}
 }
 
-func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoPrCases, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
+func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoCaseJoblink, dbIssueCase *gorm.DB, dbGithub *gorm.DB, mentionExisted, test bool) ([]*model.CaseIssue, error) {
 	issueCases := []*model.CaseIssue{}
 	for repo, repoCases := range recentCaseSet {
-		for c, v := range repoCases {
+		for c, joblinks := range repoCases {
 			existedCases, err := dbIssueCase.Raw(model.IssueCaseExistsSql, c, repo).Rows()
 			if err != nil {
 				log.S().Error("failed to check existing [case, repo]: ", c, repo)
@@ -129,11 +137,11 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoPrCases, dbIss
 					Repo:      repo,
 					IssueLink: sql.NullString{},
 					Case:      sql.NullString{c, true},
-					JobLink:   sql.NullString{v[0], true},
+					JobLink:   sql.NullString{joblinks[0], true},
 				}
 				issueCases = append(issueCases, &issueCase)
 				if err = RemindUnloggedCasePr(cfg, repo, "", c, test); err != nil {
-					log.S().Error("Remind unlogged case failed for ", c, ", with job link ", v[0])
+					log.S().Error("Remind unlogged case failed for ", c, ", with job link ", joblinks[0])
 				}else{
 					log.S().Info("Unlogged case reminded")
 				}
@@ -145,7 +153,7 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoPrCases, dbIss
 					continue
 				}
 
-				issueCases, err = handleCaseIfHistoryExists(cfg, dbGithub, issueNumStr, repo, c, v, issueCases, mentionExisted, test)
+				issueCases, err = handleCaseIfHistoryExists(cfg, dbGithub, issueNumStr, repo, c, joblinks, issueCases, mentionExisted, test)
 				if err != nil {
 					log.S().Error("failed to respond to issueCases", err)
 					continue
@@ -157,40 +165,40 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoPrCases, dbIss
 }
 
 func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr string, repo string, caseName string, joblinks []string, issueCases []*model.CaseIssue, mentionExisted, test bool) ([]*model.CaseIssue, error) {
-			issueNumberLike := "%/" + issueNumStr
-			repoLike := "%/" + repo + "/%"
-			stillValidIssues, err := dbGithub.Raw(model.IssueRecentlyOpenSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
-			if err != nil {
-				return nil, err
-			}
-			closedIssues, err := dbGithub.Raw(model.IssueClosed, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
-			if err != nil {
-				return nil, err
-			}
+	issueNumberLike := "%/" + issueNumStr
+	repoLike := "%/" + repo + "/%"
+	stillValidIssues, err := dbGithub.Raw(model.IssueRecentlyOpenSql, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
+	if err != nil {
+		return nil, err
+	}
+	closedIssues, err := dbGithub.Raw(model.IssueClosed, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
+	if err != nil {
+		return nil, err
+	}
 
-			if !stillValidIssues.Next() {
-				if closedIssues.Next() {  // the issue was closed
-					issueCase := model.CaseIssue{
-						IssueNo:   RETRIGGERED_CASE,
-						Repo:      repo,
-						IssueLink: sql.NullString{},
-						Case:      sql.NullString{caseName, true},
-						JobLink:   sql.NullString{joblinks[0], true},
-					}
-					issueCases = append(issueCases, &issueCase)
-				}else{
-					issueCase := model.CaseIssue{
-						IssueNo:   NEW_CASE,
-						Repo:      repo,
-						IssueLink: sql.NullString{},
-						Case:      sql.NullString{caseName, true},
-						JobLink:   sql.NullString{joblinks[0], true},
-					}
-					issueCases = append(issueCases, &issueCase)
-				}
-			} else if mentionExisted { // mention existing issue
-				var url string
-				err = stillValidIssues.Scan(&url)
+	if !stillValidIssues.Next() {
+		if closedIssues.Next() {  // the issue was closed
+			issueCase := model.CaseIssue{
+				IssueNo:   RETRIGGERED_CASE,
+				Repo:      repo,
+				IssueLink: sql.NullString{},
+				Case:      sql.NullString{caseName, true},
+				JobLink:   sql.NullString{joblinks[0], true},
+			}
+			issueCases = append(issueCases, &issueCase)
+		}else{
+			issueCase := model.CaseIssue{
+				IssueNo:   NEW_CASE,
+				Repo:      repo,
+				IssueLink: sql.NullString{},
+				Case:      sql.NullString{caseName, true},
+				JobLink:   sql.NullString{joblinks[0], true},
+			}
+			issueCases = append(issueCases, &issueCase)
+		}
+	} else if mentionExisted { // mention existing issue
+		var url string
+		err = stillValidIssues.Scan(&url)
 		if err != nil {
 			log.S().Error("failed to extract existing issue url", err)
 			return nil, err
@@ -283,8 +291,9 @@ func extractRepoFromJobName(job string) string {
 	return "others"
 }
 
-func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[string][]string, recentCaseSet map[string]map[string][]string) map[string]map[string][]string {
-	allRecentCases := map[string]map[string][]string{}
+func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet repoCaseJoblink) (repoCaseJoblink, repoCaseJoblink) {
+	allRecentCaseJoblinks := repoCaseJoblink{}
+	dupRecentCaseJoblinks := repoCaseJoblink{}
 	for recentRows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -304,25 +313,25 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 		}
 
 		for _, c := range cases {
-			if _, ok := allRecentCases[repo]; !ok {
-				allRecentCases[repo] = map[string][]string{}
+			if _, ok := allRecentCaseJoblinks[repo]; !ok {
+				allRecentCaseJoblinks[repo] = map[string][]string{}
 			}
-			if _, ok := allRecentCases[repo][c]; !ok {
-				allRecentCases[repo][c] = []string{}
+			if _, ok := allRecentCaseJoblinks[repo][c]; !ok {
+				allRecentCaseJoblinks[repo][c] = []string{}
 			}
 			jobLink := fmt.Sprintf(baselink, job, jobid)
-			allRecentCases[repo][c] = append(allRecentCases[repo][c], jobLink)
+			allRecentCaseJoblinks[repo][c] = append(allRecentCaseJoblinks[repo][c], jobLink)
 			if _, ok := caseSet[repo]; !ok {
 				caseSet[repo] = map[string][]string{}
 			}
 			if _, ok := caseSet[repo][c]; ok {
-				if _, ok := recentCaseSet[repo]; !ok {
-					recentCaseSet[repo] = map[string][]string{}
+				if _, ok := dupRecentCaseJoblinks[repo]; !ok {
+					dupRecentCaseJoblinks[repo] = map[string][]string{}
 				}
 				if matched, name := parser.MatchAndParseSQLStmtTest(c); matched {
-					recentCaseSet[repo][name] = append([]string{jobLink}, caseSet[repo][c]...)
+					dupRecentCaseJoblinks[repo][name] = append([]string{jobLink}, caseSet[repo][c]...)
 				} else {
-					recentCaseSet[repo][c] = append([]string{jobLink}, caseSet[repo][c]...)
+					dupRecentCaseJoblinks[repo][c] = append([]string{jobLink}, caseSet[repo][c]...)
 				}
 			}
 			if FirstCaseOnly {
@@ -330,11 +339,12 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet map[string]map[strin
 			}
 		}
 	}
-	return allRecentCases
+	return allRecentCaseJoblinks, dupRecentCaseJoblinks
 }
 
-func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, baselink string) map[string]map[string]map[string]bool {
-	repoPrCases := map[string]map[string]map[string]bool{} // repo -> pr -> case
+func getHistoryCases(rows *sql.Rows, baselink string) (repoCasePrSet, repoCaseJoblink) {
+	caseSet := repoCaseJoblink{}
+	repoPrCases := repoCasePrSet{} // repo -> case -> pr(set)
 	for rows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -370,7 +380,7 @@ func getHistoryCases(rows *sql.Rows, caseSet map[string]map[string][]string, bas
 			}
 		}
 	}
-	return repoPrCases
+	return repoPrCases, caseSet
 }
 
 func MentionIssue(cfg model.Config, repo string, issueId string, joblink string, test bool) error {
@@ -417,7 +427,8 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		} else {
 			url = "https://api.github.com/repos/kivenchen/klego/issues"
 		}
-		var resp *requests.Response
+		resp, createSuccess := &requests.Response{}, false
+
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
 
@@ -442,14 +453,14 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 					//log.S().Error("Create issue failed: ", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
+					createSuccess = true
 					break
 				}
 			}
 		}
 
-		if resp == nil || resp.R.StatusCode != 201 {
-			log.S().Error("Error commenting issue ", url, ". Skipped")
-			log.S().Error("Create issue failed: ", resp.R.StatusCode, string(resp.Content()))
+		if !createSuccess {
+			log.S().Error("Error commenting issue ", url, ". Skipped: ")
 			continue
 		}
 

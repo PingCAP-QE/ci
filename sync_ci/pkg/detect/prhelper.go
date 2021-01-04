@@ -29,6 +29,7 @@ func RemindUnloggedCasePr(cfg model.Config, repo string, issueId string, failedC
 	baseComment := `Please note that the test case failure <code>%s</code> has never been triggered before.`
 	comment := fmt.Sprintf(baseComment, failedCase)
 	var url string
+
 	if !test {
 		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
 	} else {
