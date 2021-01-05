@@ -22,7 +22,6 @@ const postTemplate = `
 	"markdown": {
 		"content": "Today's job fail reasons: 
 
-`+"" + `
 %s
 `+"\n" + `"
 	}
@@ -33,7 +32,7 @@ func reportToGroupchat(wecomkey string, caseList map[string] int) error {
 	url := "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + wecomkey
 	content := ""
 
-	reasons := []string{}
+	var reasons []string
 	for r := range caseList {
 		reasons = append(reasons, r)
 	}
@@ -55,7 +54,6 @@ func reportToGroupchat(wecomkey string, caseList map[string] int) error {
 		content += fmt.Sprintf("> (%d times)\n> `%s`\n", freq, item)
 	}
 	content = fmt.Sprintf(postTemplate, content)
-	println(content)
 	data := strings.NewReader(content)
 	resp, err := http.Post(url, "application/json", data)
 	if err == nil && resp.StatusCode == 200 {
@@ -94,7 +92,7 @@ func ReportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 	}
 
 	caseFrequencies := map[string] int{}
-	sigUnstableCases := []string {}
+	var sigUnstableCases []string
 	sigUnstableCases = getUnstableCasesAndEnvs(rows, caseFrequencies, threshold, sigUnstableCases)
 
 	rows, err = cidb.Raw(model.GetRerunCases, threshold + 1).Rows()
