@@ -121,7 +121,7 @@ select
 	job_id,
 	job
 from sync_ci_data.ci_data
-where date(time)=date(now()) and status like 'SUCCESS' -- and repo is not null
+where date(time)=date(now()) and status like 'FAILURE' -- and repo is not null
 having json_length(` + "`case`" + `)>0 or json_length(envs)>0 and pr != '0'
 order by repo, time desc;
 `
