@@ -426,7 +426,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		} else {
 			url = "https://api.github.com/repos/kivenchen/klego/issues"
 		}
-		resp, createSuccess := &requests.Response{}, false
+		createSuccess := false
 
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
@@ -452,6 +452,7 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 					//log.S().Error("Create issue failed: ", string(resp.Content()))
 				} else {
 					log.S().Info("create issue success for job", issue.JobLink.String)
+					LogDBResponse(resp, issue, dbIssueCase)
 					createSuccess = true
 					break
 				}
@@ -459,35 +460,41 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		}
 
 		if !createSuccess {
-			log.S().Error("Error commenting issue ", url, ". Skipped: ")
+			log.S().Error("Error creating issue ", url, ". Skipped: ")
 			continue
-		}
-
-		responseDict := github.Issue{}
-		err := resp.Json(&responseDict)
-		if err != nil {
-			log.S().Error("parse response failed", err)
-			continue
-		}
-
-		num := responseDict.Number
-		link := responseDict.HTMLURL
-		issue.IssueNo = int64(*num)
-		issue.IssueLink = sql.NullString{
-			String: *link,
-			Valid:  true,
-		}
-		//log db
-		dbIssueCase.Create(issue)
-		if dbIssueCase.Error != nil {
-			log.S().Error("Log issue_case db failed", dbIssueCase.Error)
-		}
-		dbIssueCase.Commit()
-		if dbIssueCase.Error != nil {
-			log.S().Error("Log issue_case db commit failed", dbIssueCase.Error)
 		}
 	}
 	return nil
+}
+
+func LogDBResponse(resp *requests.Response, issue *model.CaseIssue, dbIssueCase *gorm.DB) {
+	if resp == nil {
+		log.S().Error("Create issue success. Log DB Error: empty response. Fallback")
+		return
+	}
+	responseDict := github.Issue{}
+	err := resp.Json(&responseDict)
+	if err != nil {
+		log.S().Error("Create issue success. Log DB Error: Parse response failed")
+		return
+	}
+
+	num := responseDict.Number
+	link := responseDict.HTMLURL
+	issue.IssueNo = int64(*num)
+	issue.IssueLink = sql.NullString{
+		String: *link,
+		Valid:  true,
+	}
+	//log db
+	dbIssueCase.Create(issue)
+	if dbIssueCase.Error != nil {
+		log.S().Error("Log issue_case db failed", dbIssueCase.Error)
+	}
+	dbIssueCase.Commit()
+	if dbIssueCase.Error != nil {
+		log.S().Error("Log issue_case db commit failed", dbIssueCase.Error)
+	}
 }
 
 func formatT(t time.Time) string {
