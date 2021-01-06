@@ -431,11 +431,16 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
 
+
+			caseName := issue.Case.String
+			if len(caseName) > 100 {
+				caseName = caseName[:100] + "..."
+			}
 			var title string
 			if issue.IssueNo == NEW_CASE{
-				title = issue.Case.String + " failed"
+				title = "Case failure" + caseName
 			}else if issue.IssueNo == RETRIGGERED_CASE {
-				title = "Resolved unstable case failure: " + issue.Case.String
+				title = "Resolved unstable case failure: " + caseName
 			}
 
 			resp, err := req.PostJson(url, map[string]interface{}{
