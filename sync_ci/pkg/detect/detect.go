@@ -475,12 +475,18 @@ func LogDBResponse(resp *requests.Response, issue *model.CaseIssue, dbIssueCase 
 	responseDict := github.Issue{}
 	err := resp.Json(&responseDict)
 	if err != nil {
-		log.S().Error("Create issue success. Log DB Error: Parse response failed")
+		log.S().Error("Create issue success. Log DB Error: Parse response JSON failed")
 		return
 	}
 
 	num := responseDict.Number
 	link := responseDict.HTMLURL
+
+	if num == nil || link == nil {
+		log.S().Error("Create issue success. Log DB Error: Acquired nil issue number / url field")
+		return
+	}
+
 	issue.IssueNo = int64(*num)
 	issue.IssueLink = sql.NullString{
 		String: *link,
