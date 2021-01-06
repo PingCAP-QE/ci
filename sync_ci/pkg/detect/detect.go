@@ -82,12 +82,12 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 }
 
 func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB, recentCases repoCasePrSet, test bool){
-	for r, casePrs := range recentCases {
+	for repo, casePrs := range recentCases {
 		for c, prSet := range casePrs{
 			// Check if issue exists and fetch latest
-			existedCases, err := dbIssueCase.Raw(model.IssueCaseExistsSql, c, r).Rows()
+			existedCases, err := dbIssueCase.Raw(model.IssueCaseExistsSql, c, repo).Rows()
 			if err != nil {
-				log.S().Error("failed to check existing [case, repo]: ", c, r)
+				log.S().Error("failed to check existing [case, repo]: ", c, repo)
 				continue
 			}
 			if !existedCases.Next() {
@@ -98,21 +98,21 @@ func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB,
 				var issueNumStr string
 				err = existedCases.Scan(&issueNumStr)
 				issueNumberLike := "%/" + issueNumStr
-				repoLike := "%/" + r + "/%"
+				repoLike := "%/" + repo + "/%"
 				stillValidIssues, err := dbGithub.Raw(model.CheckClosedIssue, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
 				if err != nil {
-					log.S().Error("failed to check existing [case, repo]: ", c, r)
+					log.S().Error("failed to check existing [case, repo]: ", c, repo)
 					continue
 				}
 				if !stillValidIssues.Next() {
 					continue
 				}
 
-				issueLink := fmt.Sprintf("https://www.github.com/repos/%s/issues/%s", r, issueNumStr)
+				issueLink := fmt.Sprintf("https://www.github.com/repos/%s/issues/%s", repo, issueNumStr)
 				for pr, _ := range prSet {
-					err = RemindMergePr(cfg, r, pr, c, issueLink, test)
+					err = RemindMergePr(cfg, repo, pr, c, issueLink, test)
 					if err != nil {
-						log.S().Error("failed to remind merge pr: ", c, r)
+						log.S().Error("failed to remind merge pr: ", c, repo)
 						continue
 					}
 				}
@@ -343,7 +343,7 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet repoCaseJoblink) (re
 
 func getHistoryCases(rows *sql.Rows, baselink string) (repoCasePrSet, repoCaseJoblink) {
 	caseSet := repoCaseJoblink{}
-	repoPrCases := repoCasePrSet{} // repo -> case -> pr(set)
+	repoCasePrs := repoCasePrSet{} // repo -> case -> pr(set)
 	for rows.Next() {
 		var rawCase []byte
 		var cases []string
@@ -362,13 +362,13 @@ func getHistoryCases(rows *sql.Rows, baselink string) (repoCasePrSet, repoCaseJo
 			continue
 		}
 		for _, c := range cases {
-			if _, ok := repoPrCases[repo]; !ok {
-				repoPrCases[repo] = map[string]map[string]bool{}
+			if _, ok := repoCasePrs[repo]; !ok {
+				repoCasePrs[repo] = map[string]map[string]bool{}
 			}
-			if _, ok := repoPrCases[repo][c]; !ok {
-				repoPrCases[repo][c] = map[string]bool{pr: true}
+			if _, ok := repoCasePrs[repo][c]; !ok {
+				repoCasePrs[repo][c] = map[string]bool{pr: true}
 			} else {
-				repoPrCases[repo][c][pr] = true
+				repoCasePrs[repo][c][pr] = true
 				if _, ok = caseSet[repo]; !ok {
 					caseSet[repo] = map[string][]string{}
 				}
@@ -379,7 +379,7 @@ func getHistoryCases(rows *sql.Rows, baselink string) (repoCasePrSet, repoCaseJo
 			}
 		}
 	}
-	return repoPrCases, caseSet
+	return repoCasePrs, caseSet
 }
 
 func MentionIssue(cfg model.Config, repo string, issueId string, joblink string, test bool) error {

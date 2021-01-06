@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-func RemindMergePr(cfg model.Config, repo string, issueId string, failedCase string, closedIssueLink string, test bool) error {
+func RemindMergePr(cfg model.Config, repo string, prId string, failedCase string, closedIssueLink string, test bool) error {
 	baseComment := `The failed test case <code>%s</code> might be resolved in this issue <a href="%s">%s</a> with available PR or workarounds.`
 	comment := fmt.Sprintf(baseComment, failedCase, closedIssueLink, closedIssueLink)
 	var url string
 	if !test {
-		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
+		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, prId)
 	} else {
 		url = fmt.Sprintf("https://api.github.com/repos/kivenchen/klego/issues/1/comments")
 	}
