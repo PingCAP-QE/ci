@@ -67,7 +67,7 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 		lines = lines[1:]
 	}
 
-	// merge into res.
+	// merge into input.
 	for _, kv := range regexResults {
 		res[kv.Key] = append(res[kv.Key], kv.Value)
 	}
@@ -100,6 +100,17 @@ func refineParseRes(res map[string][]string) {
 		if len(res[v]) == 0 {
 			delete(res, v)
 		}
+	}
+
+	// The input will only fall on one category according to ranking
+	ranking := []string{"compile", "check", "case", "env"}
+	locatedTopRank := false
+	for _, cat := range ranking {
+		if _, ok := res[cat]; !locatedTopRank && ok {
+			locatedTopRank = true
+			continue
+		}
+		delete(res, cat)
 	}
 }
 
