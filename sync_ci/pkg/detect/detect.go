@@ -39,13 +39,13 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	if err != nil {
 		return nil, err
 	}
-	casePrSet, caseSet := getHistoryCases(rows, baselink)
+	casePrSet, caseLinks := getHistoryCases(rows, baselink)
 
 	recentRows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
 	if err != nil {
 		return nil, err
 	}
-	DupRecentCaseSet, allRecentCases := getDuplicatesFromHistory(recentRows, caseSet, casePrSet)
+	DupRecentCaseSet, allRecentCases := getDuplicatesFromHistory(recentRows, caseLinks, casePrSet)
 
 	dupCaseStr, err := json.Marshal(DupRecentCaseSet)
 	log.S().Info("Acquired duplicate cases: ", string(dupCaseStr))
@@ -327,7 +327,7 @@ func getDuplicatesFromHistory(recentRows *sql.Rows, caseSet repoCaseJoblink, cas
 				if _, ok := dupRecentCaseJoblinks[repo]; !ok {
 					dupRecentCaseJoblinks[repo] = map[string][]string{}
 				}
-				if _, ok := casePrSet[repo][c][pr]; ok {
+				if _, ok := casePrSet[repo][c][pr]; !ok {
 					if matched, name := parser.MatchAndParseSQLStmtTest(c); matched {
 						dupRecentCaseJoblinks[repo][name] = append([]string{jobLink}, caseSet[repo][c]...)
 					} else {
