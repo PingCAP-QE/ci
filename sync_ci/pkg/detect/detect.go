@@ -440,9 +440,9 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 			}
 			var title string
 			if issue.IssueNo == NEW_CASE{
-				title = "Case failure" + caseName
+				title = "Case failure: " + caseName
 			}else if issue.IssueNo == RETRIGGERED_CASE {
-				title = "Resolved unstable case failure: " + caseName
+				title = "Stablized case failed: " + caseName
 			}
 
 			resp, err := req.PostJson(url, map[string]interface{}{
