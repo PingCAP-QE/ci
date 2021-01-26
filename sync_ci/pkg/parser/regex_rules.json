@@ -18,5 +18,6 @@
   {"jobs": [], "regex": "\\[fatal\\] run test [\\[\\]_a-zA-Z]*? err:.*?we need\\([0-9]*\\)", "key": "case", "lines": 8},
   {"jobs": [], "regex": "\\* Fail to start TiDB", "key": "env"},
   {"jobs": [], "regex": "tar: Error is not recoverable: exiting now", "key": "env"},
-  {"jobs": [], "regex": "\\[fatal\\].*?connection refused", "key": "env"}
+  {"jobs": [], "regex": "\\[fatal\\].*?connection refused", "key": "env"},
+  {"jobs": [], "regex": "\\[fatal\\].*?run test.*?err.*?failed to run query", "key": "case"}
 ]
