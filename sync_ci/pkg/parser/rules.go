@@ -43,6 +43,7 @@ var checkParsers = []parser{
 		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
 		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
+	&tidbCheckParser{},
 }
 
 type parser interface {
@@ -77,6 +78,21 @@ func (s *simpleParser) parse(job string, lines []string) []string {
 				res = append(res, r.name)
 				break
 			}
+		}
+	}
+	return res
+}
+
+type tidbCheckParser struct {
+}
+
+func (t *tidbCheckParser) parse(job string, lines []string) []string {
+	var res []string
+	if job == "tidb_ghpr_check" {
+		r := regexp.MustCompile(`FATAL.*?error=.*`)
+		matchedStr := r.FindString(lines[0])
+		if len(matchedStr) > 0 && !strings.Contains(lines[0], "open DB failed") {
+			res = append(res, matchedStr)
 		}
 	}
 	return res
@@ -198,6 +214,10 @@ type envParser struct {
 
 func (t *envParser) parse(job string, lines []string) []string {
 	var res []string
+	//special, check rules
+	if job == "tidb_ghpr_check" && strings.Contains(lines[0], "open Db failed") {
+		return res
+	}
 	for rule, pattern := range t.rules {
 		matched, _ := regexp.MatchString(pattern, lines[0])
 		if matched {

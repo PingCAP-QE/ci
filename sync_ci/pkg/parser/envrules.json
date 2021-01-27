@@ -10,5 +10,6 @@
   "socket_timeout": "java\\.net\\.SocketTimeoutException",
   "fileserver error": "tar: This does not look like a tar archive|curl: \\(.*\\) Failed writing body",
   "Recv failure: Connection reset by peer": "Recv failure: Connection reset by peer",
-  "open db failed dial tcp": "open db failed dial tcp 127.0.0.1:4001"
+  "open db failed dial tcp": "open db failed dial tcp 127.0.0.1:4001",
+  "open db failed": "\\[FATAL\\].*?\\[\\\"open DB failed\\\"\\]"
 }
