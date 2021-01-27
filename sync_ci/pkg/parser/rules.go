@@ -39,9 +39,9 @@ var compileParsers = []parser{
 var checkParsers = []parser{
 	&simpleParser{rules: []rule{
 		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
-			[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
 		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
-			[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
+		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
 }
 
@@ -148,6 +148,12 @@ func (t *integrationTestParser) parse(job string, lines []string) []string {
 		detail := strings.TrimSpace(strings.Split(lines[1], "Test case:")[1])
 		res = append(res, detail)
 		return res
+	}
+	if job == "tidb_ghpr_tics_test" {
+		r = regexp.MustCompile(`Error:|Result:`)
+		if len(r.FindString(lines[0])) != 0 && len(r.FindString(lines[1])) != 0 {
+			res = append(res, strings.TrimSpace(strings.Split(lines[0], "Error:")[1]))
+		}
 	}
 	return res
 }
