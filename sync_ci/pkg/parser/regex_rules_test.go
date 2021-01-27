@@ -102,19 +102,19 @@ func TestRegexp_TiKVTomlError(t *testing.T) {
 	t.Error("TiKV toml error missed.")
 }
 
-func TestRegex_TicsFail(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/tics_fail.log")
-
-	info := ApplyRegexpRulesToLines("tidb_ghpr_tics_test", lines)
-	for _, o := range *info {
-		if o.Key == "case" && strings.Contains(o.Value, "Failed in branch TiCS Test") {
-			return
-		}
-	}
-
-	t.Error("TiCS failure missed.")
-}
+//func TestRegex_TicsFail(t *testing.T) {
+//	updateRegexpRules("./pkg/parser/regex_rules.json")
+//	lines := FilesToLines("./pkg/parser/rules_test/tics_fail.log")
+//
+//	info := ApplyRegexpRulesToLines("tidb_ghpr_tics_test", lines)
+//	for _, o := range *info {
+//		if o.Key == "case" && strings.Contains(o.Value, "Failed in branch TiCS Test") {
+//			return
+//		}
+//	}
+//
+//	t.Error("TiCS failure missed.")
+//}
 
 func TestRegex_CoprTest(t *testing.T) {
 	updateRegexpRules("./pkg/parser/regex_rules.json")

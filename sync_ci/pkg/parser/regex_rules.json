@@ -5,7 +5,6 @@
   {"jobs": [], "regex": "PANIC:.*?\\.go:[0-9]*: .*?\\..*", "key": "case"},
   {"jobs": [], "regex": "fatal: reference is not a tree: [0-9a-f]*", "key": "env"},
   {"jobs": [], "regex": "Caused by:.*?could not parse input as TOML", "key": "compile", "lines": 3},
-  {"jobs": ["tidb_ghpr_tics_test"], "regex": "Failed in branch TiCS Test", "key": "case"},
   {"jobs": [], "regex": "Test fail: Outputs are not matching.*?Test case: .*?\\.sql", "key": "case", "lines": 3},
   {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
   {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]+:.*?\\..*", "key": "case"},
