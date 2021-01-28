@@ -39,10 +39,11 @@ var compileParsers = []parser{
 var checkParsers = []parser{
 	&simpleParser{rules: []rule{
 		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
-			[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
 		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
-			[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
+		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
+	&tidbCheckParser{},
 }
 
 type parser interface {
@@ -77,6 +78,21 @@ func (s *simpleParser) parse(job string, lines []string) []string {
 				res = append(res, r.name)
 				break
 			}
+		}
+	}
+	return res
+}
+
+type tidbCheckParser struct {
+}
+
+func (t *tidbCheckParser) parse(job string, lines []string) []string {
+	var res []string
+	if job == "tidb_ghpr_check" {
+		r := regexp.MustCompile(`FATAL.*?error=.*`)
+		matchedStr := r.FindString(lines[0])
+		if len(matchedStr) > 0 && !strings.Contains(lines[0], "open DB failed") {
+			res = append(res, matchedStr)
 		}
 	}
 	return res
@@ -149,6 +165,12 @@ func (t *integrationTestParser) parse(job string, lines []string) []string {
 		res = append(res, detail)
 		return res
 	}
+	if job == "tidb_ghpr_tics_test" {
+		r = regexp.MustCompile(`Error:|Result:`)
+		if len(r.FindString(lines[0])) != 0 && len(r.FindString(lines[1])) != 0 {
+			res = append(res, strings.TrimSpace(strings.Split(lines[0], "Error:")[1]))
+		}
+	}
 	return res
 }
 
@@ -192,6 +214,10 @@ type envParser struct {
 
 func (t *envParser) parse(job string, lines []string) []string {
 	var res []string
+	//special, check rules
+	if job == "tidb_ghpr_check" && strings.Contains(lines[0], "open Db failed") {
+		return res
+	}
 	for rule, pattern := range t.rules {
 		matched, _ := regexp.MatchString(pattern, lines[0])
 		if matched {

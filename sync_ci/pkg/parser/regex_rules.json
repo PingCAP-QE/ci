@@ -1,11 +1,9 @@
 [
   {"jobs": [], "regex": "\\[FATAL\\].*?\\[\\\"run test\\\"\\].*?\\[error=\\\".*?\\\"\\]", "key": "case"},
-  {"jobs": [], "regex": "\\[FATAL\\].*?\\[\\\"open DB failed\\\"\\]", "key": "env"},
   {"jobs": [], "regex": "error: could not compile `[_a-z1-9]*`", "key": "compile"},
   {"jobs": [], "regex": "PANIC:.*?\\.go:[0-9]*: .*?\\..*", "key": "case"},
   {"jobs": [], "regex": "fatal: reference is not a tree: [0-9a-f]*", "key": "env"},
   {"jobs": [], "regex": "Caused by:.*?could not parse input as TOML", "key": "compile", "lines": 3},
-  {"jobs": ["tidb_ghpr_tics_test"], "regex": "Failed in branch TiCS Test", "key": "case"},
   {"jobs": [], "regex": "Test fail: Outputs are not matching.*?Test case: .*?\\.sql", "key": "case", "lines": 3},
   {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
   {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]+:.*?\\..*", "key": "case"},
@@ -18,5 +16,6 @@
   {"jobs": [], "regex": "\\[fatal\\] run test [\\[\\]_a-zA-Z]*? err:.*?we need\\([0-9]*\\)", "key": "case", "lines": 8},
   {"jobs": [], "regex": "\\* Fail to start TiDB", "key": "env"},
   {"jobs": [], "regex": "tar: Error is not recoverable: exiting now", "key": "env"},
-  {"jobs": [], "regex": "\\[fatal\\].*?connection refused", "key": "env"}
+  {"jobs": [], "regex": "\\[fatal\\].*?connection refused", "key": "env"},
+  {"jobs": [], "regex": "\\[fatal\\].*?run test.*?err.*?failed to run query", "key": "case"}
 ]

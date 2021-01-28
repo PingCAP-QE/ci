@@ -202,6 +202,7 @@ func TestIntegrationTestParser(t *testing.T) {
 	testData := []struct {
 		text string
 		res  string
+		job string
 	}{
 		{
 			`[2020-12-06T14:19:39.699Z] 2020/12/06 22:19:39 2020/12/06 22:19:37 Test fail: Outputs are not matching.
@@ -209,15 +210,28 @@ func TestIntegrationTestParser(t *testing.T) {
 [2020-12-06T14:19:39.699Z] Statement: #908 -  SELECT SHA1( col_float ) AS field1, ENCODE( '2033-10-15 04:49:31.015619', 0 ) AS field2, '18:39:16.010280' DIV '22:36:17.036724' AS field3, SHA2( NULL, col_bit ) AS field4 FROM table10_int_autoinc WHERE SHA1( col_year ) ORDER BY field1, field2, field3, field4 LIMIT 8 /* QNO 910 CON_ID 152 */ ;
 [2020-12-06T14:19:39.699Z] NoPushDown Output:`,
 			"sql/randgen-topn/8_encrypt.sql",
+			"",
 		},
 		{
 			`[2020-12-04T17:31:17.697Z] time="2020-12-05T01:31:17+08:00" level=fatal msg="run test [window_functions] err: sql:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);: failed to run query \n\"SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\" \n around line 81, \nwe need(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n1\t2.3333\t1\n2\t2.3333\t3\n3\t2.3333\t6\n4\t2.3333\t10\n\nbut got(158):\nSELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);\nk\tAVG(DISTINCT j)\tfoo\n4\t2.3333\t4\n1\t2.3333\t5\n2\t2.3333\t7\n3\t2.3333\t10\n\n"`,
 			`[window_functions]:SELECT k, AVG(DISTINCT j), SUM(k) OVER (ROWS UNBOUNDED PRECEDING) foo FROM t GROUP BY (k);`,
+			"",
+		},
+		{
+			`[2021-01-13T08:31:03.218Z]   Error: use test;  set @@tidb_opt_broadcast_join=1; select A.b from t join (select id-2 as b from t) A on A.b=t.id;
+[2021-01-13T08:31:03.218Z]   Result:
+[2021-01-13T08:31:03.218Z]     ERROR 1105 (HY000) at line 1: [FLASH:Coprocessor:Unimplemented] Unspecified is not supported.
+[2021-01-13T08:31:03.218Z]   Expected:
+[2021-01-13T08:31:03.218Z]     +---+
+[2021-01-13T08:31:03.218Z]     | b |
+[2021-01-13T08:31:03.218Z]     +---+`,
+			`use test;  set @@tidb_opt_broadcast_join=1; select A.b from t join (select id-2 as b from t) A on A.b=t.id;`,
+			"tidb_ghpr_tics_test",
 		},
 	}
 	for _, item := range testData {
 		p := integrationTestParser{}
-		res := p.parse("", strings.Split(item.text, "\n"))
+		res := p.parse(item.job, strings.Split(item.text, "\n"))
 		if len(item.res) == 0 {
 			var a []string
 			assert.Equal(t, res, a)
