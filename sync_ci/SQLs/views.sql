@@ -25,4 +25,5 @@ FROM ci_data t1
 	) t2
 	ON t1.repo = t2.repo
 		AND t1.commit = t2.commit
+		AND date(t1.time) = t2.t
 WHERE t1.time >= DATE_SUB(curdate(), INTERVAL 30 DAY);
