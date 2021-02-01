@@ -14,7 +14,7 @@ node {
                 if (currentBuild.result == null || currentBuild.result == 'SUCCESS') { 
                     withCredentials([string(credentialsId: 'sync_ci_dsn', variable: 'dsn'), string(credentialsId: 'sync_ci_gh', variable: 'gh'), string(credentialsId: 'sync_ci_tk', variable: 'tk'), string(credentialsId: 'sync_ci_ui', variable: 'ui'), string(credentialsId: 'sync_ci_wc', variable: 'wc')]) {
                         sh 'echo $dsn'
-                        sh 'sudo make'
+                        sh 'make'
                         sh './bin/sync-ci-service sync-ci -dsn "${dsn}" -gh "${gh}" -tk "${tk}" -ui "${ui}" -wc "${wc}" -lp "./bin/log" -rp  "./parser/envrules.json'
                     }
                     //sh 'curl 127.0.0.1:36000/ping'
