@@ -413,7 +413,8 @@ func GetNewCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime t
 	// Get failed cases from CI data
 	now := time.Now()
 
-	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
+	//rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
+	rows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
 	if err != nil {
 		return nil, err
 	}
