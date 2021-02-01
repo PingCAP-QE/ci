@@ -72,7 +72,7 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			log.S().Error("get nightly cases failed", err)
 		}
 
-		newCases, err := detect.GetNewCasesFromPR(cfg, recentStart, time.Now(), test)
+		newCases, err := detect.GetNewCasesFromPR(cfg, recentStart, time.Now(), false)
 		if err != nil {
 			log.S().Error("get new cases failed", err)
 		}
