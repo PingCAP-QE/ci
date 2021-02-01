@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/subcommands"
 	"github.com/pingcap/ci/sync_ci/pkg/db"
@@ -12,7 +14,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/server"
 	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
-	"time"
 )
 
 type SyncCICommand struct {
@@ -40,7 +41,7 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	db.InitDB(s.Config)
-	go RunCaseIssueRoutine(s.Config, false)
+	go RunCaseIssueRoutine(s.Config, true)
 	detect.ScheduleUnstableReport(s.Config)
 	server.NewServer(&s.Config).Run()
 	return subcommands.ExitSuccess
@@ -72,6 +73,11 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 			log.S().Error("get nightly cases failed", err)
 		}
 
+		newCases, err := detect.GetNewCasesFromPR(cfg, recentStart, time.Now(), test)
+		if err != nil {
+			log.S().Error("get new cases failed", err)
+		}
+
 		if cases != nil {
 			if len(cases) == 0 {
 				log.S().Info("No selected cases")
@@ -94,6 +100,20 @@ func RunCaseIssueRoutine(cfg model.Config, test bool) {
 
 		if nightlyCaseIssues != nil {
 			err = detect.CreateIssueForCases(cfg, nightlyCaseIssues, test)
+			if err != nil {
+				log.S().Error(err)
+			}
+		}
+
+		if newCases != nil {
+			if len(newCases) == 0 {
+				log.S().Info("No new cases")
+			}
+
+			for _, newCase := range newCases {
+				log.S().Info("acquired new cases: ", newCase)
+			}
+			err = detect.CreateCommentForNewCases(cfg, newCases, test)
 			if err != nil {
 				log.S().Error(err)
 			}

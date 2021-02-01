@@ -4,6 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/asmcos/requests"
 	"github.com/google/go-github/github"
 	"github.com/pingcap/ci/sync_ci/pkg/db"
@@ -11,10 +16,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
-	"reflect"
-	"regexp"
-	"strings"
-	"time"
 )
 
 const searchIssueIntervalStr = "178h"
@@ -393,4 +394,169 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 
 func formatT(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
+}
+
+func GetNewCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time.Time, test bool) ([]*model.NewCase, error) {
+	if test { //TODO delete test
+		newCases := []*model.NewCase{}
+		newCase := model.NewCase{
+			Repo:     "",
+			PR:       "",
+			CaseInfo: "test test",
+			JobLink:  "www.github.com",
+		}
+		newCases = append(newCases, &newCase)
+		return newCases, nil
+	}
+	cidb := db.DBWarehouse[db.CIDBName]
+
+	// Get failed cases from CI data
+	now := time.Now()
+
+	rows, err := cidb.Raw(model.GetCICaseSql, formatT(inspectStartTime), formatT(startTime)).Rows()
+	if err != nil {
+		return nil, err
+	}
+	// Repo -> case -> available
+	caseSet := map[string]map[string]bool{}
+	getEncounteredCases(rows, caseSet, baselink)
+
+	recentRows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
+	if err != nil {
+		return nil, err
+	}
+	// Repo -> pr -> firstcase
+	unknownCases := removeDuplicatesCasesReferingHistory(recentRows, caseSet)
+	newCases := []*model.NewCase{}
+	for repo, repoCases := range unknownCases {
+		for pr, info := range repoCases {
+			newCase := model.NewCase{
+				Repo:     repo,
+				PR:       pr,
+				CaseInfo: info.Case.String,
+				JobLink:  info.JobLink.String,
+			}
+			newCases = append(newCases, &newCase)
+		}
+	}
+	_ = rows.Close()
+	_ = recentRows.Close()
+	return newCases, nil
+}
+
+func getEncounteredCases(rows *sql.Rows, caseSet map[string]map[string]bool, baselink string) {
+	for rows.Next() {
+		var rawCase []byte
+		var cases []string
+		var pr string
+		var repo string
+		var jobid string
+		var job string
+		err := rows.Scan(&repo, &pr, &rawCase, &jobid, &job)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
+		}
+		err = json.Unmarshal(rawCase, &cases)
+		if err != nil {
+			log.S().Error("error getting history", err)
+			continue
+		}
+		for _, c := range cases {
+			if _, ok := caseSet[repo]; !ok {
+				caseSet[repo] = map[string]bool{}
+			}
+			if _, ok := caseSet[repo][c]; !ok {
+				caseSet[repo][c] = true
+			}
+		}
+	}
+}
+
+func removeDuplicatesCasesReferingHistory(recentRows *sql.Rows, caseSet map[string]map[string]bool) map[string]map[string]model.CaseIssue {
+	newCases := map[string]map[string]model.CaseIssue{}
+	for recentRows.Next() {
+		var rawCase []byte
+		var cases []string
+		var pr string
+		var repo string
+		var jobid string
+		var job string
+		err := recentRows.Scan(&repo, &pr, &rawCase, &jobid, &job)
+		if err != nil {
+			log.S().Error(err)
+			continue
+		}
+		err = json.Unmarshal(rawCase, &cases)
+		if err != nil {
+			log.S().Error(err)
+			continue
+		}
+
+		for _, c := range cases {
+			if _, ok := caseSet[repo]; !ok {
+				caseSet[repo] = map[string]bool{}
+			}
+			if _, ok := caseSet[repo][c]; !ok {
+				if _, ok := newCases[repo]; !ok {
+					newCases[repo] = map[string]model.CaseIssue{}
+				}
+				if _, ok := newCases[repo][pr]; !ok {
+					link := fmt.Sprintf(baselink, job, jobid)
+					newCases[repo][pr] = model.CaseIssue{
+						Case:    sql.NullString{c, true},
+						JobLink: sql.NullString{link, true},
+					}
+				}
+			}
+		}
+	}
+	return newCases
+}
+
+func CreateCommentForNewCases(cfg model.Config, newCases []*model.NewCase, test bool) error {
+	req := requests.Requests()
+	req.SetTimeout(10 * time.Second)
+	req.Header.Set("Authorization", "token "+cfg.GithubToken)
+	// todo: set request header
+	for _, newCase := range newCases {
+		var url string
+		if !test {
+			url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", newCase.Repo, newCase.PR)
+		} else {
+			url = "https://api.github.com/repos/AsterNighT/ci/issues/1/comments"
+		}
+		var resp *requests.Response
+		for i := 0; i < 3; i++ {
+			log.S().Info("Posting to ", url)
+			resp, err := req.PostJson(url, map[string]interface{}{
+				"body": newCase.CaseInfo + " failed.\n This is a new failure in our record.\nLatest build: <a href=\"" + newCase.JobLink + "\">" + newCase.JobLink + "</a>", // todo: fill content templates
+			})
+			if err != nil {
+				log.S().Error("Error creating comment '", url, "'; Error: ", err, "; Retry")
+			} else {
+				if resp.R.StatusCode != 201 {
+					log.S().Error("Error creating comment ", url, ". Retry")
+					log.S().Error("Create comment failed: ", string(resp.Content()))
+				} else {
+					log.S().Info("create comment success for job", newCase.JobLink)
+					break
+				}
+			}
+		}
+
+		if resp == nil || resp.R.StatusCode != 201 {
+			log.S().Error("Error commenting issue ", url, ". Skipped")
+			log.S().Error("Create comment failed: ", resp.R.StatusCode, string(resp.Content()))
+			continue
+		}
+
+		responseDict := github.Issue{}
+		err := resp.Json(&responseDict)
+		if err != nil {
+			log.S().Error("parse response failed", err)
+			continue
+		}
+	}
+	return nil
 }
