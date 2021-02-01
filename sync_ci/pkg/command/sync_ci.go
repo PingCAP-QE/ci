@@ -11,7 +11,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/detect"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
-	"github.com/pingcap/ci/sync_ci/pkg/server"
 	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
 )
@@ -41,9 +40,9 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	db.InitDB(s.Config)
-	go RunCaseIssueRoutine(s.Config, true)
-	detect.ScheduleUnstableReport(s.Config)
-	server.NewServer(&s.Config).Run()
+	/*go*/ RunCaseIssueRoutine(s.Config, true)
+	//detect.ScheduleUnstableReport(s.Config)
+	//server.NewServer(&s.Config).Run()
 	return subcommands.ExitSuccess
 }
 
