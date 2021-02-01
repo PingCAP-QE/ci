@@ -426,6 +426,8 @@ func GetNewCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime t
 		return nil, err
 	}
 	// Repo -> pr -> firstcase
+	// test
+	caseSet = map[string]map[string]bool{}
 	unknownCases := removeDuplicatesCasesReferingHistory(recentRows, caseSet)
 	newCases := []*model.NewCase{}
 	for repo, repoCases := range unknownCases {
@@ -437,6 +439,12 @@ func GetNewCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime t
 				JobLink:  info.JobLink.String,
 			}
 			newCases = append(newCases, &newCase)
+			if len(newCases) > 5 {
+				break
+			}
+		}
+		if len(newCases) > 5 {
+			break
 		}
 	}
 	_ = rows.Close()
