@@ -422,7 +422,8 @@ func GetNewCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime t
 	caseSet := map[string]map[string]bool{}
 	getEncounteredCases(rows, caseSet, baselink)
 
-	recentRows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
+	//recentRows, err := cidb.Raw(model.GetCICaseSql, formatT(startTime), formatT(now)).Rows()
+	recentRows, err := cidb.Raw(model.GetCICaseSql, time.Now().Add(-time.Duration(cfg.UpdateInterval)*time.Second*24*36500), formatT(now)).Rows()
 	if err != nil {
 		return nil, err
 	}
