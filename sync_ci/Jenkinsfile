@@ -13,7 +13,7 @@ node('build_go1130') {
         }
     }
 }
-node('SOME_DEPLOY_SERVER') {
+node('sync_ci') {
     dir('./sync_ci'){
         stage('Deploy') {
             echo 'Deploying....'
