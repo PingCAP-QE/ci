@@ -114,14 +114,14 @@ order by analysis_res desc;
 
 const GetCICasesToday = `
 select
-	repo,
+	ifnull(repo, "") as repo,
 	json_extract(description, '$.ghprbPullId') as pr,
 	ifnull(json_extract(analysis_res, '$.case'), "[]") as ` + "`case`" +`,
 	ifnull(json_extract(analysis_res, '$.env'), "[]") as envs,
 	job_id,
 	job
 from sync_ci_data.ci_data
-where date(time)=date(now()) and repo is not null
+where date(time)=date(now()) and status like 'FAILURE' -- and repo is not null
 having json_length(` + "`case`" + `)>0 or json_length(envs)>0 and pr != '0'
 order by repo, time desc;
 `
@@ -138,8 +138,7 @@ having json_length(` + "`case`" + `) > 0
 order by job, time desc;
 `
 
-
-const IfValidIssuesExistSql = `
+const IssueCaseExistsSql = `
 select issue_no
 from issue_case
 where ` + "`case`" + ` = ? and repo = ?
@@ -147,14 +146,30 @@ order by issue_no desc
 limit 1;
 `
 
-
-const CheckClosedTimeSql = `
+const IssueRecentlyOpenSql = `
 select url from issue
 where url like ?  -- match number
 	and url like ?  -- match repo
 	and (closed_at is null
 		or 	timediff(now(), closed_at) < ?);
 `
+
+const IssueClosed = `
+select url, timediff(now(), closed_at) from issue
+where url like ?  -- match number
+	and url like ?  -- match repo
+	and (closed_at is not null
+		and timediff(now(), closed_at) < ?);
+`
+
+const CheckClosedIssue = `
+select url from issue
+where url like ?  -- match number
+	and url like ?  -- match repo
+	and (closed_at is not null)
+order by created_at desc;
+`
+
 
 
 type CaseIssue struct {
@@ -164,7 +179,6 @@ type CaseIssue struct {
 	Case      sql.NullString `gorm:"column:case;type:varchar;size:100;" json:"Case" binding:"required"`
 	JobLink   sql.NullString `gorm:"column:joblink;type:varchar;size:200;"`
 }
-
 
 func (*CaseIssue) TableName() string {
 	return "issue_case"
