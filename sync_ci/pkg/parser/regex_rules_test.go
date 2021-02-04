@@ -24,7 +24,7 @@ func TestRegex_TestRules(t *testing.T) {
 
 	for _, r := range *result {
 		if r.Key != "case" ||
-			strings.Contains(r.Value, `[FATAL] [main.go:694] ["run test"] [test=select] [error="sql:SELECT c2 from t where not (c2 > 2);: run` ) == false {
+			strings.Contains(r.Value, `[FATAL] [main.go:694] ["run test"] [test=select] [error="sql:SELECT c2 from t where not (c2 > 2);: run`) == false {
 			t.Error("test failed")
 		}
 	}
@@ -204,4 +204,62 @@ func TestRegex_TiDB_MysqlTestError(t *testing.T) {
 	}
 
 	t.Error("pd build failed rule not work.")
+}
+
+func TestRegex_TiDB_ghpr_unit_testBuildError(t *testing.T) {
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_ghpr_unit_test_build_error.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "compile" && strings.Contains((*info)[0].Value, "can't load package: package github.com/pingcap/tidb/server:") {
+			return
+		}
+	}
+
+	t.Error("tidb ghpr_unit_test build rule not work.")
+}
+
+func TestRegex_TiDB_ghpr_unit_testBuildError2(t *testing.T) {
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_ghpr_unit_test_build_error2.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "compile" && strings.Contains((*info)[0].Value, "build github.com/pingcap/tidb/cmd/benchdb: cannot load github.com/pingcap/tidb/store/tikv/config: no matching versions for query \"latest\"") {
+			return
+		}
+	}
+
+	t.Error("tidb ghpr_unit_test build rule not work.")
+}
+
+func TestRegex_TiDB_ghpr_check_2_DNSEnvError2(t *testing.T) {
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_ghpr_check_2.log")
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "env" && strings.Contains((*info)[0].Value, "dial tcp: lookup goproxy.pingcap.net on 10.233.0.10:53: server misbehaving") {
+			return
+		}
+	}
+
+	t.Error("tidb ghpr_check_2 DNS env rule not work.")
+}
+
+func TestRegex_TiDB_ghpr_mybatis_CaseError2(t *testing.T) {
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_ghpr_mybatis_case_error.log")
+
+	info := ApplyRegexpRulesToLines("tidb_ghpr_mybatis", lines)
+	if len(*info) == 3 {
+		if (*info)[0].Key == "case" && strings.Contains((*info)[0].Value, "Error querying database.  Cause: com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Table 'ibtest.numerics' doesn't exist") {
+			if (*info)[2].Key == "case" && strings.Contains((*info)[2].Value, "Error querying database.  Cause: com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Unknown column 'description' in 'where clause'") {
+				return
+			}
+		}
+	}
+
+	t.Error("tidb ghpr_mybatis case rule not work.")
 }

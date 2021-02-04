@@ -19,7 +19,7 @@
   {"jobs": [], "regex": "\\[fatal\\].*?connection refused", "key": "env"},
   {"jobs": [], "regex": "\\[fatal\\].*?run test.*?err.*?failed to run query", "key": "case"},
   {"jobs": ["tidb_ghpr_mybatis"],"regex": "### Error querying database\\.  Cause:.*","key": "case"},
-  {"jobs": [],"regex": ".*dial tcp: lookup .* on .*: server misbehaving","key": "env"},
-  {"jobs": [],"regex": "build .*: cannot load .*: no matching versions for query \".*\"","key": "build"},
-  {"jobs": [],"regex": "can't load package: package github\\.com/pingcap/tidb/[a-z]*","key": "build"}
+  {"jobs": [],"regex": "go: .*dial tcp: lookup .* on .*: server misbehaving","key": "env"},
+  {"jobs": [],"regex": "build .*: cannot load .*: no matching versions for query \".*\"","key": "compile"},
+  {"jobs": [],"regex": "can't load package: package github\\.com/pingcap/tidb/[a-z]*:","key": "compile"}
 ]
