@@ -1,11 +1,11 @@
 [
-  {"jobs": [], "regex": "\\[FATAL\\].*?\\[\\\"run test\\\"\\].*?\\[error=\\\".*?\\\"\\]", "key": "case"},
+  {"jobs": [], "regex": "\\[FATAL\\].*?\\[\"run test\"\\].*?\\[error=\".*?\"\\]", "key": "case"},
   {"jobs": [], "regex": "error: could not compile `[_a-z1-9]*`", "key": "compile"},
   {"jobs": [], "regex": "PANIC:.*?\\.go:[0-9]*: .*?\\..*", "key": "case"},
   {"jobs": [], "regex": "fatal: reference is not a tree: [0-9a-f]*", "key": "env"},
   {"jobs": [], "regex": "Caused by:.*?could not parse input as TOML", "key": "compile", "lines": 3},
   {"jobs": [], "regex": "Test fail: Outputs are not matching.*?Test case: .*?\\.sql", "key": "case", "lines": 3},
-  {"jobs": [], "regex": "FAIL.github\\.com\\/pingcap\\/tidb\\/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
+  {"jobs": [], "regex": "FAIL.github\\.com/pingcap/tidb/[\\/a-z]*.\\[setup failed\\]", "key": "compile"},
   {"jobs": [], "regex": "FAIL:.*?\\.go:[0-9]+:.*?\\..*", "key": "case"},
   {"jobs": [], "regex": "Please make format and run tests before creating a PR", "key": "compile"},
   {"jobs": [], "regex": "make:.*?\\[(swagger-spec|pd-server|release|build)\\] Error [0-9]*", "key": "compile"},
