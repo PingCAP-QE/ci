@@ -16,6 +16,8 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.29
+          working-directory: ./sync_ci
+          only-new-issues: true
         
   
   build:
@@ -26,6 +28,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Make
+        working-directory: ./sync_ci
         run: make
 
   test:
@@ -39,4 +42,4 @@ jobs:
         uses: actions/checkout@v2
       - name: Test
         working-directory: ./sync_ci
-        run: go test ./...
+        run: GO111MODULE=on go test -c ./pkg/parser && ./parser.test
