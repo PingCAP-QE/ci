@@ -10,7 +10,7 @@ node('sync_ci') {
             }
             stage('Test') {
                 echo 'Testing....'
-                sh 'GO111MODULE=on go test ./...'
+                sh 'GO111MODULE=on go test -c ./pkg/parser && ./parser.test'
             }
             stage('Deploy') {
                 echo 'Deploying....'
