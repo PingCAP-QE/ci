@@ -1,0 +1,152 @@
+[2021-02-02T09:33:06.416Z] + cp -R /home/jenkins/agent/git/tidb/CHANGELOG.md /home/jenkins/agent/git/tidb/CONTRIBUTING.md /home/jenkins/agent/git/tidb/CONTRIBUTORS /home/jenkins/agent/git/tidb/Dockerfile /home/jenkins/agent/git/tidb/Jenkinsfile /home/jenkins/agent/git/tidb/LICENSE /home/jenkins/agent/git/tidb/LICENSES /home/jenkins/agent/git/tidb/Makefile /home/jenkins/agent/git/tidb/README.md /home/jenkins/agent/git/tidb/bindinfo /home/jenkins/agent/git/tidb/checklist.md /home/jenkins/agent/git/tidb/checkout-pr-branch.sh /home/jenkins/agent/git/tidb/circle.yml /home/jenkins/agent/git/tidb/cmd /home/jenkins/agent/git/tidb/code_review_guide.md /home/jenkins/agent/git/tidb/config /home/jenkins/agent/git/tidb/ddl /home/jenkins/agent/git/tidb/distsql /home/jenkins/agent/git/tidb/docs /home/jenkins/agent/git/tidb/domain /home/jenkins/agent/git/tidb/errno /home/jenkins/agent/git/tidb/executor /home/jenkins/agent/git/tidb/expression /home/jenkins/agent/git/tidb/gitcookie.sh /home/jenkins/agent/git/tidb/go.mod /home/jenkins/agent/git/tidb/go.sum /home/jenkins/agent/git/tidb/hooks /home/jenkins/agent/git/tidb/infoschema /home/jenkins/agent/git/tidb/kv /home/jenkins/agent/git/tidb/lock /home/jenkins/agent/git/tidb/meta /home/jenkins/agent/git/tidb/metrics /home/jenkins/agent/git/tidb/owner /home/jenkins/agent/git/tidb/planner /home/jenkins/agent/git/tidb/plugin /home/jenkins/agent/git/tidb/privilege /home/jenkins/agent/git/tidb/server /home/jenkins/agent/git/tidb/session /home/jenkins/agent/git/tidb/sessionctx /home/jenkins/agent/git/tidb/statistics /home/jenkins/agent/git/tidb/store /home/jenkins/agent/git/tidb/structure /home/jenkins/agent/git/tidb/table /home/jenkins/agent/git/tidb/tablecodec /home/jenkins/agent/git/tidb/tests /home/jenkins/agent/git/tidb/tidb-server /home/jenkins/agent/git/tidb/tools /home/jenkins/agent/git/tidb/types /home/jenkins/agent/git/tidb/util ./
+[2021-02-02T09:33:06.416Z] + rm -rf ./bin
+[2021-02-02T09:33:06.416Z] + grep -v cmd/ddltest
+[2021-02-02T09:33:06.416Z] + GOPATH=/home/jenkins/agent/workspace/tidb_ghpr_unit_test/go
+[2021-02-02T09:33:06.416Z] + go list ./...
+[2021-02-02T09:33:06.979Z] go: downloading github.com/pingcap/parser v3.0.17-0.20201113024240-d9bf17073679+incompatible
+[2021-02-02T09:33:06.979Z] go: downloading github.com/pingcap/tipb v0.0.0-20200426072559-d2c068e96eb3
+[2021-02-02T09:33:06.979Z] go: downloading github.com/pingcap/kvproto v0.0.0-20200311073257-e53d835099b0
+[2021-02-02T09:33:06.979Z] go: downloading github.com/sirupsen/logrus v1.2.0
+[2021-02-02T09:33:06.979Z] go: downloading github.com/prometheus/client_golang v0.9.0
+[2021-02-02T09:33:06.979Z] go: downloading github.com/pingcap/tidb-tools v3.0.6-0.20191119150227-ff0a3c6e5763+incompatible
+[2021-02-02T09:33:06.979Z] go: downloading github.com/pingcap/goleveldb v0.0.0-20171020122428-b9ff6c35079e
+[2021-02-02T09:33:06.979Z] go: extracting github.com/sirupsen/logrus v1.2.0
+[2021-02-02T09:33:06.979Z] go: downloading github.com/shirou/gopsutil v2.18.10+incompatible
+[2021-02-02T09:33:06.979Z] go: extracting github.com/prometheus/client_golang v0.9.0
+[2021-02-02T09:33:06.979Z] go: extracting github.com/pingcap/tipb v0.0.0-20200426072559-d2c068e96eb3
+[2021-02-02T09:33:06.979Z] go: downloading sourcegraph.com/sourcegraph/appdash v0.0.0-20180531100431-4c381bd170b4
+[2021-02-02T09:33:06.979Z] go: extracting github.com/pingcap/parser v3.0.17-0.20201113024240-d9bf17073679+incompatible
+[2021-02-02T09:33:06.979Z] go: extracting github.com/pingcap/kvproto v0.0.0-20200311073257-e53d835099b0
+[2021-02-02T09:33:06.979Z] go: extracting github.com/pingcap/tidb-tools v3.0.6-0.20191119150227-ff0a3c6e5763+incompatible
+[2021-02-02T09:33:06.979Z] go: extracting sourcegraph.com/sourcegraph/appdash v0.0.0-20180531100431-4c381bd170b4
+[2021-02-02T09:33:06.979Z] go: extracting github.com/pingcap/goleveldb v0.0.0-20171020122428-b9ff6c35079e
+[2021-02-02T09:33:06.979Z] go: downloading github.com/struCoder/pidusage v0.1.2
+[2021-02-02T09:33:06.979Z] go: extracting github.com/struCoder/pidusage v0.1.2
+[2021-02-02T09:33:06.979Z] go: downloading google.golang.org/grpc v1.17.0
+[2021-02-02T09:33:06.979Z] go: downloading golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
+[2021-02-02T09:33:06.979Z] go: downloading github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d
+[2021-02-02T09:33:06.979Z] go: downloading github.com/prometheus/common v0.0.0-20181020173914-7e9e6cabbd39
+[2021-02-02T09:33:06.979Z] go: downloading github.com/gogo/protobuf v1.2.0
+[2021-02-02T09:33:06.979Z] go: downloading github.com/google/pprof v0.0.0-20190930153522-6ce02741cba3
+[2021-02-02T09:33:06.979Z] go: extracting github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d
+[2021-02-02T09:33:06.979Z] go: downloading github.com/uber-go/atomic v1.3.2
+[2021-02-02T09:33:06.979Z] go: extracting github.com/prometheus/common v0.0.0-20181020173914-7e9e6cabbd39
+[2021-02-02T09:33:06.979Z] go: extracting github.com/uber-go/atomic v1.3.2
+[2021-02-02T09:33:06.979Z] go: extracting github.com/shirou/gopsutil v2.18.10+incompatible
+[2021-02-02T09:33:06.979Z] go: downloading go.etcd.io/etcd v0.0.0-20190320044326-77d4b742cdbf
+[2021-02-02T09:33:06.979Z] go: downloading golang.org/x/crypto v0.0.0-20190909091759-094676da4a83
+[2021-02-02T09:33:06.979Z] go: extracting google.golang.org/grpc v1.17.0
+[2021-02-02T09:33:06.979Z] go: extracting github.com/google/pprof v0.0.0-20190930153522-6ce02741cba3
+[2021-02-02T09:33:06.979Z] go: extracting golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
+[2021-02-02T09:33:06.979Z] go: extracting golang.org/x/crypto v0.0.0-20190909091759-094676da4a83
+[2021-02-02T09:33:07.234Z] go: downloading golang.org/x/sys v0.0.0-20190412213103-97732733099d
+[2021-02-02T09:33:07.234Z] go: downloading github.com/klauspost/cpuid v0.0.0-20170728055534-ae7887de9fa5
+[2021-02-02T09:33:07.234Z] go: downloading github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f
+[2021-02-02T09:33:07.234Z] go: extracting github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f
+[2021-02-02T09:33:07.234Z] go: downloading github.com/golang/protobuf v1.2.0
+[2021-02-02T09:33:07.234Z] go: downloading github.com/beorn7/perks v1.0.0
+[2021-02-02T09:33:07.234Z] go: extracting github.com/golang/protobuf v1.2.0
+[2021-02-02T09:33:07.234Z] go: extracting github.com/klauspost/cpuid v0.0.0-20170728055534-ae7887de9fa5
+[2021-02-02T09:33:07.234Z] go: extracting github.com/beorn7/perks v1.0.0
+[2021-02-02T09:33:07.234Z] go: downloading github.com/remyoudompheng/bigfft v0.0.0-20190512091148-babf20351dd7
+[2021-02-02T09:33:07.234Z] go: extracting github.com/remyoudompheng/bigfft v0.0.0-20190512091148-babf20351dd7
+[2021-02-02T09:33:07.235Z] go: downloading github.com/pingcap/pd v1.1.0-beta.0.20191223090411-ea2b748f6ee2
+[2021-02-02T09:33:07.235Z] go: downloading github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72
+[2021-02-02T09:33:07.235Z] go: extracting github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72
+[2021-02-02T09:33:07.235Z] go: extracting github.com/gogo/protobuf v1.2.0
+[2021-02-02T09:33:07.235Z] go: downloading github.com/uber/jaeger-client-go v2.15.0+incompatible
+[2021-02-02T09:33:07.235Z] go: downloading github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
+[2021-02-02T09:33:07.235Z] go: downloading google.golang.org/genproto v0.0.0-20190108161440-ae2f86662275
+[2021-02-02T09:33:07.235Z] go: downloading golang.org/x/text v0.3.0
+[2021-02-02T09:33:07.235Z] go: extracting github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
+[2021-02-02T09:33:07.235Z] go: extracting github.com/pingcap/pd v1.1.0-beta.0.20191223090411-ea2b748f6ee2
+[2021-02-02T09:33:07.235Z] go: extracting golang.org/x/sys v0.0.0-20190412213103-97732733099d
+[2021-02-02T09:33:07.235Z] go: extracting github.com/uber/jaeger-client-go v2.15.0+incompatible
+[2021-02-02T09:33:07.235Z] go: extracting go.etcd.io/etcd v0.0.0-20190320044326-77d4b742cdbf
+[2021-02-02T09:33:07.235Z] go: downloading github.com/gorilla/mux v1.6.2
+[2021-02-02T09:33:07.235Z] go: downloading golang.org/x/tools v0.0.0-20190130214255-bb1329dc71a0
+[2021-02-02T09:33:07.235Z] go: extracting github.com/gorilla/mux v1.6.2
+[2021-02-02T09:33:07.490Z] go: downloading github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
+[2021-02-02T09:33:07.490Z] go: extracting github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
+[2021-02-02T09:33:07.490Z] go: downloading github.com/uber/jaeger-lib v1.5.0
+[2021-02-02T09:33:07.490Z] go: extracting github.com/uber/jaeger-lib v1.5.0
+[2021-02-02T09:33:07.490Z] go: extracting golang.org/x/tools v0.0.0-20190130214255-bb1329dc71a0
+[2021-02-02T09:33:07.490Z] go: extracting google.golang.org/genproto v0.0.0-20190108161440-ae2f86662275
+[2021-02-02T09:33:07.750Z] go: extracting golang.org/x/text v0.3.0
+[2021-02-02T09:33:08.007Z] go: downloading github.com/coreos/go-systemd v0.0.0-20181031085051-9002847aa142
+[2021-02-02T09:33:08.007Z] go: extracting github.com/coreos/go-systemd v0.0.0-20181031085051-9002847aa142
+[2021-02-02T09:33:08.007Z] go: finding github.com/pingcap/parser v3.0.17-0.20201113024240-d9bf17073679+incompatible
+[2021-02-02T09:33:08.007Z] go: finding github.com/remyoudompheng/bigfft v0.0.0-20190512091148-babf20351dd7
+[2021-02-02T09:33:08.007Z] go: finding github.com/pingcap/tidb-tools v3.0.6-0.20191119150227-ff0a3c6e5763+incompatible
+[2021-02-02T09:33:08.007Z] go: finding github.com/pingcap/goleveldb v0.0.0-20171020122428-b9ff6c35079e
+[2021-02-02T09:33:08.262Z] go: finding github.com/pingcap/tipb v0.0.0-20200426072559-d2c068e96eb3
+[2021-02-02T09:33:08.262Z] go: finding github.com/prometheus/client_golang v0.9.0
+[2021-02-02T09:33:08.262Z] go: finding go.etcd.io/etcd v0.0.0-20190320044326-77d4b742cdbf
+[2021-02-02T09:33:08.262Z] go: finding github.com/sirupsen/logrus v1.2.0
+[2021-02-02T09:33:08.262Z] go: finding github.com/klauspost/cpuid v0.0.0-20170728055534-ae7887de9fa5
+[2021-02-02T09:33:08.262Z] go: finding golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
+[2021-02-02T09:33:08.262Z] go: finding golang.org/x/text v0.3.0
+[2021-02-02T09:33:08.262Z] go: finding github.com/pingcap/pd v1.1.0-beta.0.20191223090411-ea2b748f6ee2
+[2021-02-02T09:33:08.262Z] go: finding github.com/uber/jaeger-client-go v2.15.0+incompatible
+[2021-02-02T09:33:08.262Z] go: finding google.golang.org/grpc v1.17.0
+[2021-02-02T09:33:08.262Z] go: finding github.com/pingcap/kvproto v0.0.0-20200311073257-e53d835099b0
+[2021-02-02T09:33:08.262Z] go: finding github.com/shirou/gopsutil v2.18.10+incompatible
+[2021-02-02T09:33:08.262Z] go: finding github.com/gogo/protobuf v1.2.0
+[2021-02-02T09:33:08.262Z] go: finding golang.org/x/crypto v0.0.0-20190909091759-094676da4a83
+[2021-02-02T09:33:08.262Z] go: finding github.com/google/pprof v0.0.0-20190930153522-6ce02741cba3
+[2021-02-02T09:33:08.262Z] go: finding github.com/golang/protobuf v1.2.0
+[2021-02-02T09:33:08.262Z] go: finding github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f
+[2021-02-02T09:33:08.262Z] go: finding github.com/beorn7/perks v1.0.0
+[2021-02-02T09:33:08.262Z] go: finding github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72
+[2021-02-02T09:33:08.262Z] go: finding github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
+[2021-02-02T09:33:08.262Z] go: finding google.golang.org/genproto v0.0.0-20190108161440-ae2f86662275
+[2021-02-02T09:33:08.262Z] go: finding github.com/prometheus/common v0.0.0-20181020173914-7e9e6cabbd39
+[2021-02-02T09:33:08.262Z] go: finding github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
+[2021-02-02T09:33:08.262Z] go: finding github.com/uber/jaeger-lib v1.5.0
+[2021-02-02T09:33:08.262Z] go: finding golang.org/x/sys v0.0.0-20190412213103-97732733099d
+[2021-02-02T09:33:08.262Z] go: finding github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d
+[2021-02-02T09:33:08.262Z] go: finding github.com/uber-go/atomic v1.3.2
+[2021-02-02T09:33:08.262Z] go: finding github.com/coreos/go-systemd v0.0.0-20181031085051-9002847aa142
+[2021-02-02T09:33:08.262Z] go: finding golang.org/x/tools v0.0.0-20190130214255-bb1329dc71a0
+[2021-02-02T09:33:08.262Z] go: finding github.com/struCoder/pidusage v0.1.2
+[2021-02-02T09:33:08.263Z] go: finding sourcegraph.com/sourcegraph/appdash v0.0.0-20180531100431-4c381bd170b4
+[2021-02-02T09:33:08.263Z] can't load package: package github.com/pingcap/tidb/server: 
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:47:1: expected 'STRING', found '<<'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:53:92: illegal character U+0023 '#'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:60:2: expected 'STRING', found 'if'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:61:3: expected 'STRING', found 'return'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:78:2: expected 'STRING', found 'if'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:79:3: expected 'STRING', found 'return'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:82:2: expected 'STRING', found 'if'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:83:3: expected 'STRING', found 'for'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:87:4: expected 'STRING', found 'if'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:88:5: expected 'STRING', found 'return'
+[2021-02-02T09:33:08.263Z] server/conn_stmt.go:92:3: expected 'STRING', found 'if'
+[2021-02-02T09:33:08.263Z] ++ grep module go.mod
+[2021-02-02T09:33:08.263Z] ++ awk '{print $2}'
+[2021-02-02T09:33:08.263Z] ++ head -n 1
+[2021-02-02T09:33:08.263Z] + package_base=github.com/pingcap/tidb
+[2021-02-02T09:33:08.263Z] + cat packages.list
+[2021-02-02T09:33:08.263Z] + grep -v github.com/pingcap/tidb/ddl
+[2021-02-02T09:33:08.263Z] + grep -v github.com/pingcap/tidb/executor
+[2021-02-02T09:33:08.263Z] + grep -v github.com/pingcap/tidb/session
+[2021-02-02T09:33:08.263Z] + grep -v github.com/pingcap/tidb/expression
+[2021-02-02T09:33:08.263Z] + grep -vE 'github.com/pingcap/tidb/store$'
+[2021-02-02T09:33:08.263Z] + echo github.com/pingcap/tidb/ddl
+[2021-02-02T09:33:08.263Z] + cat packages.list
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/ddl/
+[2021-02-02T09:33:08.263Z] + cat packages.list
+[2021-02-02T09:33:08.263Z] + grep -E 'github.com/pingcap/tidb/store$'
+[2021-02-02T09:33:08.263Z] + echo github.com/pingcap/tidb/session
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/sessionctx packages.list
+[2021-02-02T09:33:08.263Z] + echo github.com/pingcap/tidb/executor
+[2021-02-02T09:33:08.263Z] + cat packages.list
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/executor/
+[2021-02-02T09:33:08.263Z] + cat packages.list
+[2021-02-02T09:33:08.263Z] + grep -v github.com/pingcap/tidb/executor
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/expression/ packages.list
+[2021-02-02T09:33:08.263Z] + echo github.com/pingcap/tidb/expression
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/planner/core packages.list.short
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/store/tikv packages.list.short
+[2021-02-02T09:33:08.263Z] + grep github.com/pingcap/tidb/server packages.list.short
+script returned exit code 1
