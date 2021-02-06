@@ -197,7 +197,7 @@ func TestRegex_TiDB_MysqlTestError(t *testing.T) {
 	lines := FilesToLines("./rules_test/mysql_test_error.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
-	if len(*info) == 1 {
+	if len(*info) == 2 {
 		if (*info)[0].Key == "case" && strings.Contains((*info)[0].Value, "[fatal] run test [window_functions] err: sql:SHOW CREATE VIEW v;: failed to run query") {
 			return
 		}
