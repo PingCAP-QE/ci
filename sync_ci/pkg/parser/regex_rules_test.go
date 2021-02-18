@@ -8,14 +8,14 @@ import (
 )
 
 func TestRegex_Load(t *testing.T) {
-	if updateRegexpRules("./pkg/parser/regex_rules.json") != true {
+	if updateRegexpRules("./regex_rules.json") != true {
 		t.Error("load rule failed")
 	}
 }
 
 func TestRegex_TestRules(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/integration_fatal_error.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/integration_fatal_error.log")
 	result := ApplyRegexpRulesToLines("tidb_ghpr_check", lines)
 	if result == nil || len(*result) != 2 {
 		t.Error("test failed")
@@ -47,8 +47,8 @@ func FilesToLines(path string) []string {
 }
 
 func TestRegexp_TiKVCompileError(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/tikv_compile_error.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tikv_compile_error.log")
 
 	info := ApplyRegexpRulesToLines("tikv_ghpr_test", lines)
 	for _, o := range *info {
@@ -61,8 +61,8 @@ func TestRegexp_TiKVCompileError(t *testing.T) {
 }
 
 func TestRegexp_TiDBPanic(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/tidb_panic.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_panic.log")
 
 	info := ApplyRegexpRulesToLines("tidb_ghpr_check", lines)
 	for _, o := range *info {
@@ -75,8 +75,8 @@ func TestRegexp_TiDBPanic(t *testing.T) {
 }
 
 func TestRegexp_ReferenceError(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/replace_error.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/replace_error.log")
 
 	info := ApplyRegexpRulesToLines("tidb_ghpr_check", lines)
 	for _, o := range *info {
@@ -89,8 +89,8 @@ func TestRegexp_ReferenceError(t *testing.T) {
 }
 
 func TestRegexp_TiKVTomlError(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/tikv_toml_error.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tikv_toml_error.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
 	for _, o := range *info {
@@ -103,8 +103,8 @@ func TestRegexp_TiKVTomlError(t *testing.T) {
 }
 
 //func TestRegex_TicsFail(t *testing.T) {
-//	updateRegexpRules("./pkg/parser/regex_rules.json")
-//	lines := FilesToLines("./pkg/parser/rules_test/tics_fail.log")
+//	updateRegexpRules("./regex_rules.json")
+//	lines := FilesToLines("./rules_test/tics_fail.log")
 //
 //	info := ApplyRegexpRulesToLines("tidb_ghpr_tics_test", lines)
 //	for _, o := range *info {
@@ -117,8 +117,8 @@ func TestRegexp_TiKVTomlError(t *testing.T) {
 //}
 
 func TestRegex_CoprTest(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/copr_test_case.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/copr_test_case.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
 	for _, o := range *info {
@@ -131,8 +131,8 @@ func TestRegex_CoprTest(t *testing.T) {
 }
 
 func TestRegex_TiDBRaceBuildFailed(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/tidb_race_build_failed.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_race_build_failed.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
 	for _, o := range *info {
@@ -145,8 +145,8 @@ func TestRegex_TiDBRaceBuildFailed(t *testing.T) {
 }
 
 func TestRegex_TiDB_IntegrationCommonTest(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/FAIL_integration_common_test.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/FAIL_integration_common_test.log")
 
 	info := ApplyRegexpRulesToLines("tidb_ghpr_integration_common_test", lines)
 	if len(*info) != 2 {
@@ -162,8 +162,8 @@ func TestRegex_TiDB_IntegrationCommonTest(t *testing.T) {
 }
 
 func TestRegex_TiDB_IntegrationCommonTest2(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/tidb_integration_fail.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/tidb_integration_fail.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
 	if info == nil || len(*info) != 1 {
@@ -179,8 +179,8 @@ func TestRegex_TiDB_IntegrationCommonTest2(t *testing.T) {
 }
 
 func TestRegex_TiDB_PDBuildFailed(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/pd_build_failed.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/pd_build_failed.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
 	if len(*info) == 1 {
@@ -193,11 +193,11 @@ func TestRegex_TiDB_PDBuildFailed(t *testing.T) {
 }
 
 func TestRegex_TiDB_MysqlTestError(t *testing.T) {
-	updateRegexpRules("./pkg/parser/regex_rules.json")
-	lines := FilesToLines("./pkg/parser/rules_test/mysql_test_error.log")
+	updateRegexpRules("./regex_rules.json")
+	lines := FilesToLines("./rules_test/mysql_test_error.log")
 
 	info := ApplyRegexpRulesToLines("", lines)
-	if len(*info) == 1 {
+	if len(*info) == 2 {
 		if (*info)[0].Key == "case" && strings.Contains((*info)[0].Value, "[fatal] run test [window_functions] err: sql:SHOW CREATE VIEW v;: failed to run query") {
 			return
 		}

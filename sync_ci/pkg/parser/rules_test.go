@@ -1,9 +1,10 @@
 package parser
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTidbUtParser_Parse(t *testing.T) {
@@ -169,7 +170,7 @@ script returned exit code 1`,
 }
 
 func TestEnvParser_Parse(t *testing.T) {
-	if err := UpdateRules("./pkg/parser/envrules.json"); err != nil {
+	if err := UpdateRules("./envrules.json"); err != nil {
 		t.Error(err)
 	}
 	testData := []struct {
@@ -202,7 +203,7 @@ func TestIntegrationTestParser(t *testing.T) {
 	testData := []struct {
 		text string
 		res  string
-		job string
+		job  string
 	}{
 		{
 			`[2020-12-06T14:19:39.699Z] 2020/12/06 22:19:39 2020/12/06 22:19:37 Test fail: Outputs are not matching.
