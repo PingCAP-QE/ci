@@ -76,29 +76,6 @@ catchError {
     stage('Build') {
 
         builds = [:]
-
-        builds["Build on linux/amd64"] = {
-            build job: "optimization-build-tidb-linux-amd",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                    ]
-        }
-
         builds["Build on linux/arm64"] = {
             build job: "optimization-build-tidb-linux-arm",
                     wait: true,
@@ -140,7 +117,34 @@ catchError {
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
                     ]
         }
-        parallel builds
+        def build_linux_amd = {
+            build job: "optimization-build-tidb-linux-amd",
+                    wait: true,
+                    parameters: [
+                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
+                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
+                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
+                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                    ]
+        }
+        if (Stage == "build") {
+            builds["Build on linux/amd64"] = build_linux_amd
+            parallel builds
+        } else {
+            parallel builds
+            build_linux_amd()
+        }
     }
 //    build stage return
     if (Stage == "build") {

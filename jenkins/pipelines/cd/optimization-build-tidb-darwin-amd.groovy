@@ -13,8 +13,8 @@
 * @PRE_RELEASE
 */
 def slackcolor = 'good'
-def os = "linux"
-def arch = "arm64"
+def os = "darwin"
+def arch = "amd64"
 def TIDB_CTL_HASH = "master"
 def build_upload = { product, hash, binary ->
     stage("Build ${product}") {
@@ -29,27 +29,36 @@ def build_upload = { product, hash, binary ->
             if (product == "tidb-ctl") {
                 hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
+            def filepath = "builds/pingcap/${product}/${hash}/darwin/${binary}.tar.gz"
+            if (product == "br") {
+                filepath = "builds/pingcap/${product}/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
+            }
             def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
             if (product == "ticdc") {
                 target = "${product}-${os}-${arch}"
+                filepath = "builds/pingcap/${product}/${hash}/darwin/${target}.tar.gz"
             }
-            def filepath = "builds/pingcap/${product}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
-            if (product == "br") {
-                filepath = "builds/pingcap/${product}/${RELEASE_TAG}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
+            if (product == "dumpling") {
+                filepath = "builds/pingcap/${product}/${hash}/darwin/${target}-${os}-${arch}.tar.gz"
             }
             if (product == "tidb-ctl") {
                 sh """
-                go build -o ${product}
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                go build -o /Users/pingcap/binarys/${product}
                 rm -rf ${target}
                 mkdir -p ${target}/bin
-                cp ${product} ${target}/bin/            
+                cp /Users/pingcap/binarys/${product} ${target}/bin/            
                 """
             }
+
             if (product in ["tidb", "tidb-binlog", "tidb-lightning", "pd"]) {
                 sh """
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
                     if [ ${product} != "pd" ]; then
                         make clean
                     fi;
@@ -59,6 +68,9 @@ def build_upload = { product, hash, binary ->
                     fi;
                     rm -rf ${target}
                     mkdir -p ${target}/bin
+                    if [ ${product} = "tidb" ]; then
+                        cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
+                    fi;
                     cp bin/* ${target}/bin
                 """
             }
@@ -67,13 +79,15 @@ def build_upload = { product, hash, binary ->
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
-                    fi;                    
+                    fi;  
                     make build
                     rm -rf ${target}
                     mkdir -p ${target}/bin
-                    cp bin/* ${target}/bin/
+                    mv bin/* ${target}/bin/
                 """
             }
             sh """
@@ -85,15 +99,17 @@ def build_upload = { product, hash, binary ->
 }
 
 try {
-    node("arm") {
+    node("mac") {
         def ws = pwd()
         deleteDir()
+
         stage("GO node") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             println "${ws}"
+            sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
             if (TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 || TIFLASH_HASH.length() < 40 || LIGHTNING_HASH.length() < 40 || IMPORTER_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
                 println "build must be used with githash."
-                sh "exit"
+                sh "exit 2"
             }
         }
         if (BUILD_TIKV_IMPORTER == "false") {
@@ -109,12 +125,15 @@ try {
         }
         stage("Build TiKV") {
             dir("go/src/github.com/pingcap/tikv") {
-                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
-                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
+                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/darwin/tikv-server.tar.gz"
+
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
+                }
                 if (BUILD_TIKV_IMPORTER == "false") {
                     sh """
                     git tag -f ${RELEASE_TAG} ${TIKV_HASH}
@@ -123,11 +142,14 @@ try {
                     """
                 }
                 sh """
-                CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/
+                CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 make dist_release
                 rm -rf ${target}
                 mkdir -p ${target}/bin
+                cp bin/* /Users/pingcap/binarys
                 cp bin/* ${target}/bin
-                tar czvf ${target}.tar.gz ${target}
+                tar -czvf ${target}.tar.gz ${target}
                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                 """
             }
@@ -136,7 +158,7 @@ try {
         stage("Build Importer") {
             dir("go/src/github.com/pingcap/importer") {
                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
+                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/darwin/importer.tar.gz"
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
@@ -151,6 +173,8 @@ try {
                     """
                 }
                 sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/
                 ROCKSDB_SYS_SSE=0 make release
                 rm -rf ${target}
                 mkdir -p ${target}/bin
@@ -160,52 +184,46 @@ try {
                 """
             }
         }
-    }
 
-    if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
-        podTemplate(cloud: 'kubernetes-arm64', name: "build-arm-tiflash", label: "build-arm-tiflash",
-                instanceCap: 5, idleMinutes: 30,
-                workspaceVolume: emptyDirWorkspaceVolume(memory: true),
-                containers: [
-                        containerTemplate(name: 'tiflash-build-arm', image: 'hub.pingcap.net/tiflash/tiflash-builder:arm64',
-                                alwaysPullImage: true, ttyEnabled: true, privileged: true, command: 'cat',
-                                resourceRequestCpu: '12000m', resourceRequestMemory: '20Gi',
-                                resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
-                        containerTemplate(name: 'jnlp', image: 'hub.pingcap.net/jenkins/jnlp-slave-arm64:0.0.1'),
-                ]) {
-            node("build-arm-tiflash") {
-                container("tiflash-build-arm") {
-                    stage("TiFlash build node") {
-                        println "arm debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    }
-
-                    stage("build tiflash") {
-                        dir("tics") {
-                            def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-                            def filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash-${os}-${arch}.tar.gz"
-                            retry(20) {
-                                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                    deleteDir()
-                                }
-                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
-                            }
-                            sh """
-                            git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            """
-                            sh """
-                                NPROC=12 release-centos7/build/build-release.sh
-                                cd release-centos7/
-                                mv tiflash ${target}
-                                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                                """
+        if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
+            stage("build tiflash") {
+                dir("tics") {
+                    def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
+                    def filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
+                    retry(20) {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
                         }
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
                     }
+                    sh """
+                        git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
+                            """
+                    sh """
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/
+                    mkdir -p release-darwin/build/
+                    [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
+                    [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
+                    [ -f "release-darwin/build/build-tiflash-proxy.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-proxy.sh > release-darwin/build/build-tiflash-proxy.sh
+                    [ -f "release-darwin/build/build-tiflash-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-release.sh > release-darwin/build/build-tiflash-release.sh
+                    chmod +x release-darwin/build/*
+                    ./release-darwin/build/build-release.sh
+                    ls -l ./release-darwin/tiflash/
+                    """
+
+                    sh """
+                    cd release-darwin
+                    mv tiflash ${target}
+                    tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    """
                 }
             }
         }
+
     }
 
     currentBuild.result = "SUCCESS"

@@ -104,14 +104,14 @@ def upload = { dir ->
 }
 
 def update = { name, version, os, arch ->
-    try {
-        download name, version, os, arch
-        unpack name, version, os, arch
-        pack name, version, os, arch
-    } catch (e) {
-        echo "update ${name}-${version}-${os}-${arch}: ${e}"
+//    try {
+    download name, version, os, arch
+    unpack name, version, os, arch
+    pack name, version, os, arch
+//    } catch (e) {
+//        echo "update ${name}-${version}-${os}-${arch}: ${e}"
 //        currentBuild.result = "FAILURE"
-    }
+//    }
 }
 
 node("build_go1130") {

@@ -288,6 +288,7 @@ try {
         container("rust") {
             stage("Rust node") {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                deleteDir()
             }
 
             stage("Build TiKV") {
