@@ -2,10 +2,11 @@ package detect
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/asmcos/requests"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/log"
-	"time"
 )
 
 func RemindMergePr(cfg model.Config, repo string, prId string, failedCase string, closedIssueLink string, test bool) error {
@@ -15,12 +16,12 @@ func RemindMergePr(cfg model.Config, repo string, prId string, failedCase string
 	if !test {
 		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, prId)
 	} else {
-		url = fmt.Sprintf("https://api.github.com/repos/kivenchen/klego/issues/1/comments")
+		url = "https://api.github.com/repos/kivenchen/klego/issues/1/comments"
 	}
 
 	err := CommentPr(cfg, url, comment)
 	if err != nil {
-		fmt.Errorf("failed to create PR merge reminder at %s for issue %s", url, closedIssueLink)
+		log.S().Error("failed to create PR merge reminder at %s for issue %s", url, closedIssueLink)
 	}
 	return err
 }
@@ -33,17 +34,17 @@ func RemindUnloggedCasePr(cfg model.Config, repo string, issueId string, failedC
 	if !test {
 		url = fmt.Sprintf("https://api.github.com/repos/%s/issues/%s/comments", repo, issueId)
 	} else {
-		url = fmt.Sprintf("https://api.github.com/repos/kivenchen/klego/issues/1/comments")
+		url = "https://api.github.com/repos/kivenchen/klego/issues/1/comments"
 	}
 
 	err := CommentPr(cfg, url, comment)
 	if err != nil {
-		fmt.Errorf("failed to create unlogged case reminder at '%s'", url)
+		log.S().Error("failed to create unlogged case reminder at '%s'", url)
 	}
 	return err
 }
 
-func CommentPr(cfg model.Config, url string, comment string) (error) {
+func CommentPr(cfg model.Config, url string, comment string) error {
 	req := requests.Requests()
 	req.SetTimeout(10 * time.Second)
 	req.Header.Set("Authorization", "token "+cfg.GithubToken)

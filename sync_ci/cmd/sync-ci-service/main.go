@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+	"os/signal"
+
 	"github.com/google/subcommands"
 	"github.com/pingcap/ci/sync_ci/pkg/command"
 	"github.com/pingcap/log"
-	"os"
-	"os/signal"
 )
 
 func main() {
-	defer log.Sync()
+	defer log.Sync() //nolint:errcheck
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
