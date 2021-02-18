@@ -4,14 +4,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sort"
+	"strings"
+
 	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/log"
 	"github.com/robfig/cron/v3"
-	"net/http"
-	"sort"
-	"strings"
 )
 
 const Threshold = 3
@@ -23,12 +24,12 @@ const postTemplate = `
 		"content": "Today's job fail reasons: 
 
 %s
-`+"\n" + `"
+` + "\n" + `"
 	}
 }
 	`
 
-func reportToGroupchat(wecomkey string, caseList map[string] int) error {
+func reportToGroupchat(wecomkey string, caseList map[string]int) error {
 	url := "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + wecomkey
 	content := ""
 
@@ -38,7 +39,7 @@ func reportToGroupchat(wecomkey string, caseList map[string] int) error {
 	}
 
 	sort.Slice(reasons, func(i, j int) bool {
-		return caseList[reasons[i]] >  caseList[reasons[j]]
+		return caseList[reasons[i]] > caseList[reasons[j]]
 	})
 
 	for _, item := range reasons {
@@ -62,14 +63,13 @@ func reportToGroupchat(wecomkey string, caseList map[string] int) error {
 	return err
 }
 
-
 func ScheduleUnstableReport(cfg model.Config) {
 	scheduler := cron.New()
 	cronSpecs := []string{
 		"0 10-22/4 * * 1-5",
 	}
 	for _, spec := range cronSpecs {
-		_, err := scheduler.AddFunc(spec, func(){
+		_, err := scheduler.AddFunc(spec, func() {
 			err := ReportSigUnstableCasesBody(cfg, Threshold)
 			if err != nil {
 				log.S().Error("Error reporting significant issues", err)
@@ -82,7 +82,6 @@ func ScheduleUnstableReport(cfg model.Config) {
 	scheduler.Start()
 }
 
-
 func ReportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 	cidb := db.DBWarehouse[db.CIDBName]
 	rows, err := cidb.Raw(model.GetCICasesToday).Rows()
@@ -91,11 +90,11 @@ func ReportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 		return err
 	}
 
-	caseFrequencies := map[string] int{}
+	caseFrequencies := map[string]int{}
 	var sigUnstableCases []string
-	sigUnstableCases = getUnstableCasesAndEnvs(rows, caseFrequencies, threshold, sigUnstableCases)
+	getUnstableCasesAndEnvs(rows, caseFrequencies, threshold, sigUnstableCases)
 
-	rows, err = cidb.Raw(model.GetRerunCases, threshold + 1).Rows()
+	rows, err = cidb.Raw(model.GetRerunCases, threshold+1).Rows()
 	if err != nil {
 		log.S().Error("GroupChat service: failed to log db")
 		return err
@@ -107,7 +106,8 @@ func ReportSigUnstableCasesBody(cfg model.Config, threshold int) error {
 	return err
 }
 
-
+// Dead code
+/*
 func getFrequentRerunCases(rows *sql.Rows, caseFrequencies map[string]int, threshold int, sigUnstableCases []string) []string {
 	for rows.Next() {
 		var rawCase []byte
@@ -143,7 +143,7 @@ func getFrequentRerunCases(rows *sql.Rows, caseFrequencies map[string]int, thres
 	}
 	return sigUnstableCases
 }
-
+*/
 func getUnstableCasesAndEnvs(rows *sql.Rows, caseFrequencies map[string]int, threshold int, sigUnstableCases []string) []string {
 	for rows.Next() {
 		var rawCase []byte

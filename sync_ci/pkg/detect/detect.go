@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/asmcos/requests"
 	"github.com/google/go-github/github"
 	"github.com/pingcap/ci/sync_ci/pkg/db"
@@ -11,9 +15,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/parser"
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
-	"regexp"
-	"strings"
-	"time"
 )
 
 const NEW_CASE = 0
@@ -21,8 +22,8 @@ const RETRIGGERED_CASE = 1
 const searchIssueIntervalStr = "178h"
 const PrInspectLimit = time.Hour * 24 * 7
 const baselink = "https://internal.pingcap.net/idc-jenkins/job/%s/%s/display/redirect" // job_name, job_id
-type repoCasePr map[string]map[string][]string
-type repoPrCase map[string]map[string][]string
+// type repoCasePr map[string]map[string][]string
+// type repoPrCase map[string]map[string][]string
 type repoCaseJoblink map[string]map[string][]string
 
 type repoCasePrSet map[string]map[string]map[string]bool
@@ -48,6 +49,9 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	DupRecentCaseSet, allRecentCases := getDuplicatesFromHistory(recentRows, caseLinks, casePrSet)
 
 	dupCaseStr, err := json.Marshal(DupRecentCaseSet)
+	if err != nil {
+		return nil, err
+	}
 	log.S().Info("Acquired duplicate cases: ", string(dupCaseStr))
 	log.S().Info("Filtering cases to create issue with")
 
@@ -64,14 +68,17 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 
 	// assumed `cases` param has no reps
 	_, err = handleCasesIfIssueExists(cfg, allRecentCases, dbIssueCase, dbGithub, true, test)
+	if err != nil {
+		return nil, err
+	}
 	issuesToCreate, err := handleCasesIfIssueExists(cfg, DupRecentCaseSet, dbIssueCase, dbGithub, false, test)
 	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		bytes, err := json.Marshal(issuesToCreate)
 		if err != nil {
 			log.S().Error("Error formatting issuesToCreate")
-		}else {
+		} else {
 			log.S().Info("Acquired cases to create pr: ", string(bytes))
 		}
 	}
@@ -81,9 +88,9 @@ func GetCasesFromPR(cfg model.Config, startTime time.Time, inspectStartTime time
 	return issuesToCreate, nil
 }
 
-func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB, recentCases repoCasePrSet, test bool){
+func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB, recentCases repoCasePrSet, test bool) {
 	for repo, casePrs := range recentCases {
-		for c, prSet := range casePrs{
+		for c, prSet := range casePrs {
 			// Check if issue exists and fetch latest
 			existedCases, err := dbIssueCase.Raw(model.IssueCaseExistsSql, c, repo).Rows()
 			if err != nil {
@@ -97,6 +104,10 @@ func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB,
 				// check time
 				var issueNumStr string
 				err = existedCases.Scan(&issueNumStr)
+				if err != nil {
+					log.S().Error("failed to read sql result", err)
+					continue
+				}
 				issueNumberLike := "%/" + issueNumStr
 				repoLike := "%/" + repo + "/%"
 				stillValidIssues, err := dbGithub.Raw(model.CheckClosedIssue, issueNumberLike, repoLike, searchIssueIntervalStr).Rows()
@@ -109,7 +120,7 @@ func handlePrReminder(cfg model.Config, dbGithub *gorm.DB, dbIssueCase *gorm.DB,
 				}
 
 				issueLink := fmt.Sprintf("https://www.github.com/repos/%s/issues/%s", repo, issueNumStr)
-				for pr, _ := range prSet {
+				for pr := range prSet {
 					err = RemindMergePr(cfg, repo, pr, c, issueLink, test)
 					if err != nil {
 						log.S().Error("failed to remind merge pr: ", c, repo)
@@ -135,13 +146,13 @@ func handleCasesIfIssueExists(cfg model.Config, recentCaseSet repoCaseJoblink, d
 					IssueNo:   NEW_CASE,
 					Repo:      repo,
 					IssueLink: sql.NullString{},
-					Case:      sql.NullString{c, true},
-					JobLink:   sql.NullString{joblinks[0], true},
+					Case:      sql.NullString{String: c, Valid: true},
+					JobLink:   sql.NullString{String: joblinks[0], Valid: true},
 				}
 				issueCases = append(issueCases, &issueCase)
 				if err = RemindUnloggedCasePr(cfg, repo, "", c, test); err != nil {
 					log.S().Error("Remind unlogged case failed for ", c, ", with job link ", joblinks[0])
-				}else{
+				} else {
 					log.S().Info("Unlogged case reminded")
 				}
 			} else {
@@ -176,22 +187,22 @@ func handleCaseIfHistoryExists(cfg model.Config, dbGithub *gorm.DB, issueNumStr 
 	}
 
 	if !stillValidIssues.Next() {
-		if closedIssues.Next() {  // the issue was closed
+		if closedIssues.Next() { // the issue was closed
 			issueCase := model.CaseIssue{
 				IssueNo:   RETRIGGERED_CASE,
 				Repo:      repo,
 				IssueLink: sql.NullString{},
-				Case:      sql.NullString{caseName, true},
-				JobLink:   sql.NullString{joblinks[0], true},
+				Case:      sql.NullString{String: caseName, Valid: true},
+				JobLink:   sql.NullString{String: joblinks[0], Valid: true},
 			}
 			issueCases = append(issueCases, &issueCase)
-		}else{
+		} else {
 			issueCase := model.CaseIssue{
 				IssueNo:   NEW_CASE,
 				Repo:      repo,
 				IssueLink: sql.NullString{},
-				Case:      sql.NullString{caseName, true},
-				JobLink:   sql.NullString{joblinks[0], true},
+				Case:      sql.NullString{String: caseName, Valid: true},
+				JobLink:   sql.NullString{String: joblinks[0], Valid: true},
 			}
 			issueCases = append(issueCases, &issueCase)
 		}
@@ -219,7 +230,6 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 	csdb := db.DBWarehouse[db.CIDBName]
 	rows, err := cidb.Raw(model.GetCINightlyCase, formatT(filterStartTime), formatT(now)).Rows()
 	RepoNightlyCase := map[string]map[string][]string{}
-	issueCases := []*model.CaseIssue{}
 
 	if err != nil {
 		return nil, err
@@ -252,21 +262,22 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 				link := fmt.Sprintf(baselink, job, jobid)
 				RepoNightlyCase[repo][c] = []string{link}
 
-				issueCase := model.CaseIssue{
-					IssueNo:   0,
-					Repo:      repo,
-					IssueLink: sql.NullString{},
-					Case:      sql.NullString{c, true},
-					JobLink:   sql.NullString{link, true},
-				}
-				issueCases = append(issueCases, &issueCase)
+				// issueCase := model.CaseIssue{
+				// 	IssueNo:   0,
+				// 	Repo:      repo,
+				// 	IssueLink: sql.NullString{},
+				// 	Case:      sql.NullString{String: c, Valid: true},
+				// 	JobLink:   sql.NullString{String: link, Valid: true},
+				// }
+				// SA4010: this result of append is never used, except maybe in other appends (staticcheck), what is this for after all?
+				// issueCases = append(issueCases, &issueCase)
 			}
 			if FirstCaseOnly {
 				break
 			}
 		}
 	}
-	issueCases, err = handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, true, test)
+	issueCases, err := handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, true, test)
 	if err != nil {
 		log.S().Error("Failed to handle existing issue case", err)
 	}
@@ -433,15 +444,14 @@ func CreateIssueForCases(cfg model.Config, issues []*model.CaseIssue, test bool)
 		for i := 0; i < 3; i++ {
 			log.S().Info("Posting to ", url)
 
-
 			caseName := issue.Case.String
 			if len(caseName) > 100 {
 				caseName = caseName[:100] + "..."
 			}
 			var title string
-			if issue.IssueNo == NEW_CASE{
+			if issue.IssueNo == NEW_CASE {
 				title = "Case failure: " + caseName
-			}else if issue.IssueNo == RETRIGGERED_CASE {
+			} else if issue.IssueNo == RETRIGGERED_CASE {
 				title = "Stablized case failed: " + caseName
 			}
 

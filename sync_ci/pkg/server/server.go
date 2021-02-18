@@ -5,8 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/bndr/gojenkins"
-	"github.com/gin-contrib/zap"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/pingcap/ci/sync_ci/pkg/db"
 	"github.com/pingcap/ci/sync_ci/pkg/model"
@@ -15,11 +21,6 @@ import (
 	"github.com/pingcap/log"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 type Server struct {
@@ -40,11 +41,11 @@ func (s *Server) Run() {
 	}
 
 	httpServer := s.setupHttpServer()
-	go httpServer.ListenAndServe()
+	go httpServer.ListenAndServe() //nolint:errcheck
 	go parser.UpdateRulesPeriodic(ruleFilePath, 10*time.Second)
 	go parser.StartUpdateRegexRules()
 
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	defer close(ch)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	<-ch
