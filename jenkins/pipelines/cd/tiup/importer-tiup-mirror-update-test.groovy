@@ -116,7 +116,7 @@ try{
                 install_tiup "/usr/local/bin"
                 install_qshell "/usr/local/bin"
             }
-            if(RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.3") {
+            if(RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
                 stage("Get hash") {
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 

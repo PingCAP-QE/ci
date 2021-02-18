@@ -347,7 +347,7 @@ node("build_go1130") {
                 build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
             }
 
-            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.3") {
+            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
                 stage("TiUP build importer") {
                     build(job: "importer-tiup-mirror-update-test", wait: true, parameters: params1)
                 }

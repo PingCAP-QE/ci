@@ -49,9 +49,15 @@ def download = { name, version, os, arch ->
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
     """
     } else {
-        sh """
+        if (RELEASE_TAG == "nightly" && arch == "amd64" && os == "linux") {
+            sh """
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/release/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
+    """
+        }else{
+            sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
     """
+        }
     }
 
 }
