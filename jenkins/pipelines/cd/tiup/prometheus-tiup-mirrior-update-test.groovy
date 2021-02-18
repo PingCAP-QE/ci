@@ -1,23 +1,23 @@
 def checkoutTiCS(branch) {
     checkout(changelog: false, poll: true, scm: [
-            $class: "GitSCM",
-            branches: [
+            $class                           : "GitSCM",
+            branches                         : [
                     [name: "${branch}"],
             ],
-            userRemoteConfigs: [
+            userRemoteConfigs                : [
                     [
-                            url: "git@github.com:pingcap/tics.git",
-                            refspec: "+refs/heads/*:refs/remotes/origin/*",
+                            url          : "git@github.com:pingcap/tics.git",
+                            refspec      : "+refs/heads/*:refs/remotes/origin/*",
                             credentialsId: "github-sre-bot-ssh",
                     ]
             ],
-            extensions: [
-                    [$class: 'SubmoduleOption',
-                     disableSubmodules: true,
-                     parentCredentials: true,
+            extensions                       : [
+                    [$class             : 'SubmoduleOption',
+                     disableSubmodules  : true,
+                     parentCredentials  : true,
                      recursiveSubmodules: true,
-                     trackingSubmodules: false,
-                     reference: ''],
+                     trackingSubmodules : false,
+                     reference          : ''],
                     [$class: 'PruneStaleBranch'],
                     [$class: 'CleanBeforeCheckout'],
                     [$class: 'LocalBranch']
@@ -67,7 +67,7 @@ def unpack = { version, os, arch ->
 
 def pack = { version, os, arch ->
     def tag = RELEASE_TAG
-    if(tag == "nightly") {
+    if (tag == "nightly") {
         tag = "master"
     }
     sh """
@@ -116,13 +116,9 @@ def upload = { dir ->
 }
 
 def update = { version, os, arch ->
-    try {
-        download version, os, arch
-        unpack version, os, arch
-        pack version, os, arch
-    } catch(e) {
-        echo "update prometheus-${version}-${os}-${arch}: ${e}"
-    }
+    download version, os, arch
+    unpack version, os, arch
+    pack version, os, arch
 }
 
 node("build_go1130") {
@@ -139,10 +135,10 @@ node("build_go1130") {
 
         stage("Checkout tics") {
             def tag = RELEASE_TAG
-            if(tag == "nightly") {
+            if (tag == "nightly") {
                 tag = "master"
             }
-            if(tag == "master" || tag > "v4") {
+            if (tag == "master" || tag > "v4") {
                 checkoutTiCS(tag)
             }
         }

@@ -72,13 +72,9 @@ def upload = { dir ->
 }
 
 def update = { name, version, hash, os, arch ->
-    try {
-        download name, hash, os, arch
-        unpack name, os, arch
-        pack name, version, os, arch
-    } catch (e) {
-        echo "update cdc-${version}-${os}-${arch}: ${e}"
-    }
+    download name, hash, os, arch
+    unpack name, os, arch
+    pack name, version, os, arch
 }
 
 node("build_go1130") {

@@ -30,9 +30,9 @@ def install_qshell = { bin_dir ->
 }
 
 def download = { name, version, os, arch ->
-    if(os == "linux") {
+    if (os == "linux") {
         platform = "centos7"
-    } else if(os == "darwin") {
+    } else if (os == "darwin") {
         platform = "darwin"
     } else {
         sh """
@@ -40,7 +40,7 @@ def download = { name, version, os, arch ->
         """
     }
 
-    if(arch == "arm64" || os == "darwin") {
+    if (arch == "arm64" || os == "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -49,7 +49,7 @@ def download = { name, version, os, arch ->
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${dumpling_sha1}/${platform}/${tarball_name}
     """
-    }else{
+    } else {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${dumpling_sha1}/${platform}/${tarball_name}
     """
@@ -58,7 +58,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if(arch == "arm64" || os == "darwin") {
+    if (arch == "arm64" || os == "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -76,7 +76,7 @@ def pack = { name, version, os, arch ->
     [ -d package ] || mkdir package
     """
 
-    if(os == "linux" && arch == "amd64") {
+    if (os == "linux" && arch == "amd64") {
         sh """
         tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz dumpling
         rm -rf bin
@@ -101,13 +101,9 @@ def upload = { dir ->
 }
 
 def update = { name, version, os, arch ->
-    try {
-        download name, version, os, arch
-        unpack name, version, os, arch
-        pack name, version, os, arch
-    } catch(e) {
-        echo "update ${name}-${version}-${os}-${arch}: ${e}"
-    }
+    download name, version, os, arch
+    unpack name, version, os, arch
+    pack name, version, os, arch
 }
 
 node("build_go1130") {
@@ -122,11 +118,11 @@ node("build_go1130") {
             install_qshell "/usr/local/bin"
         }
 
-        if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
+        if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if(RELEASE_TAG == "nightly") {
+                if (RELEASE_TAG == "nightly") {
                     tag = "master"
                 } else {
                     tag = RELEASE_TAG

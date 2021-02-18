@@ -100,13 +100,9 @@ def upload = { dir ->
 }
 
 def update = { name, version, os, arch ->
-    try {
-        download name, version, os, arch
-        unpack name, version, os, arch
-        pack name, version, os, arch
-    } catch (e) {
-        echo "update ${name}-${version}-${os}-${arch}: ${e}"
-    }
+    download name, version, os, arch
+    unpack name, version, os, arch
+    pack name, version, os, arch
 }
 
 node("build_go1130") {

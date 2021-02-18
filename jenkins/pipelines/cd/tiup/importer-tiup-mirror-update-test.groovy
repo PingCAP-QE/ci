@@ -30,9 +30,9 @@ def install_qshell = { bin_dir ->
 }
 
 def download = { name, version, os, arch ->
-    if(os == "linux") {
+    if (os == "linux") {
         platform = "centos7"
-    } else if(os == "darwin") {
+    } else if (os == "darwin") {
         platform = "darwin"
     } else {
         sh """
@@ -40,7 +40,7 @@ def download = { name, version, os, arch ->
         """
     }
 
-    if(arch == "arm64") {
+    if (arch == "arm64") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -52,7 +52,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if(arch == "arm64") {
+    if (arch == "arm64") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -70,7 +70,7 @@ def pack = { name, version, os, arch ->
     [ -d package ] || mkdir package
     """
 
-    if(os == "linux" && arch == "amd64") {
+    if (os == "linux" && arch == "amd64") {
         sh """
         tar -C bin/ -czvf package/tikv-${name}-${version}-${os}-${arch}.tar.gz tikv-importer
         rm -rf bin
@@ -95,16 +95,12 @@ def upload = { dir ->
 }
 
 def update = { name, version, os, arch ->
-    try {
-        download name, version, os, arch
-        unpack name, version, os, arch
-        pack name, version, os, arch
-    } catch(e) {
-        echo "update tikv-${name}-${version}-${os}-${arch}: ${e}"
-    }
+    download name, version, os, arch
+    unpack name, version, os, arch
+    pack name, version, os, arch
 }
 
-try{
+try {
     node("build_go1130") {
         container("golang") {
             stage("Prepare") {
@@ -116,17 +112,17 @@ try{
                 install_tiup "/usr/local/bin"
                 install_qshell "/usr/local/bin"
             }
-            if(RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
+            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
                 stage("Get hash") {
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    if(RELEASE_TAG == "nightly") {
+                    if (RELEASE_TAG == "nightly") {
                         tag = "master"
                     } else {
                         tag = RELEASE_TAG
                     }
 
-                    if(TIDB_VERSION == "") {
+                    if (TIDB_VERSION == "") {
                         TIDB_VERSION = RELEASE_TAG
                     }
 
