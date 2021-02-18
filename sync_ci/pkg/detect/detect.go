@@ -230,7 +230,6 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 	csdb := db.DBWarehouse[db.CIDBName]
 	rows, err := cidb.Raw(model.GetCINightlyCase, formatT(filterStartTime), formatT(now)).Rows()
 	RepoNightlyCase := map[string]map[string][]string{}
-	issueCases := []*model.CaseIssue{}
 
 	if err != nil {
 		return nil, err
@@ -278,7 +277,7 @@ func GetNightlyCases(cfg model.Config, filterStartTime, now time.Time, test bool
 			}
 		}
 	}
-	issueCases, err = handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, true, test)
+	issueCases, err := handleCasesIfIssueExists(cfg, RepoNightlyCase, csdb, ghdb, true, test)
 	if err != nil {
 		log.S().Error("Failed to handle existing issue case", err)
 	}
