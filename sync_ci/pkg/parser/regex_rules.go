@@ -3,12 +3,13 @@ package parser
 import (
 	"encoding/json"
 	"errors"
-	"github.com/pingcap/log"
 	"io/ioutil"
 	"regexp"
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"github.com/pingcap/log"
 )
 
 var (
@@ -22,7 +23,7 @@ type RegexpRule struct {
 	Jobs  []string `json:"jobs"`
 	Rule  string   `json:"regex"`
 	Key   string   `json:"key"`
-	Lines int      `json:"lines";default:"1"`
+	Lines int      `json:"lines" default:"1"`
 
 	r *regexp.Regexp `json:"-"`
 	m map[string]int `json:"-"`
@@ -130,10 +131,8 @@ func ApplyRegexRulesToFullLog(job string, log string) *[]KeyValue {
 	ret := make([]KeyValue, 0)
 	for _, rule := range *rulesNow {
 		matches := rule.r.FindAllString(log, 5)
-		if matches != nil {
-			for _, match := range matches {
-				ret = append(ret, KeyValue{rule.Key, rule.RemoveTime(match)})
-			}
+		for _, match := range matches {
+			ret = append(ret, KeyValue{rule.Key, rule.RemoveTime(match)})
 		}
 	}
 
@@ -147,7 +146,7 @@ func ApplyRegexpRulesToLines(job string, lines []string) *[]KeyValue {
 	}
 
 	ret := make([]KeyValue, 0)
-	for i, _ := range lines {
+	for i := range lines {
 		for _, rule := range *rulesNow {
 			line := lines[i]
 			if rule.Lines > 1 {

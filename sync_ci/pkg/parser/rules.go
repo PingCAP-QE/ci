@@ -2,12 +2,13 @@ package parser
 
 import (
 	"encoding/json"
-	"github.com/pingcap/log"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/pingcap/log"
 )
 
 var envRules = map[string]string{}
@@ -38,10 +39,8 @@ var compileParsers = []parser{
 
 var checkParsers = []parser{
 	&simpleParser{rules: []rule{
-		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns:
-		[]string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
-		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns:
-		[]string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
+		{jobs: []string{"tidb_ghpr_check"}, name: "check error", patterns: []string{`make: \*\*\* \[(fmt|errcheck|unconvert|lint|tidy|testSuite|check-static|vet|staticcheck|errdoc|checkdep|gogenerate)\] Error`}},
+		{jobs: []string{"tikv_ghpr_test"}, name: "check error", patterns: []string{`Please make format and run tests before creating a PR`, `make: \*\*\* \[(fmt|clippy)\] Error`}},
 	}},
 	&tidbCheckParser{},
 }
@@ -122,7 +121,7 @@ func (t *tidbUtParser) parse(job string, lines []string) []string {
 	}
 	if matchedStr == "WARNING: DATA RACE" {
 		failLine := strings.TrimSpace(lines[2])
-		failDetail := strings.Join([]string{"DATA RACE", regexp.MustCompile("[^\\s]+").FindAllString(failLine, -1)[1]}, ":")
+		failDetail := strings.Join([]string{"DATA RACE", regexp.MustCompile(`[^\s]+`).FindAllString(failLine, -1)[1]}, ":")
 		res = append(res, failDetail)
 		return res
 	}
@@ -188,7 +187,7 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 	}
 	startMatchedStr := regexp.MustCompile(`^\[.+\]\s+failures:`).FindString(lines[0])
 	if len(startMatchedStr) != 0 {
-		for i, _ := range lines {
+		for i := range lines {
 			endMatchedStr := regexp.MustCompile(`\[.+\] test result: (\S+)\. (\d+) passed; (\d+) failed; .*`).FindString(lines[i])
 			if len(endMatchedStr) != 0 {
 				break
