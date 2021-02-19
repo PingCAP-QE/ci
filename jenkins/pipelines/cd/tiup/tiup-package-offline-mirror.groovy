@@ -1,23 +1,42 @@
 def install_tiup = { bin_dir ->
     sh """
-    wget -q ${TIUP_MIRRORS}/tiup-linux-amd64.tar.gz
+    wget -q ${TIUP_MIRROR}/tiup-linux-amd64.tar.gz
     tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
     chmod 755 ${bin_dir}/tiup
     rm -rf ~/.tiup
     mkdir -p ~/.tiup/bin
-    curl ${TIUP_MIRRORS}/root.json -o ~/.tiup/bin/root.json
+    curl ${TIUP_MIRROR}/root.json -o ~/.tiup/bin/root.json
     mkdir -p ~/.tiup/keys
-    set +x
-    echo ${PINGCAP_PRIV_KEY} | base64 -d > ~/.tiup/keys/private.json
-    set -x
     """
+}
+
+
+def cloned = [
+        "amd64": "",
+        "arm64": "",
+]
+
+def clone_package = { arch, dst ->
+    if(cloned[arch] != "") {
+        sh """
+        mv ${cloned[arch]} ${dst}
+        """
+        cloned[arch] = dst
+        return
+    }
+
+    sh """
+    tiup mirror clone $dst $VERSION --os linux --arch ${arch} --alertmanager=v0.17.0 --grafana=v4.0.3 --prometheus=v4.0.3
+    """
+    cloned[arch] = dst
 }
 
 def package_community = { arch ->
     def dst = "tidb-community-server-" + VERSION + "-linux-" + arch
+
+    clone_package(arch, dst)
+
     sh """
-    tiup mirror clone $dst $VERSION --os linux --arch ${arch} --alertmanager=v0.17.0 --grafana=v4.0.3 --prometheus=v4.0.3
-    sed -i 's/exec //' $dst/local_install.sh
     tar -czf ${dst}.tar.gz $dst
     curl -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload
     
@@ -43,10 +62,17 @@ def package_enterprise = { arch ->
             "pd": "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster",
     ]
 
+    clone_package(arch, dst)
     sh """
-    rm -rf bin
+    tiup mirror set ${dst}
+    cp ${dst}/keys/*-pingcap.json ~/.tiup/keys/private.json
     """
+
     comps.each {
+        sh """
+        rm -rf bin
+        """
+
         if(arch == "arm64") {
             sh """
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/${hashes[it]}/centos7/${it}-server-${version}-linux-arm64-enterprise.tar.gz
@@ -87,8 +113,6 @@ def package_enterprise = { arch ->
     }
 
     sh """
-    tiup mirror clone $dst $VERSION --os linux --arch $arch --alertmanager=v0.17.0 --grafana=v4.0.3 --prometheus=v4.0.3
-    sed -i 's/exec //' $dst/local_install.sh
     echo '\$bin_dir/tiup telemetry disable &> /dev/null' >> $dst/local_install.sh
     tar -czf ${dst}.tar.gz $dst
     curl -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload
@@ -180,7 +204,9 @@ node("delivery") {
     container("delivery") {
         def ws = pwd()
         def user = sh(returnStdout: true, script: "whoami").trim()
-        sh "rm -rf ./*"
+
+        sh "find . -maxdepth 1 ! -path . -exec rm -rf {} +"
+
         stage("prepare") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             println "${ws}"
