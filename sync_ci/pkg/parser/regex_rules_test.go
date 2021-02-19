@@ -273,7 +273,7 @@ func TestEnvParser_Parse(t *testing.T) {
 
 	info := ApplyRegexpRulesToLines("", lines)
 	if len(*info) == 2 {
-		if (*info)[0].Key == "env" && strings.Contains((*info)[0].Value, "open db failed dial tcp 127.0.0.1:4001") && (*info)[0].Key == "env" && strings.Contains((*info)[0].Value, "[fatal] dial tcp 127.0.0.1:4001: connect: connection refused") {
+		if (*info)[0].Key == "env" && strings.Contains((*info)[0].Value, "open db failed dial tcp 127.0.0.1:4001") && (*info)[1].Key == "env" && strings.Contains((*info)[1].Value, "[fatal] dial tcp 127.0.0.1:4001: connect: connection refused") {
 			return
 		}
 	}
