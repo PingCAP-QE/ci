@@ -1,21 +1,10 @@
 package parser
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"os"
 	"regexp"
 	"strings"
-	"time"
-
-	"github.com/pingcap/log"
 )
 
-var envRules = map[string]string{}
-
-var envParsers = []parser{
-	&envParser{envRules},
-}
 var caseParsers = []parser{
 	&tidbUtParser{map[string]bool{"tidb_ghpr_unit_test": true, "tidb_ghpr_check": true, "tidb_ghpr_check_2": true}},
 	&integrationTestParser{},
@@ -205,58 +194,6 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 		res = append(res, detail)
 	}
 	return res
-}
-
-type envParser struct {
-	rules map[string]string
-}
-
-func (t *envParser) parse(job string, lines []string) []string {
-	var res []string
-	//special, check rules
-	if job == "tidb_ghpr_check" && strings.Contains(lines[0], "open Db failed") {
-		return res
-	}
-	for rule, pattern := range t.rules {
-		matched, _ := regexp.MatchString(pattern, lines[0])
-		if matched {
-			res = append(res, rule)
-		}
-	}
-	return res
-}
-
-func UpdateRules(rulePath string) error {
-	// assumed one level json dictionary
-	file, err := os.Open(rulePath)
-	if err != nil {
-		return err // file not exist
-	}
-	defer file.Close()
-
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		return err // io error
-	}
-
-	newEnvRules := map[string]string{}
-	err = json.Unmarshal(content, &newEnvRules)
-	if err != nil {
-		return err // invalid json format
-	}
-	envRules = newEnvRules
-
-	return nil
-}
-
-func UpdateRulesPeriodic(rulePath string, period time.Duration) {
-	for {
-		err := UpdateRules(rulePath)
-		if err != nil {
-			log.S().Errorf("Rules update failed: [error]", err)
-		}
-		time.Sleep(period)
-	}
 }
 
 func MatchAndParseSQLStmtTest(logLine string) (bool, string) {
