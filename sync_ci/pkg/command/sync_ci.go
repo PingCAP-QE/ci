@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/subcommands"
 	"github.com/pingcap/ci/sync_ci/pkg/db"
@@ -12,7 +14,6 @@ import (
 	"github.com/pingcap/ci/sync_ci/pkg/server"
 	"github.com/pingcap/ci/sync_ci/pkg/util"
 	"github.com/pingcap/log"
-	"time"
 )
 
 type SyncCICommand struct {
@@ -35,7 +36,6 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 	f.Int64Var(&s.UpdateInterval, "ui", 3600, "The interval (secs) to update")
 	f.StringVar(&s.Port, "port", "36000", "http service port")
 	f.StringVar(&s.LogPath, "lp", "log", "log path")
-	f.StringVar(&s.RulePath, "rp", "pkg/parser/envrules.json", "env rule file path")
 }
 
 func (s *SyncCICommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
