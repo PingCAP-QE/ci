@@ -169,36 +169,6 @@ script returned exit code 1`,
 	}
 }
 
-func TestEnvParser_Parse(t *testing.T) {
-	if err := UpdateRules("./envrules.json"); err != nil {
-		t.Error(err)
-	}
-	testData := []struct {
-		text string
-		res  string
-	}{
-		//{
-		//	`[2020-12-06T16:06:47.263Z] curl: (56) Recv failure: Connection reset by peer`,
-		//	"Recv failure: Connection reset by peer",
-		//},
-		{
-			`[2020-12-05T11:11:16.528Z] 2020/12/05 19:11:14.046 util.go:48: [error] open db failed dial tcp 127.0.0.1:4001: connect: connection refused, take time 30.032809965s
-[2020-12-05T11:11:16.528Z] 2020/12/05 19:11:14.046 main.go:255: [fatal] dial tcp 127.0.0.1:4001: connect: connection refused`,
-			`open db failed dial tcp`,
-		},
-	}
-	for _, item := range testData {
-		p := envParser{envRules}
-		res := p.parse("", strings.Split(item.text, "\n"))
-		if len(item.res) == 0 {
-			var a []string
-			assert.Equal(t, res, a)
-		} else {
-			assert.Equal(t, res, []string{item.res})
-		}
-	}
-}
-
 func TestIntegrationTestParser(t *testing.T) {
 	testData := []struct {
 		text string

@@ -263,3 +263,20 @@ func TestRegex_TiDB_ghpr_mybatis_CaseError2(t *testing.T) {
 
 	t.Error("tidb ghpr_mybatis case rule not work.")
 }
+
+func TestEnvParser_Parse(t *testing.T) {
+	updateRegexpRules("./regex_rules.json")
+	lines := []string{
+		`[2020-12-05T11:11:16.528Z] 2020/12/05 19:11:14.046 util.go:48: [error] open db failed dial tcp 127.0.0.1:4001: connect: connection refused, take time 30.032809965s`,
+		`[2020-12-05T11:11:16.528Z] 2020/12/05 19:11:14.046 main.go:255: [fatal] dial tcp 127.0.0.1:4001: connect: connection refused`,
+	}
+
+	info := ApplyRegexpRulesToLines("", lines)
+	if len(*info) == 1 {
+		if (*info)[0].Key == "env" && strings.Contains((*info)[0].Value, "open db failed dial tcp") {
+			return
+		}
+	}
+
+	t.Error("env rule not work.")
+}

@@ -28,10 +28,8 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := map[string][]string{
-	}
+	res := map[string][]string{}
 
-	envFilter := map[string]bool{}
 	caseFilter := map[string]bool{}
 	compileFilter := map[string]bool{}
 	checkFilter := map[string]bool{}
@@ -39,9 +37,6 @@ func ParseCILog(job string, ID int64) (map[string][]string, error) {
 	regexResults := make([]KeyValue, 0)
 
 	for {
-		//parse env failed job
-		res["env"] = append(res["env"], parse(job, lines, envParsers, envFilter)...)
-
 		//parse case failed job
 		res["case"] = append(res["case"], parse(job, lines, caseParsers, caseFilter)...)
 

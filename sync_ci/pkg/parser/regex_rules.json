@@ -21,5 +21,18 @@
   {"jobs": ["tidb_ghpr_mybatis"],"regex": "### Error querying database\\.  Cause:.*","key": "case"},
   {"jobs": [],"regex": "go: .*dial tcp: lookup .* on .*: server misbehaving","key": "env"},
   {"jobs": [],"regex": "build .*: cannot load .*: no matching versions for query \".*\"","key": "compile"},
-  {"jobs": [],"regex": "can't load package: package github\\.com/pingcap/tidb/[a-z]*:","key": "compile"}
+  {"jobs": [],"regex": "can't load package: package github\\.com/pingcap/tidb/[a-z]*:","key": "compile"},
+  {"jobs":[],"regex":"java\\.nio\\.channels\\.ClosedByInterruptException", "key":"env"},
+  {"jobs":[],"regex":"[Cc]onnection reset", "key":"env"},
+  {"jobs":[],"regex":"Could not resolve host", "key":"env"},
+  {"jobs":[],"regex":"500 Internal Server Error", "key":"env"},
+  {"jobs":[],"regex":"signal killed|signal interrupt", "key":"env"},
+  {"jobs":[],"regex":"[FATAL].*?plugin was built with a different version of package", "key":"env"},
+  {"jobs":[],"regex":"\\[get\\]  for kind: \\[Pod\\]  with name: \\[(.*?)\\]  in namespace: \\[jenkins-ci\\]  failed", "key":"env"},
+  {"jobs":[],"regex":"java\\.net\\.SocketException: Socket closed", "key":"env"},
+  {"jobs":[],"regex":"java\\.net\\.SocketTimeoutException", "key":"env"},
+  {"jobs":[],"regex":"tar: This does not look like a tar archive|curl: \\(.*\\) Failed writing body", "key":"env"},
+  {"jobs":[],"regex":"Recv failure: Connection reset by peer", "key":"env"},
+  {"jobs":[],"regex":"open db failed dial tcp 127.0.0.1:4001", "key":"env"},
+  {"jobs":[],"regex":"\\[FATAL\\].*?\\[\\\"open DB failed\\\"\\]", "key":"env"}
 ]
