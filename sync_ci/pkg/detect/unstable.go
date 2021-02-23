@@ -82,7 +82,7 @@ func ScheduleUnstableReport(cfg model.Config) {
 	}
 	weeklyReportSpec := "0 8 * * 6"
 	genTiflashSchrodingerTestReport(cfg)
-	panic("The world!")
+	//panic("The world!")
 	_, err := scheduler.AddFunc(weeklyReportSpec, func() {
 		err := genTiflashSchrodingerTestReport(cfg)
 		if err != nil {

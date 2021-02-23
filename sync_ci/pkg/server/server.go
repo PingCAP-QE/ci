@@ -106,6 +106,7 @@ func (h *SyncHandler) syncDataJob(job string, ID int64) {
 	err := wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
 		jobStatus, err := parser.GetJobStatus(h.jenkins, job, ID)
 		_, ok := map[string]bool{"FAILURE": true, "SUCCESS": true, "ABORTED": true}[jobStatus]
+		log.S().Debug("Status", jobStatus)
 		if ok {
 			return true, err
 		}
@@ -116,6 +117,7 @@ func (h *SyncHandler) syncDataJob(job string, ID int64) {
 		return
 	}
 	ciData, err := parser.ParseCIJob(h.jenkins, job, ID)
+	log.S().Debug("Data", ciData)
 	if err != nil {
 		log.S().Errorf("parse ci job api error , [job] %v,[ID] %v,[error] %v", job, ID, err)
 		return
