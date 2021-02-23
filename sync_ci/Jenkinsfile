@@ -15,8 +15,8 @@ node('sync_ci') {
             stage('Deploy') {
                 echo 'Deploying....'
                 if (currentBuild.result == null || currentBuild.result == 'SUCCESS') { 
-                    withCredentials([string(credentialsId: 'sync_ci_dsn', variable: 'dsn'), string(credentialsId: 'sync_ci_gh', variable: 'gh'), string(credentialsId: 'sync_ci_tk', variable: 'tk'), string(credentialsId: 'sync_ci_ui', variable: 'ui'), string(credentialsId: 'sync_ci_wc', variable: 'wc')]) {
-                        sh 'sudo make install dsn="${dsn}" gh="${gh}" ui=${ui} tk="${tk}" wc="${wc}" PATH=/usr/local/go/bin:$PATH'
+                    withCredentials([string(credentialsId: 'sync_ci_dsn', variable: 'dsn'), string(credentialsId: 'sync_ci_gh', variable: 'gh'), string(credentialsId: 'sync_ci_tk', variable: 'tk'), string(credentialsId: 'sync_ci_ui', variable: 'ui'), string(credentialsId: 'sync_ci_wc', variable: 'wc'), string(credentialsId: 'sync_ci_wc2', variable: 'wc2')]) {
+                        sh 'sudo make install dsn="${dsn}" gh="${gh}" ui=${ui} tk="${tk}" wc="${wc}" wc2="${wc2}" PATH=/usr/local/go/bin:$PATH'
                     }
                     sh 'sudo systemctl restart sync-ci.service'
                     sleep 2
