@@ -33,6 +33,7 @@ func (s *SyncCICommand) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.GithubDsn, "gh", "root:@tcp(127.0.0.1:3306)/issues", "Github Issues Database dsn")
 	f.StringVar(&s.GithubToken, "tk", "", "Github token to automatically create issues")
 	f.StringVar(&s.WecomKey, "wc", "", "WeCom key to send unstable case report")
+	f.StringVar(&s.WecomKey2, "wc2", "", "WeCom key to send tiflash weekly report")
 	f.Int64Var(&s.UpdateInterval, "ui", 3600, "The interval (secs) to update")
 	f.StringVar(&s.Port, "port", "36000", "http service port")
 	f.StringVar(&s.LogPath, "lp", "log", "log path")

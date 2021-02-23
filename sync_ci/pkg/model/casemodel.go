@@ -69,7 +69,6 @@ where tmp3.cnt >= 2  -- rerun
 order by analysis_res desc;
 `
 
-
 const GetRerunCases = `
 select
        tmp1.repo,
@@ -111,12 +110,11 @@ where tmp3.cnt >= ?  -- more than 3 reruns
 order by analysis_res desc;
 `
 
-
 const GetCICasesToday = `
 select
 	ifnull(repo, "") as repo,
 	json_extract(description, '$.ghprbPullId') as pr,
-	ifnull(json_extract(analysis_res, '$.case'), "[]") as ` + "`case`" +`,
+	ifnull(json_extract(analysis_res, '$.case'), "[]") as ` + "`case`" + `,
 	ifnull(json_extract(analysis_res, '$.env'), "[]") as envs,
 	job_id,
 	job
@@ -126,6 +124,15 @@ having json_length(` + "`case`" + `)>0 or json_length(envs)>0 and pr != '0'
 order by repo, time desc;
 `
 
+const GetSchrodingerTestsWeekly = `
+select
+	json_extract(description, '$.testcase') as ` + "`testcase`" + `,
+	job,
+	job_id
+from sync_ci_data.ci_data
+where (time between ? and ?) and job like 'tiflash_schrodinger_test' and status like 'FAILURE'
+order by time desc;
+`
 
 const GetCINightlyCase = `
 select
@@ -169,8 +176,6 @@ where url like ?  -- match number
 	and (closed_at is not null)
 order by created_at desc;
 `
-
-
 
 type CaseIssue struct {
 	IssueNo   int64          `gorm:"primary_key;column:issue_no;type:int;size:11;" json:"IssueNo" binding:"required"`

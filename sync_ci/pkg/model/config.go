@@ -7,5 +7,6 @@ type Config struct {
 	LogPath        string
 	GithubToken    string
 	WecomKey       string
+	WecomKey2      string
 	UpdateInterval int64
 }
