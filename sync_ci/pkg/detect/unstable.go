@@ -63,6 +63,35 @@ func reportToGroupchat(wecomkey string, caseList map[string]int) error {
 	return err
 }
 
+const tiflashSchrodingerTestReportTemplate = `
+{
+	"msgtype": "markdown",
+	"markdown": {
+		"content": "Failed tiflash schrodinger test this week: 
+
+%s
+` + "\n" + `"
+	}
+}
+	`
+
+func tiflashSchrodingerTestReportToWechat(wecomkey string, caseList map[string]string) error {
+	url := "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + wecomkey
+	content := ""
+
+	for testCase, url := range caseList {
+		content += fmt.Sprintf("> [%s](%s)\n", testCase, url)
+		log.S().Info("Logged item: ", testCase, ':', url)
+	}
+	content = fmt.Sprintf(tiflashSchrodingerTestReportTemplate, content)
+	data := strings.NewReader(content)
+	resp, err := http.Post(url, "application/json", data)
+	if err == nil && resp.StatusCode == 200 {
+		log.S().Info("Report to wecom successful: \n", content)
+	}
+	return err
+}
+
 func ScheduleUnstableReport(cfg model.Config) {
 	scheduler := cron.New()
 	cronSpecs := []string{
@@ -79,6 +108,7 @@ func ScheduleUnstableReport(cfg model.Config) {
 			log.S().Error("Unstable report: schedule unsuccessful for cron spec ", spec)
 		}
 	}
+	weeklyReportSpec := ""
 	scheduler.Start()
 }
 
