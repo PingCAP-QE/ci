@@ -81,8 +81,6 @@ func ScheduleUnstableReport(cfg model.Config) {
 		}
 	}
 	weeklyReportSpec := "0 8 * * 6"
-	genTiflashSchrodingerTestReport(cfg)
-	//panic("The world!")
 	_, err := scheduler.AddFunc(weeklyReportSpec, func() {
 		err := genTiflashSchrodingerTestReport(cfg)
 		if err != nil {
@@ -114,6 +112,7 @@ func genTiflashSchrodingerTestReport(cfg model.Config) error {
 			log.S().Error("error getting schrodinger tests", err)
 			continue
 		}
+		testCase = testCase[1 : len(testCase)-1]
 		url := fmt.Sprintf(baselink, job, jobid)
 		testCases[testCase] = url
 	}
@@ -139,7 +138,7 @@ func tiflashSchrodingerTestReportToWechat(wecomkey string, caseList map[string]s
 	content := ""
 
 	for testCase, url := range caseList {
-		content += fmt.Sprintf("[%s](%s): %s\n", testCase, url, url)
+		content += fmt.Sprintf("[%s](%s):%s\n", testCase, url, url)
 		log.S().Info("Logged item: ", testCase, ':', url)
 	}
 	content = fmt.Sprintf(tiflashSchrodingerTestReportTemplate, content)
