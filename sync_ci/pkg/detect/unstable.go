@@ -98,7 +98,7 @@ func ScheduleUnstableReport(cfg model.Config) {
 func genTiflashSchrodingerTestReport(cfg model.Config) error {
 	cidb := db.DBWarehouse[db.CIDBName]
 	now := time.Now()
-	from := time.Now().Add(time.Duration(1) * time.Hour * 24 * 7)
+	from := time.Now().Add(-time.Duration(1) * time.Hour * 24 * 7)
 	rows, err := cidb.Raw(model.GetSchrodingerTestsWeekly, formatT(from), formatT(now)).Rows()
 	if err != nil {
 		log.S().Error("GroupChat service: failed to query db")
