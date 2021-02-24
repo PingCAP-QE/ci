@@ -47,6 +47,7 @@ catchError {
 
     node('delivery') {
         container("delivery") {
+            deleteDir()
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             def wss = pwd()
             sh """
@@ -63,14 +64,14 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server-${RELEASE_TAG}-enterprise.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server-${RELEASE_TAG}-enterprise.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
 
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/${importer_sha1}/centos7/importer.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
 
-                    if(RELEASE_TAG >= "v4.0.2") {
+                    if(RELEASE_TAG >= "v4.0.0") {
                         sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                     }
 
@@ -91,7 +92,7 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br-linux-arm64.tar.gz | tar xz"
 
-                    if(RELEASE_TAG >= "v4.0.2") {
+                    if(RELEASE_TAG >= "v4.0.0") {
                         sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling-linux-arm64.tar.gz | tar xz"
                         sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash-linux-arm64.tar.gz | tar xz"
                     }
