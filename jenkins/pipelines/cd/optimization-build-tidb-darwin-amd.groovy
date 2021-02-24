@@ -36,10 +36,10 @@ def build_upload = { product, hash, binary ->
             def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
             if (product == "ticdc") {
                 target = "${product}-${os}-${arch}"
-                filepath = "builds/pingcap/${product}/${hash}/darwin/${target}.tar.gz"
+                filepath = "builds/pingcap/${product}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
             }
             if (product == "dumpling") {
-                filepath = "builds/pingcap/${product}/${hash}/darwin/${target}-${os}-${arch}.tar.gz"
+                filepath = "builds/pingcap/${product}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
             }
             if (product == "tidb-ctl") {
                 sh """
