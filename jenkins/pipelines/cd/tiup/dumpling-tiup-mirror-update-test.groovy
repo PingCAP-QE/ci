@@ -45,7 +45,7 @@ def download = { name, version, os, arch ->
     } else {
         tarball_name = "${name}.tar.gz"
     }
-    if (RELEASE_TAG != "nightly" && arch == "amd64" && os == "linux") {
+    if (RELEASE_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${dumpling_sha1}/${platform}/${tarball_name}
     """

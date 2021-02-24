@@ -45,10 +45,15 @@ def download = { name, version, os, arch ->
     } else {
         tarball_name = "${name}.tar.gz"
     }
-
-    sh """
+    if (RELEASE_TAG != "nightly" && RELEASE_TAG > "v4.0.0") {
+        sh """
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${importer_sha1}/${platform}/${tarball_name}
+    """
+    }else{
+        sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${importer_sha1}/${platform}/${tarball_name}
     """
+    }
 }
 
 def unpack = { name, version, os, arch ->

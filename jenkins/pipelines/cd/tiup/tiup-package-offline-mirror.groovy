@@ -136,11 +136,11 @@ def package_tools = { plat, arch ->
     if(arch == "arm64") {
         sh """
             mkdir -p ${toolkit_dir}/bin/
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${binlog_hash}/centos7/tidb-binlog-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_hash}/centos7/pd-server-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_hash}/centos7/tidb-tools-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${lightning_hash}/centos7/tidb-lightning-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/${importer_hash}/centos7/importer-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${lightning_hash}/centos7/tidb-lightning-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer-linux-arm64.tar.gz
 
             tar xf tidb-binlog-linux-arm64.tar.gz
             tar xf pd-server-linux-arm64.tar.gz
@@ -170,11 +170,11 @@ def package_tools = { plat, arch ->
     } else if(arch == "amd64") {
         sh """
             mkdir -p ${toolkit_dir}/bin/
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${binlog_hash}/centos7/tidb-binlog.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_hash}/centos7/pd-server.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_hash}/centos7/tidb-tools.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${lightning_hash}/centos7/tidb-lightning.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/${importer_hash}/centos7/importer.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${lightning_hash}/centos7/tidb-lightning.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer.tar.gz
 
             tar xf tidb-binlog.tar.gz
             tar xf pd-server.tar.gz

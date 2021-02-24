@@ -58,7 +58,7 @@ def download = { name, hash, os, arch ->
             tarball_name = "${name}.tar.gz"
         }
     }
-    if (RELEASE_TAG != "nightly" && RELEASE_TAG > "v4.0.0" && arch == "amd64" && os == "linux") {
+    if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v4.0.0") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${tarball_name}
     """
@@ -67,7 +67,6 @@ def download = { name, hash, os, arch ->
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${tarball_name}
     """
     }
-
 }
 
 def unpack = { name, os, arch ->
@@ -220,7 +219,7 @@ def update_ctl = { version, os, arch ->
     }
 
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-        if (RELEASE_TAG != "nightly" && arch == "amd64" && os == "linux") {
+        if (RELEASE_TAG != "nightly") {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
             """

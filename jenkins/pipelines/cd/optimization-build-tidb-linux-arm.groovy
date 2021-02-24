@@ -29,14 +29,14 @@ def build_upload = { product, hash, binary ->
             if (product == "tidb-ctl") {
                 hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
-            def filepath = "builds/pingcap/${product}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
+            def filepath = "builds/pingcap/${product}/optimization/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
             if (product == "br") {
-                filepath = "builds/pingcap/${product}/${RELEASE_TAG}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
+                filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
             }
             def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
             if (product == "ticdc") {
                 target = "${product}-${os}-${arch}"
-                filepath = "builds/pingcap/${product}/${hash}/centos/${product}-${os}-${arch}.tar.gz"
+                filepath = "builds/pingcap/${product}/optimization/${hash}/centos/${product}-${os}-${arch}.tar.gz"
             }
             if (product == "tidb-ctl") {
                 sh """
@@ -114,7 +114,7 @@ try {
                     deleteDir()
                 }
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
+                def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
                 checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
                 if (BUILD_TIKV_IMPORTER == "false") {
                     sh """
@@ -137,7 +137,7 @@ try {
         stage("Build Importer") {
             dir("go/src/github.com/pingcap/importer") {
                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
+                def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
@@ -183,7 +183,7 @@ try {
                     stage("build tiflash") {
                         dir("tics") {
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-                            def filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash-${os}-${arch}.tar.gz"
+                            def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash-${os}-${arch}.tar.gz"
                             retry(20) {
                                 if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                     deleteDir()
