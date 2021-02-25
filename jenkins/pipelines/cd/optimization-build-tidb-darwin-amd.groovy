@@ -54,6 +54,7 @@ def build_upload = { product, hash, binary ->
 
             if (product in ["tidb", "tidb-binlog", "tidb-lightning", "pd"]) {
                 sh """
+                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
@@ -76,6 +77,7 @@ def build_upload = { product, hash, binary ->
             }
             if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
                 sh """
+                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
@@ -136,6 +138,7 @@ try {
                 }
                 if (BUILD_TIKV_IMPORTER == "false") {
                     sh """
+                    for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${TIKV_HASH}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
@@ -167,6 +170,7 @@ try {
                 }
                 if (BUILD_TIKV_IMPORTER == "false") {
                     sh """
+                    for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
@@ -197,6 +201,7 @@ try {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
                     }
                     sh """
+                        for a in \$(git tag --contains ${TIFLASH_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}

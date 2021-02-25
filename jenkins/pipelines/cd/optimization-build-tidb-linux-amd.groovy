@@ -62,6 +62,7 @@ try {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
                         sh """
                         mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
+                        for a in \$(git tag --contains ${TIDB_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${TIDB_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -144,6 +145,7 @@ try {
                         def filepath = "builds/pingcap/tidb-binlog/optimization/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
                         sh """
+                        for a in \$(git tag --contains ${BINLOG_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${BINLOG_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -165,6 +167,7 @@ try {
                         def filepath = "builds/pingcap/tidb-lightning/optimization/${LIGHTNING_HASH}/centos7/tidb-lightning.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
                         sh """
+                        for a in \$(git tag --contains ${LIGHTNING_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${LIGHTNING_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -186,6 +189,7 @@ try {
                         def filepath = "builds/pingcap/tidb-tools/optimization/${TOOLS_HASH}/centos7/tidb-tools.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TOOLS_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-tools.git']]]
                         sh """
+                        for a in \$(git tag --contains ${TOOLS_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${TOOLS_HASH}
                         make clean
                         go version
@@ -206,6 +210,7 @@ try {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PD_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/pd.git']]]
 
                         sh """
+                        for a in \$(git tag --contains ${PD_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${PD_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -228,6 +233,7 @@ try {
                         def filepath = "builds/pingcap/ticdc/optimization/${CDC_HASH}/centos7/ticdc-linux-amd64.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
                         sh """
+                        for a in \$(git tag --contains ${CDC_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${CDC_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -248,6 +254,7 @@ try {
                         def filepath = "builds/pingcap/dumpling/optimization/${DUMPLING_HASH}/centos7/dumpling.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/dumpling.git']]]
                         sh """
+                        for a in \$(git tag --contains ${DUMPLING_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${DUMPLING_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -270,6 +277,7 @@ try {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/br.git']]]
 
                         sh """
+                        for a in \$(git tag --contains ${BR_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${BR_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -309,6 +317,7 @@ try {
                         def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
                         sh """
+                        for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${TIKV_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -339,6 +348,7 @@ try {
                         def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
                         sh """
+                        for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
                         git branch -D refs/tags/${RELEASE_TAG} || true
                         git checkout -b refs/tags/${RELEASE_TAG}
@@ -387,6 +397,7 @@ try {
                             }
 
                             sh """
+                                for a in \$(git tag --contains ${TIFLASH_HASH}); do echo \$a && git tag -d \$a;done
                                 git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
                                 git branch -D refs/tags/${RELEASE_TAG} || true
                                 git checkout -b refs/tags/${RELEASE_TAG}
