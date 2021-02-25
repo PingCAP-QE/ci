@@ -1,0 +1,224 @@
+if (params.containsKey("release_test")) {
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__pd_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
+
+def TIKV_BRANCH = ghprbTargetBranch
+def TIDB_BRANCH = ghprbTargetBranch
+def TIDB_TEST_BRANCH = "master"
+
+// parse tikv branch
+def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m1) {
+    TIKV_BRANCH = "${m1[0][1]}"
+}
+m1 = null
+println "TIKV_BRANCH=${TIKV_BRANCH}"
+
+// parse pd branch
+def m2 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m2) {
+    TIDB_BRANCH = "${m2[0][1]}"
+}
+m2 = null
+
+println "TIDB_BRANCH=${TIDB_BRANCH}"
+
+// parse tidb_test branch
+def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m3) {
+    TIDB_TEST_BRANCH = "${m3[0][1]}"
+}
+m3 = null
+
+if (TIDB_TEST_BRANCH == "release-3.0" || TIDB_TEST_BRANCH == "release-3.1") {
+   TIDB_TEST_BRANCH = "release-3.0"
+}
+
+println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
+
+def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
+//def build_node = "build_go1112"
+//def test_node = "test_go1112"
+def build_node = "build_go1130"
+def test_node = "build_go1130"
+if(ghprbTargetBranch == "master" ||ghprbTargetBranch == "release-3.0"||ghprbTargetBranch == "release-3.1" ||ghprbTargetBranch == "release-2.1" || ghprbTargetBranch == "release-4.0") {
+        build_node = "build_go1130"
+        test_node = "${GO_TEST_SLAVE}"
+    }
+try {
+    stage('Integration DLL Test') {
+        def tests = [:]
+
+        def run = { test_dir, mytest, ddltest ->
+            node(test_node) {
+                def ws = pwd()
+                deleteDir()
+
+                container("golang") {
+                	println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                    dir("go/src/github.com/pingcap/tidb-test") {
+                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
+                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+
+                        def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                        def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                        tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+                        def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
+                        def tidb_sha1 = sh(returnStdout: true, script: "curl ${tidb_refs}").trim()
+                        tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+
+                        timeout(30) {
+                            sh """
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
+                            curl ${tidb_test_url} | tar xz
+
+                            cd ${test_dir}
+
+                            while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
+                            curl ${tikv_url} | tar xz
+
+                            while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
+                            curl ${pd_url} | tar xz ./bin
+
+                            mkdir -p ./tidb-src
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 15; done
+                            curl ${tidb_url} | tar xz -C ./tidb-src
+
+                            mv tidb-src/bin/tidb-server ./bin/ddltest_tidb-server
+                            mv tidb-src ${ws}/go/src/github.com/pingcap/tidb
+                            """
+                        }
+                    }
+
+                    dir("go/src/github.com/pingcap/tidb") {
+                        sh """
+                        #GOPROXY=https://proxy.golang.org GO111MODULE=on go mod vendor -v || true
+                        GO111MODULE=on go mod vendor -v || true
+                        """
+                    }
+
+                    dir("go/src/github.com/pingcap/tidb_gopath") {
+                        sh """
+                        mkdir -p ./src
+                        cp -rf ../tidb/vendor/* ./src
+                        """
+                        if (fileExists("../tidb/go.mod")) {
+                            sh """
+                            mv ../tidb/vendor ../tidb/_vendor
+                            """
+                        }
+                    }
+
+                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        try {
+                            timeout(20) {
+                                sh """
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                               killall -9 -r flash_cluster_manager
+                                rm -rf /tmp/tidb
+                                rm -rf ./tikv ./pd
+                                set -e
+                                #export GOPROXY=https://proxy.golang.org
+
+                                bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                sleep 10
+                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                sleep 10
+
+                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
+                                export PATH=`pwd`/bin:\$PATH
+                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                export log_level=debug
+                                if [ -f ${ws}/go/src/github.com/pingcap/tidb/bin/ddltest ]; then
+                                    export DDLTEST_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/ddltest
+                                fi
+                                TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
+                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -check.f='${ddltest}' 2>&1
+                                """
+                            }
+                        } catch (err) {
+                            sh """
+                            cat pd_${mytest}.log
+                            cat tikv_${mytest}.log
+                            """
+                            throw err
+                        } finally {
+                            sh """
+                            set +e
+                            killall -9 -r tidb-server
+                            killall -9 -r tikv-server
+                            killall -9 -r pd-server
+                            set -e
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        tests["Integration DDL Insert Test"] = {
+            run("ddl_test", "ddl_insert_test", "TestDDLSuite.TestSimple.*Insert")
+        }
+
+        tests["Integration DDL Update Test"] = {
+            run("ddl_test", "ddl_update_test", "TestDDLSuite.TestSimple.*Update")
+        }
+
+        tests["Integration DDL Delete Test"] = {
+            run("ddl_test", "ddl_delete_test", "TestDDLSuite.TestSimple.*Delete")
+        }
+
+        tests["Integration DDL Other Test"] = {
+            run("ddl_test", "ddl_other_test", "TestDDLSuite.TestSimp(le\$|leMixed|leInc)")
+        }
+
+        tests["Integration DDL Column Test"] = {
+            run("ddl_test", "ddl_column_index_test", "TestDDLSuite.TestColumn")
+        }
+
+        tests["Integration DDL Index Test"] = {
+            run("ddl_test", "ddl_column_index_test", "TestDDLSuite.TestIndex")
+        }
+
+        parallel tests
+    }
+
+    currentBuild.result = "SUCCESS"
+}
+catch(Exception e) {
+    currentBuild.result = "FAILURE"
+    slackcolor = 'danger'
+    echo "${e}"
+}
+finally {
+    echo "Send slack here ..."
+    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
+    "${ghprbPullLink}" + "\n" +
+    "${ghprbPullDescription}" + "\n" +
+    "Integration DDL Test Result: `${currentBuild.result}`" + "\n" +
+    "Elapsed Time: `${duration} mins` " + "\n" +
+    "${env.RUN_DISPLAY_URL}"
+
+    if (currentBuild.result != "SUCCESS") {
+        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+    }
+}
+
+stage("upload status"){
+    node{
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+    }
+}
