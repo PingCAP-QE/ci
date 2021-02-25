@@ -201,11 +201,15 @@ def update_ctl = { version, os, arch ->
     mkdir -p tiup
     """
     dir("tiup") {
-        git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap-incubator/tiup.git", branch: "master"
-        sh """
-         cd components/ctl/
-         GOOS=$os GOARCH=$arch go build -o ctl
-         """
+//        git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap-incubator/tiup.git", branch: "master"
+//        sh """
+//         cd components/ctl/
+//         GOOS=$os GOARCH=$arch go build -o ctl
+//         """
+        dir("components/ctl") {
+//            tiup-ctl 一般不会变更，先用 5.0.0-rc 版本
+            sh "curl https://tiup-mirrors.pingcap.com/ctl-v5.0.0-rc-${os}-${arch}.tar.gz | tar xz ctl"
+        }
     }
 
     if (os == "linux") {
