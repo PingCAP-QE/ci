@@ -79,7 +79,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/overview.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/tidb_runtime.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/grafana/pd.json || true; \
-    
+
     wget -qnc https://github.com/tikv/tikv/archive/${tag}.zip
     unzip ${tag}.zip
     rm -rf ${tag}.zip
@@ -92,7 +92,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/blackbox_exporter.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/node.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/kafka.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-lightning/${tag}/metrics/grafana/lightning.json || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
     cp ../metrics/grafana/* . || true; \
     else \
