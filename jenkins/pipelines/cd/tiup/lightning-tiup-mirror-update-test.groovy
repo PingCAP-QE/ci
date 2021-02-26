@@ -45,13 +45,14 @@ def download = { name, version, os, arch ->
     } else {
         tarball_name = "${name}.tar.gz"
     }
+
     if (RELEASE_TAG != "nightly" && RELEASE_TAG > "v4.0.0") {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${lightning_sha1}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${lightning_sha1}/${platform}/${tarball_name}
     """
     } else {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${lightning_sha1}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${lightning_sha1}/${platform}/${tarball_name}
     """
     }
 
@@ -78,18 +79,18 @@ def pack = { name, version, os, arch ->
 
     if (os == "linux" && arch == "amd64") {
         sh """
-        tar -C bin/ -czvf package/${name}-${version}-${os}-${arch}.tar.gz tidb-lightning
+        tar -C bin/ -czvf package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning
         rm -rf bin
         """
     } else {
         sh """
-        tar -C ${name}-*/bin/ -czvf package/${name}-${version}-${os}-${arch}.tar.gz tidb-lightning
+        tar -C ${name}-*/bin/ -czvf package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning
         rm -rf ${name}-*
         """
     }
 
     sh """
-    tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${desc}"
+    tiup mirror publish tidb-lightning ${TIDB_VERSION} package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning --standalone --arch ${arch} --os ${os} --desc="${desc}"
     """
 }
 
@@ -131,20 +132,22 @@ try {
                 if (TIDB_VERSION == "") {
                     TIDB_VERSION = RELEASE_TAG
                 }
-
                 lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                if(RELEASE_TAG=="nightly"){
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                }
             }
 
             stage("tiup release tidb-lightning linux amd64") {
-                update "tidb-lightning", RELEASE_TAG, "linux", "amd64"
+                update "br", RELEASE_TAG, "linux", "amd64"
             }
 
             stage("tiup release tidb-lightning linux arm64") {
-                update "tidb-lightning", RELEASE_TAG, "linux", "arm64"
+                update "br", RELEASE_TAG, "linux", "arm64"
             }
 
             stage("tiup release tidb-lightning darwin amd64") {
-                update "tidb-lightning", RELEASE_TAG, "darwin", "amd64"
+                update "br", RELEASE_TAG, "darwin", "amd64"
             }
 
             // upload "package"
