@@ -66,10 +66,11 @@ catchError {
 // 后续等正式迁移后改造
                     tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${TIDB_BR_VERSION}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
-
                     tidb_lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${TIDB_LIGHTNING_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
+                    if (RELEASE_TAG != "nightly") {
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
 
+                    }
                     dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_VERSION} -s=${FILE_SERVER_URL}").trim()
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                 }
