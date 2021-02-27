@@ -163,6 +163,11 @@ try {
                                 export ROCKSDB_SYS_SSE=1
                                 export RUST_BACKTRACE=1
                                 export LOG_LEVEL=INFO
+                                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                                if [[ ! "0.8.0" > "$grpcio_ver" ]]; then
+                                  echo using gcc 8
+                                  source scl_source enable devtoolset-8
+                                fi
                                 make clippy || (echo Please fix the clippy error; exit 1)
                                 """
 
@@ -311,6 +316,12 @@ try {
                                         export RUST_BACKTRACE=1
                                         export LOG_LEVEL=INFO
                                         # export CARGO_LOG=cargo::core::compiler::fingerprint=debug
+
+                                        grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                                        if [[ ! "0.8.0" > "$grpcio_ver" ]]; then
+                                            echo using gcc 8
+                                            source scl_source enable devtoolset-8
+                                        fi
 
                                         set -o pipefail
 

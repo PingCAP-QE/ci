@@ -5,14 +5,15 @@ MAINTAINER Liu Yin <liuy@pingcap.com>
 USER root
 WORKDIR /root
 
-RUN curl -L http://172.16.30.25/download/tools/cmake-3.10.0.tar.gz -o cmake-3.10.0.tar.gz \
-	&& tar xzf cmake-3.10.0.tar.gz \
-	&& cd cmake-3.10.0 \
-	&& ./bootstrap \
-	&& make \
-	&& make install \
+RUN yum install --nogpgcheck -y centos-release-scl \
+	&& yum install -y devtoolset-8 \
+	&& yum clean all
+
+RUN RUN yum remove -y cmake \
+	&& curl -L https://github.com/Kitware/CMake/releases/download/v3.10.0/cmake-3.10.0-linux-x86_64.sh -o cmake-3.10.0.sh \
+	&& sh cmake-3.10.0.sh --skip-license --prefix=/usr/local \
 	&& cmake --version \
-	&& rm -rf /cmake-3.10.0.tar.gz /cmake-3.10.0
+	&& rm -rf cmake-3.10.0.sh
 
 RUN curl -L https://github.com/gflags/gflags/archive/v2.1.2.tar.gz -o gflags.tar.gz \
 	&& tar xf gflags.tar.gz \
