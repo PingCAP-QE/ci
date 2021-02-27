@@ -16,7 +16,10 @@ RUN yum remove -y cmake \
 	&& rm -rf cmake-3.10.0.sh
 
 # This is a workaround, we need to figure out why there is no jq in this image
-RUN yum install --nogpgcheck -y jq
+RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+RUN yum makecache \
+       && yum update -y \
+       && yum install --nogpgcheck -y jq
 
 RUN curl -L https://github.com/gflags/gflags/archive/v2.1.2.tar.gz -o gflags.tar.gz \
 	&& tar xf gflags.tar.gz \
