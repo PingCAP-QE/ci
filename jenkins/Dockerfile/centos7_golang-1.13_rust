@@ -9,7 +9,7 @@ RUN yum install --nogpgcheck -y centos-release-scl \
 	&& yum install -y devtoolset-8 \
 	&& yum clean all
 
-RUN RUN yum remove -y cmake \
+RUN yum remove -y cmake \
 	&& curl -L https://github.com/Kitware/CMake/releases/download/v3.10.0/cmake-3.10.0-linux-x86_64.sh -o cmake-3.10.0.sh \
 	&& sh cmake-3.10.0.sh --skip-license --prefix=/usr/local \
 	&& cmake --version \
