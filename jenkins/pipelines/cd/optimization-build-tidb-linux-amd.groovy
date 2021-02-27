@@ -324,7 +324,7 @@ try {
                         grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                         if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
                             echo using gcc 8
-                            source scl_source enable devtoolset-8
+                            source /opt/rh/devtoolset-8/enable
                         fi
                         CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make dist_release
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
@@ -360,7 +360,7 @@ try {
                         grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                         if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
                             echo using gcc 8
-                            source scl_source enable devtoolset-8
+                            source /opt/rh/devtoolset-8/enable
                         fi
                         make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
                         tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
