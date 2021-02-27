@@ -14,6 +14,8 @@ RUN yum remove -y cmake \
 	&& sh cmake-3.10.0.sh --skip-license --prefix=/usr/local \
 	&& cmake --version \
 	&& rm -rf cmake-3.10.0.sh
+	
+RUN yum install --nogpgcheck -y jq
 
 RUN curl -L https://github.com/gflags/gflags/archive/v2.1.2.tar.gz -o gflags.tar.gz \
 	&& tar xf gflags.tar.gz \
