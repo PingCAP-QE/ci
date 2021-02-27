@@ -77,7 +77,7 @@ try {
                                     cp -R /home/jenkins/agent/git/tikv/. ./
                                     git checkout -f ${ghprbActualCommit}
                                     grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                                    if [[ ! "0.8.0" > "$grpcio_ver" ]]; then
+                                    if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
                                       echo using gcc 8
                                       source scl_source enable devtoolset-8
                                     fi
