@@ -125,6 +125,7 @@ try {
             build_upload("br", BR_HASH, "br")
             build_upload("dumpling", DUMPLING_HASH, "dumpling")
         }
+//        当前的 mac 用的是 gcc8
         stage("Build TiKV") {
             dir("go/src/github.com/pingcap/tikv") {
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"

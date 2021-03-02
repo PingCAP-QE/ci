@@ -340,6 +340,11 @@ try {
                 }
 
                 sh """
+                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
+                    echo using gcc 8
+                    source /opt/rh/devtoolset-8/enable
+                fi
                 CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
                 rm -rf ${target}
                 mkdir -p ${target}/bin
@@ -369,6 +374,11 @@ try {
                 }
 
                 sh """
+                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
+                    echo using gcc 8
+                    source /opt/rh/devtoolset-8/enable
+                fi
                 ROCKSDB_SYS_SSE=0 make release
                 rm -rf ${target}
                 mkdir -p ${target}/bin

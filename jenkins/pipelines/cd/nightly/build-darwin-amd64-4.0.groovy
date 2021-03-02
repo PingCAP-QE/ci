@@ -356,7 +356,7 @@ try {
                 }
             }
         }
-
+//当前的 mac 环境用的是 gcc8
         stage("Build TiKV") {
             dir("go/src/github.com/pingcap/tikv") {
 
