@@ -1,0 +1,5 @@
+FROM alpine:3.12
+RUN apk add --no-cache tzdata bash curl socat
+COPY cdc /cdc
+EXPOSE 8300
+CMD [ "/cdc" ]
