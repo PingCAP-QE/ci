@@ -1,5 +1,11 @@
 FROM centos:8
 COPY pd-server /pd-server
 COPY pd-ctl /pd-ctl
+COPY pd-recover /pd-recover
+RUN set -e && \
+    curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-8.repo && \
+    sed -i '/aliyuncs.com/d' /etc/yum.repos.d/*.repo && \
+    dnf install bind-utils wget -y && \
+    dnf clean all
 EXPOSE 2379 2380
 ENTRYPOINT ["/pd-server"]
