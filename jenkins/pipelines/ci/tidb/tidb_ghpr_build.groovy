@@ -94,7 +94,7 @@ try {
                                 }else{
                                     sh """
 	                                nohup bash -c "if GOPATH=${ws}/go  make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                # nohup bash -c "if GOPATH=${ws}/go  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
+	                                nohup bash -c "if GOPATH=${ws}/go  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
 	                                GOPATH=${ws}/go  make
 	                                touch tidb-server-check.done
 	                                """
@@ -145,7 +145,8 @@ try {
                             }
                         }
                     }
-                    if(isBuildCheck){
+//                    change  isBuildCheck to true , always run
+                    if(true){
                         filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                         donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
 
