@@ -17,8 +17,16 @@
 * @STAGE
 */
 
+def get_hash = { hash_or_branch,repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def BUILD_TIKV_IMPORTER = "false"
 env.DOCKER_HOST = "tcp://localhost:2375"
+
 
 catchError {
     stage('Prepare') {
@@ -26,12 +34,12 @@ catchError {
             container('delivery') {
                 dir('centos7') {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    if (STAGE == "build") {
-                        if (TIDB_TAG.length() < 40 || TIKV_TAG.length() < 40 || PD_TAG.length() < 40 || BINLOG_TAG.length() < 40 || TIFLASH_TAG.length() < 40 || LIGHTNING_TAG.length() < 40 || IMPORTER_TAG.length() < 40 || TOOLS_TAG.length() < 40 || BR_TAG.length() < 40 || CDC_TAG.length() < 40) {
-                            println "build must be used with githash."
-                            sh "exit 2"
-                        }
-                    } else {
+                    if (STAGE != "build") {
+                    //     if (TIDB_TAG.length() < 40 || TIKV_TAG.length() < 40 || PD_TAG.length() < 40 || BINLOG_TAG.length() < 40 || TIFLASH_TAG.length() < 40 || LIGHTNING_TAG.length() < 40 || IMPORTER_TAG.length() < 40 || TOOLS_TAG.length() < 40 || BR_TAG.length() < 40 || CDC_TAG.length() < 40) {
+                    //         println "build must be used with githash."
+                    //         sh "exit 2"
+                    //     }
+                    // } else {
                         if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || LIGHTNING_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || TOOLS_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
                             println "release must be used with tag."
                             sh "exit 2"
@@ -39,18 +47,18 @@ catchError {
                     }
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    if (STAGE == "build") {
-                        tidb_sha1 = TIDB_TAG
-                        tikv_sha1 = TIKV_TAG
-                        pd_sha1 = PD_TAG
-                        tidb_lightning_sha1 = LIGHTNING_TAG
-                        tidb_binlog_sha1 = BINLOG_TAG
-                        tiflash_sha1 = TIFLASH_TAG
-                        tidb_tools_sha1 = TOOLS_TAG
-                        tidb_br_sha1 = BR_TAG
-                        importer_sha1 = IMPORTER_TAG
-                        cdc_sha1 = CDC_TAG
-                        dumpling_sha1 = DUMPLING_TAG
+                    if (STAGE == "build" ) {
+                        tidb_sha1 = get_hash(TIDB_TAG,"tidb")
+                        tikv_sha1 = get_hash(TIKV_TAG,"tikv")
+                        pd_sha1 = get_hash(PD_TAG,"pd")
+                        tidb_lightning_sha1 = get_hash(LIGHTNING_TAG,"tidb-lightning")
+                        tidb_binlog_sha1 = get_hash(BINLOG_TAG,"tidb-binlog")
+                        tiflash_sha1 = get_hash(TIFLASH_TAG,"tics")
+                        tidb_tools_sha1 = get_hash(TOOLS_TAG,"tidb-tools")
+                        tidb_br_sha1 = get_hash(BR_TAG,"br")
+                        importer_sha1 = get_hash(IMPORTER_TAG,"importer")
+                        cdc_sha1 = get_hash(CDC_TAG,"ticdc")
+                        dumpling_sha1 = get_hash(DUMPLING_TAG,"dumpling")
                     } else {
                         tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                         tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
