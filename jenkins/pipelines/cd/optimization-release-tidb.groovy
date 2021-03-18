@@ -146,6 +146,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                     ]
         }
+        println Stage
         if (Stage == "build") {
             builds["Build on linux/amd64"] = build_linux_amd
             parallel builds
