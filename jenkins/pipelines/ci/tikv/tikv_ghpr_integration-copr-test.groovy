@@ -2,6 +2,10 @@ def TIDB_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def COPR_TEST_BRANCH = "master"
 
+if (ghprbPullTitle.find("Bump version") != null) {
+    currentBuild.result = 'SUCCESS'
+    return
+}
 
 // parse tidb branch
 def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -40,12 +44,12 @@ try {
         node("build") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             // checkout tikv
-            dir("/home/jenkins/agent/git/tikv") {
-                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
-            }
+            // dir("/home/jenkins/agent/git/tikv") {
+            //     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+            //         deleteDir()
+            //     }
+            //     checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
+            // }
 
             def filepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
             def refspath = "refs/pingcap/tikv/pr/${ghprbPullId}/sha1"
@@ -56,28 +60,9 @@ try {
                     timeout(30) {
                         sh """
                         set +e
-                        curl --output /dev/null --silent --head --fail ${tikv_url}
-                        if [ \$? != 0 ]; then
-                            set -e
-                            rm ~/.gitconfig || true
-                            cp -R /home/jenkins/agent/git/tikv/. ./
-                            git checkout -f ${ghprbActualCommit}
-                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                            fi
-                            CARGO_TARGET_DIR=/home/jenkins/.target ROCKSDB_SYS_STATIC=1 make ${release}
-                            mkdir bin
-                            cp /home/jenkins/.target/release/tikv-server bin/
-                            tar czvf tikv-server.tar.gz bin/*
-                            curl -F ${filepath}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload
-                            echo "pr/${ghprbActualCommit}" > sha1
-                            curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                        else
-                            set -e
-                            (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
-                        fi
+                        while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
+                        set -e
+                        (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
                         """
                     }
                 }
@@ -189,5 +174,11 @@ finally {
     if (currentBuild.result != "SUCCESS") {
         slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
         slackSend channel: '#push-down-expr-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+    }
+}
+
+stage("upload status"){
+    node{
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }

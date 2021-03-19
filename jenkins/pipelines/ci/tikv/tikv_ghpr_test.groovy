@@ -6,6 +6,11 @@ def githash
 def chunk_count = 20
 def ci_chunks = []
 
+if (ghprbPullTitle.find("Bump version") != null) {
+    currentBuild.result = 'SUCCESS'
+    return
+}
+
 ci_chunks.add("_0_ci_setup:")
 ci_chunks.add("_1_check_system_requirement:")
 
@@ -14,7 +19,7 @@ def remove_last_str = { str ->
 }
 
 def match_item = { item, chunks ->
-    for (int i = 0; i< chunks.size(); i++) {
+    for (int i = 0; i < chunks.size(); i++) {
         if (item == chunks[i]) {
             return true
         }
@@ -30,7 +35,7 @@ def get_skip_str = { total_chunks, ci_chunks_list, test_chunks ->
     }
     println persist_chunks
     def skipStr = ""
-    for (int i = 0 ; i < total_chunks.size(); i++) {
+    for (int i = 0; i < total_chunks.size(); i++) {
         if (match_item(total_chunks[i], persist_chunks)) {
             continue
         }
@@ -52,17 +57,18 @@ if (ghprbPullTitle != null && (ghprbPullTitle.find("DNM") != null || ghprbPullTi
 
 try {
     stage("Pre-check") {
-        if (!params.force){
-            node("${GO_BUILD_SLAVE}"){
-                container("golang"){
+
+        if (!params.force) {
+            node("${GO_BUILD_SLAVE}") {
+                container("golang") {
                     notRun = sh(returnStatus: true, script: """
                     if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                    """)   
+                    """)
                 }
             }
         }
 
-        if (notRun == 0){
+        if (notRun == 0) {
             println "the ${ghprbActualCommit} has been tested"
             throw new RuntimeException("hasBeenTested")
         }
@@ -89,7 +95,7 @@ try {
                             deleteDir()
                         }
 
-                        if(!fileExists("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build/Makefile")) {
+                        if (!fileExists("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build/Makefile")) {
                             dir("/home/jenkins/agent/git/tikv") {
                                 if (sh(returnStatus: true, label: 'Verify workspace', script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                     deleteDir()
@@ -97,7 +103,7 @@ try {
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
                             }
                             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                                timeout(30){
+                                timeout(30) {
                                     sh label: 'Download lint cache', script: """
                                     # set -o pipefail
                                     cp -R /home/jenkins/agent/git/tikv/. ./
@@ -113,7 +119,7 @@ try {
                                     eval "du -ms *"
                                     set -euo pipefail
                                     """
-    
+
                                     sh returnStatus: true, label: 'Restore cargo dependencies mtime', script: """
                                     if [ -f "target/cargo-mtime.json" ]; then
                                         curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - restore --meta-file target/cargo-mtime.json
@@ -129,7 +135,12 @@ try {
                                 if (sh(returnStatus: true, label: 'Verify workspace', script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                     deleteDir()
                                 }
-                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
+                                if (ghprbPullId && ghprbPullId != "0" && ghprbPullId != 0) {
+                                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
+                                } else {
+                                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
+                                }
+
                                 sh label: 'Checkout commit', script: 'git checkout -f ${ghprbActualCommit}'
 
                                 // sh label: 'Reset mtime for better caching', script: """
@@ -219,7 +230,7 @@ try {
                     println "Skip building test artifact: ${is_artifact_existed}"
                 }
 
-                if (!is_artifact_existed){
+                if (!is_artifact_existed) {
                     stage("Build") {
                         // prepare
                         container("rust") {
@@ -228,8 +239,8 @@ try {
                                     // sh "chown -R 10000:10000 ./"
                                     deleteDir()
                                 }
-    
-                                if(!fileExists("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build/Makefile")) {
+
+                                if (!fileExists("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build/Makefile")) {
                                     dir("/home/jenkins/agent/git/tikv") {
                                         if (sh(returnStatus: true, label: 'Verify workspace', script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                             deleteDir()
@@ -246,13 +257,13 @@ try {
                                         //     fi
                                         // fi
                                         // """
-    
+
                                         sh label: 'Download build cache', script: """
                                         set -o pipefail
                                         cp -R /home/jenkins/agent/git/tikv/. ./
                                         eval "du -ms *"
                                         rm -rf target
-    
+
                                         if curl ${FILE_SERVER2_URL}/download/rust_cache/${ghprbPullId}/target.tar.lz4 | lz4 -d - | tar x; then
                                             set +o pipefail
                                         else
@@ -263,7 +274,7 @@ try {
                                         eval "du -ms *"
                                         set -euo pipefail
                                         """
-    
+
                                         sh returnStatus: true, label: 'Restore cargo dependencies mtime', script: """
                                         if [ -f "target/cargo-mtime.json" ]; then
                                             curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - restore --meta-file target/cargo-mtime.json
@@ -271,29 +282,33 @@ try {
                                         """
                                     }
                                 }
-    
+
                                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                                     timeout(60) {
                                         // sh "chown -R 10000:10000 ./"
                                         if (sh(returnStatus: true, label: 'Verify workspace', script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                             deleteDir()
                                         }
-                                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
+                                        if (ghprbPullId && ghprbPullId != "0" && ghprbPullId != 0) {
+                                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
+                                        } else {
+                                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
+                                        }
                                         sh label: 'Checkout commit', script: 'git checkout -f ${ghprbActualCommit}'
-    
-                                        def toolchain= sh(returnStdout: true, script: "cat rust-toolchain").trim()
+
+                                        def toolchain = sh(returnStdout: true, script: "cat rust-toolchain").trim()
                                         println "[Debug info]toolchain: ${toolchain}"
-    
+
                                         // sh label: 'Reset mtime for better caching', script: """
                                         // curl https://raw.githubusercontent.com/MestreLion/git-tools/cd87904e0b85d74b1d05f6acbd10553a0ceaceb0/git-restore-mtime-bare -sSf | python -
                                         // """
-    
+
                                         sh label: 'Prepare dependencies', script: """
                                         rustup override unset
                                         rustc --version
                                         """
-                                    
-    
+
+
                                         sh label: 'Build test artifact', script: """
                                         export RUSTFLAGS=-Dwarnings
                                         export FAIL_POINT=1
@@ -301,7 +316,7 @@ try {
                                         export RUST_BACKTRACE=1
                                         export LOG_LEVEL=INFO
                                         # export CARGO_LOG=cargo::core::compiler::fingerprint=debug
-    
+
                                         grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                                         if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
                                             echo using gcc 8
@@ -309,7 +324,7 @@ try {
                                         fi
 
                                         set -o pipefail
-                                        
+
                                         test="test"
                                         if grep ci_test Makefile; then
                                             test="ci_test"
@@ -325,19 +340,19 @@ try {
                                             fi
                                         fi
                                         """
-    
+
                                         sh label: 'Post-build: Check SSE instructions', script: """
                                         if [ -f scripts/check-sse4_2.sh ]; then
                                           sh scripts/check-sse4_2.sh
                                         fi
                                         """
-    
+
                                         sh label: 'Post-build: Check Jemalloc linking', script: """
                                         if [ -f scripts/check-bins-for-jemalloc.sh ]; then
                                           sh scripts/check-bins-for-jemalloc.sh
                                         fi
                                         """
-    
+
                                         sh label: 'Post-build: Upload test artifacts', script: """
                                         cat test.json| jq -r "select(.profile.test == true) | .filenames[]" > test.list
                                         for i in `cat test.list`;do curl -F tikv_test/${ghprbActualCommit}\$i=@\$i ${FILE_SERVER2_URL}/upload;done
@@ -346,7 +361,7 @@ try {
                                         for i in `cat test.list| grep integrations`;do \$i --list | awk '{print \$1}' | grep ':' >> integrations.list;done
                                         split integrations.list -n r/${chunk_count} integrations_chunk_ -a 2 --numeric-suffixes=2
                                         """
-    
+
                                         // sh label: 'Post-build: Upload build dependencies', script: """
                                         // tar cf - -C \$CARGO_HOME git registry --format posix | lz4 -c > dep.tar.lz4
                                         // ls -la dep.tar.lz4
@@ -354,11 +369,11 @@ try {
                                         //     curl -F rust_cache/${ghprbPullId}/dep.tar.lz4=@dep.tar.lz4 ${FILE_SERVER2_URL}/upload
                                         // fi
                                         // """
-    
+
                                         sh label: 'Post-build: Save cargo dependencies mtime', script: """
                                         curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - save --meta-file target/cargo-mtime.json
                                         """
-    
+
                                         sh label: 'Post-build: Upload build cache', script: """
                                         tar cf - target/debug/.fingerprint target/debug/build target/debug/deps target/debug/incremental target/cargo-mtime.json --format posix | lz4 -c > target.tar.lz4
                                         ls -la target.tar.lz4
@@ -366,7 +381,7 @@ try {
                                             curl -F rust_cache/${ghprbPullId}/target.tar.lz4=@target.tar.lz4 ${FILE_SERVER2_URL}/upload
                                         fi
                                         """
-    
+
                                         sh label: 'Post-build: Upload test data files', script: """
                                         rm -rf target.tar.lz4 dep.tar.lz4 target
                                         cp -R /rust/toolchains/${toolchain}-x86_64-unknown-linux-gnu/lib .
@@ -401,8 +416,9 @@ try {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                         deleteDir()
-                        retry(retryCount) {timeout(15) {
-                            sh """
+                        retry(retryCount) {
+                            timeout(15) {
+                                sh """
                             # set -o pipefail
                             uname -a
                             export RUSTFLAGS=-Dwarnings
@@ -418,8 +434,12 @@ try {
                                 chmod +x \$i;
                                 # ls -althr \$(pwd)/lib/*
                                 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$(pwd)/lib
-                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --nocapture;
-                            done 2>&1 | tee tests.out
+                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --nocapture 2>&1 | tee tmp_tests.out;
+                                cat tmp_tests.out >> tests.out;
+                                if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                fi;
+                            done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
                             chunk_count=`cat test_chunk_${chunk_suffix} | wc -l`
                             ok_count=`grep "test result: ok" tests.out | wc -l`
@@ -438,11 +458,11 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
-                        }}
+                            }
+                        }
                     }
                 }
             }
@@ -457,7 +477,7 @@ try {
                         deleteDir()
                         retry(retryCount) {
                             timeout(30) {
-                            sh """
+                                sh """
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export RUST_BACKTRACE=1
@@ -466,7 +486,15 @@ try {
                             tar xf test_stash.gz
                             ls -la
                             mkdir -p target/debug
-                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;chmod +x \$i;CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --skip ${exclude1} --skip ${exclude2} --skip ${exclude3} --skip ${exclude4} --skip ${exclude5} --nocapture;done 2>&1 | tee tests.out
+                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do
+                                curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;
+                                chmod +x \$i;
+                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --skip ${exclude1} --skip ${exclude2} --skip ${exclude3} --skip ${exclude4} --skip ${exclude5} --nocapture  2>&1 | tee tmp_tests.out;
+                                cat tmp_tests.out >> tests.out;
+                                if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                fi;
+                            done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
                             chunk_count=`cat test.list | grep -E 'debug/([^/]*/)*${componment}' | wc -l`
                             ok_count=`grep "test result: ok" tests.out | wc -l`
@@ -485,11 +513,11 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
-                        }}
+                            }
+                        }
                     }
                 }
             }
@@ -503,8 +531,9 @@ try {
 
                         deleteDir()
                         try {
-                           retry(retryCount) {timeout(30) {
-                            sh """
+                            retry(retryCount) {
+                                timeout(30) {
+                                    sh """
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export RUST_BACKTRACE=1
@@ -513,7 +542,15 @@ try {
                             tar xf test_stash.gz
                             ls -la
                             mkdir -p target/debug
-                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;chmod +x \$i;CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --skip ${exclude1} --skip ${exclude2} --skip ${exclude3} --nocapture;done 2>&1 | tee tests.out
+                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do 
+                                curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;
+                                chmod +x \$i;
+                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i --skip ${exclude1} --skip ${exclude2} --skip ${exclude3} --nocapture 2>&1 | tee tmp_tests.out;
+                                cat tmp_tests.out >> tests.out;
+                                if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                fi;
+                            done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
                             chunk_count=`cat test.list | grep -E 'debug/([^/]*/)*${componment}' | wc -l`
                             ok_count=`grep "test result: ok" tests.out | wc -l`
@@ -532,13 +569,13 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
-                           }}
+                                }
+                            }
                         } catch (Exception e) {
-                               sh """
+                            sh """
                                 for case in `cat tests.out | grep 'has been running for over 60 seconds' | awk '{print \$2}' | awk -F':' '{print \$NF}'`; do
                                 echo find fail cases: \$case
                                 grep \$case target/my_test.log | cut -d ' ' -f 2- | head -n 5000
@@ -547,7 +584,7 @@ try {
                                 echo
                                 done
                                """
-                               throw e
+                            throw e
                         }
                     }
                 }
@@ -563,8 +600,9 @@ try {
                         println "pwd: ${pwd()}"
 
                         deleteDir()
-                        retry(retryCount) { timeout(30) {
-                            sh """
+                        retry(retryCount) {
+                            timeout(30) {
+                                sh """
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export RUST_BACKTRACE=1
@@ -575,7 +613,14 @@ try {
                             tar xf test_stash.gz
                             ls -la
                             mkdir -p target/debug
-                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;chmod +x \$i;CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${exclude} --nocapture;done 2>&1 | tee tests.out
+                            for i in `cat test.list| grep -E 'debug/([^/]*/)*${componment}'`;do 
+                                curl --create-dirs -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i;
+                                chmod +x \$i;CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${exclude} --nocapture 2>&1 | tee tmp_tests.out;
+                                cat tmp_tests.out >> tests.out;
+                                if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                fi;
+                            done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
                             chunk_count=`cat test.list | grep -E 'debug/([^/]*/)*${componment}' | wc -l`
                             ok_count=`grep "test result: ok" tests.out | wc -l`
@@ -594,11 +639,11 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
-                        }}
+                            }
+                        }
                     }
                 }
             }
@@ -625,10 +670,11 @@ try {
                         } else {
                             run_chunks = readfile("integrations_chunk_${chunk_index}")
                         }
-                        def skipStr = get_skip_str(total_chunks,ci_chunks, run_chunks)
+                        def skipStr = get_skip_str(total_chunks, ci_chunks, run_chunks)
                         println skipStr
-                        retry(retryCount) {timeout(60) {
-                            sh """
+                        retry(retryCount) {
+                            timeout(60) {
+                                sh """
                             # set -o pipefail
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
@@ -636,11 +682,15 @@ try {
                             export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$(pwd)/lib
                             sudo sysctl -w net.ipv4.ip_local_port_range='10000 30000'
                             mkdir -p target/debug
-                            for i in `cat test.list| grep integrations`;do 
+                            for i in `cat test.list| grep integrations`;do
                                 curl -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}\$i --create-dirs;
                                 chmod +x \$i;
-                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${skipStr} --nocapture;
-                            done 2>&1 | tee tests.out
+                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 \$i ${skipStr} --nocapture 2>&1 | tee tmp_tests.out;
+                                cat tmp_tests.out >> tests.out;
+                                if cat tmp_tests.out | grep 'core dumped' > /dev/null 2>&1 ;then
+                                    core_file=`ls -t core.* | head -1` gdb \$i \$core_file -batch -ex "info threads" -ex "thread apply all bt";
+                                fi;
+                            done
                             curl -O ${FILE_SERVER2_URL}/download/script/filter_tikv.py
                             chunk_count=`cat test.list | grep integrations | wc -l`
                             ok_count=`grep "test result: ok" tests.out | wc -l`
@@ -659,11 +709,11 @@ try {
                                 # there is a core dumped, which should not happen.
                                 status=1
                                 echo 'there is a core dumped, which should not happen'
-				gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                             fi
                             exit \$status
                             """
-                        }}
+                            }
+                        }
                     }
                 }
             }
@@ -744,8 +794,8 @@ try {
             run_root_exact("failpoints", "cases::test_stale")
         }
 
-        for (int i = 2; i < chunk_count + 2; i ++) {
-            def j = i-1
+        for (int i = 2; i < chunk_count + 2; i++) {
+            def j = i - 1
             def k = i
             tests["Integration Part${j}"] = {
                 run_integration_chunk(k)
@@ -757,16 +807,16 @@ try {
     }
     currentBuild.result = "SUCCESS"
     stage('Post-test') {
-        node("${GO_BUILD_SLAVE}"){
-            container("golang"){
+        node("${GO_BUILD_SLAVE}") {
+            container("golang") {
                 sh """
                 echo "done" > done
                 curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
                 """
             }
         }
-    }  
-} catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    }
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {
     errorDescription = e.getMessage()
@@ -776,6 +826,13 @@ try {
         currentBuild.result = "FAILURE"
         slackcolor = 'danger'
         echo "${e}"
+    }
+}
+
+stage("upload status") {
+    node {
+        println currentBuild.result
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
 

@@ -2,6 +2,11 @@ def TIDB_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_TEST_BRANCH = ghprbTargetBranch
 
+if (ghprbPullTitle.find("Bump version") != null) {
+    currentBuild.result = 'SUCCESS'
+    return
+}
+
 // parse tikv branch
 def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
@@ -20,6 +25,9 @@ if (PD_BRANCH == "4.0-perf") {
 }
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
+
+def buildSlave = "${GO_BUILD_SLAVE}"
+def testSlave = "test_go_heavy"
 
 // parse tidb_test branch
 def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -78,8 +86,8 @@ try {
                                     git checkout -f ${ghprbActualCommit}
                                     grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                                     if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                      echo using gcc 8
-                                      source /opt/rh/devtoolset-8/enable
+                                        echo using gcc 8
+                                        source /opt/rh/devtoolset-8/enable
                                     fi
                                     CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
                                     # use make release
@@ -224,7 +232,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, test_cmd ->
-            node(GO_TEST_SLAVE) {
+            node(testSlave) {
                 def ws = pwd()
                 deleteDir()
 
@@ -278,7 +286,8 @@ try {
                                 
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 10
-                                bin/tikv-server --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
 
                                 mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
@@ -344,7 +353,7 @@ try {
         }
 
         tests["Integration Connection Test"] = {
-            node(GO_TEST_SLAVE) {
+            node(testSlave) {
                 def ws = pwd()
                 def mytest = "connectiontest"
                 deleteDir()
@@ -393,7 +402,8 @@ try {
 
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 10
-                                bin/tikv-server --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
 
                                 mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod 
@@ -436,7 +446,7 @@ try {
                     }
                 }
 
-                node(GO_TEST_SLAVE) {
+                node(testSlave) {
                     def ws = pwd()
                     deleteDir()
 
@@ -489,7 +499,8 @@ try {
                                     
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
-                                    bin/tikv-server --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                     sleep 10
 
                                     mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
@@ -570,5 +581,11 @@ finally {
 
     if (currentBuild.result == "FAILURE") {
         slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+    }
+}
+
+stage("upload status"){
+    node{
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
