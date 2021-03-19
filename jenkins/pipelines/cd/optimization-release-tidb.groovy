@@ -146,8 +146,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                     ]
         }
-        println Stage
-        if (Stage == "build") {
+        if (STAGE == "build") {
             builds["Build on linux/amd64"] = build_linux_amd
             parallel builds
         } else {
@@ -156,7 +155,7 @@ catchError {
         }
     }
 //    build stage return
-    if (Stage == "build") {
+    if (STAGE == "build") {
         return
     }
     node('delivery') {
