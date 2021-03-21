@@ -118,7 +118,7 @@ try {
             build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
             build_upload("tidb", TIDB_HASH, "tidb-server")
             build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
-            build_upload("tidb-lightning", LIGHTNING_HASH, "tidb-lightning")
+//            build_upload("tidb-lightning", LIGHTNING_HASH, "tidb-lightning")
             build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
             build_upload("pd", PD_HASH, "pd-server")
             build_upload("ticdc", CDC_HASH, "ticdc")
