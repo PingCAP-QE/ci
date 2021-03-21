@@ -17,7 +17,7 @@
 * @STAGE
 */
 
-def get_hash = { hash_or_branch,repo ->
+def get_hash = { hash_or_branch, repo ->
     if (hash_or_branch.length() == 40) {
         return hash_or_branch
     }
@@ -35,11 +35,11 @@ catchError {
                 dir('centos7') {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     if (STAGE != "build") {
-                    //     if (TIDB_TAG.length() < 40 || TIKV_TAG.length() < 40 || PD_TAG.length() < 40 || BINLOG_TAG.length() < 40 || TIFLASH_TAG.length() < 40 || LIGHTNING_TAG.length() < 40 || IMPORTER_TAG.length() < 40 || TOOLS_TAG.length() < 40 || BR_TAG.length() < 40 || CDC_TAG.length() < 40) {
-                    //         println "build must be used with githash."
-                    //         sh "exit 2"
-                    //     }
-                    // } else {
+                        //     if (TIDB_TAG.length() < 40 || TIKV_TAG.length() < 40 || PD_TAG.length() < 40 || BINLOG_TAG.length() < 40 || TIFLASH_TAG.length() < 40 || LIGHTNING_TAG.length() < 40 || IMPORTER_TAG.length() < 40 || TOOLS_TAG.length() < 40 || BR_TAG.length() < 40 || CDC_TAG.length() < 40) {
+                        //         println "build must be used with githash."
+                        //         sh "exit 2"
+                        //     }
+                        // } else {
                         if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || LIGHTNING_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || TOOLS_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
                             println "release must be used with tag."
                             sh "exit 2"
@@ -47,27 +47,28 @@ catchError {
                     }
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    if (STAGE == "build" ) {
-                        tidb_sha1 = get_hash(TIDB_TAG,"tidb")
-                        tikv_sha1 = get_hash(TIKV_TAG,"tikv")
-                        pd_sha1 = get_hash(PD_TAG,"pd")
-                        tidb_lightning_sha1 = get_hash(LIGHTNING_TAG,"tidb-lightning")
-                        tidb_binlog_sha1 = get_hash(BINLOG_TAG,"tidb-binlog")
-                        tiflash_sha1 = get_hash(TIFLASH_TAG,"tics")
-                        tidb_tools_sha1 = get_hash(TOOLS_TAG,"tidb-tools")
-                        tidb_br_sha1 = get_hash(BR_TAG,"br")
-                        importer_sha1 = get_hash(IMPORTER_TAG,"importer")
-                        cdc_sha1 = get_hash(CDC_TAG,"ticdc")
-                        dumpling_sha1 = get_hash(DUMPLING_TAG,"dumpling")
+                    if (STAGE == "build") {
+                        tidb_sha1 = get_hash(TIDB_TAG, "tidb")
+                        tikv_sha1 = get_hash(TIKV_TAG, "tikv")
+                        pd_sha1 = get_hash(PD_TAG, "pd")
+                        tidb_br_sha1 = get_hash(BR_TAG, "br")
+                        tidb_lightning_sha1 = get_hash(LIGHTNING_TAG, "tidb-lightning")
+                        tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
+                        tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")
+                        tidb_tools_sha1 = get_hash(TOOLS_TAG, "tidb-tools")
+                        importer_sha1 = get_hash(IMPORTER_TAG, "importer")
+                        cdc_sha1 = get_hash(CDC_TAG, "ticdc")
+                        dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
                     } else {
                         tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                         tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
                         pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tidb_lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${LIGHTNING_TAG} -s=${FILE_SERVER_URL}").trim()
+                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+                        // lightning 从 4.0.12 开始和 br 的 hash 一样
+                        tidb_lightning_sha1 = tidb_br_sha1
                         tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                         tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                         tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
                         importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
                         cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -181,7 +182,6 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
@@ -196,7 +196,6 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools-linux-arm64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${dumpling_sha1}/centos7/dumpling-linux-arm64.tar.gz | tar xz"
                     // sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash-linux-arm64.tar.gz | tar xz"
@@ -371,10 +370,10 @@ catchError {
                            mkdir bin
                            cp ${ws}/arm/tidb-tools-v*-linux-arm64/bin/sync_diff_inspector ./bin
                            cp ${ws}/arm/pd-v*-linux-arm64/bin/pd-tso-bench ./bin
-                           cp ${ws}/arm/tidb-lightning-v*-linux-arm64/bin/tidb-lightning ./bin
-                           cp ${ws}/arm/tidb-lightning-v*-linux-arm64/bin/tidb-lightning-ctl ./bin
                            cp ${ws}/arm/importer-v*-linux-arm64/bin/tikv-importer ./bin
                            cp ${ws}/arm/br-v*-linux-arm64/bin/br ./bin
+                           cp ${ws}/arm/br-v*-linux-arm64/bin/tidb-lightning ./bin
+                           cp ${ws}/arm/br-v*-linux-arm64/bin/tidb-lightning-ctl ./bin
                            cp ${ws}/arm/dumpling-v*-linux-arm64/bin/dumpling ./bin
                            # cp ${ws}/arm/mydumper-linux-amd64/bin/mydumper ./bin
                         """
