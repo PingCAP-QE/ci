@@ -3,32 +3,6 @@ def desc = "TiDB Lightning is a tool used for fast full import of large amounts 
 
 def tiflash_sha1, tarball_name, dir_name
 
-def install_tiup = { bin_dir ->
-    sh """
-    wget -q https://tiup-mirrors.pingcap.com/tiup-linux-amd64.tar.gz
-    sudo tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
-    sudo chmod 755 ${bin_dir}/tiup
-    rm -rf ~/.tiup
-    mkdir -p /home/jenkins/.tiup/bin/
-    curl https://tiup-mirrors.pingcap.com/root.json -o /home/jenkins/.tiup/bin/root.json
-    mkdir -p ~/.tiup/keys
-    set +x
-    echo ${PINGCAP_PRIV_KEY} | base64 -d > ~/.tiup/keys/private.json
-    set -x
-    """
-}
-
-def install_qshell = { bin_dir ->
-    sh """
-    wget -q https://tiup-mirrors.pingcap.com/qshell-linux-amd64.tar.gz
-    sudo tar -zxf qshell-linux-amd64.tar.gz -C ${bin_dir}
-    sudo chmod 755 ${bin_dir}/qshell
-    set +x
-    qshell account ${QSHELL_KEY} ${QSHELL_SEC} tiup-mirror-update --overwrite
-    set -x
-    """
-}
-
 def download = { name, version, os, arch ->
     if (os == "linux") {
         platform = "centos7"
@@ -94,13 +68,6 @@ def pack = { name, version, os, arch ->
     """
 }
 
-def upload = { dir ->
-    sh """
-    rm -rf ~/.qshell/qupload
-    qshell qupload2 --src-dir=${dir} --bucket=tiup-mirrors --overwrite
-    """
-}
-
 def update = { name, version, os, arch ->
     download name, version, os, arch
     unpack name, version, os, arch
@@ -114,10 +81,13 @@ try {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 deleteDir()
             }
+       
+            checkout scm
+            def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
             stage("Install tiup/qshell") {
-                install_tiup "/usr/local/bin"
-                install_qshell "/usr/local/bin"
+                util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                util.install_qshell "/usr/local/bin",QSHELL_KEY, QSHELL_SEC
             }
 
             stage("Get hash") {

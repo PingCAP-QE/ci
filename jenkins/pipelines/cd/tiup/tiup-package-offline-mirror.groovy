@@ -1,15 +1,3 @@
-def install_tiup = { bin_dir ->
-    sh """
-    wget -q ${TIUP_MIRROR}/tiup-linux-amd64.tar.gz
-    tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
-    chmod 755 ${bin_dir}/tiup
-    rm -rf ~/.tiup
-    mkdir -p ~/.tiup/bin
-    curl ${TIUP_MIRROR}/root.json -o ~/.tiup/bin/root.json
-    mkdir -p ~/.tiup/keys
-    """
-}
-
 
 def cloned = [
         "amd64": "",
@@ -213,8 +201,11 @@ node("delivery") {
             println "${user}"
         }
 
-        stage("install tiup") {
-            install_tiup "/usr/local/bin"
+        checkout scm
+        def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+
+        stage("Install tiup") {
+            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
         stage("build community tarball linux/amd64") {
