@@ -1,4 +1,4 @@
-def install_tiup = { bin_dir ->
+def install_tiup = { bin_dir,PINGCAP_PRIV_KEY ->
     sh """
     wget -q https://tiup-mirrors.pingcap.com/tiup-linux-amd64.tar.gz
     sudo tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
@@ -13,7 +13,7 @@ def install_tiup = { bin_dir ->
     """
 }
 
-def install_qshell = { bin_dir ->
+def install_qshell = { bin_dir,QSHELL_KEY,QSHELL_SEC ->
     sh """
     wget -q https://tiup-mirrors.pingcap.com/qshell-linux-amd64.tar.gz
     sudo tar -zxf qshell-linux-amd64.tar.gz -C ${bin_dir}
@@ -63,7 +63,7 @@ def unpack = { name, version, os, arch ->
     """
 }
 
-def pack = { name, version, os, arch ->
+def pack = { name, version, os, arch, TIDB_VERSION ->
 
     sh """
     rm -rf ${name}*.tar.gz
@@ -94,10 +94,10 @@ def upload = { dir ->
     """
 }
 
-def update = { name, version, os, arch ->
+def update = { name, version, os, arch, TIDB_VERSION ->
     download name, version, os, arch
     unpack name, version, os, arch
-    pack name, version, os, arch
+    pack name, version, os, arch, TIDB_VERSION
 }
 
 return this

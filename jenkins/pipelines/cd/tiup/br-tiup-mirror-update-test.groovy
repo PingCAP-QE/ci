@@ -13,8 +13,8 @@ node("build_go1130") {
         }
 
         stage("Install tiup/qshell") {
-            install_tiup "/usr/local/bin"
-            install_qshell "/usr/local/bin"
+            util.install_tiup "/usr/local/bin", ${PINGCAP_PRIV_KEY}
+            util.install_qshell "/usr/local/bin", ${QSHELL_KEY}, ${QSHELL_SEC}
         }
 
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
@@ -31,15 +31,15 @@ node("build_go1130") {
             }
 
             stage("tiup release br linux amd64") {
-                util.update "br", RELEASE_TAG, "linux", "amd64"
+                util.update "br", RELEASE_TAG, "linux", "amd64", TIDB_VERSION
             }
 
             stage("tiup release br linux arm64") {
-                util.update "br", RELEASE_TAG, "linux", "arm64"
+                util.update "br", RELEASE_TAG, "linux", "arm64", TIDB_VERSION
             }
 
             stage("tiup release br darwin amd64") {
-                util.update "br", RELEASE_TAG, "darwin", "amd64"
+                util.update "br", RELEASE_TAG, "darwin", "amd64", TIDB_VERSION
             }
         }
     }
