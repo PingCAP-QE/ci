@@ -3,14 +3,14 @@ def br_desc = "TiDB/TiKV cluster backup restore tool"
 
 def br_sha1, tarball_name, dir_name
 
-def util = load "tiup_utils.groovy"
-
 node("build_go1130") {
     container("golang") {
         stage("Prepare") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
         }
+
+        def util = load "tiup_utils.groovy"
 
         stage("Install tiup/qshell") {
             util.install_tiup "/usr/local/bin", ${PINGCAP_PRIV_KEY}
