@@ -1,32 +1,6 @@
 def ticdc_sha1, platform, tag
 def cdc_desc = "CDC is a change data capture tool for TiDB"
 
-def install_tiup = { bin_dir ->
-    sh """
-    wget -q https://tiup-mirrors.pingcap.com/tiup-linux-amd64.tar.gz
-    sudo tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
-    sudo chmod 755 ${bin_dir}/tiup
-    rm -rf ~/.tiup
-    mkdir -p /home/jenkins/.tiup/bin/
-    curl https://tiup-mirrors.pingcap.com/root.json -o /home/jenkins/.tiup/bin/root.json
-    mkdir -p ~/.tiup/keys
-    set +x
-    echo ${PINGCAP_PRIV_KEY} | base64 -d > ~/.tiup/keys/private.json
-    set -x
-    """
-}
-
-def install_qshell = { bin_dir ->
-    sh """
-    wget -q https://tiup-mirrors.pingcap.com/qshell-linux-amd64.tar.gz
-    sudo tar -zxf qshell-linux-amd64.tar.gz -C ${bin_dir}
-    sudo chmod 755 ${bin_dir}/qshell
-    set +x
-    qshell account ${QSHELL_KEY} ${QSHELL_SEC} tiup-mirror-update --overwrite
-    set -x
-    """
-}
-
 def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
@@ -64,13 +38,6 @@ def pack = { name, version, os, arch ->
     """
 }
 
-def upload = { dir ->
-    sh """
-    rm -rf ~/.qshell/qupload
-    qshell qupload2 --src-dir=${dir} --bucket=tiup-mirrors --overwrite
-    """
-}
-
 def update = { name, version, hash, os, arch ->
     download name, hash, os, arch
     unpack name, os, arch
@@ -84,9 +51,12 @@ node("build_go1130") {
             deleteDir()
         }
 
+        checkout scm
+        def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+
         stage("Install tiup/qshell") {
-            install_tiup "/usr/local/bin"
-            install_qshell "/usr/local/bin"
+            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+            util.install_qshell "/usr/local/bin", QSHELL_KEY, QSHELL_SEC
         }
 
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
@@ -113,10 +83,6 @@ node("build_go1130") {
             stage("TiUP build cdc on darwin/amd64") {
                 update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
             }
-
-            // stage("Upload") {
-            //     upload "package"
-            // }
         }
     }
 }
