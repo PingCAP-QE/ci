@@ -1,4 +1,4 @@
-def install_tiup = { bin_dir,PINGCAP_PRIV_KEY ->
+def install_tiup(bin_dir,private_key) {
     sh """
     wget -q https://tiup-mirrors.pingcap.com/tiup-linux-amd64.tar.gz
     sudo tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
@@ -8,23 +8,23 @@ def install_tiup = { bin_dir,PINGCAP_PRIV_KEY ->
     curl https://tiup-mirrors.pingcap.com/root.json -o /home/jenkins/.tiup/bin/root.json
     mkdir -p ~/.tiup/keys
     set +x
-    echo ${PINGCAP_PRIV_KEY} | base64 -d > ~/.tiup/keys/private.json
+    echo ${private_key} | base64 -d > ~/.tiup/keys/private.json
     set -x
     """
 }
 
-def install_qshell = { bin_dir,QSHELL_KEY,QSHELL_SEC ->
+def install_qshell(bin_dir,qshell_key,qshell_sec) {
     sh """
     wget -q https://tiup-mirrors.pingcap.com/qshell-linux-amd64.tar.gz
     sudo tar -zxf qshell-linux-amd64.tar.gz -C ${bin_dir}
     sudo chmod 755 ${bin_dir}/qshell
     set +x
-    qshell account ${QSHELL_KEY} ${QSHELL_SEC} tiup-mirror-update --overwrite
+    qshell account ${qshell_key} ${qshell_sec} tiup-mirror-update --overwrite
     set -x
     """
 }
 
-def download = { name, version, os, arch ->
+def download(name, version, os, arch) {
     if (os == "linux") {
         platform = "centos7"
     } else if (os == "darwin") {
@@ -51,7 +51,7 @@ def download = { name, version, os, arch ->
     }
 }
 
-def unpack = { name, version, os, arch ->
+def unpack(name, version, os, arch) {
     if (arch == "arm64") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
@@ -63,7 +63,7 @@ def unpack = { name, version, os, arch ->
     """
 }
 
-def pack = { name, version, os, arch, TIDB_VERSION ->
+def pack(name, version, os, arch, tidb_version) {
 
     sh """
     rm -rf ${name}*.tar.gz
@@ -83,18 +83,18 @@ def pack = { name, version, os, arch, TIDB_VERSION ->
     }
 
     sh """
-    tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${br_desc}"
+    tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${br_desc}"
     """
 }
 
-def upload = { dir ->
+def upload(dir) {
     sh """
     rm -rf ~/.qshell/qupload
     qshell qupload2 --src-dir=${dir} --bucket=tiup-mirrors --overwrite
     """
 }
 
-def update = { name, version, os, arch, TIDB_VERSION ->
+def update(name, version, os, arch, TIDB_VERSION) {
     download name, version, os, arch
     unpack name, version, os, arch
     pack name, version, os, arch, TIDB_VERSION
