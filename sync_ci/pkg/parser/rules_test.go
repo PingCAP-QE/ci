@@ -75,9 +75,55 @@ func TestTikvUtParser_Parse(t *testing.T) {
 [2020-12-03T17:29:15.428Z] 
 [2020-12-03T17:29:15.428Z] test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 354 filtered out`,
 			"server::kv_service::test_split_region"},
-		{`[2020-12-03T03:48:56.377Z] test server::kv_service::test_split_region ... thread 'raftstore-1-0' panicked at 'called Result::unwrap() on an Err value: channel has been closed', components/raftstore/src/coprocessor/region_info_accessor.rs:152:14
-[2020-12-03T03:48:56.377Z] stack backtrace:`,
+		{`[2021-03-22T04:05:57.674Z] test cases::test_merge::test_node_failed_merge_before_succeed_merge ... thread 'main' panicked at 'request timeout', /home/jenkins/agent/tikv-master/build/components/test_raftstore/src/cluster.rs:779:9
+[2021-03-22T04:05:57.674Z] stack backtrace:
+[2021-03-22T04:05:57.674Z]    0: std::panicking::begin_panic
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/std/src/panicking.rs:519:12
+[2021-03-22T04:05:57.674Z]    1: test_raftstore::cluster::Cluster<T>::request
+[2021-03-22T04:05:57.674Z]              at ./components/test_raftstore/src/cluster.rs:779:9
+[2021-03-22T04:05:57.674Z]    2: test_raftstore::cluster::Cluster<T>::must_put_cf
+[2021-03-22T04:05:57.674Z]              at ./components/test_raftstore/src/cluster.rs:912:20
+[2021-03-22T04:05:57.674Z]    3: test_raftstore::cluster::Cluster<T>::must_put
+[2021-03-22T04:05:57.674Z]              at ./components/test_raftstore/src/cluster.rs:908:9
+[2021-03-22T04:05:57.674Z]    4: failpoints::cases::test_merge::test_node_failed_merge_before_succeed_merge
+[2021-03-22T04:05:57.674Z]              at ./tests/failpoints/cases/test_merge.rs:769:5
+[2021-03-22T04:05:57.674Z]    5: failpoints::cases::test_merge::test_node_failed_merge_before_succeed_merge::{{closure}}
+[2021-03-22T04:05:57.674Z]              at ./tests/failpoints/cases/test_merge.rs:727:1
+[2021-03-22T04:05:57.674Z]    6: core::ops::function::FnOnce::call_once
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/core/src/ops/function.rs:227:5
+[2021-03-22T04:05:57.674Z]    7: test_util::runner::run_test_with_hook::{{closure}}::{{closure}}
+[2021-03-22T04:05:57.674Z]              at ./components/test_util/src/runner.rs:64:21
+[2021-03-22T04:05:57.674Z]    8: core::ops::function::FnOnce::call_once{{vtable.shim}}
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/core/src/ops/function.rs:227:5
+[2021-03-22T04:05:57.674Z]    9: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/alloc/src/boxed.rs:1487:9
+[2021-03-22T04:05:57.674Z] note: Some details are omitted, run with RUST_BACKTRACE=full for a verbose backtrace.
+[2021-03-22T04:05:57.674Z] FAILED
+[2021-03-22T04:05:58.604Z] test cases::test_merge::test_node_merge_cascade_merge_with_apply_yield ... ok`,
+			"cases::test_merge::test_node_failed_merge_before_succeed_merge"},
+		{`[2020-12-03T17:29:15.428Z] failures:
+[2020-12-03T17:29:15.428Z]     server::kv_service::test_split_region
+[2020-12-03T17:29:15.428Z] 
+[2020-12-03T17:29:15.428Z] test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 354 filtered out`,
 			"server::kv_service::test_split_region"},
+		{`[2021-03-22T04:05:57.674Z] test cases::test_merge::test_node_failed_merge_before_succeed_merge ... thread 'main' panicked at 'request timeout', /home/jenkins/agent/tikv-master/build/components/test_raftstore/src/cluster.rs:779:9
+[2021-03-22T04:05:57.674Z] stack backtrace:
+[2021-03-22T04:05:57.674Z]    0: std::panicking::begin_panic
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/std/src/panicking.rs:519:12
+[2021-03-22T04:05:57.674Z]    1: test_raftstore::cluster::Cluster<T>::request
+[2021-03-22T04:05:57.674Z]              at ./components/test_raftstore/src/cluster.rs:779:9
+[2021-03-22T04:05:57.674Z]    2: test_raftstore::cluster::Cluster<T>::must_put_cf
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/core/src/ops/function.rs:227:5
+[2021-03-22T04:05:57.674Z]    7: test_util::runner::run_test_with_hook::{{closure}}::{{closure}}
+[2021-03-22T04:05:57.674Z]              at ./components/test_util/src/runner.rs:64:21
+[2021-03-22T04:05:57.674Z]    8: core::ops::function::FnOnce::call_once{{vtable.shim}}
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/core/src/ops/function.rs:227:5
+[2021-03-22T04:05:57.674Z]    9: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once
+[2021-03-22T04:05:57.674Z]              at /rustc/1d0d76f8dd4f5f6ecbeab575b87edaf1c9f56bb8/library/alloc/src/boxed.rs:1487:9
+[2021-03-22T04:05:57.674Z] note: Some details are omitted, run with RUST_BACKTRACE=full for a verbose backtrace.
+[2021-03-22T04:05:57.674Z] ok
+[2021-03-22T04:05:58.604Z] test cases::test_merge::test_node_merge_cascade_merge_with_apply_yield ... ok`,
+			""},
 	}
 	p := &tikvUtParser{}
 	for _, item := range testData {

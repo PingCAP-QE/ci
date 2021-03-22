@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const PreReadLines = 10
+const PreReadLines = 20
 
 const logPathFormat = "/mnt/disks/87fd0455-804f-406e-a3ea-129debf3479b/jobs/%s/builds/%d/log"
 
