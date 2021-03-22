@@ -10,7 +10,7 @@ node("build_go1130") {
             deleteDir()
         }
 
-        def util = load "tiup_utils.groovy"
+        def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
         stage("Install tiup/qshell") {
             util.install_tiup "/usr/local/bin", ${PINGCAP_PRIV_KEY}
