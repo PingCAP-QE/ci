@@ -191,7 +191,15 @@ func (t *tikvUtParser) parse(job string, lines []string) []string {
 	matchedStr := regexp.MustCompile(`test .* panicked at`).FindString(lines[0])
 	if len(matchedStr) != 0 {
 		detail := strings.TrimSpace(strings.Split(strings.Split(matchedStr, "...")[0], "test ")[1])
-		res = append(res, detail)
+		for i := range lines {
+			endMatchedStr := regexp.MustCompile(`note: Some details are omitted, run with`).FindString(lines[i])
+			if len(endMatchedStr) != 0 && i<(len(lines)-1){
+				failedMatchedStr := regexp.MustCompile(`FAILED`).FindString(lines[i+1])
+				if len(failedMatchedStr)!=0{
+					res = append(res, detail)
+				}
+			}
+		}
 	}
 	return res
 }

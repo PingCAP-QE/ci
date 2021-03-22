@@ -5,6 +5,8 @@ INSTALL_DIR := /root/llh/server/sync-ci
 
 default: binary
 
+test:
+	$(GO) test ./...
 binary:
 	$(GO) build -o $(BUILD_DIR)/sync-ci-service cmd/sync-ci-service/main.go
 
@@ -19,7 +21,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 [Service]
 User=root
 WorkingDirectory=$(INSTALL_DIR)
-ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}" -gh "${gh}" -tk "${tk}" -ui "${ui}" -wc "${wc}" -lp "$(INSTALL_DIR)/log" -rp  "$(INSTALL_DIR)/envrules.json"
+ExecStart=$(INSTALL_DIR)/sync-ci-service sync-ci -dsn "${dsn}" -gh "${gh}" -tk "${tk}" -ui "${ui}" -wc "${wc}" -lp "$(INSTALL_DIR)/log"
 Restart=always
 
 [Install]
