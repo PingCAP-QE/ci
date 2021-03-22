@@ -9,7 +9,8 @@ node("build_go1130") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
         }
-
+        checkout scm
+        sh "ls -lhrt"
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
         stage("Install tiup/qshell") {
