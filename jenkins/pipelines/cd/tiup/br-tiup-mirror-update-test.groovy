@@ -3,13 +3,82 @@ def br_desc = "TiDB/TiKV cluster backup restore tool"
 
 def br_sha1, tarball_name, dir_name
 
+def download = { name, version, os, arch ->
+    if (os == "linux") {
+        platform = "centos7"
+    } else if (os == "darwin") {
+        platform = "darwin"
+    } else {
+        sh """
+        exit 1
+        """
+    }
+
+    if (arch == "arm64") {
+        tarball_name = "${name}-${os}-${arch}.tar.gz"
+    } else {
+        tarball_name = "${name}.tar.gz"
+    }
+    if (RELEASE_TAG != "nightly") {
+        sh """
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${br_sha1}/${platform}/${tarball_name}
+    """
+    } else {
+        sh """
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${br_sha1}/${platform}/${tarball_name}
+    """
+    }
+}
+
+def unpack = { name, version, os, arch ->
+    if (arch == "arm64") {
+        tarball_name = "${name}-${os}-${arch}.tar.gz"
+    } else {
+        tarball_name = "${name}.tar.gz"
+    }
+
+    sh """
+    tar -zxf ${tarball_name}
+    """
+}
+
+def pack = { name, version, os, arch ->
+
+    sh """
+    rm -rf ${name}*.tar.gz
+    [ -d package ] || mkdir package
+    """
+
+    if (os == "linux" && arch == "amd64") {
+        sh """
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz br
+        rm -rf bin
+        """
+    } else {
+        sh """
+        tar -C ${name}-*/bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz br
+        rm -rf ${name}-*
+        """
+    }
+
+    sh """
+    tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${br_desc}"
+    """
+}
+
+def update = { name, version, os, arch ->
+    download name, version, os, arch
+    unpack name, version, os, arch
+    pack name, version, os, arch
+}
+
 node("build_go1130") {
     container("golang") {
         stage("Prepare") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
         }
-        
+
         checkout scm
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
@@ -32,15 +101,15 @@ node("build_go1130") {
             }
 
             stage("tiup release br linux amd64") {
-                util.update "br", RELEASE_TAG, "linux", "amd64", TIDB_VERSION
+                update "br", RELEASE_TAG, "linux", "amd64"
             }
 
             stage("tiup release br linux arm64") {
-                util.update "br", RELEASE_TAG, "linux", "arm64", TIDB_VERSION
+                update "br", RELEASE_TAG, "linux", "arm64"
             }
 
             stage("tiup release br darwin amd64") {
-                util.update "br", RELEASE_TAG, "darwin", "amd64", TIDB_VERSION
+                update "br", RELEASE_TAG, "darwin", "amd64"
             }
         }
     }
