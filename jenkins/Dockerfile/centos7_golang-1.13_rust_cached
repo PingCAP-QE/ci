@@ -8,7 +8,6 @@ RUN git clone https://github.com/pingcap/tidb.git \
 	&& git clone https://github.com/tikv/tikv.git \
 	&& git clone https://github.com/pingcap/pd.git \
 	&& git clone https://github.com/pingcap/dm.git \
-        && git clone https://github.com/pingcap/tidb-lightning.git \
         && git clone https://github.com/pingcap/tidb-binlog.git
 
 COPY --chown=jenkins:jenkins src/github.com/pingcap/tidb-test ./tidb-test
@@ -17,7 +16,6 @@ RUN cd tidb && go mod download
 RUN cd pd && go mod download
 RUN cd tidb-test && go mod download
 RUN cd dm && go mod download
-RUN cd tidb-lightning && go mod download
 RUN cd tidb-binlog && go mod download
 
 RUN cd tidb && GO111MODULE=on go get github.com/pingcap/gofail
