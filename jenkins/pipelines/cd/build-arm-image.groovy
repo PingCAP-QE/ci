@@ -12,48 +12,48 @@ def build_arm_image = { tag, repo ->
         }
     }
 }
-//node("arm_image") {
-//    dir("go/src/github.com/pingcap/monitoring") {
-//        stage("prepare monitor") {
-//            deleteDir()
-//            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/monitoring.git']]]
-//            sh """
-//               go build -o pull-monitoring  cmd/monitoring.go
-//               go build -o ./reload/build/linux/reload  ./reload/main.go
-//            """
-//            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-//                retry(3) {
-//                    sh """
-//                    ./pull-monitoring  --config=monitoring.yaml --tag=${RELEASE_TAG} --token=$TOKEN
-//                    ls monitor-snapshot/${RELEASE_TAG}/operator
-//                    """
-//                }
-//            }
-//        }
-//        stage("build monitor") {
-//
-//            docker.withRegistry("", "dockerhub") {
-//                sh """
-//                export DOCKER_HOST=unix:///var/run/docker.sock
-//                cd monitor-snapshot/${RELEASE_TAG}/operator
-//                docker build  -t pingcap/tidb-monitor-initializer-arm64:${RELEASE_TAG} -f Dockerfile .
-//                docker push pingcap/tidb-monitor-initializer-arm64:${RELEASE_TAG}
-//                """
-//            }
-//        }
-//        stage("build reloader") {
-//            docker.withRegistry("", "dockerhub") {
-//                sh """
-//                export DOCKER_HOST=unix:///var/run/docker.sock
-//                cd reload
-//                wget ${baseUrl}tidb-monitor-reloader-arm64
-//                docker build  -t pingcap/tidb-monitor-reloader-arm64:v1.0.1 -f tidb-monitor-reloader-arm64 .
-//                docker push pingcap/tidb-monitor-reloader-arm64:v1.0.1
-//                """
-//            }
-//        }
-//    }
-//}
+node("arm_image") {
+   dir("go/src/github.com/pingcap/monitoring") {
+       stage("prepare monitor") {
+           deleteDir()
+           checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/monitoring.git']]]
+           sh """
+              go build -o pull-monitoring  cmd/monitoring.go
+              go build -o ./reload/build/linux/reload  ./reload/main.go
+           """
+           withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+               retry(3) {
+                   sh """
+                   ./pull-monitoring  --config=monitoring.yaml --tag=${RELEASE_TAG} --token=$TOKEN
+                   ls monitor-snapshot/${RELEASE_TAG}/operator
+                   """
+               }
+           }
+       }
+       stage("build monitor") {
+
+           docker.withRegistry("", "dockerhub") {
+               sh """
+               export DOCKER_HOST=unix:///var/run/docker.sock
+               cd monitor-snapshot/${RELEASE_TAG}/operator
+               docker build  -t pingcap/tidb-monitor-initializer-arm64:${RELEASE_TAG} -f Dockerfile .
+               docker push pingcap/tidb-monitor-initializer-arm64:${RELEASE_TAG}
+               """
+           }
+       }
+       stage("build reloader") {
+           docker.withRegistry("", "dockerhub") {
+               sh """
+               export DOCKER_HOST=unix:///var/run/docker.sock
+               cd reload
+               wget ${baseUrl}tidb-monitor-reloader-arm64
+               docker build  -t pingcap/tidb-monitor-reloader-arm64:v1.0.1 -f tidb-monitor-reloader-arm64 .
+               docker push pingcap/tidb-monitor-reloader-arm64:v1.0.1
+               """
+           }
+       }
+   }
+}
 
 node("arm_image") {
     stage("prepare binary") {
@@ -72,9 +72,9 @@ node("arm_image") {
         cp /usr/local/go/lib/time/zoneinfo.zip .
         """
     }
-//    build_arm_image(TIDB_TAG, "tidb")
-//    build_arm_image(TIKV_TAG, "tikv")
-//    build_arm_image(PD_TAG, "pd")
+    build_arm_image(TIDB_TAG, "tidb")
+    build_arm_image(TIKV_TAG, "tikv")
+    build_arm_image(PD_TAG, "pd")
     build_arm_image(BINLOG_TAG, "tidb-binlog")
     build_arm_image(LIGHTNING_TAG, "tidb-lightning")
     build_arm_image(BR_TAG, "br")
