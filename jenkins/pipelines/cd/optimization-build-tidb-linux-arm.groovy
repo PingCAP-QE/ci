@@ -46,7 +46,7 @@ def build_upload = { product, hash, binary ->
                 cp ${product} ${target}/bin/            
                 """
             }
-            if (product in ["tidb", "tidb-binlog", "tidb-lightning", "pd"]) {
+            if (product in ["tidb", "tidb-binlog", "pd"]) {
                 sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
@@ -103,7 +103,6 @@ try {
             build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
             build_upload("tidb", TIDB_HASH, "tidb-server")
             build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
-//            build_upload("tidb-lightning", LIGHTNING_HASH, "tidb-lightning")
             build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
             build_upload("pd", PD_HASH, "pd-server")
             build_upload("ticdc", CDC_HASH, "ticdc")
