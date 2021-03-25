@@ -158,28 +158,6 @@ try {
                     }
                 }
 
-//                stage("Build tidb-lightning") {
-//                    dir("go/src/github.com/pingcap/tidb-lightning") {
-//                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                            deleteDir()
-//                        }
-//                        def target = "tidb-lightning"
-//                        def filepath = "builds/pingcap/tidb-lightning/optimization/${LIGHTNING_HASH}/centos7/tidb-lightning.tar.gz"
-//                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
-//                        sh """
-//                        for a in \$(git tag --contains ${LIGHTNING_HASH}); do echo \$a && git tag -d \$a;done
-//                        git tag -f ${RELEASE_TAG} ${LIGHTNING_HASH}
-//                        git branch -D refs/tags/${RELEASE_TAG} || true
-//                        git checkout -b refs/tags/${RELEASE_TAG}
-//                        make clean
-//                        go version
-//                        make
-//                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
-//                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                        """
-//                    }
-//                }
-
                 stage("Build tidb-tools") {
                     dir("go/src/github.com/pingcap/tidb-tools") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {

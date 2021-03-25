@@ -2,7 +2,7 @@
 base_branch=master
 new_branch=release-5.0
 # Should check if tikv/importer's base branch is master, if not, remove it from repo list and create the tikv/importer's branch by hand
-repo_list="pingcap/tidb pingcap/parser tikv/tikv tikv/pd pingcap/tics pingcap/br pingcap/tidb-binlog pingcap/tidb-lightning pingcap/tidb-tools pingcap/ticdc pingcap/dumpling pingcap/tiflash"
+repo_list="pingcap/tidb pingcap/parser tikv/tikv tikv/pd pingcap/tics pingcap/br pingcap/tidb-binlog pingcap/tidb-tools pingcap/ticdc pingcap/dumpling pingcap/tiflash"
 
 set -x
 for repo in $repo_list;do
