@@ -51,11 +51,6 @@ repo_list = [
         tag_githash='',
         version=''),
     repo_info(
-        repo_name='lightning',
-        repo_addr='pingcap/tidb-lightning',
-        tag_githash='',
-        version=''),
-    repo_info(
         repo_name='importer',
         repo_addr='tikv/importer',
         tag_githash='',
