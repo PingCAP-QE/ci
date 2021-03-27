@@ -161,6 +161,7 @@ def update = { name, version, hash, os, arch ->
         pack name, version, os, arch
     } catch (e) {
         echo "update ${name}-${version}-${os}-${arch}: ${e}"
+        throw e
     }
 }
 
