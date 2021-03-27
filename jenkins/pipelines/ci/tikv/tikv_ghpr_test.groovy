@@ -354,7 +354,7 @@ try {
                                         """
 
                                         sh label: 'Post-build: Upload test artifacts', script: """
-                                        cat test.json| jq -r 'select(.profile.test==true or (try .target.kind[] | index( "dylib" ))) | .filenames[]' > test.list
+                                        cat test.json| jq -r "select(.profile.test == true) | .filenames[]" > test.list
                                         for i in `cat test.list`;do curl -F tikv_test/${ghprbActualCommit}\$i=@\$i ${FILE_SERVER2_URL}/upload;done
                                         cat test.list|grep -v codec_bytes | grep -v failpoints | grep -v integrations | grep -v debug/tikv- > test.normal
                                         split test.normal -n r/8 test_chunk_ -a 1 --numeric-suffixes=1
