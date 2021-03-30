@@ -118,7 +118,7 @@ def package_tools = { plat, arch ->
     binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
-    lightning_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+    br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     importer_hash = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
 
     if(arch == "arm64") {
@@ -127,13 +127,13 @@ def package_tools = { plat, arch ->
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog-linux-arm64.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server-linux-arm64.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${lightning_hash}/centos7/tidb-lightning-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${br_hash}/centos7/br-linux-arm64.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer-linux-arm64.tar.gz
 
             tar xf tidb-binlog-linux-arm64.tar.gz
             tar xf pd-server-linux-arm64.tar.gz
             tar xf tidb-tools-linux-arm64.tar.gz
-            tar xf tidb-lightning-linux-arm64.tar.gz
+            tar xf br-linux-arm64.tar.gz
             tar xf importer-linux-arm64.tar.gz
 
             cd tidb-binlog-*-linux-arm64/bin/
@@ -161,13 +161,13 @@ def package_tools = { plat, arch ->
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${lightning_hash}/centos7/tidb-lightning.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${br_hash}/centos7/br.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer.tar.gz
 
             tar xf tidb-binlog.tar.gz
             tar xf pd-server.tar.gz
             tar xf tidb-tools.tar.gz
-            tar xf tidb-lightning.tar.gz
+            tar xf br.tar.gz
             tar xf importer.tar.gz
 
             cd bin/
@@ -205,7 +205,7 @@ node("delivery") {
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
         stage("Install tiup") {
-            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+            util.install_tiup_without_key "/usr/local/bin"
         }
 
         stage("build community tarball linux/amd64") {
