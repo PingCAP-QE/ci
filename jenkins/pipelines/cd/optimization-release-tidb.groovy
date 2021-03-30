@@ -4,7 +4,6 @@
 * @PD_TAG
 * @BINLOG_TAG
 * @TIFLASH_TAG
-* @LIGHTNING_TAG
 * @IMPORTER_TAG
 * @TOOLS_TAG
 * @BR_TAG
@@ -35,7 +34,7 @@ catchError {
                 dir('centos7') {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     if (STAGE != "build") {
-                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || LIGHTNING_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || TOOLS_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
+                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || TOOLS_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
                             println "release must be used with tag."
                             sh "exit 2"
                         }
@@ -668,7 +667,7 @@ __EOF__
                                 [$class: 'StringParameterValue', name: 'TIKV_TAG', value: TIKV_TAG],
                                 [$class: 'StringParameterValue', name: 'PD_TAG', value: PD_TAG],
                                 [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: BINLOG_TAG],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: LIGHTNING_TAG],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: BR_TAG],
                                 [$class: 'StringParameterValue', name: 'BR_TAG', value: BR_TAG],
                                 [$class: 'StringParameterValue', name: 'CDC_TAG', value: CDC_TAG],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: TIFLASH_TAG],
