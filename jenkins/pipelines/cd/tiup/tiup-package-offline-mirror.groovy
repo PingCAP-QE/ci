@@ -205,7 +205,7 @@ node("delivery") {
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
         stage("Install tiup") {
-            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+            util.install_tiup_without_key "/usr/local/bin"
         }
 
         stage("build community tarball linux/amd64") {
