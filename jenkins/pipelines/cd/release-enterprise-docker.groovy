@@ -26,7 +26,7 @@ catchError {
                     tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                     tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
                     pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-                    //tidb_lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${LIGHTNING_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tidb_lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${LIGHTNING_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -65,7 +65,7 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server-${RELEASE_TAG}-enterprise.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
-                    // sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
 
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
