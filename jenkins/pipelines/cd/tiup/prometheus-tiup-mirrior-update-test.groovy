@@ -98,9 +98,8 @@ node("build_go1130") {
         checkout scm
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
-        stage("Install tiup/qshell") {
+        stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-            util.install_qshell "/usr/local/bin", QSHELL_KEY, QSHELL_SEC
         }
 
         stage("Checkout tics") {
@@ -124,9 +123,5 @@ node("build_go1130") {
         stage("TiUP build prometheus on darwin/amd64") {
             update VERSION, "darwin", "amd64"
         }
-
-        // stage("Upload") {
-        //     upload "package"
-        // }
     }
 }
