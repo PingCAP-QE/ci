@@ -13,7 +13,7 @@ def install_tiup(bin_dir,private_key) {
     """
 }
 
-def install_tiup_without_key = { bin_dir ->
+def install_tiup_without_key(bin_dir) ->
     sh """
     wget -q ${TIUP_MIRROR}/tiup-linux-amd64.tar.gz
     tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
