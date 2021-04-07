@@ -17,7 +17,7 @@ def task = "release-check"
 def check_image = { comps, edition, registry ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/lilinghai/release-checker:master', envVars: [
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/lilinghai/release-checker:master',alwaysPull: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
     ]) {
@@ -49,7 +49,7 @@ def check_pingcap = { arch, edition ->
         def imageName = "hub.pingcap.net/lilinghai/release-checker:tiflash"
         def label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,
+                containerTemplate(name: 'main', image: imageName,alwaysPull: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -80,7 +80,7 @@ def check_tiup = { comps, label ->
         def imageName = "hub.pingcap.net/lilinghai/release-checker:tiflash"
         label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,
+                containerTemplate(name: 'main', image: imageName,alwaysPull: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -196,7 +196,7 @@ parallel(
             check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "registry.hub.docker.com")
         },
         "Image Enterprise Docker": {
-            check_image(["tidb", "tikv", "pd", "tidb-binlog", "tidb-lightning", "ticdc", "tiflash"], "enterprise", "registry.hub.docker.com")
+            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "enterprise", "registry.hub.docker.com")
         },
         "Image Community Ucloud": {
             check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "uhub.service.ucloud.cn")
@@ -225,4 +225,3 @@ parallel(
             check_pingcap("linux-arm64", "enterprise")
         }
 )
-

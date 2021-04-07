@@ -646,12 +646,6 @@ __EOF__
                 build(job: "jira_create_release_version", wait: false, parameters: [string(name: "RELEASE_TAG", value: "${RELEASE_TAG}")])
             }
 
-            stage("trigger merge docs") {
-                build job: 'release_tidb_docs',
-                        wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
-            }
-
             stage("trigger release tidb on tiup") {
                 build job: 'tiup-mirror-update-test',
                         wait: true,

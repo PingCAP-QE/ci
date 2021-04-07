@@ -170,14 +170,9 @@ def update_ctl = { version, os, arch ->
     mkdir -p tiup
     """
     dir("tiup") {
-//        git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap-incubator/tiup.git", branch: "master"
-//        sh """
-//         cd components/ctl/
-//         GOOS=$os GOARCH=$arch go build -o ctl
-//         """
         dir("components/ctl") {
-//            tiup-ctl 一般不会变更，先用 5.0.0-rc 版本
-            sh "curl https://tiup-mirrors.pingcap.com/ctl-v5.0.0-rc-${os}-${arch}.tar.gz | tar xz ctl"
+            // tiup-ctl 一般不会变更，可以固定使用 v1.4.0 版本
+            sh "curl -L https://github.com/pingcap/tiup/releases/download/v1.4.0/tiup-v1.4.0-${os}-${arch}.tar.gz | tar -xz bin/tiup-ctl"
         }
     }
 
@@ -208,7 +203,7 @@ def update_ctl = { version, os, arch ->
     }
 
     sh """
-    mv tiup/components/ctl/ctl ctls/
+    mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
     curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-${os}-${arch}.tar.gz | tar xz
     mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
     tiup package \$(ls ctls) -C ctls --name=ctl --release=${version} --entry=ctl --os=${os} --arch=${arch} --desc="${ctl_desc}"
