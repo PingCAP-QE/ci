@@ -196,7 +196,7 @@ parallel(
             check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "registry.hub.docker.com")
         },
         "Image Enterprise Docker": {
-            check_image(["tidb", "tikv", "pd", "tidb-binlog", "tidb-lightning", "ticdc", "tiflash"], "enterprise", "registry.hub.docker.com")
+            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "enterprise", "registry.hub.docker.com")
         },
         "Image Community Ucloud": {
             check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "uhub.service.ucloud.cn")
@@ -225,4 +225,3 @@ parallel(
             check_pingcap("linux-arm64", "enterprise")
         }
 )
-
