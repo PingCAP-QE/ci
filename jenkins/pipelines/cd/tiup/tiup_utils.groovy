@@ -24,23 +24,3 @@ def install_tiup_without_key(bin_dir) {
     mkdir -p ~/.tiup/keys
     """
 }
-
-def install_qshell(bin_dir,qshell_key,qshell_sec) {
-    sh """
-    wget -q https://tiup-mirrors.pingcap.com/qshell-linux-amd64.tar.gz
-    sudo tar -zxf qshell-linux-amd64.tar.gz -C ${bin_dir}
-    sudo chmod 755 ${bin_dir}/qshell
-    set +x
-    qshell account ${qshell_key} ${qshell_sec} tiup-mirror-update --overwrite
-    set -x
-    """
-}
-
-def upload(dir) {
-    sh """
-    rm -rf ~/.qshell/qupload
-    qshell qupload2 --src-dir=${dir} --bucket=tiup-mirrors --overwrite
-    """
-}
-
-return this

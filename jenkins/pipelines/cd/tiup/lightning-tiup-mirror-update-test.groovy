@@ -85,9 +85,8 @@ try {
             checkout scm
             def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
-            stage("Install tiup/qshell") {
+            stage("Install tiup") {
                 util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                util.install_qshell "/usr/local/bin",QSHELL_KEY, QSHELL_SEC
             }
 
             stage("Get hash") {
@@ -117,8 +116,6 @@ try {
             stage("tiup release tidb-lightning darwin amd64") {
                 update "br", RELEASE_TAG, "darwin", "amd64"
             }
-
-            // upload "package"
         }
     }
 } catch (Exception e) {

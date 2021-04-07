@@ -23,17 +23,6 @@ def install_tiup = { bin_dir ->
     """
 }
 
-def install_qshell = { bin_dir ->
-    sh """
-    wget -q https://tiup-mirrors.pingcap.com/qshell-linux-amd64.tar.gz
-    sudo tar -zxf qshell-linux-amd64.tar.gz -C ${bin_dir}
-    sudo chmod 755 ${bin_dir}/qshell
-    set +x
-    qshell account ${QSHELL_KEY} ${QSHELL_SEC} tiup-mirror-update --overwrite
-    set -x
-    """
-}
-
 def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
@@ -180,13 +169,6 @@ def pack = { name, version, os, arch ->
     """
 }
 
-def upload = { dir ->
-    sh """
-    rm -rf ~/.qshell/qupload
-    qshell qupload2 --src-dir=${dir} --bucket=tiup-mirrors --overwrite
-    """
-}
-
 def update = { name, version, hash, os, arch ->
     try {
         download name, hash, os, arch
@@ -253,9 +235,8 @@ node("build_go1130") {
                 deleteDir()
             }
 
-            stage("Install tiup/qshell") {
+            stage("Install tiup") {
                 install_tiup "/usr/local/bin"
-                install_qshell "/usr/local/bin"
             }
 
             stage("Get component hash") {
@@ -320,10 +301,6 @@ node("build_go1130") {
                 update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
                 update_ctl RELEASE_TAG, "darwin", "amd64"
             }
-
-            // stage("Upload") {
-            //     upload "package"
-            // }
 
             def params1 = [
                     string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),

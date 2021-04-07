@@ -97,9 +97,8 @@ node("build_go1130") {
         checkout scm
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
-        stage("Install tiup/qshell") {
+        stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-            util.install_qshell "/usr/local/bin", QSHELL_KEY, QSHELL_SEC
         }
 
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1") {
