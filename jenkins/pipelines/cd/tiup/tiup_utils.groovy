@@ -24,3 +24,5 @@ def install_tiup_without_key(bin_dir) {
     mkdir -p ~/.tiup/keys
     """
 }
+
+return this
