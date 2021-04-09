@@ -87,20 +87,18 @@ def fallback() {
         println "[debug] tiflashTag: $tiflashTag"
         println "[debug] tidbBranch: $tidbBranch"
 
-        parallel(
-                "TiCS Test": {
-                    run(label) {
-                        dir("tics") {
-                            stage("Checkout") {
-                                container("docker") {
-                                    sh """
+        run(label) {
+            dir("tics") {
+                stage("Checkout") {
+                    container("docker") {
+                        sh """
                                 archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
                                 if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
                                 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
                                 apk add --update --no-cache lcov
                                 """
-                                    sh "chown -R 1000:1000 ./"
-                                    sh """
+                        sh "chown -R 1000:1000 ./"
+                        sh """
                                 # if ! grep -q hub.pingcap.net /etc/hosts ; then echo '172.16.10.5 hub.pingcap.net' >> /etc/hosts; fi
                                 if [ -d '../tiflash/tests/maven' ]; then
                                     cd '../tiflash/tests/maven'
@@ -108,32 +106,30 @@ def fallback() {
                                     cd -
                                 fi
                                 """
-                                }
-                                checkoutTiCS("${params.ghprbActualCommit}", "${params.ghprbPullId}")
-                            }
-                            stage("Test") {
-                                timeout(time: 90, unit: 'MINUTES') {
-                                    container("docker") {
-                                        sh """
+                    }
+                    checkoutTiCS("${params.ghprbActualCommit}", "${params.ghprbPullId}")
+                }
+                stage("Test") {
+                    timeout(time: 90, unit: 'MINUTES') {
+                        container("docker") {
+                            sh """
                                     while ! docker pull hub.pingcap.net/tiflash/tics:${params.ghprbActualCommit}; do sleep 60; done
                                     """
-                                        dir("tests/docker") {
-                                            try {
-                                                sh "TAG=${params.ghprbActualCommit} BRANCH=${tidbBranch} bash -xe run.sh"
-                                            } catch (e) {
-                                                archiveArtifacts(artifacts: "log/**/*.log", allowEmptyArchive: true)
-                                                sh "find log -name '*.log' | xargs tail -n 500"
-                                                sh "docker ps -a"
-                                                throw e
-                                            }
-                                        }
-                                    }
+                            dir("tests/docker") {
+                                try {
+                                    sh "TAG=${params.ghprbActualCommit} BRANCH=${tidbBranch} bash -xe run.sh"
+                                } catch (e) {
+                                    archiveArtifacts(artifacts: "log/**/*.log", allowEmptyArchive: true)
+                                    sh "find log -name '*.log' | xargs tail -n 500"
+                                    sh "docker ps -a"
+                                    throw e
                                 }
                             }
                         }
                     }
-                },
-        )
+                }
+            }
+        }
 
     }
 
@@ -194,8 +190,8 @@ podTemplate(name: loader, label: loader, instanceCap: 10, containers: [
     }
 }
 
-stage("upload status"){
-    node{
+stage("upload status") {
+    node {
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
