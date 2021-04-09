@@ -17,22 +17,38 @@ import (
 
 const Threshold = 3
 
-const postTemplate = `
-{
-	"msgtype": "markdown",
-	"markdown": {
-		"content": "Today's job fail reasons: 
-
-%s
-` + "\n" + `"
-	}
+type FeiShuMsgContent struct {
+	Tag  string `json:"tag"`
+	Text string `json:"text"`
 }
-	`
+type FeiShuMsgZhCn struct {
+	Title   string               `json:"title"`
+	Content [][]FeiShuMsgContent `json:"content"`
+}
+type FeiShuMsg struct {
+	MsgType string `json:"msg_type"`
+	Content struct {
+		Post struct {
+			ZhCn FeiShuMsgZhCn `json:"zh_cn"`
+		} `json:"post"`
+	} `json:"content"`
+}
 
 func reportToGroupchat(wecomkey string, caseList map[string]int) error {
-	url := "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + wecomkey
-	content := ""
-
+	url := "https://open.feishu.cn/open-apis/bot/v2/hook/" + wecomkey
+	feishuMsg := FeiShuMsg{
+		MsgType: "post",
+		Content: struct {
+			Post struct {
+				ZhCn FeiShuMsgZhCn `json:"zh_cn"`
+			} `json:"post"`
+		}{Post: struct {
+			ZhCn FeiShuMsgZhCn `json:"zh_cn"`
+		}{ZhCn: FeiShuMsgZhCn{
+			Title:   "Today's job fail reasons",
+			Content: [][]FeiShuMsgContent{},
+		}}},
+	}
 	var reasons []string
 	for r := range caseList {
 		reasons = append(reasons, r)
@@ -52,13 +68,20 @@ func reportToGroupchat(wecomkey string, caseList map[string]int) error {
 		}
 
 		log.S().Info("Logged item: ", item)
-		content += fmt.Sprintf("> (%d times)\n> `%s`\n", freq, item)
+		content := fmt.Sprintf("(%d times): %s", freq, item)
+		feishuMsg.Content.Post.ZhCn.Content = append(feishuMsg.Content.Post.ZhCn.Content, []FeiShuMsgContent{{
+			Tag:  "text",
+			Text: content,
+		}})
 	}
-	content = fmt.Sprintf(postTemplate, content)
-	data := strings.NewReader(content)
+	feishuMsgBt, err := json.Marshal(feishuMsg)
+	if err != nil {
+		log.S().Fatal("json marshal error: ", err)
+	}
+	data := strings.NewReader(string(feishuMsgBt))
 	resp, err := http.Post(url, "application/json", data)
 	if err == nil && resp.StatusCode == 200 {
-		log.S().Info("Report to wecom successful: \n", content)
+		log.S().Info("Report to feishu successful: \n", string(feishuMsgBt))
 	}
 	return err
 }
