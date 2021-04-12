@@ -627,14 +627,6 @@ __EOF__
                 parallel builds
             }
 
-            stage("trigger tidb-ansible bump version") {
-                build job: 'tidb-ansible-release-bump-version',
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                        ]
-            }
 // monitoring 编译，upload
             stage("trigger release monitor") {
                 build job: 'release-monitor',
