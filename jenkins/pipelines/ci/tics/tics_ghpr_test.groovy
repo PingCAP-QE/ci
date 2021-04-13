@@ -110,7 +110,7 @@ def fallback() {
                     checkoutTiCS("${params.ghprbActualCommit}", "${params.ghprbPullId}")
                 }
                 stage("Test") {
-                    timeout(time: 90, unit: 'MINUTES') {
+                    timeout(time: 120, unit: 'MINUTES') {
                         container("docker") {
                             sh """
                                     while ! docker pull hub.pingcap.net/tiflash/tics:${params.ghprbActualCommit}; do sleep 60; done
