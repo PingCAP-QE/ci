@@ -340,8 +340,72 @@ try {
             // 将执行较慢的 chunk 放在前面优先调度，以减轻调度的延迟对执行时间的影响
             def tests = [:]
 
+            tests["Race Test Chunk #9 executor"] = {
+                run_race_test_heavy(9)
+            }
+
+            tests["Race Test Chunk #10"] = {
+                run_race_test(10)
+            }
             // run race #6/#8 in parallel mode for master branch
-      
+            if (ghprbTargetBranch == "master") {
+                tests["Race Test Chunk #7 ddl-dbsuite"] = {
+                    run_race_test_heavy_with_args(7, '-check.f "testDBSuite"')
+                }
+
+                tests["Race Test Chunk #7 ddl-other"] = {
+                    run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite"')
+                }
+
+                tests["Race Test Chunk #6"] = {
+                    run_race_test_heavy_parallel(6)
+                }
+                tests["Race Test Chunk #8 session"] = {
+                    run_race_test_heavy_parallel(8)
+                }
+
+            } else {
+                tests["Race Test Chunk #7"] = {
+                    run_race_test_heavy(7)
+                }
+
+                tests["Race Test Chunk #6"] = {
+                    run_race_test_heavy(6)
+                }
+
+                tests["Race Test Chunk #8 session"] = {
+                    run_race_test_heavy(8)
+                }
+            }
+
+            tests["Race Test Chunk #12 expression"] = {
+                run_race_test(12)
+            }
+
+            tests["Race Test Chunk #1"] = {
+                run_race_test(1)
+            }
+
+            tests["Race Test Chunk #2"] = {
+                run_race_test(2)
+            }
+
+            tests["Race Test Chunk #3"] = {
+                run_race_test(3)
+            }
+
+            tests["Race Test Chunk #4"] = {
+                run_race_test(4)
+            }
+
+            tests["Race Test Chunk #5"] = {
+                run_race_test(5)
+            }
+
+            tests["Race Test Chunk #13"] = {
+                run_race_test(13)
+            }
+
 
             tests["Unit Test Chunk #1"] = {
                 run_unit_test(1)
