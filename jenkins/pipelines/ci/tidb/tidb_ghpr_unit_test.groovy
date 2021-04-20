@@ -86,15 +86,17 @@ try {
                             """
                             }
                         }
-                        dir("go/src/github.com/pingcap/tidb") {
+                    }
+
+                    dir("go/src/github.com/pingcap/tidb") {
+                        container("golang") {
                             timeout(5) {
                                 sh """
                             cp -R /home/jenkins/agent/git/tidb/* ./
                             """
                             }
                         }
-                        dir("go/src/github.com/pingcap/tidb") {                          
-                            try {
+                        try {
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             } catch (info) {
                                 retry(2) {
@@ -108,7 +110,6 @@ try {
                                 }
                             }
                             sh "git checkout -f ${ghprbActualCommit}"
-                        }
                     }
 
 
