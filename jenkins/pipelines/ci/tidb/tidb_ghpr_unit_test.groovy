@@ -86,7 +86,14 @@ try {
                             """
                             }
                         }
-                        dir("/home/jenkins/agent/git/tidb") {
+                        dir("go/src/github.com/pingcap/tidb") {
+                            timeout(5) {
+                                sh """
+                            cp -R /home/jenkins/agent/git/tidb/* ./
+                            """
+                            }
+                        }
+                        dir("go/src/github.com/pingcap/tidb") {                          
                             try {
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             } catch (info) {
@@ -108,12 +115,10 @@ try {
                     // update tidb cache
                     dir("go/src/github.com/pingcap/tidb") {
                         container("golang") {
-                            deleteDir()
                             timeout(5) {
                                 sh """
-                            cp -R /home/jenkins/agent/git/tidb/* ./
                             rm -rf ./bin
-                            GOPATH=${ws}/go go list ./... | grep -v cmd/ddltest > packages.list
+                            go list ./... | grep -v cmd/ddltest > packages.list
                             package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                             cat packages.list | grep -v "\${package_base}/ddl"|grep -v "\${package_base}/executor" |grep -v "\${package_base}/session" | grep -v "\${package_base}/expression" | grep -vE "\${package_base}/store\$" > packages.list.short
                             echo "\${package_base}/ddl" > packages_race_7
@@ -153,7 +158,7 @@ try {
                             set -e
                             echo "failpoint bin: \$failpoint_bin"
                             make \$failpoint_bin
-                            find . -type d | grep -vE "(\\.git|_tools)" | GOPATH=${ws}/go xargs \$failpoint_bin enable
+                            find . -type d | grep -vE "(\\.git|_tools)" | xargs \$failpoint_bin enable
                             """
                             }
                         }
@@ -189,9 +194,8 @@ try {
                                 killall -9 -r -q pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info 
-                                time GOPATH=${ws}/go ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) #  > test.log
+                                time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) #  > test.log
                                 """
                                 }
                             }catch (err) {
@@ -228,9 +232,8 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info
-                                time GOPATH=${ws}/go ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
+                                time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
                                 """
                                 }
                             }catch (err) {
@@ -268,9 +271,8 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info
-                                time GORACE="history_size=7" GOPATH=${ws}/go ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
+                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
                                 """
                                 }
                             }catch (err) {
@@ -315,9 +317,8 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info 
-                                time GOPATH=${ws}/go ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) # > test.log
+                                time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) # > test.log
                                 """
                                 }
                             }catch (err) {
