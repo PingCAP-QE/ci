@@ -86,28 +86,31 @@ try {
                         """
                     }
                 }
-                dir("/home/jenkins/agent/git/tidb") {
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 2
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+            }
+            dir("go/src/github.com/pingcap/tidb") {
+                container("golang") {
+                    timeout(5) {
+                        sh """
+                        cp -R /home/jenkins/agent/git/tidb/* ./
+                        """
+                    }
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        } catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                         }
                     }
                     sh "git checkout -f ${ghprbActualCommit}"
-                }
             }
-            dir("go/src/github.com/pingcap/tidb") {
-                deleteDir()
-                sh """
-                cp -R /home/jenkins/agent/git/tidb/. ./
-                """
-            }
+
             stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
         }
 
@@ -119,14 +122,13 @@ try {
                 dir("go/src/github.com/pingcap/tidb") {
                     timeout(15) {
                         sh """
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sfT \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                         sed -i  's,go list ./...| grep -vE "cmd",go list ./...| grep -vE "cmd" | grep -vE "store/tikv\$\$",' ./Makefile
                         sed -i "s,-cover \\\$(PACKAGES),-cover \${package_base}/store/tikv \\\$(PACKAGES)," ./Makefile
                         # export GOPROXY=http://goproxy.pingcap.net
-                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then GOPATH=${ws}/go EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi
+                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi
 
-                        # if grep -q gogenerate "Makefile";then GOPATH=${ws}/go  make gogenerate ; fi
+                        # if grep -q gogenerate "Makefile";then  make gogenerate ; fi
                         """
                     }
                 }
@@ -173,8 +175,8 @@ try {
                                     cd session
                                     export log_level=error
                                     # export GOPROXY=http://goproxy.pingcap.net
-                                    GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off -check.p
-                                    #GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
+                                    go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off -check.p
+                                    #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
                                     """
                                 }
                             }catch (Exception e){
