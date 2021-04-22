@@ -27,7 +27,7 @@ try {
     node(buildSlave) {
 
         def ws = pwd()
-        deleteDir()
+        // deleteDir()
 
         stage("Checkout") {
 
