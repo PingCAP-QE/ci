@@ -28,7 +28,7 @@ def checkoutTiCS(commit, pullId) {
 }
 
 def run(label, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 20, idleMinutes:1440, containers: [
+    podTemplate(name: label, label: label, instanceCap: 20, idleMinutes:1440, nodeSelector: "role_type=slave", containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                             resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                             resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
