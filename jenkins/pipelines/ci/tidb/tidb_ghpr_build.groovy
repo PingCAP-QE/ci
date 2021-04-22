@@ -79,8 +79,8 @@ try {
                     timeout(5) {
                         sh """
                         git checkout -f ${ghprbActualCommit}
-                        mkdir -p ${ws}go/src/github.com/pingcap/tidb-build-plugin/
-                        cp -R ./* ${ws}go/src/github.com/pingcap/tidb-build-plugin/
+                        mkdir -p ${ws}/go/src/github.com/pingcap/tidb-build-plugin/
+                        cp -R ./* ${ws}/go/src/github.com/pingcap/tidb-build-plugin/
                         """
                     }
                 }
