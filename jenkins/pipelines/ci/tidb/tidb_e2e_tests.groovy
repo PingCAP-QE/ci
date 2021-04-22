@@ -42,28 +42,17 @@ try {
             container("golang") {
                 sh "whoami && go version"
             }
-            // update cache
-            dir("/home/jenkins/agent/git/tidb") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
-                if(!fileExists("/home/jenkins/agent/git/tidb/Makefile")) {
-                    dir("/home/jenkins/agent/git") {
-                        sh """
-                            rm -rf tidb.tar.gz
-                            rm -rf tidb
-                            wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                            tar xvf tidb.tar.gz
-                        """
-                    }
-                }
-            }
+            // update code
             dir("go/src/github.com/pingcap/tidb") {
+                // delete to clean workspace in case of agent pod reused lead to conflict.
+                deleteDir()
+                // copy code from nfs cache
                 container("golang") {
                     timeout(5) {
                         sh """
-                        cp -R /home/jenkins/agent/git/tidb/* ./
+                            cp -R /nfs/cache/git/tidb/* ./
                         """
+                        println "copy code from nfs cache successfully"
                     }
                 }
                 try {
