@@ -69,7 +69,7 @@ try {
         }
     }
     //def buildSlave = "${GO_BUILD_SLAVE}"
-    def testSlave = "test_go_heavy"
+    def testSlave = "test_go"
 
     node(buildSlave) {
         stage("Checkout") {
