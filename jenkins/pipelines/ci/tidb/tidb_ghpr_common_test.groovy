@@ -88,13 +88,12 @@ try {
                             sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
                         curl ${tidb_test_url} | tar xz
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sT \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                         # export GOPROXY=http://goproxy.pingcap.net
-                        cd tidb_test && GOPATH=${ws}/go ./build.sh && cd ..
-                        cd mysql_test && GOPATH=${ws}/go ./build.sh && cd ..
-                        cd randgen-test && GOPATH=${ws}/go ./build.sh && cd ..
-                        cd analyze_test && GOPATH=${ws}/go ./build.sh && cd ..
+                        cd tidb_test && ./build.sh && cd ..
+                        cd mysql_test && ./build.sh && cd ..
+                        cd randgen-test && ./build.sh && cd ..
+                        cd analyze_test && ./build.sh && cd ..
                         if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
                             cd randgen-test && ls t > packages.list
                             split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
@@ -160,9 +159,8 @@ try {
                                 set -e
                                 awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                GOPATH=${ws}/go ./test.sh
+                                ./test.sh
                                 
                                 set +e
                                 killall -9 -r tidb-server
@@ -244,9 +242,8 @@ try {
                                     cp \$(cat ../packages_${chunk}) ../t
                                     cd ..
                                 fi
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                GOPATH=${ws}/go ./test.sh
+                                ./test.sh
                                 
                                 set +e
                                 killall -9 -r tidb-server
@@ -314,9 +311,8 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                CACHE_ENABLED=1 GOPATH=${ws}/go ./test.sh
+                                CACHE_ENABLED=1 ./test.sh
                                 
                                 set +e
                                 killall -9 -r tidb-server
@@ -400,7 +396,6 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
                                 ./test.sh
@@ -484,7 +479,6 @@ EOF
                                 
                                 cat ~/.m2/settings.xml || true
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 GOPATH=disable GOROOT=disable ${testsh}
                                 

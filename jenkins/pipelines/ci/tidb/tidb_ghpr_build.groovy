@@ -53,49 +53,58 @@ try {
                         """
                     }
                 }
-                dir("/home/jenkins/agent/git/tidb") {
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 20
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
+            }
+            dir("go/src/github.com/pingcap/tidb") {
+                container("golang") {
+                    timeout(5) {
+                        sh """
+                        cp -R /home/jenkins/agent/git/tidb/* ./
+                        """
+                    }
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]                       
+                } catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                        }
+                    }
+                container("golang") {
+                    timeout(5) {
+                        sh """
+                        git checkout -f ${ghprbActualCommit}
+                        mkdir -p ${ws}go/src/github.com/pingcap/tidb-build-plugin/
+                        cp -R ./* ${ws}go/src/github.com/pingcap/tidb-build-plugin/
+                        """
                     }
                 }
             }
         }
 
         stage("Build tidb-server and plugin"){
-            container("golang") {
-                sh "mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod"
-            }
             def builds = [:]
             builds["Build and upload TiDB"] = {
                 stage("Build"){
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            deleteDir()
                             timeout(10) {
-                                sh """
-                                cp -R /home/jenkins/agent/git/tidb/. ./
-                                git checkout -f ${ghprbActualCommit}
-                                """
                                 if (isBuildCheck){
                                     sh """
-	                                nohup bash -c "if GOPATH=${ws}/go  make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if GOPATH=${ws}/go  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-	                                GOPATH=${ws}/go  make
+	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+	                                make
 	                                """
                                 }else{
                                     sh """
-	                                nohup bash -c "if GOPATH=${ws}/go  make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if GOPATH=${ws}/go  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
-	                                GOPATH=${ws}/go  make
+	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
+	                                make
 	                                touch tidb-server-check.done
 	                                """
                                 }
@@ -172,11 +181,8 @@ try {
                     stage ("Build plugins") {
                         container("golang") {
                             dir("go/src/github.com/pingcap/tidb-build-plugin") {
-                                deleteDir()
                                 timeout(20) {
                                     sh """
-                                    cp -R /home/jenkins/agent/git/tidb/. ./
-                                    git checkout -f ${ghprbActualCommit}
                                     cd cmd/pluginpkg
                                     go build
                                     """
@@ -188,12 +194,12 @@ try {
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                                 sh """
-                               GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                               ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                                """
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                                 sh """
-                               GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                               ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                                """
                             }
                         }

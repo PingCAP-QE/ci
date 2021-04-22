@@ -54,20 +54,29 @@ try {
                         """
                     }
                 }
-                dir("/home/jenkins/agent/git/tidb") {
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 120]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 60
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/tidb.git']]]
-                        }
+            }
+            dir("go/src/github.com/pingcap/tidb") {
+                container("golang") {
+                    timeout(5) {
+                        sh """
+                        cp -R /home/jenkins/agent/git/tidb/* ./
+                        """
                     }
                 }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        } catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        }
+                    }
+                    sh "git checkout -f ${ghprbActualCommit}"
             }
         }
 
@@ -77,16 +86,13 @@ try {
                     container("golang") {
                         timeout(30) {
                             sh """
-                            cp -R /home/jenkins/agent/git/tidb/. ./
-                            git checkout -f ${ghprbActualCommit}
-                            mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sT \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                             set +x
                             export CODECOV_TOKEN='2114fff2-bd95-43eb-9483-a351f0184eae'
                             export TRAVIS_COVERAGE=1
                             set -x
                             # we will change TiDB Makefile directly after the actual effect is stable
                             sed -ir 's/bash <(curl -s https:\\/\\/codecov.io\\/bash)/curl -s https:\\/\\/codecov.io\\/bash | bash -s -- -X s3/g' Makefile
-                            GOPATH=${ws}/go make gotest upload-coverage
+                            make gotest upload-coverage
                             """
                         }
                     }

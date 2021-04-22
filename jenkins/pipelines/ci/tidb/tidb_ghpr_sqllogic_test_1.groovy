@@ -81,8 +81,7 @@ try {
                             sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                         curl ${tidb_test_url} | tar xz
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                        cd sqllogic_test && GOPATH=${ws}/go ./build.sh
+                        cd sqllogic_test && ./build.sh
                         """
                         }
                     }

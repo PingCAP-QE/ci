@@ -109,11 +109,10 @@ try {
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                             curl ${tidb_test_url} | tar xz
 
-                            mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                             export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                            cd tidb_test && GOPATH=${ws}/go ./build.sh && cd ..
+                            cd tidb_test && ./build.sh && cd ..
                             if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                cd randgen-test && GOPATH=${ws}/go ./build.sh && cd ..
+                                cd randgen-test && ./build.sh && cd ..
                                 cd randgen-test && ls t > packages.list
                                 split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
                                 cd ..
@@ -166,10 +165,9 @@ try {
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                                 curl ${tidb_test_url} | tar xz
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                cd mysql_test && GOPATH=${ws}/go ./build.sh && cd ..
-                                cd analyze_test && GOPATH=${ws}/go ./build.sh && cd ..
+                                cd mysql_test && ./build.sh && cd ..
+                                cd analyze_test && ./build.sh && cd ..
                                 """
                                 }
                             }
@@ -258,13 +256,11 @@ try {
                                 sleep 10
                                 if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 export log_level=debug
                                 TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
                                 TIKV_PATH='127.0.0.1:2379' \
                                 TIDB_TEST_STORE_NAME=tikv \
-                                GOPATH=${ws}/go \
                                 ${test_cmd}
                                 """
                                 }
@@ -356,13 +352,11 @@ try {
                                     cd t_bak
                                     cp \$(cat ../packages_${chunk}) ../t
                                     cd ..
-                                    mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                     export log_level=debug
                                     TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
                                     TIKV_PATH='127.0.0.1:2379' \
                                     TIDB_TEST_STORE_NAME=tikv \
-                                    GOPATH=${ws}/go \
                                     ${test_cmd}
                                 fi
                                 """
@@ -483,8 +477,7 @@ try {
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod 
-                                GOPATH=${ws}/go CGO_ENABLED=1 make tikv_integration_test 2>&1
+                                CGO_ENABLED=1 make tikv_integration_test 2>&1
                                 """
                                 }
                             } catch (err) {
@@ -536,16 +529,15 @@ try {
                                 fi
                                 cp bin/tidb-server cmd/explaintest
                                 cp bin/importer cmd/explaintest
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 cd cmd/explaintest
-                                GOPATH=${ws}/go GO111MODULE=on go build -o explain_test
+                                GO111MODULE=on go build -o explain_test
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                GOPATH=${ws}/go ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                ./run-tests.sh -s ./tidb-server -i ./importer -b n
                                 """
                                 }
                             } catch (err) {

@@ -58,20 +58,6 @@ try {
                         """
                     }
                 }
-                dir("/home/jenkins/agent/git/tidb") {
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 120]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 2
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                        }
-                    }
-                }
 
                 if (!fileExists("/home/jenkins/agent/git/tools/bin/golangci-lint")) {
                     container("golang") {
@@ -83,32 +69,52 @@ try {
                     }
                 }
             }
+            dir("go/src/github.com/pingcap/tidb") {
+                container("golang") {
+                    timeout(5) {
+                        sh """
+                        cp -R /home/jenkins/agent/git/tidb/* ./
+                        """
+                    }
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        } catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        }
+                    }
+                    sh "git checkout -f ${ghprbActualCommit}"
+            }
         }
 
         stage("Build & Test") {
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
-                    deleteDir()
                     timeout(30) {
                         sh """
-                        cp -R /home/jenkins/agent/git/tidb/. ./
                         mkdir -p tools/bin
                         cp /home/jenkins/agent/git/tools/bin/golangci-lint tools/bin/
                         git checkout -f ${ghprbActualCommit}
                         ls -al tools/bin || true
                         # GOPROXY=http://goproxy.pingcap.net
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sfT \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         """
                     }
                     try {
                         if (ghprbTargetBranch == "master") {
                             def builds = [:]
                             builds["check"] = {
-                                sh "GOPATH=${ws}/go make check"
+                                sh "make check"
                             }
                             builds["test_part_1"] = {
                                 try {
-                                    sh "GOPATH=${ws}/go make test_part_1"
+                                    sh "make test_part_1"
                                 } catch (err) {
                                     throw err
                                 } finally {
@@ -117,7 +123,7 @@ try {
                             }
                             parallel builds
                         } else {
-                            sh "GOPATH=${ws}/go make dev"
+                            sh "make dev"
                         }
                     } catch (err) {
                         throw err
