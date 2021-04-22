@@ -38,28 +38,17 @@ try {
             container("golang") {
                 sh "whoami && go version"
             }
-            // update cache
-            dir("/home/jenkins/agent/git/tidb") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
-                if(!fileExists("/home/jenkins/agent/git/tidb/Makefile")) {
-                    dir("/home/jenkins/agent/git") {
-                        sh """
-                            rm -rf tidb.tar.gz
-                            rm -rf tidb
-                            wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                            tar xvf tidb.tar.gz
-                        """
-                    }
-                }
-            }
+            // update code
             dir("go/src/github.com/pingcap/tidb") {
+                // delete to clean workspace in case of agent pod reused lead to conflict.
+                deleteDir()
+                // copy code from nfs cache
                 container("golang") {
                     timeout(5) {
                         sh """
-                        cp -R /home/jenkins/agent/git/tidb/* ./
+                            cp -R /nfs/cache/git/tidb/* ./
                         """
+                        println "copy code from nfs cache successfully"
                     }
                 }
                 try {
@@ -74,7 +63,7 @@ try {
                                 // if checkout one pr failed, we fallback to fetch all thre pr data
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             }
-                    }
+                }
                 container("golang") {
                     timeout(5) {
                         sh """

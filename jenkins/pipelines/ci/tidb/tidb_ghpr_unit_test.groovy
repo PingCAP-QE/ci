@@ -70,6 +70,8 @@ try {
 
                     // update code
                     dir("go/src/github.com/pingcap/tidb") {
+                    // delete to clean workspace in case of agent pod reused lead to conflict.
+                        deleteDir()
                         // copy code from nfs cache
                         container("golang") {
                             timeout(5) {
