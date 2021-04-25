@@ -65,7 +65,6 @@ try {
             builds["unittest"] = {
                 node (buildSlave) {
                     def ws = pwd()
-                    def job_workspace = WORKSPACE
                     deleteDir()
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
@@ -83,24 +82,24 @@ try {
                             }
                             timeout(6) {
                                 sh """
-                                    mkdir -p ${job_workspace}/go/src/github.com/pingcap/tidb
-                                    tar -xzf src-tidb.tar.gz -C ${job_workspace}/go/src/github.com/pingcap/tidb/ --strip-components=1
+                                    mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                                    tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb/ --strip-components=1
                                 """
                             }
                         }
-                        dir("${job_workspace}/go/src/github.com/pingcap/tidb") {
+                        dir("${ws}/go/src/github.com/pingcap/tidb") {
                             if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                echo "Not a valid git folder: ${job_workspace}/go/src/github.com/pingcap/tidb"
+                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
                                 echo "Clean dir then get tidb src code from fileserver"
                                 deleteDir()
                             }
-                            if(!fileExists("${job_workspace}/go/src/github.com/pingcap/tidb/Makefile")) {
+                            if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
                                 dir("/home/jenkins/agent/code-archive") {
                                     sh """
                                     rm -rf tidb.tar.gz
                                     rm -rf tidb
                                     wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                                    tar -xzf tidb.tar.gz -C ${job_workspace}/go/src/github.com/pingcap/tidb/ --strip-components=1
+                                    tar -xzf tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb/ --strip-components=1
                                 """
                                 }
                             }
