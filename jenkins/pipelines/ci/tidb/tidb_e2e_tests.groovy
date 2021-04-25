@@ -54,13 +54,13 @@ try {
                             cp -R /nfs/cache/git/src-tidb.tar.gz.md5sum ./
                         """
                     }
-                }
                     timeout(6) {
                         sh """
                             mkdir -p ${ws}/go/src/github.com/pingcap/tidb
                             tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb/ --strip-components=1
                         """
                     }
+                }
                 dir("${ws}/go/src/github.com/pingcap/tidb") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
