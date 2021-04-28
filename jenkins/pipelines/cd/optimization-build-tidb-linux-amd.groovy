@@ -32,9 +32,11 @@ try {
                     sh "exit 2"
                 }
             }
-            if (BUILD_TIKV_IMPORTER == "false") {
 
-                stage("Build tidb-ctl") {
+            if (BUILD_TIKV_IMPORTER == "false") {
+                builds = [:]
+
+                builds["Build tidb-ctl"] = {
                     dir("go/src/github.com/pingcap/tidb-ctl") {
                         deleteDir()
                         git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/tidb-ctl.git", branch: "master"
@@ -48,11 +50,10 @@ try {
                         go build -o bin/tidb-ctl
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build tidb") {
+                builds["Build tidb"] = {
                     dir("go/src/github.com/pingcap/tidb") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -91,18 +92,18 @@ try {
                         
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-                stage("Build plugins") {
+                builds["Build plugins"] = {
                     dir("go/src/github.com/pingcap/tidb-build-plugin") {
                         deleteDir()
                         timeout(20) {
                             sh """
-                       cp -R ${ws}/go/src/github.com/pingcap/tidb/. ./
-                       cd cmd/pluginpkg
-                       go build
-                       """
+                           cp -R ${ws}/go/src/github.com/pingcap/tidb/. ./
+                           cd cmd/pluginpkg
+                           go build
+                        """
                         }
                     }
                     dir("go/src/github.com/pingcap/enterprise-plugin") {
@@ -115,27 +116,26 @@ try {
                     def md5path_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so.md5"
                     dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                         sh """
-                   GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
-                   """
+                        GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                    """
                         sh """
-                            md5sum whitelist-1.so > whitelist-1.so.md5
-                            curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
-                            curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
-                            """
+                        md5sum whitelist-1.so > whitelist-1.so.md5
+                        curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
+                    """
                     }
                     dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                         sh """
-                   GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
-                   """
+                        GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                    """
                         sh """
                         md5sum audit-1.so > audit-1.so.md5
                         curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
                         curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build tidb-binlog") {
+                builds["Build tidb-binlog"] = {
                     dir("go/src/github.com/pingcap/tidb-binlog") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -154,11 +154,10 @@ try {
                         make
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build tidb-tools") {
+                builds["Build tidb-tools"] = {
                     dir("go/src/github.com/pingcap/tidb-tools") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -174,11 +173,10 @@ try {
                         make build
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build pd") {
+                builds["Build pd"] = {
                     dir("go/src/github.com/pingcap/pd") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -198,11 +196,10 @@ try {
                         make tools
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build cdc") {
+                builds["Build cdc"] = {
                     dir("go/src/github.com/pingcap/ticdc") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -220,11 +217,10 @@ try {
                         mv bin/cdc ${target}/bin/
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build dumpling") {
+                builds["Build dumpling"] = {
                     dir("go/src/github.com/pingcap/dumpling") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -239,11 +235,10 @@ try {
                         make build
                         tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz *
                         curl -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
-
-                stage("Build br") {
+                builds["Build br"] = {
                     dir("go/src/github.com/pingcap/br") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -263,9 +258,11 @@ try {
                         tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
+                    """
                     }
                 }
+
+                parallel builds
             }
         }
     }
@@ -276,8 +273,8 @@ try {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 deleteDir()
             }
-
-            stage("Build TiKV") {
+            builds = [:]
+            builds["Build TiKV"] = {
                 dir("go/src/github.com/pingcap/tikv") {
                     if (BUILD_TIKV_IMPORTER == "true") {
                         dir("tikv_tmp") {
@@ -309,18 +306,16 @@ try {
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
-
                 }
             }
-
-            stage("Build Importer") {
+            builds["Build Importer"] = {
                 dir("go/src/github.com/pingcap/importer") {
                     if (BUILD_TIKV_IMPORTER == "true") {
                         dir("importer_tmp") {
                             deleteDir()
                             sh """
-                            curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer.tar.gz
-                            curl -F builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
+                                curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer.tar.gz
+                                curl -F builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
                             """
                         }
                     } else {
@@ -331,22 +326,24 @@ try {
                         def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
                         sh """
-                        for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-                        git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-                        git branch -D refs/tags/${RELEASE_TAG} || true
-                        git checkout -b refs/tags/${RELEASE_TAG}
-                        grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                        if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                            echo using gcc 8
-                            source /opt/rh/devtoolset-8/enable
-                        fi
-                        make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
-                        tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
-                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                            for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
+                            git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+                            git branch -D refs/tags/${RELEASE_TAG} || true
+                            git checkout -b refs/tags/${RELEASE_TAG}
+                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
+                                echo using gcc 8
+                                source /opt/rh/devtoolset-8/enable
+                            fi
+                            make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
+                            tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
+                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
             }
+
+            parallel builds
         }
     }
 
@@ -396,7 +393,7 @@ try {
                                 tar --exclude=${target}.tar.gz -czvf tiflash.tar.gz tiflash
                                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                                 curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                                """
+                            """
                         }
                     }
                 }
