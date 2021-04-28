@@ -16,7 +16,7 @@ $ghprbPullTitle
 EOT"""
             //echo "$ghprbPullLongDescription" > a.out
             //sh "echo \"$ghprbPullLongDescription\" > $ghprbActualCommit"
-            sh "egrep ':.+' $ghprbActualCommit/title.txt || ( echo 'Please format title' && exit 1) "
+            sh "egrep '.+: .+' $ghprbActualCommit/title.txt || ( echo 'Please format title' && exit 1) "
 
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
         }
