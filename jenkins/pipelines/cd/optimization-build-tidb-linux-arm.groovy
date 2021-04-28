@@ -100,14 +100,34 @@ try {
             }
         }
         if (BUILD_TIKV_IMPORTER == "false") {
-            build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
-            build_upload("tidb", TIDB_HASH, "tidb-server")
-            build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
-            build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
-            build_upload("pd", PD_HASH, "pd-server")
-            build_upload("ticdc", CDC_HASH, "ticdc")
-            build_upload("br", BR_HASH, "br")
-            build_upload("dumpling", DUMPLING_HASH, "dumpling")
+            builds = [:]
+
+            builds["Build tidb-ctl"] = {
+                build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
+            }
+            builds["Build tidb"] = {
+                build_upload("tidb", TIDB_HASH, "tidb-server")
+            }
+            builds["Build tidb-binlog"] = {
+                build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
+            }
+            builds["Build tidb-tools"] = {
+                build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
+            }
+            builds["Build pd"] = {
+                build_upload("pd", PD_HASH, "pd-server")
+            }
+            builds["Build ticdc"] = {
+                build_upload("ticdc", CDC_HASH, "ticdc")
+            }
+            builds["Build br"] = {
+                build_upload("br", BR_HASH, "br")
+            }
+            builds["Build dumpling"] = {
+                build_upload("dumpling", DUMPLING_HASH, "dumpling")
+            }
+
+            parallel builds
         }
         stage("Build TiKV") {
             dir("go/src/github.com/pingcap/tikv") {
