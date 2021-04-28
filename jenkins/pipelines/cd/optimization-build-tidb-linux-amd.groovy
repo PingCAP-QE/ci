@@ -69,10 +69,11 @@ try {
                 }
             }
             builds["Build tidb && plugins"] = {
+                def ws = pwd()
+                deleteDir()
                 node("build_go1130") {
                     container("golang") {
-                        def ws = pwd()
-                        deleteDir()
+                        echo "Build tidb"
                         dir("go/src/github.com/pingcap/tidb") {
                             if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                 deleteDir()
@@ -115,8 +116,7 @@ try {
                         }
                     }
                     container("golang") {
-                        def ws = pwd()
-                        deleteDir()
+                        echo "Build tidb plugins"
                         dir("go/src/github.com/pingcap/tidb-build-plugin") {
                             deleteDir()
                             timeout(20) {
