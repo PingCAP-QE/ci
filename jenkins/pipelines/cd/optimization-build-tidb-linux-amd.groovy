@@ -69,9 +69,9 @@ try {
                 }
             }
             builds["Build tidb && plugins"] = {
-                def ws = pwd()
-                deleteDir()
                 node("build_go1130") {
+                    def ws = pwd()
+                    deleteDir()
                     container("golang") {
                         echo "Build tidb"
                         dir("go/src/github.com/pingcap/tidb") {
