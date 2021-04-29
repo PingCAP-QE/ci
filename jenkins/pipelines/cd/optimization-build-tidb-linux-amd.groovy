@@ -23,7 +23,7 @@ try {
 
     // stage prepare
     // stage build
-    stage("Valid HASH") {
+    stage("Validating HASH") {
         node("build_go1130") {
             container("golang") {
                 def ws = pwd()
@@ -58,11 +58,11 @@ try {
                             def filepath = "builds/pingcap/tidb-ctl/optimization/${githash}/centos7/tidb-ctl.tar.gz"
 
                             sh """
-                            go version
-                            mkdir bin
-                            go build -o bin/tidb-ctl
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                                go version
+                                mkdir bin
+                                go build -o bin/tidb-ctl
+                                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
+                                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                             """
                         }
                     }
@@ -72,15 +72,59 @@ try {
                 node("build_go1130") {
                     def ws = pwd()
                     deleteDir()
-                    container("golang") {
-                        echo "Build tidb"
-                        dir("go/src/github.com/pingcap/tidb") {
-                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
+
+                    // update code
+                    dir("/home/jenkins/agent/code-archive") {
+                        // delete to clean workspace in case of agent pod reused lead to conflict.
+                        deleteDir()
+                        // copy code from nfs cache
+                        container("golang") {
+                            if (fileExists("/nfs/cache/git-test/src-tidb.tar.gz")) {
+                                timeout(5) {
+                                    sh """
+                                        cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                        mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                                        tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
+                                    """
+                                }
                             }
+                        }
+                    }
+                    dir("${ws}/go/src/github.com/pingcap/tidb") {
+                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                            echo "Clean dir then get tidb src code from fileserver"
+                            deleteDir()
+                        }
+                        if (!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                            dir("${ws}/go/src/github.com/pingcap/tidb") {
+                                sh """
+                                    rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                    rm -rf /home/jenkins/agent/code-archive/tidb
+                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                    tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                                """
+                            }
+                        }
+
+                        try {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
+                        } catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
+                            }
+
+                        }
+                    }
+                    dir("${ws}/go/src/github.com/pingcap/tidb") {
+                        container("golang") {
                             def target = "tidb-server"
                             def filepath = "builds/pingcap/tidb/optimization/${TIDB_HASH}/centos7/tidb-server.tar.gz"
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
                             sh """
                                 mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 for a in \$(git tag --contains ${TIDB_HASH}); do echo \$a && git tag -d \$a;done
@@ -115,10 +159,9 @@ try {
                             """
                         }
                     }
-                    container("golang") {
-                        echo "Build tidb plugins"
-                        dir("go/src/github.com/pingcap/tidb-build-plugin") {
-                            deleteDir()
+                    echo "Build tidb plugins"
+                    dir("${ws}/go/src/github.com/pingcap/tidb-build-plugin") {
+                        container("golang") {
                             timeout(20) {
                                 sh """
                                    cp -R ${ws}/go/src/github.com/pingcap/tidb/. ./
@@ -127,15 +170,17 @@ try {
                                 """
                             }
                         }
-                        dir("go/src/github.com/pingcap/enterprise-plugin") {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/enterprise-plugin.git']]]
-                            def plugin_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                        }
-                        def filepath_whitelist = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/whitelist-1.so"
-                        def md5path_whitelist = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/whitelist-1.so.md5"
-                        def filepath_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so"
-                        def md5path_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so.md5"
-                        dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
+                    }
+                    dir("${ws}/go/src/github.com/pingcap/enterprise-plugin") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/enterprise-plugin.git']]]
+                        def plugin_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                    }
+                    def filepath_whitelist = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/whitelist-1.so"
+                    def md5path_whitelist = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/whitelist-1.so.md5"
+                    def filepath_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so"
+                    def md5path_audit = "builds/pingcap/tidb-plugins/optimization/${RELEASE_TAG}/centos7/audit-1.so.md5"
+                    dir("${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist") {
+                        container("golang") {
                             sh """
                                 GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                             """
@@ -145,7 +190,9 @@ try {
                                 curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
                             """
                         }
-                        dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
+                    }
+                    dir("${ws}/go/src/github.com/pingcap/enterprise-plugin/audit") {
+                        container("golang") {
                             sh """
                                 GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                             """
@@ -164,23 +211,23 @@ try {
                         def ws = pwd()
                         deleteDir()
                         dir("go/src/github.com/pingcap/tidb-binlog") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
+                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                deleteDir()
+                            }
 
-                        def target = "tidb-binlog"
-                        def filepath = "builds/pingcap/tidb-binlog/optimization/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
-                        sh """
-                            for a in \$(git tag --contains ${BINLOG_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${BINLOG_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            make clean
-                            go version
-                            make
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                            def target = "tidb-binlog"
+                            def filepath = "builds/pingcap/tidb-binlog/optimization/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
+                            sh """
+                                for a in \$(git tag --contains ${BINLOG_HASH}); do echo \$a && git tag -d \$a;done
+                                git tag -f ${RELEASE_TAG} ${BINLOG_HASH}
+                                git branch -D refs/tags/${RELEASE_TAG} || true
+                                git checkout -b refs/tags/${RELEASE_TAG}
+                                make clean
+                                go version
+                                make
+                                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
+                                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                         }
                     }
@@ -324,8 +371,7 @@ try {
         if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
             builds["Build tiflash release"] = {
                 podTemplate(name: "build-tiflash-release", label: "build-tiflash-release",
-                        nodeSelector: 'role_type=slave',
-                        instanceCap: 5, idleMinutes: 10,
+                        nodeSelector: 'role_type=slave', instanceCap: 5,
                         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
                         containers: [
                                 containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
@@ -338,6 +384,8 @@ try {
                                         resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
                         ]) {
                     node("build-tiflash-release") {
+                        def ws = pwd()
+                        // deleteDir()
                         container("builder") {
                             // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                             dir("tics") {
@@ -347,10 +395,19 @@ try {
                                 def target = "tiflash"
                                 def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash.tar.gz"
                                 def filepath2 = "builds/pingcap/tiflash/optimization/${TIFLASH_HASH}/centos7/tiflash.tar.gz"
-                                retry(10) {
-                                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
-                                }
 
+                                try{
+                                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
+                                } catch (info) {
+                                    retry(10) {
+                                        echo "checkout failed, retry.."
+                                        sleep 5
+                                        if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                            deleteDir()
+                                        }
+                                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
+                                    }
+                                }
                                 sh """
                                     for a in \$(git tag --contains ${TIFLASH_HASH}); do echo \$a && git tag -d \$a;done
                                     git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
@@ -421,8 +478,8 @@ try {
                             dir("importer_tmp") {
                                 deleteDir()
                                 sh """
-                                curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer.tar.gz
-                                curl -F builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
+                                    curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer.tar.gz
+                                    curl -F builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
                                 """
                             }
                         } else {
