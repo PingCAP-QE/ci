@@ -37,39 +37,37 @@ node("ci-admin-utils") {
     }
 
     stage('Copy') {
-        container('golang') {
-            res = sh(script: "test -d /nfs/cache/${codeArchiveDir}/${datePart} && echo '1' || echo '0' ", returnStdout: true).trim()
-            if (res == '1') {
-                echo "dir already exist, quit job in case of delete current using code cache dir"
-                error("Build failed because of dir exist now: /nfs/cache/git-archive/${datePart}")
-            }
-            dir("/nfs/cache/${codeArchiveDir}/${datePart}") {
-                repoPathMap.each { entry ->
-                    sh """
+        res = sh(script: "test -d /nfs/cache/${codeArchiveDir}/${datePart} && echo '1' || echo '0' ", returnStdout: true).trim()
+        if (res == '1') {
+            echo "dir already exist, quit job in case of delete current using code cache dir"
+            error("Build failed because of dir exist now: /nfs/cache/git-archive/${datePart}")
+        }
+        dir("/nfs/cache/${codeArchiveDir}/${datePart}") {
+            repoPathMap.each { entry ->
+                sh """
                         cp -R ${entry.value} ./ && [ -d ${entry.key}/.git ]
                      """
-                    dir("${entry.key}") {
-                        checkout changelog: false, poll: true,
-                                scm: [$class: 'GitSCM', branches: [name: '*/master'], doGenerateSubmoduleConfigurations: false,
-                                      extensions: [[$class: 'PruneStaleBranch'],
-                                                   [$class: 'CleanBeforeCheckout']],
-                                      submoduleCfg: [],
-                                      userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                           refspec: '+refs/heads/*:refs/remotes/origin/*',
-                                                           url: "git@github.com:pingcap/${entry.key}.git"]]]
-                    }
-                    dir("${entry.key}@tmp") {
-                        deleteDir()
-                    }
-                    sh """
-                        tar -czf src-${entry.key}.tar.gz ${entry.key}
-                        md5sum src-${entry.key}.tar.gz > src-${entry.key}.tar.gz.md5sum
-                    """
+                dir("${entry.key}") {
+                    checkout changelog: false, poll: true,
+                            scm: [$class           : 'GitSCM', branches: [name: '*/master'], doGenerateSubmoduleConfigurations: false,
+                                  extensions       : [[$class: 'PruneStaleBranch'],
+                                                      [$class: 'CleanBeforeCheckout']],
+                                  submoduleCfg     : [],
+                                  userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                       refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                       url          : "git@github.com:pingcap/${entry.key}.git"]]]
                 }
+                dir("${entry.key}@tmp") {
+                    deleteDir()
+                }
+                sh """
+                    tar -czf src-${entry.key}.tar.gz ${entry.key}
+                    md5sum src-${entry.key}.tar.gz > src-${entry.key}.tar.gz.md5sum
+                """
             }
-            dir("/nfs/cache/${codeArchiveDir}/${datePart}@tmp") {
-                deleteDir()
-            }
+        }
+        dir("/nfs/cache/${codeArchiveDir}/${datePart}@tmp") {
+            deleteDir()
         }
     }
 
