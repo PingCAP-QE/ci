@@ -12,8 +12,8 @@ node("ci-admin-utils") {
     println "datePart : " + datePart + "\ttimePart : " + timePart
 
     def repoPathMap = [:]
-    def codeArchiveDir = "git-archive"
-    def codeCurrentDir = "git"
+    def codeArchiveDir = "temp-git-archive"
+    def codeCurrentDir = "temp-git"
 
     stage('Collect info') {
         container("golang") {
@@ -48,10 +48,19 @@ node("ci-admin-utils") {
                     sh """
                         cp -R ${entry.value} ./ && [ -d ${entry.key}/.git ]
                      """
-                    sh """
-                        cd ${entry.key} && pwd
-                        rm -f ./git/index.lock &&  git clean -fnd && git checkout . && git pull --all
-                    """
+                    dir("${entry.key}") {
+                        checkout changelog: false, poll: true,
+                                scm: [$class: 'GitSCM', branches: [], doGenerateSubmoduleConfigurations: false,
+                                      extensions: [[$class: 'PruneStaleBranch'],
+                                                   [$class: 'CleanBeforeCheckout']],
+                                      submoduleCfg: [],
+                                      userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                           refspec: '+refs/heads/*:refs/remotes/origin/*',
+                                                           url: 'git@github.com:pingcap/${entry.key}.git']]]
+                    }
+                    dir("${entry.key}@tmp") {
+                        deleteDir()
+                    }
                     sh """
                         tar -czf src-${entry.key}.tar.gz ${entry.key}
                         md5sum src-${entry.key}.tar.gz > src-${entry.key}.tar.gz.md5sum
