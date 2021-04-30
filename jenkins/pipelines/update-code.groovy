@@ -56,7 +56,7 @@ node("ci-admin-utils") {
                                       submoduleCfg: [],
                                       userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
                                                            refspec: '+refs/heads/*:refs/remotes/origin/*',
-                                                           url: 'git@github.com:pingcap/${entry.key}.git']]]
+                                                           url: "git@github.com:pingcap/${entry.key}.git"]]]
                     }
                     dir("${entry.key}@tmp") {
                         deleteDir()
