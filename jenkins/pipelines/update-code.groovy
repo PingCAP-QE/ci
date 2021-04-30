@@ -12,8 +12,8 @@ node("ci-admin-utils") {
     println "datePart : " + datePart + "\ttimePart : " + timePart
 
     def repoPathMap = [:]
-    def codeArchiveDir = "temp-git-archive"
-    def codeCurrentDir = "temp-git"
+    def codeArchiveDir = "git-archive"
+    def codeCurrentDir = "git"
 
     stage('Collect info') {
         container("golang") {
