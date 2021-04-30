@@ -50,7 +50,7 @@ node("ci-admin-utils") {
                      """
                     dir("${entry.key}") {
                         checkout changelog: false, poll: true,
-                                scm: [$class: 'GitSCM', branches: [], doGenerateSubmoduleConfigurations: false,
+                                scm: [$class: 'GitSCM', branches: [name: '*/master'], doGenerateSubmoduleConfigurations: false,
                                       extensions: [[$class: 'PruneStaleBranch'],
                                                    [$class: 'CleanBeforeCheckout']],
                                       submoduleCfg: [],
