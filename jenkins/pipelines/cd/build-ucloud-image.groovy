@@ -43,6 +43,8 @@ podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, container
                         push_ucloud_image(CDC_TAG, "ticdc")
                         push_ucloud_image(TIFLASH_TAG,"tiflash")
                         push_ucloud_image(DUMPLING_TAG,"dumpling")
+                        push_ucloud_image(TIDB_TAG, "tidb-monitor-initializer")
+                        push_ucloud_image("v1.0.1", "tidb-monitor-reloader")
                     }
                 }
             }
