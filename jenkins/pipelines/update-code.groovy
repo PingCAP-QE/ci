@@ -20,20 +20,15 @@ node("ci-admin-utils") {
             sh "ls -ld /nfs/cache/${codeCurrentDir}"
             dir("/nfs/cache/${codeCurrentDir}") {
                 def files = findFiles()
+                def workspace = pwd()
                 files.each { f ->
                     if (f.directory) {
                         echo "This is dirctory: ${f.name}"
-                        dir(f.name) {
-                            if (fileExists("./.git/config")) {
-                                echo "This is a valid git repo"
-                                def workspace = pwd()
-                                repoPathMap[f.name] = workspace
-                            } else {
-                                echo "This is invalid git repo. Skip..."
-                            }
-                        }
-                        dir("${f.name}@tmp") {
-                            deleteDir()
+                        if (fileExists("${f.name}/.git/config")) {
+                            echo "This is a valid git repo"
+                            repoPathMap[f.name] = "${workspace}/${f.name}"
+                        } else {
+                            echo "This is invalid git repo. Skip..."
                         }
                     }
                 }
@@ -53,15 +48,10 @@ node("ci-admin-utils") {
                     sh """
                         cp -R ${entry.value} ./ && [ -d ${entry.key}/.git ]
                      """
-                    dir(entry.key) {
-                        sh """
-                            pwd
-                            rm -f ./git/index.lock &&  git clean -fnd && git checkout . && git pull --all
-                        """
-                    }
-                    dir("${entry.key}@tmp") {
-                        deleteDir()
-                    }
+                    sh """
+                        cd ${entry.key} && pwd
+                        rm -f ./git/index.lock &&  git clean -fnd && git checkout . && git pull --all
+                    """
                     sh """
                         tar -czf src-${entry.key}.tar.gz ${entry.key}
                         md5sum src-${entry.key}.tar.gz > src-${entry.key}.tar.gz.md5sum
@@ -75,9 +65,7 @@ node("ci-admin-utils") {
     }
 
     stage('Update softlink') {
-        dir("/nfs/cache"){
-            sh " ln -sfn ${codeArchiveDir}/${datePart}  ${codeCurrentDir}"
-        }
+        sh "cd /nfs/cache && ln -sfn ${codeArchiveDir}/${datePart}  ${codeCurrentDir}"
     }
 
 }
