@@ -49,10 +49,12 @@ node("ci-admin-utils") {
                      """
                 dir("${entry.key}") {
                     checkout changelog: false, poll: true,
-                            scm: [$class           : 'GitSCM', branches: [name: '*/master'], doGenerateSubmoduleConfigurations: false,
-                                  extensions       : [[$class: 'PruneStaleBranch'],
-                                                      [$class: 'CleanBeforeCheckout']],
-                                  submoduleCfg     : [],
+                            scm: [$class: 'GitSCM',
+                                  branches: [name: '*/master'],
+                                  doGenerateSubmoduleConfigurations: false,
+                                  extensions: [[$class: 'PruneStaleBranch'],
+                                               [$class: 'CleanBeforeCheckout']],
+                                  submoduleCfg: [],
                                   userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
                                                        refspec      : '+refs/heads/*:refs/remotes/origin/*',
                                                        url          : "git@github.com:pingcap/${entry.key}.git"]]]
