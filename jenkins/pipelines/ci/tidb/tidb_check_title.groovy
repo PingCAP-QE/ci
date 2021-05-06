@@ -25,7 +25,7 @@ EOT"""
     currentBuild.result = "SUCCESS"
 }
 stage("summary") {
-    if (currentBuild.result != "SUCCESS") {
+    if (currentBuild.result != "SUCCESS" && currentBuild.result != "ABORTED") {
         node("master") {
             withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                 sh """
