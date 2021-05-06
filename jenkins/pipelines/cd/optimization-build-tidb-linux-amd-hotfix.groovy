@@ -16,9 +16,12 @@ def slackcolor = 'good'
 def githash
 def os = "linux"
 def arch = "amd64"
-def platform ="centos7"
+def platform = "centos7"
 
 def ifFileCacheExists(product,hash,binary) {
+    def os = "linux"
+    def arch = "amd64"
+    def platform = "centos7"
     if(!fileExists("gethash.py")){
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
@@ -30,7 +33,7 @@ def ifFileCacheExists(product,hash,binary) {
         filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
     }
     if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
     } 
     if (product == "importer") {
         filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
@@ -104,7 +107,7 @@ try {
             }
             builds["Build tidb && plugins"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
+                    if (ifFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
                         return
                     }
                     def ws = pwd()
@@ -243,7 +246,7 @@ try {
             }
             builds["Build tidb-binlog"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("tidb-binlog",BINLOG_HASH,"tidb-binlog")){
+                    if (ifFileCacheExists("tidb-binlog",BINLOG_HASH,"tidb-binlog")){
                         return
                     }
                     container("golang") {
@@ -274,7 +277,7 @@ try {
             }
             builds["Build tidb-tools"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("tidb-tools",TOOLS_HASH,"tidb-tools")){
+                    if (ifFileCacheExists("tidb-tools",TOOLS_HASH,"tidb-tools")){
                         return
                     }
                     container("golang") {
@@ -302,7 +305,7 @@ try {
             }
             builds["Build pd"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("pd",PD_HASH,"pd-server")){
+                    if (ifFileCacheExists("pd",PD_HASH,"pd-server")){
                         return
                     }
                     container("golang") {
@@ -334,7 +337,7 @@ try {
             }
             builds["Build cdc"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("ticdc",CDC_HASH,"ticdc")){
+                    if (ifFileCacheExists("ticdc",CDC_HASH,"ticdc")){
                         return
                     }
                     container("golang") {
@@ -364,7 +367,7 @@ try {
             }
             builds["Build dumpling"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("dumpling",DUMPLING_HASH,"dumpling")){
+                    if (ifFileCacheExists("dumpling",DUMPLING_HASH,"dumpling")){
                         return
                     }
                     container("golang") {
@@ -391,7 +394,7 @@ try {
             }
             builds["Build br"] = {
                 node("build_go1130") {
-                    if (checkIfFileCacheExists("br",BR_HASH,"br")){
+                    if (ifFileCacheExists("br",BR_HASH,"br")){
                         return
                     }
                     container("golang") {
@@ -438,7 +441,7 @@ try {
                                         resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
                         ]) {
                     node("build-tiflash-release") {
-                        if (checkIfFileCacheExists("tiflash",TIFLASH_HASH,"tiflash")){
+                        if (ifFileCacheExists("tiflash",TIFLASH_HASH,"tiflash")){
                             return
                         }
                         def ws = pwd()
@@ -487,7 +490,7 @@ try {
 
         builds["Build tikv"] = {
             node("build") {
-                if (checkIfFileCacheExists("tikv",TIKV_HASH,"tikv")){
+                if (ifFileCacheExists("tikv",TIKV_HASH,"tikv-server")){
                     return
                 }
                 container("rust") {
@@ -530,7 +533,7 @@ try {
         }
         builds["Build importer"] = {
             node("build") {
-                if (checkIfFileCacheExists("importer",IMPORTER_HASH,"importer")){
+                if (ifFileCacheExists("importer",IMPORTER_HASH,"importer")){
                     return
                 }
                 container("rust") {
