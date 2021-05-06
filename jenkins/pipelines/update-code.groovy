@@ -12,8 +12,8 @@ node("ci-admin-utils") {
     println "datePart : " + datePart + "\ttimePart : " + timePart
 
     def repoPathMap = [:]
-    def codeArchiveDir = "temp-git-archive"
-    def codeCurrentDir = "temp-git"
+    def codeArchiveDir = "git-archive"
+    def codeCurrentDir = "git"
 
     stage('Collect info') {
         container("golang") {
@@ -45,19 +45,26 @@ node("ci-admin-utils") {
         dir("/nfs/cache/${codeArchiveDir}/${datePart}") {
             repoPathMap.each { entry ->
                 sh """
-                        cp -R ${entry.value} ./ && [ -d ${entry.key}/.git ]
-                     """
+                    cp -R ${entry.value} ./ && [ -d ${entry.key}/.git ]
+                """
                 dir("${entry.key}") {
-                    checkout changelog: false, poll: true,
-                            scm: [$class                           : 'GitSCM',
-                                  branches                         : [[name: '*/master']],
-                                  doGenerateSubmoduleConfigurations: false,
-                                  extensions                       : [[$class: 'PruneStaleBranch'],
-                                                                      [$class: 'CleanBeforeCheckout']],
-                                  submoduleCfg                     : [],
-                                  userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh',
-                                                                       refspec      : '+refs/heads/*:refs/remotes/origin/*',
-                                                                       url          : "git@github.com:pingcap/${entry.key}.git"]]]
+                    if (entry.key in ["tiflash", "tics"] ) {
+                        checkout changelog: false, poll: true,
+                                scm: [$class                           : 'GitSCM',
+                                      branches                         : [[name: '*/master']],
+                                      doGenerateSubmoduleConfigurations: false,
+                                      extensions                       : [[$class: 'PruneStaleBranch'],
+                                                                          [$class: 'CleanBeforeCheckout']],
+                                      submoduleCfg                     : [],
+                                      userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh',
+                                                                           refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                                           url          : "git@github.com:pingcap/${entry.key}.git"]]]
+                    } else {
+                        sh """
+                        pwd
+                        rm -f ./git/index.lock &&  git clean -fnd && git checkout . && git pull --all
+                        """
+                    }
                 }
                 dir("${entry.key}@tmp") {
                     deleteDir()
