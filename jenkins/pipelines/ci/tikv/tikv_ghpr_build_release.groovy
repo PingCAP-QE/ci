@@ -1,10 +1,7 @@
 def slackcolor = 'good'
 def githash
 
-def release="make release"
-if ( ghprbTargetBranch == "master" || ghprbTargetBranch == "release-3.0" || ghprbTargetBranch == "release-3.1") {
-    release = "make dist_release"
-}
+def release = "make dist_release"
 
 def ghprbCommentBody = params.ghprbCommentBody ?: null
 
