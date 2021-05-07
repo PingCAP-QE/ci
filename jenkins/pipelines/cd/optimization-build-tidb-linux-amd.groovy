@@ -11,11 +11,49 @@
 * @TIFLASH_HASH
 * @RELEASE_TAG
 * @PRE_RELEASE
+* @FORCE_REBUILD
 */
 def slackcolor = 'good'
 def githash
-def os = "linux"
-def arch = "amd64"
+os = "linux"
+arch = "amd64"
+platform = "centos7"
+
+def ifFileCacheExists(product,hash,binary) {
+    if (FORCE_REBUILD){
+        return false
+    }
+    if(!fileExists("gethash.py")){
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+    }
+    def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    if (product == "br") {
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
+    }
+    if (product == "ticdc") {
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+    }
+    if (product == "dumpling") {
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    } 
+    if (product == "importer") {
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    }
+    if (product == "tiflash") {
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
+    }  
+    if (product=="tikv"){
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    }
+
+    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
+    // result equal 0 mean cache file exists
+    if (result==0) {
+        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
+        return true
+    }
+    return false
+}
 
 // 为了和之前兼容，linux amd 的 build 和上传包的内容都采用 build_xxx_multi_branch 中的 build 脚本
 // linux arm 和 Darwin amd 保持不变
@@ -70,9 +108,11 @@ try {
             }
             builds["Build tidb && plugins"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
+                        return
+                    }
                     def ws = pwd()
                     deleteDir()
-
                     // update code
                     dir("/home/jenkins/agent/code-archive") {
                         // delete to clean workspace in case of agent pod reused lead to conflict.
@@ -207,6 +247,9 @@ try {
             }
             builds["Build tidb-binlog"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("tidb-binlog",BINLOG_HASH,"tidb-binlog")){
+                        return
+                    }
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
@@ -235,6 +278,9 @@ try {
             }
             builds["Build tidb-tools"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("tidb-tools",TOOLS_HASH,"tidb-tools")){
+                        return
+                    }
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
@@ -260,6 +306,9 @@ try {
             }
             builds["Build pd"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("pd",PD_HASH,"pd-server")){
+                        return
+                    }
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
@@ -289,6 +338,9 @@ try {
             }
             builds["Build cdc"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("ticdc",CDC_HASH,"ticdc")){
+                        return
+                    }
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
@@ -316,6 +368,9 @@ try {
             }
             builds["Build dumpling"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("dumpling",DUMPLING_HASH,"dumpling")){
+                        return
+                    }
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
@@ -340,6 +395,9 @@ try {
             }
             builds["Build br"] = {
                 node("build_go1130") {
+                    if (ifFileCacheExists("br",BR_HASH,"br")){
+                        return
+                    }
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
@@ -384,6 +442,9 @@ try {
                                         resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
                         ]) {
                     node("build-tiflash-release") {
+                        if (ifFileCacheExists("tiflash",TIFLASH_HASH,"tiflash")){
+                            return
+                        }
                         def ws = pwd()
                         // deleteDir()
                         container("builder") {
@@ -430,6 +491,9 @@ try {
 
         builds["Build tikv"] = {
             node("build") {
+                if (ifFileCacheExists("tikv",TIKV_HASH,"tikv-server")){
+                    return
+                }
                 container("rust") {
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     deleteDir()
@@ -470,6 +534,9 @@ try {
         }
         builds["Build importer"] = {
             node("build") {
+                if (ifFileCacheExists("importer",IMPORTER_HASH,"importer")){
+                    return
+                }
                 container("rust") {
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     deleteDir()
