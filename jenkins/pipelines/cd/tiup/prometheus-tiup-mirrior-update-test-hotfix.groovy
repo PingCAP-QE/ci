@@ -40,7 +40,7 @@ def unpack = { version, os, arch ->
 }
 
 def pack = { version, os, arch ->
-    def tag = RELEASE_TAG
+    def tag = ORIGIN_TAG
     if (tag == "nightly") {
         tag = "master"
     }
@@ -76,8 +76,8 @@ def pack = { version, os, arch ->
 
     cd ..
 
-    tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${RELEASE_TAG}"
-    tiup mirror publish prometheus ${TIDB_VERSION} package/prometheus-${RELEASE_TAG}-${os}-${arch}.tar.gz "prometheus/prometheus" --arch ${arch} --os ${os} --desc="The Prometheus monitoring system and time series database"
+    tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${HOTFIX_TAG}"
+    tiup mirror publish prometheus ${TIDB_VERSION} package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz "prometheus/prometheus" --arch ${arch} --os ${os} --desc="The Prometheus monitoring system and time series database"
     rm -rf prometheus
     """
 }
@@ -103,7 +103,7 @@ node("build_go1130") {
         }
 
         stage("Checkout tics") {
-            def tag = RELEASE_TAG
+            def tag = ORIGIN_TAG
             if (tag == "nightly") {
                 tag = "master"
             }

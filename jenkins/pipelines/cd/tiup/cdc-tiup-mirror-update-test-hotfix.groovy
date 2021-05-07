@@ -11,7 +11,7 @@ def download = { name, hash, os, arch ->
         exit 1
         """
     }
-    if (RELEASE_TAG != "nightly") {
+    if (HOTFIX_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
     """
@@ -58,29 +58,29 @@ node("build_go1130") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
-        if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
+        if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if (RELEASE_TAG == "nightly") {
+                if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = RELEASE_TAG
+                    tag = HOTFIX_TAG
                 }
 
-                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("TiUP build cdc on linux/amd64") {
-                update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "amd64"
+                update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "amd64"
             }
 
             stage("TiUP build cdc on linux/arm64") {
-                update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "arm64"
+                update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "arm64"
             }
 
             stage("TiUP build cdc on darwin/amd64") {
-                update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
+                update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "amd64"
             }
         }
     }

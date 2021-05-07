@@ -40,7 +40,7 @@ def unpack = { version, os, arch ->
 }
 
 def pack = { version, os, arch ->
-    def tag = RELEASE_TAG
+    def tag = ORIGIN_TAG
     if (tag == "nightly") {
         tag = "master"
     }
@@ -91,8 +91,8 @@ def pack = { version, os, arch ->
     fi
 
     cd ..
-    tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
-    tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
+    tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${HOTFIX_TAG}"
+    tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${HOTFIX_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
     rm -rf grafana-${version}
     """
 }
@@ -122,7 +122,7 @@ node("build_go1130") {
         }
 
         stage("Checkout tics") {
-            def tag = RELEASE_TAG
+            def tag = ORIGIN_TAG
             if (tag == "nightly") {
                 tag = "master"
             }

@@ -19,7 +19,7 @@ def download = { name, version, os, arch ->
     } else {
         tarball_name = "${name}.tar.gz"
     }
-    if (RELEASE_TAG != "nightly" && RELEASE_TAG > "v4.0.0") {
+    if (HOTFIX_TAG != "nightly" && HOTFIX_TAG > "v4.0.0") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${importer_sha1}/${platform}/${tarball_name}
     """
@@ -87,33 +87,33 @@ try {
                 util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
             }
 
-            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
+            if (HOTFIX_TAG != "nightly" && HOTFIX_TAG < "v4.0.0") {
                 stage("Get hash") {
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    if (RELEASE_TAG == "nightly") {
+                    if (HOTFIX_TAG == "nightly") {
                         tag = "master"
                     } else {
-                        tag = RELEASE_TAG
+                        tag = HOTFIX_TAG
                     }
 
                     if (TIDB_VERSION == "") {
-                        TIDB_VERSION = RELEASE_TAG
+                        TIDB_VERSION = HOTFIX_TAG
                     }
 
-                    importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
 
                 stage("tiup release tikv-importer linux amd64") {
-                    update "importer", RELEASE_TAG, "linux", "amd64"
+                    update "importer", HOTFIX_TAG, "linux", "amd64"
                 }
 
                 stage("tiup release tikv-importer linux arm64") {
-                    update "importer", RELEASE_TAG, "linux", "arm64"
+                    update "importer", HOTFIX_TAG, "linux", "arm64"
                 }
 
                 stage("tiup release tikv-importer darwin amd64") {
-                    update "importer", RELEASE_TAG, "darwin", "amd64"
+                    update "importer", HOTFIX_TAG, "darwin", "amd64"
                 }
             }
         }

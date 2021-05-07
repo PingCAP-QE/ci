@@ -18,12 +18,12 @@ def download = { name, version, os, arch ->
     } else {
         tarball_name = "${name}.tar.gz"
     }
-    if (RELEASE_TAG != "nightly") {
+    if (HOTFIX_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
     """
     } else {
-        if (RELEASE_TAG == "nightly" && arch == "amd64" && os == "linux") {
+        if (HOTFIX_TAG == "nightly" && arch == "amd64" && os == "linux") {
             sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/release/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
     """
@@ -101,31 +101,31 @@ node("build_go1130") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
-        if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1") {
+        if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v3.1") {
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if (RELEASE_TAG == "nightly") {
+                if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = RELEASE_TAG
+                    tag = HOTFIX_TAG
                 }
 
-                tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("tiup release tiflash linux amd64") {
-                update "tiflash", RELEASE_TAG, "linux", "amd64"
+                update "tiflash", HOTFIX_TAG, "linux", "amd64"
             }
 
-            if (RELEASE_TAG >= "v4.0" || RELEASE_TAG == "nightly") {
+            if (HOTFIX_TAG >= "v4.0" || HOTFIX_TAG == "nightly") {
                 stage("tiup release tiflash linux arm64") {
-                    update "tiflash", RELEASE_TAG, "linux", "arm64"
+                    update "tiflash", HOTFIX_TAG, "linux", "arm64"
                 }
             }
 
             stage("tiup release tiflash darwin amd64") {
-                update "tiflash", RELEASE_TAG, "darwin", "amd64"
+                update "tiflash", HOTFIX_TAG, "darwin", "amd64"
             }
 
             // upload "package"
