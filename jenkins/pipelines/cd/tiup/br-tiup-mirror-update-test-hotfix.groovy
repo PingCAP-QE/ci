@@ -93,7 +93,7 @@ node("build_go1130") {
                 if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = HOTFIX_TAG
+                    tag = ORIGIN_TAG
                 }
 
                 br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
