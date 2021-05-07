@@ -118,15 +118,15 @@ node("build_go1130") {
                 update "tiflash", HOTFIX_TAG, "linux", "amd64"
             }
 
-            if (HOTFIX_TAG >= "v4.0" || HOTFIX_TAG == "nightly") {
-                stage("tiup release tiflash linux arm64") {
-                    update "tiflash", HOTFIX_TAG, "linux", "arm64"
-                }
-            }
+            // if (HOTFIX_TAG >= "v4.0" || HOTFIX_TAG == "nightly") {
+            //     stage("tiup release tiflash linux arm64") {
+            //         update "tiflash", HOTFIX_TAG, "linux", "arm64"
+            //     }
+            // }
 
-            stage("tiup release tiflash darwin amd64") {
-                update "tiflash", HOTFIX_TAG, "darwin", "amd64"
-            }
+            // stage("tiup release tiflash darwin amd64") {
+            //     update "tiflash", HOTFIX_TAG, "darwin", "amd64"
+            // }
 
             // upload "package"
         }

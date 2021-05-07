@@ -109,13 +109,13 @@ try {
                 update "br", HOTFIX_TAG, "linux", "amd64"
             }
 
-            stage("tiup release tidb-lightning linux arm64") {
-                update "br", HOTFIX_TAG, "linux", "arm64"
-            }
+            // stage("tiup release tidb-lightning linux arm64") {
+            //     update "br", HOTFIX_TAG, "linux", "arm64"
+            // }
 
-            stage("tiup release tidb-lightning darwin amd64") {
-                update "br", HOTFIX_TAG, "darwin", "amd64"
-            }
+            // stage("tiup release tidb-lightning darwin amd64") {
+            //     update "br", HOTFIX_TAG, "darwin", "amd64"
+            // }
         }
     }
 } catch (Exception e) {

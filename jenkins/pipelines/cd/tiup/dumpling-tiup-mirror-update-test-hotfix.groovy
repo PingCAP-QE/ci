@@ -104,13 +104,13 @@ node("build_go1130") {
                 update "dumpling", HOTFIX_TAG, "linux", "amd64"
             }
 
-            stage("tiup release dumpling linux arm64") {
-                update "dumpling", HOTFIX_TAG, "linux", "arm64"
-            }
+            // stage("tiup release dumpling linux arm64") {
+            //     update "dumpling", HOTFIX_TAG, "linux", "arm64"
+            // }
 
-            stage("tiup release dumpling darwin amd64") {
-                update "dumpling", HOTFIX_TAG, "darwin", "amd64"
-            }
+            // stage("tiup release dumpling darwin amd64") {
+            //     update "dumpling", HOTFIX_TAG, "darwin", "amd64"
+            // }
         }
     }
 }

@@ -135,12 +135,12 @@ node("build_go1130") {
             update VERSION, "linux", "amd64"
         }
 
-        stage("TiUP build grafana on linux/arm64") {
-            update VERSION, "linux", "arm64"
-        }
+        // stage("TiUP build grafana on linux/arm64") {
+        //     update VERSION, "linux", "arm64"
+        // }
 
-        stage("TiUP build grafana on darwin/amd64") {
-            update VERSION, "darwin", "amd64"
-        }
+        // stage("TiUP build grafana on darwin/amd64") {
+        //     update VERSION, "darwin", "amd64"
+        // }
     }
 }

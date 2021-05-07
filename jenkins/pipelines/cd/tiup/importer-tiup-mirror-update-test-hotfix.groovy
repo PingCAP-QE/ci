@@ -108,13 +108,13 @@ try {
                     update "importer", HOTFIX_TAG, "linux", "amd64"
                 }
 
-                stage("tiup release tikv-importer linux arm64") {
-                    update "importer", HOTFIX_TAG, "linux", "arm64"
-                }
+                // stage("tiup release tikv-importer linux arm64") {
+                //     update "importer", HOTFIX_TAG, "linux", "arm64"
+                // }
 
-                stage("tiup release tikv-importer darwin amd64") {
-                    update "importer", HOTFIX_TAG, "darwin", "amd64"
-                }
+                // stage("tiup release tikv-importer darwin amd64") {
+                //     update "importer", HOTFIX_TAG, "darwin", "amd64"
+                // }
             }
         }
     }

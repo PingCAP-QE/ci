@@ -75,13 +75,13 @@ node("build_go1130") {
                 update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "amd64"
             }
 
-            stage("TiUP build cdc on linux/arm64") {
-                update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "arm64"
-            }
+            // stage("TiUP build cdc on linux/arm64") {
+            //     update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "arm64"
+            // }
 
-            stage("TiUP build cdc on darwin/amd64") {
-                update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "amd64"
-            }
+            // stage("TiUP build cdc on darwin/amd64") {
+            //     update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "amd64"
+            // }
         }
     }
 }

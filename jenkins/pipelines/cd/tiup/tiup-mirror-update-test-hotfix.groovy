@@ -284,23 +284,23 @@ node("build_go1130") {
                 update_ctl HOTFIX_TAG, "linux", "amd64"
             }
 
-            stage("TiUP build tidb on linux/arm64") {
-                update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
-                update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
-                update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
-                update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
-                update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
-                update_ctl HOTFIX_TAG, "linux", "arm64"
-            }
+            // stage("TiUP build tidb on linux/arm64") {
+            //     update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+            //     update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
+            //     update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
+            //     update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
+            //     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+            //     update_ctl HOTFIX_TAG, "linux", "arm64"
+            // }
 
-            stage("TiUP build tidb on darwin/amd64") {
-                update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
-                update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
-                update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
-                update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                update_ctl HOTFIX_TAG, "darwin", "amd64"
-            }
+            // stage("TiUP build tidb on darwin/amd64") {
+            //     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+            //     update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
+            //     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
+            //     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
+            //     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+            //     update_ctl HOTFIX_TAG, "darwin", "amd64"
+            // }
 
             // stage("Upload") {
             //     upload "package"

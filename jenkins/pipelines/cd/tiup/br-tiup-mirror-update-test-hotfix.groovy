@@ -103,13 +103,13 @@ node("build_go1130") {
                 update "br", HOTFIX_TAG, "linux", "amd64"
             }
 
-            stage("tiup release br linux arm64") {
-                update "br", HOTFIX_TAG, "linux", "arm64"
-            }
+            // stage("tiup release br linux arm64") {
+            //     update "br", HOTFIX_TAG, "linux", "arm64"
+            // }
 
-            stage("tiup release br darwin amd64") {
-                update "br", HOTFIX_TAG, "darwin", "amd64"
-            }
+            // stage("tiup release br darwin amd64") {
+            //     update "br", HOTFIX_TAG, "darwin", "amd64"
+            // }
         }
     }
 }
