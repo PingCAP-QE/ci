@@ -95,7 +95,7 @@ try {
                 if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = HOTFIX_TAG
+                    tag = ORIGIN_TAG
                 }
 
                 if (TIDB_VERSION == "") {
