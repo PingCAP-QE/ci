@@ -1,3 +1,15 @@
+/*
+* @TIDB_TAG
+* @TIKV_TAG
+* @PD_TAG
+* @BINLOG_TAG
+* @CDC_TAG
+* @BR_TAG
+* @DUMPLING_TAG
+* @IMPORTER_TAG
+* @TIFLASH_TAG
+*/
+
 def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version
 def tidb_desc = "TiDB is an open source distributed HTAP database compatible with the MySQL protocol"
 def tikv_desc = "Distributed transactional key-value database, originally created to complement TiDB"
@@ -236,13 +248,13 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                 tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
-                tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
+                pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
+                tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
             }
 
@@ -294,45 +306,102 @@ node("build_go1130") {
             //     upload "package"
             // }
 
+            def paramsCDC = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${CDC_TAG}"),
+            ]
+
+            stage("TiUP build cdc") {
+                build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: paramsCDC)
+            }
+
+            def paramsBR = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${BR_TAG}"),
+            ]
+
+            stage("TiUP build br") {
+                build(job: "br-tiup-mirror-update-test", wait: true, parameters: paramsBR)
+            }
+
+            def paramsDUMPLING = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${DUMPLING_TAG}"),
+            ]
+
+            stage("TiUP build dumpling") {
+                build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: paramsDUMPLING)
+            }
+
+            // since 4.0.12 the same as br
+            def paramsLIGHTNING = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${BR_TAG}"),
+            ]
+
+            stage("TiUP build lightning") {
+                build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: paramsLIGHTNING)
+            }
+
+            def paramsIMPORTER = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${IMPORTER_TAG}"),
+            ]
+
+            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
+                stage("TiUP build importer") {
+                    build(job: "importer-tiup-mirror-update-test", wait: true, parameters: paramsIMPORTER)
+                }
+            }
+
+            def paramsTIFLASH = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${TIFLASH_TAG}"),
+            ]
+
+            stage("TiUP build tiflash") {
+                build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: paramsTIFLASH)
+            }
+
+            def paramsGRANFANA = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${TIFLASH_TAG}"),
+            ]
+
+            stage("TiUP build grafana") {
+                build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: paramsGRANFANA)
+            }
+
+            def paramsPROMETHEUS = [
+                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "PRODUCT_TAG", value: "${TIFLASH_TAG}"),
+            ]
+
+            stage("TiUP build prometheus") {
+                build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: paramsPROMETHEUS)
+            }
+
             def params1 = [
                     string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
             ]
-
-            stage("TiUP build cdc") {
-                build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            stage("TiUP build br") {
-                build(job: "br-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            stage("TiUP build dumpling") {
-                build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            stage("TiUP build lightning") {
-                build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
-                stage("TiUP build importer") {
-                    build(job: "importer-tiup-mirror-update-test", wait: true, parameters: params1)
-                }
-            }
-
-            stage("TiUP build tiflash") {
-                build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            stage("TiUP build grafana") {
-                build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
-            }
 
             if (RELEASE_TAG == "nightly") {
                 stage("TiUP build dm") {
