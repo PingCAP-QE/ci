@@ -20,6 +20,9 @@ platform = "darwin"
 def TIDB_CTL_HASH = "master"
 
 def ifFileCacheExists(product,hash,binary) {
+    if (FORCE_REBUILD){
+        return false
+    }
     if(!fileExists("gethash.py")){
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
