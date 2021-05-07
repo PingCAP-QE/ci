@@ -11,11 +11,44 @@
 * @TIFLASH_HASH
 * @RELEASE_TAG
 * @PRE_RELEASE
+* @FORCE_REBUILD
 */
 def slackcolor = 'good'
-def os = "darwin"
-def arch = "amd64"
+os = "darwin"
+arch = "amd64"
+platform = "darwin"
 def TIDB_CTL_HASH = "master"
+
+def ifFileCacheExists(product,hash,binary) {
+    if (FORCE_REBUILD){
+        return false
+    }
+    if(!fileExists("gethash.py")){
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+    }
+    def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    if (product == "br") {
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
+    }
+    if (product == "ticdc") {
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    }
+    if (product == "dumpling") {
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    } 
+    if (product == "tiflash") {
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
+    } 
+
+    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
+    // result equal 0 mean cache file exists
+    if (result==0) {
+        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
+        return true
+    }
+    return false
+}
+
 def build_upload = { product, hash, binary ->
     stage("Build ${product}") {
         def repo = "git@github.com:pingcap/${product}.git"
@@ -116,30 +149,45 @@ try {
         }
         if (BUILD_TIKV_IMPORTER == "false") {
             builds = [:]
-
-            builds["Build tidb-ctl"] = {
+            if (!checkIfFileCacheExists("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")) {
+                builds["Build tidb-ctl"] = {
                 build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
+                } 
             }
-            builds["Build tidb"] = {
+            if (!checkIfFileCacheExists("tidb", TIDB_HASH, "tidb-server")) {
+                builds["Build tidb"] = {
                 build_upload("tidb", TIDB_HASH, "tidb-server")
+                }
             }
-            builds["Build tidb-binlog"] = {
+            if (!checkIfFileCacheExists("tidb-binlog", BINLOG_HASH, "tidb-binlog")) {
+                builds["Build tidb-binlog"] = {
                 build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
+                }
             }
-            builds["Build tidb-tools"] = {
+            if (!checkIfFileCacheExists("tidb-tools", TOOLS_HASH, "tidb-tools")) {
+                builds["Build tidb-tools"] = {
                 build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
+                }
             }
-            builds["Build pd"] = {
+            if (!checkIfFileCacheExists("pd", PD_HASH, "pd-server")) {
+                builds["Build pd"] = {
                 build_upload("pd", PD_HASH, "pd-server")
+                }
             }
-            builds["Build ticdc"] = {
+            if (!checkIfFileCacheExists("ticdc", CDC_HASH, "ticdc")) {
+                builds["Build ticdc"] = {
                 build_upload("ticdc", CDC_HASH, "ticdc")
+                }
             }
-            builds["Build br"] = {
+            if (!checkIfFileCacheExists("br", BR_HASH, "br")) {
+                builds["Build br"] = {
                 build_upload("br", BR_HASH, "br")
+                }
             }
-            builds["Build dumpling"] = {
+            if (!checkIfFileCacheExists("dumpling", DUMPLING_HASH, "dumpling")) {
+                builds["Build dumpling"] = {
                 build_upload("dumpling", DUMPLING_HASH, "dumpling")
+                }
             }
 
             parallel builds
@@ -147,6 +195,9 @@ try {
         // 当前的 mac 用的是 gcc8
         stage("Build TiKV") {
             dir("go/src/github.com/pingcap/tikv") {
+                if (!checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                    return
+                }
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
                 def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
@@ -180,6 +231,9 @@ try {
 
         stage("Build Importer") {
             dir("go/src/github.com/pingcap/importer") {
+                if (!checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+                    return
+                }
                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
                 def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/darwin/importer.tar.gz"
                 retry(20) {
@@ -211,7 +265,10 @@ try {
 
         if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
             stage("build tiflash") {
-                dir("tics") {
+                    dir("tics") {
+                        if (!checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                        return
+                    }
                     def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                     def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                     retry(20) {
