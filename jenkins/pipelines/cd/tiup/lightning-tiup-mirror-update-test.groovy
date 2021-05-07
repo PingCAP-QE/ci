@@ -102,7 +102,7 @@ try {
                     TIDB_VERSION = RELEASE_TAG
                 }
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
-                lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${PRODUCT_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("tiup release tidb-lightning linux amd64") {

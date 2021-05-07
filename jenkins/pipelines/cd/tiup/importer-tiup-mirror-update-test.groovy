@@ -101,7 +101,7 @@ try {
                         TIDB_VERSION = RELEASE_TAG
                     }
 
-                    importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${PRODUCT_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
 
                 stage("tiup release tikv-importer linux amd64") {

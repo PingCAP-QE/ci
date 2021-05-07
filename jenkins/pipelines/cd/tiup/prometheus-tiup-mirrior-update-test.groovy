@@ -40,7 +40,7 @@ def unpack = { version, os, arch ->
 }
 
 def pack = { version, os, arch ->
-    def tag = RELEASE_TAG
+    def tag = PRODUCT_TAG
     if (tag == "nightly") {
         tag = "master"
     }
@@ -103,7 +103,7 @@ node("build_go1130") {
         }
 
         stage("Checkout tics") {
-            def tag = RELEASE_TAG
+            def tag = PRODUCT_TAG
             if (tag == "nightly") {
                 tag = "master"
             }

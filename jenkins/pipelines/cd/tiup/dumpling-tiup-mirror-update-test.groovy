@@ -97,7 +97,7 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${PRODUCT_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("tiup release dumpling linux amd64") {

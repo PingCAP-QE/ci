@@ -96,7 +96,7 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${PRODUCT_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("tiup release br linux amd64") {

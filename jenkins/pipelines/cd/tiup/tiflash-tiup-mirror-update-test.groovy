@@ -111,7 +111,7 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${PRODUCT_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("tiup release tiflash linux amd64") {
