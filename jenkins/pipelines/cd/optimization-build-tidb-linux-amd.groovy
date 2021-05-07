@@ -32,19 +32,10 @@ def ifFileCacheExists(product,hash,binary) {
     }
     if (product == "ticdc") {
         filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
-    }
-    if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
     } 
-    if (product == "importer") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
-    }
     if (product == "tiflash") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     }  
-    if (product=="tikv"){
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
-    }
 
     result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
     // result equal 0 mean cache file exists
