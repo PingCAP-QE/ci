@@ -1,5 +1,8 @@
 /*
+* @TIDB_TAG
+* @TIKV_TAG
 * @PD_TAG
+* @TIFLASH_TAG
 * @BINLOG_TAG
 * @BR_TAG
 * @TOOLS_TAG
@@ -44,10 +47,14 @@ def package_community = { arch ->
 
 def package_enterprise = { arch ->
     def comps = ["tidb", "tikv", "pd"]
+    def tagMaps=[:]
+    tagMaps["tidb"]= TIDB_TAG
+    tagMaps["tikv"]= TIKV_TAG
+    tagMaps["pd"]= PD_TAG
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     def hashes = [:]
     comps.each {
-        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${tagMaps[it]} -s=${FILE_SERVER_URL}").trim()
     }
     def os = "linux"
     def dst = "tidb-enterprise-server-" + VERSION + "-linux-" + arch
@@ -67,17 +74,18 @@ def package_enterprise = { arch ->
         sh """
         rm -rf bin
         """
+        if (it=="tidb"){}
 
         if(arch == "arm64") {
             sh """
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/${hashes[it]}/centos7/${it}-server-${version}-linux-arm64-enterprise.tar.gz
-            tar -xzf ${it}-server-${version}-linux-arm64-enterprise.tar.gz 
-            tar -czf ${it}-server-linux-${arch}-enterprise.tar.gz -C ${it}-${version}-linux-arm64/bin/ \$(ls ${it}-${version}-linux-arm64/bin/)
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/${hashes[it]}/centos7/${it}-server-${tagMaps[it]}-linux-arm64-enterprise.tar.gz
+            tar -xzf ${it}-server-${tagMaps[it]}-linux-arm64-enterprise.tar.gz 
+            tar -czf ${it}-server-linux-${arch}-enterprise.tar.gz -C ${it}-${version}-linux-arm64/bin/ \$(ls ${it}-${tagMaps[it]}-linux-arm64/bin/)
             """
         } else {
             sh """
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/${hashes[it]}/centos7/${it}-server-${version}-enterprise.tar.gz
-            tar -xzf ${it}-server-${version}-enterprise.tar.gz 
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/${hashes[it]}/centos7/${it}-server-${tagMaps[it]}-enterprise.tar.gz
+            tar -xzf ${it}-server-${tagMaps[it]}-enterprise.tar.gz 
             tar -czf ${it}-server-linux-${arch}-enterprise.tar.gz -C bin/ \$(ls bin/)
             """
         }
@@ -87,21 +95,21 @@ def package_enterprise = { arch ->
         """
     }
 
-    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
     if(arch == "amd64") {
         sh """
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${VERSION}/${tiflash_hash}/centos7/tiflash-${VERSION}-enterprise.tar.gz
-        tar -xzf tiflash-${version}-enterprise.tar.gz
-        rm -rf tiflash-${version}-enterprise.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_TAG}/${tiflash_hash}/centos7/tiflash-${TIFLASH_TAG}-enterprise.tar.gz
+        tar -xzf tiflash-${TIFLASH_TAG}-enterprise.tar.gz
+        rm -rf tiflash-${TIFLASH_TAG}-enterprise.tar.gz
         tar -czf tiflash-${VERSION}-linux-${arch}.tar.gz tiflash
         tiup mirror publish tiflash ${VERSION} tiflash-${VERSION}-linux-${arch}.tar.gz tiflash/tiflash --arch ${arch} --os linux --desc="The TiFlash Columnar Storage Engine"
         """
     } else {
         sh """
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${VERSION}/${tiflash_hash}/centos7/tiflash-${VERSION}-linux-arm64-enterprise.tar.gz
-        tar -xzf tiflash-${VERSION}-linux-arm64-enterprise.tar.gz
-        rm -rf tiflash-${VERSION}-linux-arm64-enterprise.tar.gz
-        mv tiflash-${VERSION}-linux-${arch} tiflash
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_TAG}/${tiflash_hash}/centos7/tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
+        tar -xzf tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
+        rm -rf tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
+        mv tiflash-${TIFLASH_TAG}-linux-${arch} tiflash
         tar -czf tiflash-${VERSION}-linux-${arch}.tar.gz tiflash
         tiup mirror publish tiflash ${VERSION} tiflash-${VERSION}-linux-${arch}.tar.gz tiflash/tiflash --arch ${arch} --os linux --desc="The TiFlash Columnar Storage Engine"
         """
@@ -214,12 +222,12 @@ node("delivery") {
             util.install_tiup_without_key "/usr/local/bin"
         }
 
-        stage("build community tarball linux/amd64") {
-            package_community("amd64")
-            if(VERSION >= "v4") {
-                package_tools "community", "amd64"
-            }
-        }
+        // stage("build community tarball linux/amd64") {
+        //     package_community("amd64")
+        //     if(VERSION >= "v4") {
+        //         package_tools "community", "amd64"
+        //     }
+        // }
 
         // stage("build community tarball linux/arm64") {
         //     package_community("arm64")
@@ -228,17 +236,17 @@ node("delivery") {
         //     }
         // }
 
-        // def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
-        // if(VERSION >= "v4" && !noEnterpriseList.contains(VERSION)) {
-        //     stage("build enterprise tarball linux/amd64") {
-        //         package_enterprise("amd64")
-        //         package_tools "enterprise", "amd64"
-        //     }
+        def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
+        if(VERSION >= "v4" && !noEnterpriseList.contains(VERSION)) {
+            stage("build enterprise tarball linux/amd64") {
+                package_enterprise("amd64")
+                package_tools "enterprise", "amd64"
+            }
 
-        //     stage("build enterprise tarball linux/arm64") {
-        //         package_enterprise("arm64")
-        //         package_tools "enterprise", "arm64"
-        //     }
-        // }
+            // stage("build enterprise tarball linux/arm64") {
+            //     package_enterprise("arm64")
+            //     package_tools "enterprise", "arm64"
+            // }
+        }
     }
 }
