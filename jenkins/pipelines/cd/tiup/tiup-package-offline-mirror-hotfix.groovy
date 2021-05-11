@@ -1,4 +1,5 @@
 /*
+* @VERSION
 * @TIDB_TAG
 * @TIKV_TAG
 * @PD_TAG
@@ -7,6 +8,10 @@
 * @BR_TAG
 * @TOOLS_TAG
 * @IMPORTER_TAG
+* @ARCH_ARM
+* @ARCH_X86
+* @RELEASE_COMMUNITY
+* @RELEASE_ENTERPRISE
 */
 
 def cloned = [
@@ -221,32 +226,39 @@ node("delivery") {
         stage("Install tiup") {
             util.install_tiup_without_key "/usr/local/bin"
         }
+        if (RELEASE_COMMUNITY && ARCH_X86) {
+            stage("build community tarball linux/amd64") {
+                package_community("amd64")
+                if(VERSION >= "v4") {
+                    package_tools "community", "amd64"
+                }
+            }
+        }
 
-        // stage("build community tarball linux/amd64") {
-        //     package_community("amd64")
-        //     if(VERSION >= "v4") {
-        //         package_tools "community", "amd64"
-        //     }
-        // }
+        if (RELEASE_COMMUNITY && ARCH_ARM) {
+            stage("build community tarball linux/arm64") {
+                package_community("arm64")
+                if(VERSION >= "v4") {
+                    package_tools "community", "arm64"
+                }
+            }
+        }
 
-        // stage("build community tarball linux/arm64") {
-        //     package_community("arm64")
-        //     if(VERSION >= "v4") {
-        //         package_tools "community", "arm64"
-        //     }
-        // }
 
         def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
         if(VERSION >= "v4" && !noEnterpriseList.contains(VERSION)) {
-            stage("build enterprise tarball linux/amd64") {
-                package_enterprise("amd64")
-                package_tools "enterprise", "amd64"
+            if (RELEASE_ENTERPRISE && ARCH_X86) {
+                stage("build enterprise tarball linux/amd64") {
+                    package_enterprise("amd64")
+                    package_tools "enterprise", "amd64"
+                }   
             }
-
-            // stage("build enterprise tarball linux/arm64") {
-            //     package_enterprise("arm64")
-            //     package_tools "enterprise", "arm64"
-            // }
+            if (RELEASE_ENTERPRISE && ARCH_ARM) {
+                stage("build enterprise tarball linux/arm64") {
+                    package_enterprise("arm64")
+                    package_tools "enterprise", "arm64"
+                }   
+            }
         }
     }
 }

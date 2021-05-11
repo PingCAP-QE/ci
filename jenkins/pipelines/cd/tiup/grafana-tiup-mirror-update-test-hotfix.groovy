@@ -131,16 +131,20 @@ node("build_go1130") {
             }
         }
 
-        stage("tiup build grafana on linux/amd64") {
-            update VERSION, "linux", "amd64"
+        if (ARCH_X86) {
+            stage("tiup build grafana on linux/amd64") {
+                update VERSION, "linux", "amd64"
+            }
         }
-
-        // stage("TiUP build grafana on linux/arm64") {
-        //     update VERSION, "linux", "arm64"
-        // }
-
-        // stage("TiUP build grafana on darwin/amd64") {
-        //     update VERSION, "darwin", "amd64"
-        // }
+        if (ARCH_ARM) {
+            stage("TiUP build grafana on linux/arm64") {
+                update VERSION, "linux", "arm64"
+            }
+        }
+        if (ARCH_MAC) {
+            stage("TiUP build grafana on darwin/amd64") {
+                update VERSION, "darwin", "amd64"
+            }
+        }
     }
 }

@@ -1,3 +1,9 @@
+/*
+* @ARCH_ARM
+* @ARCH_X86
+* @ARCH_MAC
+*/
+
 def tiup_desc = ""
 def br_desc = "TiDB/TiKV cluster backup restore tool"
 
@@ -99,17 +105,21 @@ node("build_go1130") {
                 br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
-            stage("tiup release br linux amd64") {
-                update "br", HOTFIX_TAG, "linux", "amd64"
+            if (ARCH_X86) {
+                stage("tiup release br linux amd64") {
+                    update "br", HOTFIX_TAG, "linux", "amd64"
+                }
             }
-
-            // stage("tiup release br linux arm64") {
-            //     update "br", HOTFIX_TAG, "linux", "arm64"
-            // }
-
-            // stage("tiup release br darwin amd64") {
-            //     update "br", HOTFIX_TAG, "darwin", "amd64"
-            // }
+            if (ARCH_ARM) {
+                stage("tiup release br linux arm64") {
+                    update "br", HOTFIX_TAG, "linux", "arm64"
+                }
+            }
+            if (ARCH_MAC) {
+                stage("tiup release br darwin amd64") {
+                    update "br", HOTFIX_TAG, "darwin", "amd64"
+                }
+            }
         }
     }
 }

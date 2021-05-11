@@ -104,18 +104,21 @@ try {
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
                 lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
             }
-
-            stage("tiup release tidb-lightning linux amd64") {
-                update "br", HOTFIX_TAG, "linux", "amd64"
+            if (ARCH_X86) {
+                stage("tiup release tidb-lightning linux amd64") {
+                    update "br", HOTFIX_TAG, "linux", "amd64"
+                }
             }
-
-            // stage("tiup release tidb-lightning linux arm64") {
-            //     update "br", HOTFIX_TAG, "linux", "arm64"
-            // }
-
-            // stage("tiup release tidb-lightning darwin amd64") {
-            //     update "br", HOTFIX_TAG, "darwin", "amd64"
-            // }
+            if (ARCH_ARM) {
+                stage("tiup release tidb-lightning linux arm64") {
+                    update "br", HOTFIX_TAG, "linux", "arm64"
+                }
+            }
+            if (ARCH_MAC) {
+                stage("tiup release tidb-lightning darwin amd64") {
+                    update "br", HOTFIX_TAG, "darwin", "amd64"
+                }
+            }
         }
     }
 } catch (Exception e) {

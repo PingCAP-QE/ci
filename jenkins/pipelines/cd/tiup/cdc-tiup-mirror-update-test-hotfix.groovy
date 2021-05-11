@@ -1,3 +1,9 @@
+/*
+* @ARCH_ARM
+* @ARCH_X86
+* @ARCH_MAC
+*/
+
 def ticdc_sha1, platform, tag
 def cdc_desc = "CDC is a change data capture tool for TiDB"
 
@@ -71,17 +77,21 @@ node("build_go1130") {
                 ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
-            stage("TiUP build cdc on linux/amd64") {
-                update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "amd64"
+            if (ARCH_X86) {
+                stage("TiUP build cdc on linux/amd64") {
+                    update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "amd64"
+                }
             }
-
-            // stage("TiUP build cdc on linux/arm64") {
-            //     update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "arm64"
-            // }
-
-            // stage("TiUP build cdc on darwin/amd64") {
-            //     update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "amd64"
-            // }
+            if (ARCH_ARM) {
+                stage("TiUP build cdc on linux/arm64") {
+                    update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "arm64"
+                }
+            }
+            if (ARCH_MAC) {
+                stage("TiUP build cdc on darwin/amd64") {
+                    update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "amd64"
+                }
+            }
         }
     }
 }

@@ -103,18 +103,21 @@ try {
 
                     importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
-
-                stage("tiup release tikv-importer linux amd64") {
-                    update "importer", HOTFIX_TAG, "linux", "amd64"
+                if (ARCH_X86) {
+                    stage("tiup release tikv-importer linux amd64") {
+                        update "importer", HOTFIX_TAG, "linux", "amd64"
+                    }
                 }
-
-                // stage("tiup release tikv-importer linux arm64") {
-                //     update "importer", HOTFIX_TAG, "linux", "arm64"
-                // }
-
-                // stage("tiup release tikv-importer darwin amd64") {
-                //     update "importer", HOTFIX_TAG, "darwin", "amd64"
-                // }
+                if (ARCH_ARM) {
+                    stage("tiup release tikv-importer linux arm64") {
+                        update "importer", HOTFIX_TAG, "linux", "arm64"
+                    }
+                }
+                if (ARCH_MAC) {
+                    stage("tiup release tikv-importer darwin amd64") {
+                        update "importer", HOTFIX_TAG, "darwin", "amd64"
+                    }
+                }
             }
         }
     }

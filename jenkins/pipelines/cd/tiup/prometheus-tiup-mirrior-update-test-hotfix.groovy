@@ -111,17 +111,20 @@ node("build_go1130") {
                 checkoutTiCS(tag)
             }
         }
-
-        stage("TiUP build prometheus on linux/amd64") {
-            update VERSION, "linux", "amd64"
+        if (ARCH_X86) {
+            stage("TiUP build prometheus on linux/amd64") {
+                update VERSION, "linux", "amd64"
+            }
         }
-
-        // stage("TiUP build prometheus on linux/arm64") {
-        //     update VERSION, "linux", "arm64"
-        // }
-
-        // stage("TiUP build prometheus on darwin/amd64") {
-        //     update VERSION, "darwin", "amd64"
-        // }
+        if (ARCH_ARM) {
+            stage("TiUP build prometheus on linux/arm64") {
+                update VERSION, "linux", "arm64"
+            }
+        }
+        if (ARCH_MAC) {
+            stage("TiUP build prometheus on darwin/amd64") {
+                update VERSION, "darwin", "amd64"
+            }
+        }
     }
 }

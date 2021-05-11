@@ -8,6 +8,9 @@
 * @DUMPLING_TAG
 * @IMPORTER_TAG
 * @TIFLASH_TAG
+* @ARCH_ARM
+* @ARCH_X86
+* @ARCH_MAC
 */
 
 def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version
@@ -274,33 +277,36 @@ node("build_go1130") {
             } else {
                 tidb_version = HOTFIX_TAG
             }
-
-            stage("TiUP build tidb on linux/amd64") {
-                update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
-                update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
-                update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
-                update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
-                update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
-                update_ctl HOTFIX_TAG, "linux", "amd64"
+            if (ARCH_X86) {
+                stage("TiUP build tidb on linux/amd64") {
+                     "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
+                    update_ctl HOTFIX_TAG, "linux", "amd64"
+                }
             }
-
-            // stage("TiUP build tidb on linux/arm64") {
-            //     update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
-            //     update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
-            //     update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
-            //     update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
-            //     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
-            //     update_ctl HOTFIX_TAG, "linux", "arm64"
-            // }
-
-            // stage("TiUP build tidb on darwin/amd64") {
-            //     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
-            //     update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
-            //     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
-            //     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
-            //     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-            //     update_ctl HOTFIX_TAG, "darwin", "amd64"
-            // }
+            if (ARCH_ARM) {
+                stage("TiUP build tidb on linux/arm64") {
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+                    update_ctl HOTFIX_TAG, "linux", "arm64"
+                }
+            }
+            if (ARCH_MAC) {
+                stage("TiUP build tidb on darwin/amd64") {
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                    update_ctl HOTFIX_TAG, "darwin", "amd64"
+                }
+            }
 
             // stage("Upload") {
             //     upload "package"
@@ -311,6 +317,10 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${CDC_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+                    
             ]
 
             stage("TiUP build cdc") {
@@ -322,6 +332,9 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             stage("TiUP build br") {
@@ -333,6 +346,9 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${DUMPLING_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             stage("TiUP build dumpling") {
@@ -345,6 +361,9 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             stage("TiUP build lightning") {
@@ -356,6 +375,9 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${IMPORTER_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             if (HOTFIX_TAG != "nightly" && HOTFIX_TAG < "v4.0.0") {
@@ -369,6 +391,9 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             stage("TiUP build tiflash") {
@@ -380,6 +405,9 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             stage("TiUP build grafana") {
@@ -391,16 +419,19 @@ node("build_go1130") {
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
             ]
 
             stage("TiUP build prometheus") {
                 build(job: "prometheus-tiup-mirrior-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
             }
 
-            def params2 = [
-                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-            ]
+            // def params2 = [
+            //         string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+            //         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+            // ]
 
 
             // stage("TiUP build node_exporter") {
