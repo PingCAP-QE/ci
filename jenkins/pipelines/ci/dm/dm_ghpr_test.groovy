@@ -314,8 +314,16 @@ pipeline {
         stage('Check Code') {
             steps {
                 print_all_vars()
-                retry(count: 3){
-                    checkout_and_stash_dm_code()
+                script {
+                    try {
+                        checkout_and_stash_dm_code()
+                    }catch (info) {
+                        retry(count: 3) {
+                            echo 'checkout failed, retry..'
+                            sleep 5
+                            checkout_and_stash_dm_code()
+                        }
+                    }
                 }
                 run_make_check()
             }
