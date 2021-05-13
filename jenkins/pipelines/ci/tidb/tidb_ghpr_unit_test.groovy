@@ -151,15 +151,17 @@ try {
 
                             split packages.list.unit.leak -n r/3 packages_unit_ -a 1 --numeric-suffixes=1
                             cat packages.list | grep "\${package_base}/ddl" > packages_unit_4
-                            cat packages.list | grep "\${package_base}/executor" > packages_unit_5
+                            echo "\${package_base}/executor" > packages_unit_5
                             cat packages.list | grep "\${package_base}/planner/core" > packages_unit_6
                             cat packages.list | grep "\${package_base}/server" > packages_unit_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_unit_8
 
                             split packages.list.unit.leak -n r/3 packages_leak_ -a 1 --numeric-suffixes=1
                             cat packages.list | grep "\${package_base}/ddl" > packages_leak_4
-                            cat packages.list | grep "\${package_base}/executor" > packages_leak_5
+                            echo "\${package_base}/executor" > packages_leak_5
                             cat packages.list | grep "\${package_base}/planner/core" > packages_leak_6
                             cat packages.list | grep "\${package_base}/server" > packages_leak_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_leak_8
 
                             split packages.list.short -n r/3 packages_race_ -a 1 --numeric-suffixes=1
 
@@ -451,6 +453,10 @@ try {
                 run_unit_test(7)
             }
 
+            tests["Unit Test Chunk #8"] = {
+                run_unit_test(8)
+            }
+
             tests["Leak Test Chunk #1"] = {
                 run_leak_test(1)
             }
@@ -477,6 +483,10 @@ try {
 
             tests["Leak Test Chunk #7"] = {
                 run_leak_test(7)
+            }
+
+            tests["Leak Test Chunk #8"] = {
+                run_leak_test(8)
             }
 
             parallel tests
