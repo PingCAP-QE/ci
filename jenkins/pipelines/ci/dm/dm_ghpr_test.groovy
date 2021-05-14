@@ -9,6 +9,14 @@
 
 */
 
+// NOTE: if this ci was triggered by bot's cherry pick, skip it.
+def ghprbSourceBranch = "${ghprbSourceBranch}"
+if (ghprbSourceBranch.contains('cherry-pick') && "${ghprbPullAuthorLogin}"=='ti-chi-bot') {
+    echo 'skip this cherry pick test'
+    currentBuild.result = 'SUCCESS'
+    return 0
+}
+
 // prepare all vars
 if ("${ghprbTargetBranch}" == 'release-1.0') {
     MYSQL_ARGS = '--ssl=OFF --log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password'
