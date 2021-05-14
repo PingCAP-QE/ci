@@ -200,7 +200,7 @@ try {
                 stage("Build tiflash") {
                     node("mac-i7") {
                         dir("tics") {
-                            if (!checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                            if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
                             }
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
@@ -245,7 +245,7 @@ try {
             stage("Build tikv") {
                 node("mac-i7") {
                     dir("go/src/github.com/pingcap/tikv") {
-                        if (!checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                        if (checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
                             return
                         }
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
@@ -285,7 +285,7 @@ try {
             stage("Build importer") {
                 node("mac-i7") {
                     dir("go/src/github.com/pingcap/importer") {
-                        if (!checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+                        if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
                             return
                         }
                         def target = "importer-${RELEASE_TAG}-${os}-${arch}"
