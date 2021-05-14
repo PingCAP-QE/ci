@@ -19,7 +19,7 @@ arch = "amd64"
 platform = "darwin"
 def TIDB_CTL_HASH = "master"
 
-def ifFileCacheExists(product, hash, binary) {
+def checkIfFileCacheExists(product, hash, binary) {
     if (FORCE_REBUILD) {
         return false
     }
