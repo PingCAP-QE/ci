@@ -223,7 +223,7 @@ try {
         if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
             builds["Build tiflash"] = {
                 stage("Build tiflash") {
-                    node("mac-i7") {
+                    node("mac-i5") {
                         dir("tics") {
                             if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
