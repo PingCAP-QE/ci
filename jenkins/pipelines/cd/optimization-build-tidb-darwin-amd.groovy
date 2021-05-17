@@ -19,7 +19,7 @@ arch = "amd64"
 platform = "darwin"
 def TIDB_CTL_HASH = "master"
 
-def ifFileCacheExists(product, hash, binary) {
+def checkIfFileCacheExists(product, hash, binary) {
     if (FORCE_REBUILD) {
         return false
     }
@@ -51,42 +51,66 @@ def ifFileCacheExists(product, hash, binary) {
 
 def build_upload = { product, hash, binary ->
     stage("Build ${product}") {
-        def repo = "git@github.com:pingcap/${product}.git"
-        dir("go/src/github.com/pingcap/${product}") {
-            retry(20) {
-                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
+        node("mac") {
+            def repo = "git@github.com:pingcap/${product}.git"
+            def workspace = WORKSPACE
+            dir("${workspace}/go/src/github.com/pingcap/${product}") {
+                try {
+                    checkout changelog: false, poll: true,
+                            scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
+                                  extensions: [[$class: 'CheckoutOption', timeout: 30],
+                                               [$class: 'CloneOption', timeout: 60],
+                                               [$class: 'PruneStaleBranch'],
+                                               [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
+                                  userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                       refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                       url          : "${repo}"]]]
+                } catch (info) {
+                    retry(10) {
+                        echo "checkout failed, retry..."
+                        sleep 5
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        checkout changelog: false, poll: true,
+                                scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
+                                      extensions: [[$class: 'CheckoutOption', timeout: 30],
+                                                   [$class: 'CloneOption', timeout: 60],
+                                                   [$class: 'PruneStaleBranch'],
+                                                   [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
+                                      userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                           refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                           url          : "${repo}"]]]
+                    }
                 }
-                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: "${repo}"]]]
-            }
-            if (product == "tidb-ctl") {
-                hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-            }
-            def filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${binary}.tar.gz"
-            if (product == "br") {
-                filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
-            }
-            def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
-            if (product == "ticdc") {
-                target = "${product}-${os}-${arch}"
-                filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
-            }
-            if (product == "dumpling") {
-                filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
-            }
-            if (product == "tidb-ctl") {
-                sh """
-                export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
-                go build -o /Users/pingcap/binarys/${product}
-                rm -rf ${target}
-                mkdir -p ${target}/bin
-                cp /Users/pingcap/binarys/${product} ${target}/bin/            
-                """
-            }
+                if (product == "tidb-ctl") {
+                    hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                }
+                def filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${binary}.tar.gz"
+                if (product == "br") {
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
+                }
+                def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
+                if (product == "ticdc") {
+                    target = "${product}-${os}-${arch}"
+                    filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
+                }
+                if (product == "dumpling") {
+                    filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
+                }
+                if (product == "tidb-ctl") {
+                    sh """
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                    go build -o /Users/pingcap/binarys/${product}
+                    rm -rf ${target}
+                    mkdir -p ${target}/bin
+                    cp /Users/pingcap/binarys/${product} ${target}/bin/            
+                    """
+                }
 
-            if (product in ["tidb", "tidb-binlog", "pd"]) {
-                sh """
+                if (product in ["tidb", "tidb-binlog", "pd"]) {
+                    sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
@@ -106,10 +130,10 @@ def build_upload = { product, hash, binary ->
                         cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
                     fi;
                     cp bin/* ${target}/bin
-                """
-            }
-            if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
-                sh """
+                    """
+                }
+                if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
+                    sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
@@ -123,12 +147,13 @@ def build_upload = { product, hash, binary ->
                     rm -rf ${target}
                     mkdir -p ${target}/bin
                     mv bin/* ${target}/bin/
+                    """
+                }
+                sh """
+                    tar czvf ${target}.tar.gz ${target}
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                 """
             }
-            sh """
-                tar czvf ${target}.tar.gz ${target}
-                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-            """
         }
     }
 }
@@ -198,9 +223,9 @@ try {
         if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
             builds["Build tiflash"] = {
                 stage("Build tiflash") {
-                    node("mac-i7") {
+                    node("mac-i5") {
                         dir("tics") {
-                            if (!checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                            if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
                             }
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
@@ -245,7 +270,7 @@ try {
             stage("Build tikv") {
                 node("mac-i7") {
                     dir("go/src/github.com/pingcap/tikv") {
-                        if (!checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                        if (checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
                             return
                         }
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
@@ -285,7 +310,7 @@ try {
             stage("Build importer") {
                 node("mac-i7") {
                     dir("go/src/github.com/pingcap/importer") {
-                        if (!checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+                        if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
                             return
                         }
                         def target = "importer-${RELEASE_TAG}-${os}-${arch}"
