@@ -102,31 +102,6 @@ try {
                                 }
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
                             }
-                            dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                                timeout(30) {
-                                    sh label: 'Download lint cache', script: """
-                                    # set -o pipefail
-                                    cp -R /home/jenkins/agent/git/tikv/. ./
-                                    eval "du -ms *"
-                                    rm -rf target
-                                    if curl ${FILE_SERVER2_URL}/download/rust_cache/${ghprbPullId}/target_lint.tar.lz4 | lz4 -d - | tar x; then
-                                        set +o pipefail
-                                    else
-                                        if curl ${FILE_SERVER2_URL}/download/rust_cache/branch_${ghprbTargetBranch}/target_lint.tar.lz4 | lz4 -d - | tar x; then
-                                            set +o pipefail
-                                        fi
-                                    fi
-                                    eval "du -ms *"
-                                    set -euo pipefail
-                                    """
-
-                                    sh returnStatus: true, label: 'Restore cargo dependencies mtime', script: """
-                                    if [ -f "target/cargo-mtime.json" ]; then
-                                        curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - restore --meta-file target/cargo-mtime.json
-                                    fi
-                                    """
-                                }
-                            }
                         }
 
 
@@ -184,20 +159,7 @@ try {
                                 // fi
                                 // """
 
-                                sh label: 'Post-lint: Save cargo dependencies mtime', script: """
-
-                                if [ -f "target/cargo-mtime.json" ]; then
-                                  curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - save --meta-file target/cargo-mtime.json
-                                fi
-                                """
-
-                                sh label: 'Post-lint: Upload lint cache', script: """
-                                tar cf - target/debug/.fingerprint target/debug/build target/debug/deps target/debug/incremental target/cargo-mtime.json --format posix | lz4 -c > target_lint.tar.lz4
-                                ls -la target_lint.tar.lz4
-                                if ! curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/rust_cache/${ghprbPullId}/target_lint.tar.lz4; then
-                                    curl -F rust_cache/${ghprbPullId}/target_lint.tar.lz4=@target_lint.tar.lz4 ${FILE_SERVER2_URL}/upload
-                                fi
-                                """
+             
                                 // master 分支阈值为 40G, 其他分支 20G
                                 def threshold = 40000000
                                 if (ghprbTargetBranch != "master") {
@@ -263,22 +225,9 @@ try {
                                         cp -R /home/jenkins/agent/git/tikv/. ./
                                         eval "du -ms *"
                                         rm -rf target
-
-                                        if curl ${FILE_SERVER2_URL}/download/rust_cache/${ghprbPullId}/target.tar.lz4 | lz4 -d - | tar x; then
-                                            set +o pipefail
-                                        else
-                                            if curl ${FILE_SERVER2_URL}/download/rust_cache/branch_${ghprbTargetBranch}/target.tar.lz4 | lz4 -d - | tar x; then
-                                                set +o pipefail
-                                            fi
-                                        fi
+                                 
                                         eval "du -ms *"
                                         set -euo pipefail
-                                        """
-
-                                        sh returnStatus: true, label: 'Restore cargo dependencies mtime', script: """
-                                        if [ -f "target/cargo-mtime.json" ]; then
-                                            curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - restore --meta-file target/cargo-mtime.json
-                                        fi
                                         """
                                     }
                                 }
@@ -369,18 +318,6 @@ try {
                                         //     curl -F rust_cache/${ghprbPullId}/dep.tar.lz4=@dep.tar.lz4 ${FILE_SERVER2_URL}/upload
                                         // fi
                                         // """
-
-                                        sh label: 'Post-build: Save cargo dependencies mtime', script: """
-                                        curl https://gist.githubusercontent.com/breeswish/8b3328fae820b9ac59fa227dd2ad75af/raw/c26c9d63cdad30b6e82e7d43c3b41bc4ef5ee78c/cargo-mtime.py -sSf | python - save --meta-file target/cargo-mtime.json
-                                        """
-
-                                        sh label: 'Post-build: Upload build cache', script: """
-                                        tar cf - target/debug/.fingerprint target/debug/build target/debug/deps target/debug/incremental target/cargo-mtime.json --format posix | lz4 -c > target.tar.lz4
-                                        ls -la target.tar.lz4
-                                        if ! curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/rust_cache/${ghprbPullId}/target.tar.lz4; then
-                                            curl -F rust_cache/${ghprbPullId}/target.tar.lz4=@target.tar.lz4 ${FILE_SERVER2_URL}/upload
-                                        fi
-                                        """
 
                                         sh label: 'Post-build: Upload test data files', script: """
                                         rm -rf target.tar.lz4 dep.tar.lz4 target
