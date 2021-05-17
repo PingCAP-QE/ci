@@ -163,6 +163,7 @@ try {
                                 export ROCKSDB_SYS_SSE=1
                                 export RUST_BACKTRACE=1
                                 export LOG_LEVEL=INFO
+                                export CARGO_INCREMENTAL=0
                                 grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                                 if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
                                   echo using gcc 8
@@ -315,6 +316,7 @@ try {
                                         export ROCKSDB_SYS_SSE=1
                                         export RUST_BACKTRACE=1
                                         export LOG_LEVEL=INFO
+                                        export CARGO_INCREMENTAL=0
                                         # export CARGO_LOG=cargo::core::compiler::fingerprint=debug
 
                                         grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
@@ -410,7 +412,7 @@ try {
     }
     stage('Test') {
         def run_test = { chunk_suffix ->
-            node("${GO_TEST_SLAVE}") {
+            node("${GO_TEST_TIKV_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -469,7 +471,7 @@ try {
         }
 
         def run_exclude_5 = { componment, exclude1, exclude2, exclude3, exclude4, exclude5 ->
-            node("${GO_TEST_SLAVE}") {
+            node("${GO_TEST_TIKV_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
 
@@ -524,7 +526,7 @@ try {
         }
 
         def run_exclude_3 = { componment, exclude1, exclude2, exclude3 ->
-            node("${GO_TEST_SLAVE}") {
+            node("${GO_TEST_TIKV_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -593,7 +595,7 @@ try {
 
 
         def run_root_exact = { componment, exclude ->
-            node("${GO_TEST_SLAVE}") {
+            node("${GO_TEST_TIKV_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -650,7 +652,7 @@ try {
         }
 
         def run_integration_chunk = { chunk_index ->
-            node("${GO_TEST_SLAVE}") {
+            node("${GO_TEST_TIKV_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"

@@ -347,7 +347,7 @@ try {
         parallel builds
     }
     currentBuild.result = "SUCCESS"
-} catch (Exception e) {
+} catch (Exception e ) {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"

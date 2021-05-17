@@ -216,7 +216,7 @@ try {
                         container("tiflash-build-arm") {
                             // println "arm debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                             dir("tics") {
-                                if (!ifFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                                if (ifFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                     return
                                 }
                                 def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
@@ -276,7 +276,7 @@ try {
         builds["Build tikv"] = {
             node("arm") {
                 dir("go/src/github.com/pingcap/tikv") {
-                    if (!ifFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                    if (ifFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
                         return
                     }
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -320,7 +320,7 @@ try {
         builds["Build importer"] = {
             node("arm") {
                 dir("go/src/github.com/pingcap/importer") {
-                    if (!ifFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+                    if (ifFileCacheExists("importer", IMPORTER_HASH, "importer")) {
                         return
                     }
                     def target = "importer-${RELEASE_TAG}-${os}-${arch}"
