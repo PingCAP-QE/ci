@@ -15,8 +15,7 @@ if (notRun == 0){
 }
 def slackcolor = 'good'
 def githash
-env.TRAVIS_COVERAGE = 1
-env.CODECOV_TOKEN = '2114fff2-bd95-43eb-9483-a351f0184eae'
+
 
 try {
 
@@ -93,16 +92,18 @@ try {
             if(ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-3")) {
                 dir("go/src/github.com/pingcap/tidb") {
                     container("golang") {
-                        timeout(30) {
-                            sh """
-                            set +x
-                            export CODECOV_TOKEN='2114fff2-bd95-43eb-9483-a351f0184eae'
-                            export TRAVIS_COVERAGE=1
-                            set -x
-                            # we will change TiDB Makefile directly after the actual effect is stable
-                            sed -ir 's/bash <(curl -s https:\\/\\/codecov.io\\/bash)/curl -s https:\\/\\/codecov.io\\/bash | bash -s -- -X s3/g' Makefile
-                            make gotest upload-coverage
-                            """
+                        withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
+                            timeout(30) {
+                                sh """
+                                set +x
+                                export CODECOV_TOKEN=${CODECOV_TOKEN}
+                                export TRAVIS_COVERAGE=1
+                                set -x
+                                # we will change TiDB Makefile directly after the actual effect is stable
+                                sed -ir 's/bash <(curl -s https:\\/\\/codecov.io\\/bash)/curl -s https:\\/\\/codecov.io\\/bash | bash -s -- -X s3/g' Makefile
+                                make gotest upload-coverage
+                                """
+                            }
                         }
                     }
                 }
