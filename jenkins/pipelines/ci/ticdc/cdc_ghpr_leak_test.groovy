@@ -4,6 +4,10 @@ echo "Job start..."
 //def ciRepoBranch = "main"
 def ciRepeUrl = "https://github.com/purelind/ci.git"
 def ciRepoBranch = "patch-ticdc-init"
+def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+if (ghprbPullId == null || ghprbPullId == "") {
+    specStr = "+refs/heads/*:refs/remotes/origin/*"
+}
 
 catchError {
     node ("${GO_TEST_SLAVE}") {
