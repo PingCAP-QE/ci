@@ -69,7 +69,7 @@ try {
         }
     }
     //def buildSlave = "${GO_BUILD_SLAVE}"
-    def testSlave = "test_go_heavy"
+    def testSlave = "test_go"
 
     node(buildSlave) {
         stage("Checkout") {
@@ -85,9 +85,8 @@ try {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         curl ${tidb_url} | tar xz -C ./
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
-                            GOPATH=${ws}/go make ddltest
+                            make ddltest
                         fi
                         ls bin
                         rm -rf bin/tidb-server-*
@@ -190,7 +189,6 @@ try {
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
 
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export PATH=`pwd`/bin:\$PATH
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 if [ -f ${ws}/go/src/github.com/pingcap/tidb/bin/ddltest ]; then
@@ -308,6 +306,6 @@ finally {
 
 stage("upload status"){
     node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }

@@ -43,36 +43,8 @@ try {
                 sh "whoami && go version"
             }
 
-            // update cache
-            dir("/home/jenkins/agent/git/tidb") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
-                if (!fileExists("/home/jenkins/agent/git/tidb/Makefile")) {
-                    dir("/home/jenkins/agent/git") {
-                        sh """
-                            rm -rf tidb.tar.gz
-                            rm -rf tidb
-                            wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                            tar xvf tidb.tar.gz
-                        """
-                    }
-                }
-                dir("/home/jenkins/agent/git/tidb") {
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 120]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 2
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                        }
-                    }
-                }
-
+            // ensure golangci-lint tool exist
+            dir("/home/jenkins/agent/git/tools") {
                 if (!fileExists("/home/jenkins/agent/git/tools/bin/golangci-lint")) {
                     container("golang") {
                         dir("/home/jenkins/agent/git/tools/") {
@@ -83,32 +55,77 @@ try {
                     }
                 }
             }
+            // update code
+            dir("/home/jenkins/agent/code-archive") {
+                // delete to clean workspace in case of agent pod reused lead to conflict.
+                deleteDir()
+                // copy code from nfs cache
+                container("golang") {
+                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                        timeout(5) {
+                            sh """
+                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                                tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
+                            """
+                        }
+                    }
+                }
+                dir("${ws}/go/src/github.com/pingcap/tidb") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                        echo "Clean dir then get tidb src code from fileserver"
+                        deleteDir()
+                    }
+                    if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                        dir("${ws}/go/src/github.com/pingcap/tidb") {
+                            sh """
+                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                rm -rf /home/jenkins/agent/code-archive/tidb
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                            """
+                        }
+                    }
+                    try {
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                    }   catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                            }
+                        }
+                    sh "git checkout -f ${ghprbActualCommit}"
+                }
+            }
         }
 
         stage("Build & Test") {
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
-                    deleteDir()
                     timeout(30) {
                         sh """
-                        cp -R /home/jenkins/agent/git/tidb/. ./
                         mkdir -p tools/bin
                         cp /home/jenkins/agent/git/tools/bin/golangci-lint tools/bin/
                         git checkout -f ${ghprbActualCommit}
                         ls -al tools/bin || true
                         # GOPROXY=http://goproxy.pingcap.net
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sfT \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         """
                     }
                     try {
                         if (ghprbTargetBranch == "master") {
                             def builds = [:]
                             builds["check"] = {
-                                sh "GOPATH=${ws}/go make check"
+                                sh "make check"
                             }
                             builds["test_part_1"] = {
                                 try {
-                                    sh "GOPATH=${ws}/go make test_part_1"
+                                    sh "make test_part_1"
                                 } catch (err) {
                                     throw err
                                 } finally {
@@ -117,7 +134,7 @@ try {
                             }
                             parallel builds
                         } else {
-                            sh "GOPATH=${ws}/go make dev"
+                            sh "make dev"
                         }
                     } catch (err) {
                         throw err
@@ -180,7 +197,7 @@ catch (Exception e) {
 stage("upload status") {
     node {
         println currentBuild.result
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 

@@ -5,7 +5,7 @@ info:
   title: "sync ci data server"
   contact:
     email: "lilinghai@pingcap.com"
-host: "172.16.5.13"
+host: "172.16.5.25"
 basePath: "/api/v1"
 schemes:
   - "http"

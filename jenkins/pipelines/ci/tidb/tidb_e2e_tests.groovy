@@ -42,54 +42,65 @@ try {
             container("golang") {
                 sh "whoami && go version"
             }
-            // update cache
-            dir("/home/jenkins/agent/git/tidb") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
-                if(!fileExists("/home/jenkins/agent/git/tidb/Makefile")) {
-                    dir("/home/jenkins/agent/git") {
-                        sh """
-                            rm -rf tidb.tar.gz
-                            rm -rf tidb
-                            wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                            tar xvf tidb.tar.gz
+            // update code
+            dir("/home/jenkins/agent/code-archive") {
+                // delete to clean workspace in case of agent pod reused lead to conflict.
+                deleteDir()
+                // copy code from nfs cache
+                container("golang") {
+                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                        timeout(5) {
+                            sh """
+                            cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                            mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                            tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                         """
-                    }
-                }
-                dir("/home/jenkins/agent/git/tidb") {
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 20
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                         }
                     }
+                }
+                dir("${ws}/go/src/github.com/pingcap/tidb") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                        echo "Clean dir then get tidb src code from fileserver"
+                        deleteDir()
+                    }
+                    if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                        dir("${ws}/go/src/github.com/pingcap/tidb") {
+                            sh """
+                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                rm -rf /home/jenkins/agent/code-archive/tidb
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                            """
+                        }
+                    }
+                    try {
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                    }   catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                            }
+                        }
+                    sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
         }
 
         stage("Build tidb-server and e2e"){
-            container("golang") {
-                sh "mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod"
-            }
             def builds = [:]
             builds["Test"] = {
                 stage("Build"){
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            deleteDir()
                             timeout(10) {
                                 try {
                                     sh """
-                                    cp -R /home/jenkins/agent/git/tidb/. ./
-                                    git checkout -f ${ghprbActualCommit}
-    
                                     cd tests/graceshutdown
                                     make
                                     sh run-tests.sh

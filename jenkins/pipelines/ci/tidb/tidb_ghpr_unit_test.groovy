@@ -60,46 +60,59 @@ try {
         def testSlave =  "${GO_TEST_SLAVE}"
 
         stage('Prepare') {
-
-
-
             def builds = [:]
 
             builds["unittest"] = {
                 node (buildSlave) {
                     def ws = pwd()
-                    // deleteDir()
+                    deleteDir()
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-                    // update cache
-                    dir("/home/jenkins/agent/git/tidb") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        if(!fileExists("/home/jenkins/agent/git/tidb/Makefile")) {
-                            dir("/home/jenkins/agent/git") {
-                                sh """
-                                rm -rf tidb.tar.gz
-                                rm -rf tidb
-                                wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                                tar xvf tidb.tar.gz
-                            """
-                            }
-                        }
-                        dir("/home/jenkins/agent/git/tidb") {
-                            try {
-                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                            } catch (info) {
-                                retry(2) {
-                                    echo "checkout failed, retry.."
-                                    sleep 5
-                                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                        deleteDir()
-                                    }
-                                    // if checkout one pr failed, we fallback to fetch all thre pr data
-                                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                    // update code
+                    dir("/home/jenkins/agent/code-archive") {
+                        // delete to clean workspace in case of agent pod reused lead to conflict.
+                        deleteDir()
+                        // copy code from nfs cache
+                        container("golang") {
+                            if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                                timeout(5) {
+                                    sh """
+                                        cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                        mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                                        tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
+                                    """
                                 }
                             }
+                        }
+                        dir("${ws}/go/src/github.com/pingcap/tidb") {
+                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                                echo "Clean dir then get tidb src code from fileserver"
+                                deleteDir()
+                            }
+                            if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                                dir("${ws}/go/src/github.com/pingcap/tidb") {
+                                    sh """
+                                        rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                        rm -rf /home/jenkins/agent/code-archive/tidb
+                                        wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                        tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                                """
+                                }
+                            }
+                            try {
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                            }   catch (info) {
+                                    retry(2) {
+                                        echo "checkout failed, retry.."
+                                        sleep 5
+                                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                            deleteDir()
+                                        }
+                                        // if checkout one pr failed, we fallback to fetch all thre pr data
+                                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                                    }
+                                }
                             sh "git checkout -f ${ghprbActualCommit}"
                         }
                     }
@@ -108,12 +121,10 @@ try {
                     // update tidb cache
                     dir("go/src/github.com/pingcap/tidb") {
                         container("golang") {
-                            deleteDir()
                             timeout(5) {
                                 sh """
-                            cp -R /home/jenkins/agent/git/tidb/* ./
                             rm -rf ./bin
-                            GOPATH=${ws}/go go list ./... | grep -v cmd/ddltest > packages.list
+                            go list ./... | grep -v cmd/ddltest > packages.list
                             package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                             cat packages.list | grep -v "\${package_base}/ddl"|grep -v "\${package_base}/executor" |grep -v "\${package_base}/session" | grep -v "\${package_base}/expression" | grep -vE "\${package_base}/store\$" > packages.list.short
                             echo "\${package_base}/ddl" > packages_race_7
@@ -136,10 +147,23 @@ try {
                             cat packages.list.short | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/store/tikv" | grep -v "\${package_base}/server" > packages.list.short.1
                             mv packages.list.short.1 packages.list.short
 
+                            cat packages.list | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/server" | grep -v "\${package_base}/ddl" | grep -v "\${package_base}/executor" > packages.list.unit.leak
 
-                            split packages.list -n r/3 packages_unit_ -a 1 --numeric-suffixes=1
+                            split packages.list.unit.leak -n r/3 packages_unit_ -a 1 --numeric-suffixes=1
+                            cat packages.list | grep "\${package_base}/ddl" > packages_unit_4
+                            echo "\${package_base}/executor" > packages_unit_5
+                            cat packages.list | grep "\${package_base}/planner/core" > packages_unit_6
+                            cat packages.list | grep "\${package_base}/server" > packages_unit_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_unit_8
+
+                            split packages.list.unit.leak -n r/3 packages_leak_ -a 1 --numeric-suffixes=1
+                            cat packages.list | grep "\${package_base}/ddl" > packages_leak_4
+                            echo "\${package_base}/executor" > packages_leak_5
+                            cat packages.list | grep "\${package_base}/planner/core" > packages_leak_6
+                            cat packages.list | grep "\${package_base}/server" > packages_leak_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_leak_8
+
                             split packages.list.short -n r/3 packages_race_ -a 1 --numeric-suffixes=1
-                            split packages.list -n r/3 packages_leak_ -a 1 --numeric-suffixes=1
 
                             # failpoint-ctl => 3.0+
                             # gofail => 2.0, 2.1
@@ -153,7 +177,7 @@ try {
                             set -e
                             echo "failpoint bin: \$failpoint_bin"
                             make \$failpoint_bin
-                            find . -type d | grep -vE "(\\.git|_tools)" | GOPATH=${ws}/go xargs \$failpoint_bin enable
+                            find . -type d | grep -vE "(\\.git|_tools)" | xargs \$failpoint_bin enable
                             """
                             }
                         }
@@ -189,9 +213,8 @@ try {
                                 killall -9 -r -q pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info 
-                                time GOPATH=${ws}/go ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) #  > test.log
+                                time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) #  > test.log
                                 """
                                 }
                             }catch (err) {
@@ -228,9 +251,8 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info
-                                time GOPATH=${ws}/go ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
+                                time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
                                 """
                                 }
                             }catch (err) {
@@ -268,9 +290,8 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info
-                                time GORACE="history_size=7" GOPATH=${ws}/go ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
+                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
                                 """
                                 }
                             }catch (err) {
@@ -315,9 +336,8 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                                 export log_level=info 
-                                time GOPATH=${ws}/go ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) # > test.log
+                                time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) # > test.log
                                 """
                                 }
                             }catch (err) {
@@ -338,8 +358,72 @@ try {
             // 将执行较慢的 chunk 放在前面优先调度，以减轻调度的延迟对执行时间的影响
             def tests = [:]
 
-            // run race #6/#8 in parallel mode for master branch
-      
+            tests["Race Test Chunk #9 executor"] = {
+                run_race_test_heavy(9)
+            }
+
+            tests["Race Test Chunk #10"] = {
+                run_race_test(10)
+            }
+            // run race #6/#8 in parallel mode for master branch\
+            if (ghprbTargetBranch == "master") {
+                tests["Race Test Chunk #7 ddl-dbsuite"] = {
+                    run_race_test_heavy_with_args(7, '-check.f "testDBSuite"')
+                }
+
+                tests["Race Test Chunk #7 ddl-other"] = {
+                    run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite"')
+                }
+
+                tests["Race Test Chunk #6"] = {
+                    run_race_test_heavy_parallel(6)
+                }
+                tests["Race Test Chunk #8 session"] = {
+                    run_race_test_heavy_parallel(8)
+                }
+
+            } else {
+                tests["Race Test Chunk #7"] = {
+                    run_race_test_heavy(7)
+                }
+
+                tests["Race Test Chunk #6"] = {
+                    run_race_test_heavy(6)
+                }
+
+                tests["Race Test Chunk #8 session"] = {
+                    run_race_test_heavy(8)
+                }
+            }
+
+            tests["Race Test Chunk #12 expression"] = {
+                run_race_test(12)
+            }
+
+            tests["Race Test Chunk #1"] = {
+                run_race_test(1)
+            }
+
+            tests["Race Test Chunk #2"] = {
+                run_race_test(2)
+            }
+
+            tests["Race Test Chunk #3"] = {
+                run_race_test(3)
+            }
+
+            tests["Race Test Chunk #4"] = {
+                run_race_test(4)
+            }
+
+            tests["Race Test Chunk #5"] = {
+                run_race_test(5)
+            }
+
+            tests["Race Test Chunk #13"] = {
+                run_race_test(13)
+            }
+
 
             tests["Unit Test Chunk #1"] = {
                 run_unit_test(1)
@@ -353,6 +437,26 @@ try {
                 run_unit_test(3)
             }
 
+            tests["Unit Test Chunk #4"] = {
+                run_unit_test(4)
+            }
+
+            tests["Unit Test Chunk #5"] = {
+                run_unit_test(5)
+            }
+
+            tests["Unit Test Chunk #6"] = {
+                run_unit_test(6)
+            }
+
+            tests["Unit Test Chunk #7"] = {
+                run_unit_test(7)
+            }
+
+            tests["Unit Test Chunk #8"] = {
+                run_unit_test(8)
+            }
+
             tests["Leak Test Chunk #1"] = {
                 run_leak_test(1)
             }
@@ -363,6 +467,26 @@ try {
 
             tests["Leak Test Chunk #3"] = {
                 run_leak_test(3)
+            }
+
+            tests["Leak Test Chunk #4"] = {
+                run_leak_test(4)
+            }
+
+            tests["Leak Test Chunk #5"] = {
+                run_leak_test(5)
+            }
+
+            tests["Leak Test Chunk #6"] = {
+                run_leak_test(6)
+            }
+
+            tests["Leak Test Chunk #7"] = {
+                run_leak_test(7)
+            }
+
+            tests["Leak Test Chunk #8"] = {
+                run_leak_test(8)
             }
 
             parallel tests
@@ -407,7 +531,7 @@ catch (Exception e) {
 
 stage("upload status"){
     node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 

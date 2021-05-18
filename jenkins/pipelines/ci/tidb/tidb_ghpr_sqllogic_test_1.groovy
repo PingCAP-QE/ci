@@ -81,8 +81,7 @@ try {
                             sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                         curl ${tidb_test_url} | tar xz
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                        cd sqllogic_test && GOPATH=${ws}/go ./build.sh
+                        cd sqllogic_test && ./build.sh
                         """
                         }
                     }
@@ -346,7 +345,7 @@ catch (Exception e) {
 
 stage("upload status") {
     node {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 

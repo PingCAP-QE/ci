@@ -28,7 +28,7 @@ def checkoutTiCS(commit, pullId) {
 }
 
 def run(label, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 20, idleMinutes:1440, containers: [
+    podTemplate(name: label, label: label, instanceCap: 20, nodeSelector: "role_type=slave", containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                             resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                             resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
@@ -210,7 +210,7 @@ def fallback() {
     
     stage("upload status"){
         node{
-            sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+            sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
         }
     }
 

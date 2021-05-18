@@ -38,32 +38,58 @@ try {
             container("golang") {
                 sh "whoami && go version"
             }
-            // update cache
-            dir("/home/jenkins/agent/git/tidb") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
-                }
-                if(!fileExists("/home/jenkins/agent/git/tidb/Makefile")) {
-                    dir("/home/jenkins/agent/git") {
-                        sh """
-                            rm -rf tidb.tar.gz
-                            rm -rf tidb
-                            wget ${FILE_SERVER_URL}/download/source/tidb.tar.gz
-                            tar xvf tidb.tar.gz
-                        """
+            // update code
+            dir("/home/jenkins/agent/code-archive") {
+                // delete to clean workspace in case of agent pod reused lead to conflict.
+                deleteDir()
+                // copy code from nfs cache
+                container("golang") {
+                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                        timeout(5) {
+                            sh """
+                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                                tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
+                            """
+                        }
                     }
                 }
-                dir("/home/jenkins/agent/git/tidb") {
+                dir("${ws}/go/src/github.com/pingcap/tidb") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                        echo "Clean dir then get tidb src code from fileserver"
+                        deleteDir()
+                    }
+                    if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                        dir("${ws}/go/src/github.com/pingcap/tidb") {
+                            sh """
+                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                rm -rf /home/jenkins/agent/code-archive/tidb
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                            """
+                        }
+                    }
                     try {
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    } catch (error) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 20
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
+                    }   catch (info) {
+                            retry(2) {
+                                echo "checkout failed, retry.."
+                                sleep 5
+                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                    deleteDir()
+                                }
+                                // if checkout one pr failed, we fallback to fetch all thre pr data
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                    }
+                    container("golang") {
+                        timeout(5) {
+                            sh """
+                            git checkout -f ${ghprbActualCommit}
+                            mkdir -p ${ws}/go/src/github.com/pingcap/tidb-build-plugin/
+                            cp -R ./* ${ws}/go/src/github.com/pingcap/tidb-build-plugin/
+                            """
                         }
                     }
                 }
@@ -71,31 +97,23 @@ try {
         }
 
         stage("Build tidb-server and plugin"){
-            container("golang") {
-                sh "mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod"
-            }
             def builds = [:]
             builds["Build and upload TiDB"] = {
                 stage("Build"){
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            deleteDir()
                             timeout(10) {
-                                sh """
-                                cp -R /home/jenkins/agent/git/tidb/. ./
-                                git checkout -f ${ghprbActualCommit}
-                                """
                                 if (isBuildCheck){
                                     sh """
-	                                nohup bash -c "if GOPATH=${ws}/go  make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if GOPATH=${ws}/go  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-	                                GOPATH=${ws}/go  make
+	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+	                                make
 	                                """
                                 }else{
                                     sh """
-	                                nohup bash -c "if GOPATH=${ws}/go  make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if GOPATH=${ws}/go  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
-	                                GOPATH=${ws}/go  make
+	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
+	                                make
 	                                touch tidb-server-check.done
 	                                """
                                 }
@@ -172,11 +190,8 @@ try {
                     stage ("Build plugins") {
                         container("golang") {
                             dir("go/src/github.com/pingcap/tidb-build-plugin") {
-                                deleteDir()
                                 timeout(20) {
                                     sh """
-                                    cp -R /home/jenkins/agent/git/tidb/. ./
-                                    git checkout -f ${ghprbActualCommit}
                                     cd cmd/pluginpkg
                                     go build
                                     """
@@ -188,12 +203,12 @@ try {
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                                 sh """
-                               GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                               ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                                """
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                                 sh """
-                               GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                               ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                                """
                             }
                         }
@@ -262,7 +277,7 @@ catch (Exception e) {
 }
 stage("upload status"){
     node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 
