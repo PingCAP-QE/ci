@@ -1,3 +1,18 @@
+/*
+* @TIDB_TAG
+* @TIKV_TAG
+* @PD_TAG
+* @BINLOG_TAG
+* @CDC_TAG
+* @BR_TAG
+* @DUMPLING_TAG
+* @IMPORTER_TAG
+* @TIFLASH_TAG
+* @ARCH_ARM
+* @ARCH_X86
+* @ARCH_MAC
+*/
+
 def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version
 def tidb_desc = "TiDB is an open source distributed HTAP database compatible with the MySQL protocol"
 def tikv_desc = "Distributed transactional key-value database, originally created to complement TiDB"
@@ -33,7 +48,7 @@ def download = { name, hash, os, arch ->
             tarball_name = "${name}.tar.gz"
         }
     }
-    if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v4.0.0") {
+    if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v4.0.0") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${tarball_name}
     """
@@ -84,6 +99,7 @@ def pack = { name, version, os, arch ->
             mv bin/${name}-ctl ctls/
             tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
             tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
+
             tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
             tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
             """
@@ -93,6 +109,7 @@ def pack = { name, version, os, arch ->
             tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
             tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
             tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
+
             mv bin/binlogctl ctls/
             """
         } else if (name == "tidb-ctl") {
@@ -122,6 +139,7 @@ def pack = { name, version, os, arch ->
             mv ${name}-${version}-${os}-${arch}/bin/${name}-ctl ctls/
             tiup package ${name}-server -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
             tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
+
             tiup package ${name}-recover -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
             tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
             """
@@ -183,8 +201,8 @@ def update_ctl = { version, os, arch ->
         """
     }
 
-    if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-        if (RELEASE_TAG != "nightly") {
+    if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
+        if (HOTFIX_TAG != "nightly") {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
             """
@@ -227,23 +245,23 @@ node("build_go1130") {
             stage("Get component hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if (RELEASE_TAG == "nightly") {
+                if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = RELEASE_TAG
+                    tag = HOTFIX_TAG
                 }
 
-                tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                 tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
-                tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
+                pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
+                tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
+                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
             }
 
-            if (RELEASE_TAG == "nightly") {
+            if (HOTFIX_TAG == "nightly") {
                 stage("Get version info when nightly") {
                     dir("tidb") {
                         // sh"""
@@ -257,90 +275,163 @@ node("build_go1130") {
                     }
                 }
             } else {
-                tidb_version = RELEASE_TAG
+                tidb_version = HOTFIX_TAG
             }
-
-            stage("TiUP build tidb on linux/amd64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
-                update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "amd64"
-                update_ctl RELEASE_TAG, "linux", "amd64"
+            if (ARCH_X86) {
+                stage("TiUP build tidb on linux/amd64") {
+                     "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
+                    update_ctl HOTFIX_TAG, "linux", "amd64"
+                }
             }
-
-            stage("TiUP build tidb on linux/arm64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
-                update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "arm64"
-                update_ctl RELEASE_TAG, "linux", "arm64"
+            if (ARCH_ARM) {
+                stage("TiUP build tidb on linux/arm64") {
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+                    update_ctl HOTFIX_TAG, "linux", "arm64"
+                }
             }
-
-            stage("TiUP build tidb on darwin/amd64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
-                update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                update_ctl RELEASE_TAG, "darwin", "amd64"
+            if (ARCH_MAC) {
+                stage("TiUP build tidb on darwin/amd64") {
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                    update_ctl HOTFIX_TAG, "darwin", "amd64"
+                }
             }
 
             // stage("Upload") {
             //     upload "package"
             // }
 
-            def params1 = [
-                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+            def paramsCDC = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${CDC_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+                    
             ]
 
             stage("TiUP build cdc") {
-                build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "cdc-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsCDC)
             }
+
+            def paramsBR = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
 
             stage("TiUP build br") {
-                build(job: "br-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "br-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsBR)
             }
+
+            def paramsDUMPLING = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${DUMPLING_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
 
             stage("TiUP build dumpling") {
-                build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "dumpling-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsDUMPLING)
             }
+
+            // since 4.0.12 the same as br
+            def paramsLIGHTNING = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
 
             stage("TiUP build lightning") {
-                build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
             }
 
-            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
+            def paramsIMPORTER = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${IMPORTER_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
+
+            if (HOTFIX_TAG != "nightly" && HOTFIX_TAG < "v4.0.0") {
                 stage("TiUP build importer") {
-                    build(job: "importer-tiup-mirror-update-test", wait: true, parameters: params1)
+                    build(job: "importer-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsIMPORTER)
                 }
             }
+
+            def paramsTIFLASH = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
 
             stage("TiUP build tiflash") {
-                build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "tiflash-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsTIFLASH)
             }
+
+            def paramsGRANFANA = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
 
             stage("TiUP build grafana") {
-                build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
             }
+
+            def paramsPROMETHEUS = [
+                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                    string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+            ]
 
             stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                build(job: "prometheus-tiup-mirrior-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
             }
 
-            if (RELEASE_TAG == "nightly") {
-                stage("TiUP build dm") {
-                    build(job: "dm-tiup-mirror-update-test", wait: true, parameters: params1)
-                }
-            }
-
-            def params2 = [
-                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-            ]
+            // def params2 = [
+            //         string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+            //         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+            // ]
 
 
             // stage("TiUP build node_exporter") {
