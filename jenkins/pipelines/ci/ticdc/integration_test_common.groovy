@@ -151,6 +151,21 @@ def download_binaries(){
     def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "release-5.0-rc")
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
 
+
+    def mBranch = ghprbTargetBranch =~ /^release-4.0/
+    if (mBranch) {
+        TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", "release-4.0")
+        TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", "release-4.0")
+        PD_BRANCH = params.getOrDefault("release_test__pd_commit", "release-4.0")
+        TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "release-4.0")
+    }
+    mBranch = null
+    println "ghprbTargetBranch=${ghprbTargetBranch}"
+    println "TIDB_BRANCH=${TIDB_BRANCH}"
+    println "PD_BRANCH=${PD_BRANCH}"
+    println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
+
+
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
     if (m1) {
