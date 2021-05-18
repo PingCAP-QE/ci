@@ -1,4 +1,10 @@
 echo "Job start"
+
+//def ciRepeUrl = "https://github.com/PingCAP-QE/ci.git"
+//def ciRepoBranch = "main"
+def ciRepeUrl = "https://github.com/purelind/ci.git"
+def ciRepoBranch = "patch-ticdc-init"
+
 catchError {
     node ("${GO_TEST_SLAVE}") {
         stage('Prepare') {

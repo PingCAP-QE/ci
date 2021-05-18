@@ -9,6 +9,11 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = "release-test"
 }
 
+//def ciRepeUrl = "https://github.com/PingCAP-QE/ci.git"
+//def ciRepoBranch = "main"
+def ciRepeUrl = "https://github.com/purelind/ci.git"
+def ciRepoBranch = "patch-ticdc-init"
+
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 if (ghprbPullId == null || ghprbPullId == "") {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
