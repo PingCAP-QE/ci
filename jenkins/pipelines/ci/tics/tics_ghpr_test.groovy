@@ -47,7 +47,7 @@ def checkoutTiFlash(branch) {
 }
 
 def run(label, Closure body) {
-    podTemplate(cloud: 'schrodinger', name: label, label: label, instanceCap: 5, containers: [
+    podTemplate(name: label, label: label, instanceCap: 5, containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                     resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                     resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
@@ -92,20 +92,20 @@ def fallback() {
                 stage("Checkout") {
                     container("docker") {
                         sh """
-                                archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
-                                if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
-                                echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
-                                apk add --update --no-cache lcov
-                                """
+                            archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
+                            if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
+                            echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+                            apk add --update --no-cache lcov
+                        """
                         sh "chown -R 1000:1000 ./"
                         sh """
-                                # if ! grep -q hub.pingcap.net /etc/hosts ; then echo '172.16.10.5 hub.pingcap.net' >> /etc/hosts; fi
-                                if [ -d '../tiflash/tests/maven' ]; then
-                                    cd '../tiflash/tests/maven'
-                                    docker-compose down || true
-                                    cd -
-                                fi
-                                """
+                            # if ! grep -q hub.pingcap.net /etc/hosts ; then echo '172.16.10.5 hub.pingcap.net' >> /etc/hosts; fi
+                            if [ -d '../tiflash/tests/maven' ]; then
+                                cd '../tiflash/tests/maven'
+                                docker-compose down || true
+                                cd -
+                            fi
+                        """
                     }
                     checkoutTiCS("${params.ghprbActualCommit}", "${params.ghprbPullId}")
                 }
@@ -113,8 +113,8 @@ def fallback() {
                     timeout(time: 120, unit: 'MINUTES') {
                         container("docker") {
                             sh """
-                                    while ! docker pull hub.pingcap.net/tiflash/tics:${params.ghprbActualCommit}; do sleep 60; done
-                                    """
+                            while ! docker pull hub.pingcap.net/tiflash/tics:${params.ghprbActualCommit}; do sleep 60; done
+                            """
                             dir("tests/docker") {
                                 try {
                                     sh "TAG=${params.ghprbActualCommit} BRANCH=${tidbBranch} bash -xe run.sh"
@@ -146,7 +146,7 @@ def fallback() {
         if (currentBuild.currentResult != "SUCCESS") {
             slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
         }
-        node("master") {
+        node("test_go1130_memvolume") {
             echo "Set status for commit(${params.ghprbActualCommit}) according to build result(${currentBuild.currentResult})"
             currentBuild.result = currentBuild.currentResult
             try {

@@ -147,10 +147,23 @@ try {
                             cat packages.list.short | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/store/tikv" | grep -v "\${package_base}/server" > packages.list.short.1
                             mv packages.list.short.1 packages.list.short
 
+                            cat packages.list | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/server" | grep -v "\${package_base}/ddl" | grep -v "\${package_base}/executor" > packages.list.unit.leak
 
-                            split packages.list -n r/3 packages_unit_ -a 1 --numeric-suffixes=1
+                            split packages.list.unit.leak -n r/3 packages_unit_ -a 1 --numeric-suffixes=1
+                            cat packages.list | grep "\${package_base}/ddl" > packages_unit_4
+                            echo "\${package_base}/executor" > packages_unit_5
+                            cat packages.list | grep "\${package_base}/planner/core" > packages_unit_6
+                            cat packages.list | grep "\${package_base}/server" > packages_unit_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_unit_8
+
+                            split packages.list.unit.leak -n r/3 packages_leak_ -a 1 --numeric-suffixes=1
+                            cat packages.list | grep "\${package_base}/ddl" > packages_leak_4
+                            echo "\${package_base}/executor" > packages_leak_5
+                            cat packages.list | grep "\${package_base}/planner/core" > packages_leak_6
+                            cat packages.list | grep "\${package_base}/server" > packages_leak_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_leak_8
+
                             split packages.list.short -n r/3 packages_race_ -a 1 --numeric-suffixes=1
-                            split packages.list -n r/3 packages_leak_ -a 1 --numeric-suffixes=1
 
                             # failpoint-ctl => 3.0+
                             # gofail => 2.0, 2.1
@@ -424,6 +437,26 @@ try {
                 run_unit_test(3)
             }
 
+            tests["Unit Test Chunk #4"] = {
+                run_unit_test(4)
+            }
+
+            tests["Unit Test Chunk #5"] = {
+                run_unit_test(5)
+            }
+
+            tests["Unit Test Chunk #6"] = {
+                run_unit_test(6)
+            }
+
+            tests["Unit Test Chunk #7"] = {
+                run_unit_test(7)
+            }
+
+            tests["Unit Test Chunk #8"] = {
+                run_unit_test(8)
+            }
+
             tests["Leak Test Chunk #1"] = {
                 run_leak_test(1)
             }
@@ -434,6 +467,26 @@ try {
 
             tests["Leak Test Chunk #3"] = {
                 run_leak_test(3)
+            }
+
+            tests["Leak Test Chunk #4"] = {
+                run_leak_test(4)
+            }
+
+            tests["Leak Test Chunk #5"] = {
+                run_leak_test(5)
+            }
+
+            tests["Leak Test Chunk #6"] = {
+                run_leak_test(6)
+            }
+
+            tests["Leak Test Chunk #7"] = {
+                run_leak_test(7)
+            }
+
+            tests["Leak Test Chunk #8"] = {
+                run_leak_test(8)
             }
 
             parallel tests
@@ -478,7 +531,7 @@ catch (Exception e) {
 
 stage("upload status"){
     node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 
