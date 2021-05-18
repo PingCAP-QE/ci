@@ -16,7 +16,7 @@ $ghprbPullTitle
 EOT"""
             //echo "$ghprbPullLongDescription" > a.out
             //sh "echo \"$ghprbPullLongDescription\" > $ghprbActualCommit"
-            sh "egrep ':.+' $ghprbActualCommit/title.txt || ( echo 'Please format title' && exit 1) "
+            sh "egrep '.+: .+' $ghprbActualCommit/title.txt || ( echo 'Please format title' && exit 1) "
 
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
         }
@@ -25,7 +25,7 @@ EOT"""
     currentBuild.result = "SUCCESS"
 }
 stage("summary") {
-    if (currentBuild.result != "SUCCESS") {
+    if (currentBuild.result != "SUCCESS" && currentBuild.result != "ABORTED") {
         node("master") {
             withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                 sh """

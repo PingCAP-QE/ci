@@ -17,7 +17,7 @@ def task = "release-check"
 def check_image = { comps, edition, registry ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/lilinghai/release-checker:master',alwaysPull: true, envVars: [
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/lilinghai/release-checker:master2',alwaysPull: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
     ]) {
