@@ -45,10 +45,9 @@ if (m2) {
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
 
-def sessionSingleTestSuiteString = "testBootstrapSuite"
-def sessionRestTestSuitesString = ""
+def sessionTestSuitesString = "testPessimisticSuite"
 
-def test_suites = { suites ->
+def test_suites = { suites,mark ->
     node(testSlave) {
         deleteDir()
         unstash 'tidb'
@@ -81,7 +80,7 @@ def test_suites = { suites ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off -check.f '${suites}'
+                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${mark} '${suites}'
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
                         """
                     }
@@ -179,7 +178,6 @@ try {
                             }
                         }
                     sh "git checkout -f ${ghprbActualCommit}"
-                    sessionRestTestSuitesString = sh(returnStdout: true, script: "cd session && grep -E  'Suites\\(&|Suite\\(&' *.go|sed 's/.*(&\\(.*\\){})/\\1/g'|grep -v '${sessionSingleTestSuiteString}'|tr '\n' '|'|sed 's/|\$//g'").trim()
                 }
             }
             stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
@@ -208,11 +206,11 @@ try {
 
 
         if (ghprbTargetBranch == "master"){
-            tests["test session with real tikv only ${sessionSingleTestSuiteString}"] = {
-                test_suites(sessionSingleTestSuiteString)
+            tests["test session with real tikv suites ${sessionTestSuitesString}"] = {
+                test_suites(sessionTestSuitesString, "-check.f")
             }
-            tests["test session with real tikv rest of test suites"] = {
-                test_suites(sessionRestTestSuitesString)
+            tests["test session with real tikv exclude suites ${sessionTestSuitesString}"] = {
+                test_suites(sessionTestSuitesString, "-check.exclude")
             }
         }
         parallel tests
