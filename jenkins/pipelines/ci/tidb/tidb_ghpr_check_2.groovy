@@ -47,7 +47,7 @@ println "PD_BRANCH=${PD_BRANCH}"
 
 def sessionTestSuitesString = "testPessimisticSuite"
 
-def test_suites = { suites,mark ->
+def test_suites = { suites,option ->
     node(testSlave) {
         deleteDir()
         unstash 'tidb'
@@ -80,7 +80,7 @@ def test_suites = { suites,mark ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${mark} '${suites}'
+                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${option} '${suites}'
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
                         """
                     }
