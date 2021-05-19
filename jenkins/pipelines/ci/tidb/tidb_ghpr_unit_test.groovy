@@ -38,6 +38,22 @@ if (params.containsKey("release_test")) {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
+@Library("pingcap") _
+
+println "$GO1160_BUILD_SLAVE"
+println "$GO1160_TEST_SLAVE"
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5."], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
 try {
     timestamps {
         stage("Pre-check"){
