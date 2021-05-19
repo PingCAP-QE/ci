@@ -45,6 +45,67 @@ if (m2) {
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
 
+def sessionSingleTestSuiteString = "testBootstrapSuite"
+def sessionRestTestSuitesString = ""
+
+def test_suites = { suites ->
+    node(testSlave) {
+        deleteDir()
+        unstash 'tidb'
+        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+        container("golang") {
+            timeout(720) {
+                ws = pwd()
+                def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+                def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                try {
+                    dir("go/src/github.com/pingcap/tidb") {
+                        sh"""
+                        curl ${tikv_url} | tar xz
+                        curl ${pd_url} | tar xz bin
+                        bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
+                        bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -f  tikv1.log &
+            
+                        bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
+                        bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -f  tikv2.log &
+        
+                        bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
+                        bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -f  tikv3.log &
+            
+                        make failpoint-enable
+                        cd session
+                        export log_level=error
+                        # export GOPROXY=http://goproxy.pingcap.net
+                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off -check.f '${suites}'
+                        #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
+                        """
+                    }
+                }catch (Exception e){
+                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
+                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
+                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
+                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
+                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
+                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
+                    throw e
+                }finally {
+                    sh """
+                    set +e
+                    killall -9 -r -q tikv-server
+                    killall -9 -r -q pd-server
+                    set -e
+                    """
+                }
+            }
+        }
+    }
+}
+
 try {
     stage("Pre-check"){
         if (!params.force){
@@ -118,6 +179,7 @@ try {
                             }
                         }
                     sh "git checkout -f ${ghprbActualCommit}"
+                    sessionRestTestSuitesString = sh(returnStdout: true, script: "cd session && grep -E  'Suites\\(&|Suite\\(&' *.go|sed 's/.*(&\\(.*\\){})/\\1/g'|grep -v '${sessionSingleTestSuiteString}'|tr '\n' '|'|sed 's/|\$//g'").trim()
                 }
             }
             stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
@@ -146,67 +208,11 @@ try {
 
 
         if (ghprbTargetBranch == "master"){
-            tests["test session with real tikv"] = {
-                node(testSlave) {
-                    deleteDir()
-                    unstash 'tidb'
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    container("golang") {
-                        timeout(5) {
-                            ws = pwd()
-                            def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                            def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                            tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-
-                            def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                            def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                            pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                            try{
-                                dir("go/src/github.com/pingcap/tidb") {
-                                    sh"""
-                                    set +e
-                                    killall -9 -r -q tikv-server
-                                    killall -9 -r -q pd-server
-                                    set -e
-                        
-                                    curl ${tikv_url} | tar xz
-                                    curl ${pd_url} | tar xz bin
-                                    bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
-                                    bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -f  tikv1.log &
-            
-                                    bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
-                                    bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -f  tikv2.log &
-        
-                                    bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
-                                    bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -f  tikv3.log &
-            
-                                    make failpoint-enable
-                                    cd session
-                                    export log_level=error
-                                    # export GOPROXY=http://goproxy.pingcap.net
-                                    go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off -check.p
-                                    #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
-                                    """
-                                }
-                            }catch (Exception e){
-                                sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
-                                sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
-                                sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
-                                sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
-                                sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
-                                sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
-                                throw e
-                            }finally {
-                                sh """
-                                set +e
-                                killall -9 -r -q tikv-server
-                                killall -9 -r -q pd-server
-                                set -e
-                                """
-                            }
-                        }
-                    }
-                }
+            tests["test session with real tikv only ${sessionSingleTestSuiteString}"] = {
+                test_suites(sessionSingleTestSuiteString)
+            }
+            tests["test session with real tikv rest of test suites"] = {
+                test_suites(sessionRestTestSuitesString)
             }
         }
         parallel tests
