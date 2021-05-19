@@ -368,11 +368,11 @@ try {
             // run race #6/#8 in parallel mode for master branch\
             if (ghprbTargetBranch == "master") {
                 tests["Race Test Chunk #7 ddl-dbsuite"] = {
-                    run_race_test_heavy_with_args(7, '-check.f "testDBSuite"')
+                    run_race_test_heavy_with_args(7, '-check.f "testDBSuite|testSerialDBSuite"')
                 }
 
                 tests["Race Test Chunk #7 ddl-other"] = {
-                    run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite"')
+                    run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite|testSerialDBSuite"')
                 }
 
                 tests["Race Test Chunk #6"] = {
