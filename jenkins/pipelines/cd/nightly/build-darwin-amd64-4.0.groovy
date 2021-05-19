@@ -42,8 +42,12 @@ try {
                 if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
                     BR_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
-
-                IMPORTER_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                // importer default branch is release-5.0
+                if(RELEASE_TAG == "nightly") {
+                    IMPORTER_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=importer -version=release-5.0 -s=${FILE_SERVER_URL}").trim()
+                }else{
+                    IMPORTER_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                }
 
                 if(SKIP_TIFLASH == "false" && (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0")) {
                     TIFLASH_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
