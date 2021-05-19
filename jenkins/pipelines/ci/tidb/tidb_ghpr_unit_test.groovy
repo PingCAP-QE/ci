@@ -374,13 +374,10 @@ try {
             // 将执行较慢的 chunk 放在前面优先调度，以减轻调度的延迟对执行时间的影响
             def tests = [:]
 
-            def suites = """testSuite1|testSuite|testSuite7|testSuite5|testSuiteAgg|testSuiteJoin1|tiflashTestSuite|testFastAnalyze|
-                testSuiteP2|testSuite2|testRecoverTable|pkgTestSuite|testInfoschemaTableSuite|testShowStatsSuite|testSuite9|
-                testExecSuite|testSuiteJoinSerial|testSplitTable|testPrepareSuite|testSuite12|inspectionResultSuite|testStaleTxnSerialSuite|
-                testSuite10|testClusterTableSuite|testSuiteJoiner|testMemTableReaderSuite|testPrepareSerialSuite|testMemoryLeak|
-                inspectionSummarySuite|inspectionSuite|testCollationSuite"""
-            def cmd1 = sprintf('-check.f "%s"', suites)
-            def cmd2 = sprintf('-check.exclude "%s"', suites)
+            def suites = """testSuite1|testSuite|testSuite7|testSuite5|testSuiteAgg|
+                            testSuiteJoin1|tiflashTestSuite|testFastAnalyze|testSuiteP2|testSuite2"""
+            def cmd1 = String.format('-check.f "%s"', suites)
+            def cmd2 = String.format('-check.exclude "%s"', suites)
             tests["Race Test Chunk #9 executor-part1"] = {
                 run_race_test_heavy_with_args(9, cmd1)
             }
