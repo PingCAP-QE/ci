@@ -374,8 +374,15 @@ try {
             // 将执行较慢的 chunk 放在前面优先调度，以减轻调度的延迟对执行时间的影响
             def tests = [:]
 
-            tests["Race Test Chunk #9 executor"] = {
-                run_race_test_heavy(9)
+            def suites = """testSuite1|testSuite|testSuite7|testSuite5|testSuiteAgg|
+                            testSuiteJoin1|tiflashTestSuite|testFastAnalyze|testSuiteP2|testSuite2"""
+            def cmd1 = String.format('-check.f "%s"', suites)
+            def cmd2 = String.format('-check.exclude "%s"', suites)
+            tests["Race Test Chunk #9 executor-part1"] = {
+                run_race_test_heavy_with_args(9, cmd1)
+            }
+            tests["Race Test Chunk #9 executor-part2"] = {
+                run_race_test_heavy_with_args(9, cmd2)
             }
 
             tests["Race Test Chunk #10"] = {
