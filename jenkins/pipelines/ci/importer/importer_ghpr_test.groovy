@@ -23,41 +23,34 @@ try {
         // deleteDir()
         container("rust") {
             stage("Prepare") {
-                dir("/home/jenkins/agent/git/importer") {
+                dir("${ws}/go/src/github.com/pingcap/importer") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
                     }
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refSpec, url: 'git@github.com:tikv/importer.git']]]
-                }
-                dir("/home/jenkins/agent/importer/build") {
-                    deleteDir()
-                    sh """
-                    cp -R /home/jenkins/agent/git/importer/. ./
-                    """
+                    try {
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refSpec, url: 'git@github.com:tikv/importer.git']]]
+                    } catch (info) {
+                        retry(2) {
+                            echo "checkout failed, retry.."
+                            sleep 5
+                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                deleteDir()
+                            }
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refSpec, url: 'git@github.com:tikv/importer.git']]]
+                        }
+                    }
+                    sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
+
             stage("Test") {
-                dir("/home/jenkins/agent/importer/build") {
+                dir("${ws}/go/src/github.com/pingcap/importer") {
                     timeout(30) {
-                        sh """
-                        uname -a
-                        """
-
-                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/importer.git']]]
-                        sh """
-                        git checkout -f ${ghprbActualCommit}
-                        """
-
-                        sh """
-                        make test
-                        """
+                        sh " uname -a "
+                        sh " make test "
                     }
                     deleteDir()
                 }
-
             }
         }
     }
