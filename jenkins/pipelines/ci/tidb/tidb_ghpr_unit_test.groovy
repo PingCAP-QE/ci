@@ -43,7 +43,7 @@ if (params.containsKey("release_test")) {
 println "$GO1160_BUILD_SLAVE"
 println "$GO1160_TEST_SLAVE"
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5."], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
