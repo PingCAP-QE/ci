@@ -47,9 +47,9 @@ catchError {
                     sh "git checkout -f ${ghprbActualCommit}"
                 }
 
-                dir("/home/jenkins/agent/git/ci") {
+                dir("${ws}/go/src/github.com/pingcap/ci") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: /home/jenkins/agent/git/ci"
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
                         deleteDir()
                     }
                     try {
@@ -59,7 +59,7 @@ catchError {
                             echo "checkout failed, retry.."
                             sleep 5
                             if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                echo "Not a valid git folder: /home/jenkins/agent/git/ci"
+                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
                                 deleteDir()
                             }
                             checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepeUrl}"]]]
@@ -71,7 +71,7 @@ catchError {
                 stash includes: "go/src/github.com/pingcap/ticdc/**", name: "ticdc", useDefaultExcludes: false
             }
 
-            def script_path = "/home/jenkins/agent/git/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
+            def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
             def common = load script_path
 
             // HACK! Download jks by injecting RACK_COMMAND
