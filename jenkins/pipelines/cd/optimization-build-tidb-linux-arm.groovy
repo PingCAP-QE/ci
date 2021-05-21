@@ -12,6 +12,7 @@
 * @RELEASE_TAG
 * @PRE_RELEASE
 * @FORCE_REBUILD
+* @TIKV_PRID
 */
 def slackcolor = 'good'
 os = "linux"
@@ -285,8 +286,8 @@ try {
                     def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
 
                     def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-                    if (ghprbPullId != null && ghprbPullId != "") {
-                        specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+                    if (TIKV_PRID != null && TIKV_PRID != "") {
+                        specStr = "+refs/pull/${TIKV_PRID}/*:refs/remotes/origin/pr/${TIKV_PRID}/*"
                     }
                     def branch = TIKV_HASH
                     if (RELEASE_BRANCH != null && RELEASE_BRANCH != "") {
