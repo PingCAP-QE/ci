@@ -26,8 +26,6 @@ def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests
 
 @Library("pingcap") _
 
-println "$GO1160_BUILD_SLAVE"
-
 def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16"
