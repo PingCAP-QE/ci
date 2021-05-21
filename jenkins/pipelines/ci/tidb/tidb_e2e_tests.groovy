@@ -28,6 +28,17 @@ if (ghprbTargetBranch != "master") {
     return
 }
 
+@Library("pingcap") _
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+
 try {
     node("${GO_BUILD_SLAVE}") {
         def ws = pwd()
