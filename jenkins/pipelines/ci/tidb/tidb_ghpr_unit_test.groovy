@@ -388,29 +388,38 @@ try {
             tests["Race Test Chunk #10"] = {
                 run_race_test(10)
             }
-            // run race #6/#8 in parallel mode for master branch\
+            // run race #8 in parallel mode for master branch\
             if (ghprbTargetBranch == "master") {
-                tests["Race Test Chunk #7 ddl-dbsuite"] = {
+                tests["Race Test Chunk #7 ddl-DBSuite|SerialDBSuite"] = {
                     run_race_test_heavy_with_args(7, '-check.f "testDBSuite|testSerialDBSuite"')
                 }
 
-                tests["Race Test Chunk #7 ddl-other"] = {
+                tests["Race Test Chunk #7 ddl-other suite"] = {
                     run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite|testSerialDBSuite"')
                 }
 
-                tests["Race Test Chunk #6"] = {
-                    run_race_test_heavy_parallel(6)
+                tests["Race Test Chunk #6 planner/core-testIntegrationSerialSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testIntegrationSerialSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-testIntegrationSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testIntegrationSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-testPlanSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testPlanSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-other suite"] = {
+                    run_race_test_heavy_with_args(6, '-check.exclude "testPlanSuite|testIntegrationSuite|testIntegrationSerialSuite"')
                 }
                 tests["Race Test Chunk #8 session"] = {
                     run_race_test_heavy_parallel(8)
                 }
 
             } else {
-                tests["Race Test Chunk #7"] = {
+                tests["Race Test Chunk #7 ddl"] = {
                     run_race_test_heavy(7)
                 }
 
-                tests["Race Test Chunk #6"] = {
+                tests["Race Test Chunk #6 planner/core"] = {
                     run_race_test_heavy(6)
                 }
 
