@@ -391,11 +391,14 @@ try {
                     run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite|testSerialDBSuite"')
                 }
 
-                tests["Race Test Chunk #6 planner/core-PlanSuite"] = {
-                    run_race_test_heavy_with_args(6, '-check.f "testPlanSuite"')	
+                tests["Race Test Chunk #6 planner/core-testIntegrationSerialSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testIntegrationSerialSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-testIntegrationSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testIntegrationSuite"')	
                 }
                 tests["Race Test Chunk #6 planner/core-other suite"] = {
-                    run_race_test_heavy_with_args(6, '-check.exclude "testPlanSuite"')
+                    run_race_test_heavy_with_args(6, '-check.exclude "testIntegrationSuite|testIntegrationSerialSuite"')
                 }
                 tests["Race Test Chunk #8 session"] = {
                     run_race_test_heavy_parallel(8)
