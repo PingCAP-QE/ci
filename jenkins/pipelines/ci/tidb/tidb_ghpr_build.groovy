@@ -214,11 +214,13 @@ try {
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                                 sh """
+				GO111MODULE=on go mod tidy
                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                                """
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                                 sh """
+				GO111MODULE=on go mod tidy
                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                                """
                             }
