@@ -160,49 +160,48 @@ try {
     stage("Build") {
         builds = [:]
 
-        if (BUILD_TIKV_IMPORTER == "false") {
-            if (!ifFileCacheExists("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")) {
-                builds["Build tidb-ctl"] = {
-                build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
-                } 
-            }
-            if (!ifFileCacheExists("tidb", TIDB_HASH, "tidb-server")) {
-                builds["Build tidb"] = {
-                build_upload("tidb", TIDB_HASH, "tidb-server")
-                }
-            }
-            if (!ifFileCacheExists("tidb-binlog", BINLOG_HASH, "tidb-binlog")) {
-                builds["Build tidb-binlog"] = {
-                build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
-                }
-            }
-            if (!ifFileCacheExists("tidb-tools", TOOLS_HASH, "tidb-tools")) {
-                builds["Build tidb-tools"] = {
-                build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
-                }
-            }
-            if (!ifFileCacheExists("pd", PD_HASH, "pd-server")) {
-                builds["Build pd"] = {
-                build_upload("pd", PD_HASH, "pd-server")
-                }
-            }
-            if (!ifFileCacheExists("ticdc", CDC_HASH, "ticdc")) {
-                builds["Build ticdc"] = {
-                build_upload("ticdc", CDC_HASH, "ticdc")
-                }
-            }
-            if (!ifFileCacheExists("br", BR_HASH, "br")) {
-                builds["Build br"] = {
-                build_upload("br", BR_HASH, "br")
-                }
-            }
-            if (!ifFileCacheExists("dumpling", DUMPLING_HASH, "dumpling")) {
-                builds["Build dumpling"] = {
-                build_upload("dumpling", DUMPLING_HASH, "dumpling")
-                }
+        if (!ifFileCacheExists("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")) {
+            builds["Build tidb-ctl"] = {
+            build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
+            } 
+        }
+        if (!ifFileCacheExists("tidb", TIDB_HASH, "tidb-server")) {
+            builds["Build tidb"] = {
+            build_upload("tidb", TIDB_HASH, "tidb-server")
             }
         }
-        if (SKIP_TIFLASH == "false" && BUILD_TIKV_IMPORTER == "false") {
+        if (!ifFileCacheExists("tidb-binlog", BINLOG_HASH, "tidb-binlog")) {
+            builds["Build tidb-binlog"] = {
+            build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
+            }
+        }
+        if (!ifFileCacheExists("tidb-tools", TOOLS_HASH, "tidb-tools")) {
+            builds["Build tidb-tools"] = {
+            build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
+            }
+        }
+        if (!ifFileCacheExists("pd", PD_HASH, "pd-server")) {
+            builds["Build pd"] = {
+            build_upload("pd", PD_HASH, "pd-server")
+            }
+        }
+        if (!ifFileCacheExists("ticdc", CDC_HASH, "ticdc")) {
+            builds["Build ticdc"] = {
+            build_upload("ticdc", CDC_HASH, "ticdc")
+            }
+        }
+        if (!ifFileCacheExists("br", BR_HASH, "br")) {
+            builds["Build br"] = {
+            build_upload("br", BR_HASH, "br")
+            }
+        }
+        if (!ifFileCacheExists("dumpling", DUMPLING_HASH, "dumpling")) {
+            builds["Build dumpling"] = {
+            build_upload("dumpling", DUMPLING_HASH, "dumpling")
+            }
+        }
+        
+        if (SKIP_TIFLASH == "false") {
             builds["Build tiflash"] = {
                 podTemplate(cloud: 'kubernetes-arm64', name: "build-arm-tiflash", label: "build-arm-tiflash",
                         instanceCap: 5, workspaceVolume: emptyDirWorkspaceVolume(memory: true),
@@ -284,23 +283,34 @@ try {
                     }
                     def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
                     def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
+
+                    def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                    if (ghprbPullId != null && ghprbPullId != "") {
+                        specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+                    }
+                    def branch = TIKV_HASH
+                    if (RELEASE_BRANCH != null && RELEASE_BRANCH != "") {
+                        branch =RELEASE_BRANCH
+                    }
+
                     checkout changelog: false, poll: true,
-                            scm: [$class      : 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false,
+                            scm: [$class      : 'GitSCM', branches: [[name: "${branch}"]], doGenerateSubmoduleConfigurations: false,
                                   extensions  : [[$class: 'CheckoutOption', timeout: 30],
                                                  [$class: 'CloneOption', timeout: 60],
                                                  [$class: 'PruneStaleBranch'],
                                                  [$class: 'CleanBeforeCheckout']],
                                   submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                                         refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                                         refspec      : specStr,
                                                                          url          : 'git@github.com:tikv/tikv.git']]]
-                    if (BUILD_TIKV_IMPORTER == "false") {
-                        sh """
-                            for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${TIKV_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                        """
-                    }
+                
+                    sh """
+                        git checkout -f ${TIKV_HASH}
+                        for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
+                        git tag -f ${RELEASE_TAG} ${TIKV_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
+                    """
+                    
                     sh """
                         grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                         if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
@@ -353,14 +363,13 @@ try {
                                                                                  url          : 'git@github.com:tikv/importer.git']]]
                         }
                     }
-                    if (BUILD_TIKV_IMPORTER == "false") {
-                        sh """
-                            for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                        """
-                    }
+                    sh """
+                        for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
+                        git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
+                    """
+                    
                     sh """
                         grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                         if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
