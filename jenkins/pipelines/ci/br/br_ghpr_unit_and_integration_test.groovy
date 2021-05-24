@@ -404,9 +404,32 @@ catchError {
                     """
 
                     // Collect test case names.
-                    def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
-                    for (name in list.split("\\n")) {
-                        test_case_names << name
+                    def grep = ""
+                    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                    switch (from) {
+                        case "tikv":
+                            test_case_names = [
+                                "br_full",
+                                "br_gcs",
+                                "br_s3",
+                            ]
+                            break;
+                        case "tidb":
+                            test_case_names = [
+                                "br_full",
+                                "br_full_ddl",
+                            ]
+                            break;
+                        case "pd":
+                            test_case_names = [
+
+                            ]
+                            break;
+                        default:
+                            def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
+                            for (name in list.split("\\n")) {
+                                test_case_names << name
+                            }
                     }
                 }
 
