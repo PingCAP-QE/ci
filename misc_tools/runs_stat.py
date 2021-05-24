@@ -2,7 +2,7 @@ import sys
 import os
 import json
 from mysql.connector import connect
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 import subprocess
 
 class bcolors:
@@ -156,10 +156,11 @@ class PR:
         self.title = job.description['ghprbPullTitle']
         self.repo = job.repo
         self.branch = job.branch
-        self.__commit_hashes = []
         self.fail_cnt = 0
         self.success_cnt = 0
         self.abort_cnt = 0
+        self.fail_info_map = {} # fail_info to Fail_Info Map
+        self.__commit_hashes = []
 
     
     def add_commit_hash(self, commit: Commit):
@@ -187,7 +188,7 @@ class PR:
         return self.abort_cnt / (self.success_cnt + self.fail_cnt + self.abort_cnt)
 
 
-    def print_commits(self, job_name = ""):
+    def log(self, job_name = "", indent="", show_commits=True, show_fail=False, color_pr=True):
         if len(job_name) == 0:
             print("-" * 150)
             indent = ""
@@ -195,9 +196,12 @@ class PR:
             indent = "    "
 
         print(indent + bcolors.BOLD + "Pull Request " + bcolors.ENDC, end="")
-        print(bcolor[self.number % len(bcolor)] + "#" + str(self.number) + bcolors.ENDC, end=" ")  
+        if color_pr:
+            print(bcolor[self.number % len(bcolor)] + "#" + str(self.number) + bcolors.ENDC, end=" ")  
+        else:
+            print(bcolors.WHITE + "#" + str(self.number) + bcolors.ENDC, end=" ")
 
-        if len(self.__commit_hashes) > 1:
+        if len(self.__commit_hashes) > 1 or show_commits == False:
             print(bcolors.OKCYAN + "total_job: " + bcolors.ENDC + str((self.success_cnt + self.fail_cnt + self.abort_cnt)), end=" ")
             print(bcolors.OKCYAN + "success_cnt: " + bcolors.ENDC + str(self.success_cnt), end=" ")
             print(bcolors.OKCYAN + "fail_cnt: " + bcolors.ENDC + str(self.fail_cnt), end=" ")
@@ -207,13 +211,27 @@ class PR:
             print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:.1%}'.format(self.get_abort_rate()), end=" ")        
         print()
 
-        print(indent + self.repo, end=" ")
-        print(bcolors.BOLD + self.branch + bcolors.ENDC, end=" ")
-        print(bcolors.OKCYAN + "pr_title: " + bcolors.ENDC + self.title)
-        for commit in self.__commit_hashes:
-            print("", end="\t")
-            commit.print_jobs(job_name)
-        print()
+        if show_commits:
+            print(indent + self.repo, end=" ")
+            print(bcolors.BOLD + self.branch + bcolors.ENDC, end=" ")
+            print(bcolors.OKCYAN + "pr_title: " + bcolors.ENDC + self.title)
+            for commit in self.__commit_hashes:
+                print("", end="\t")
+                commit.print_jobs(job_name)
+            print()
+        
+        if show_fail:
+            for fail_info, fail in self.fail_info_map.items():
+                fail.log(indent="    ", show_line=False)
+    
+    def fail_update(self, fail_info, run):
+        if not fail_info in self.fail_info_map:
+            self.fail_info_map[fail_info] = Fail_Info(fail_info)
+        fail = self.fail_info_map[fail_info]
+        fail.update(run)
+
+
+
     
 class Job:
     def __init__(self, job: Run):
@@ -252,7 +270,7 @@ class Job:
             print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (total_cnt)) + bcolors.ENDC, end=" ")     
         print()
         for pr_num, pr in self.prs.items():
-            pr.print_commits(self.job_name)
+            pr.log(job_name=self.job_name) # TODO , show_line=False, indent="    ")
 
 
 def summary(begin_time, pr_map, commit_hash_map, job_map, runs, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt):
@@ -288,9 +306,10 @@ class Fail_Info:
     def update(self, run: Run):
         self.run_list.append(run)
     
-    def log(self):
-        print("-" * 150)
-        print(bcolors.OKCYAN + "Fail Info: " + bcolors.ENDC + self.info)
+    def log(self, indent="", show_line=True):
+        if show_line:
+            print("-" * 150)
+        print(indent + bcolors.OKCYAN + "Fail Info: " + bcolors.ENDC + self.info)
         print(bcolors.HEADER + "\tFailed runs cnt: " + bcolors.ENDC + str(self.fail_cnt()))
         
         for run in sorted(self.run_list, key=lambda x: x.pr_number):
@@ -313,8 +332,8 @@ def main():
             database = env["database"],
         )
     cursor = connection.cursor()
-    begin_time = date.today()
-    begin_time -= timedelta(days=2)
+    # begin_time = date.today()
+    begin_time = datetime(2021, 5, 20, 0, 0)    
     end_time = begin_time + timedelta(days=1)
     cursor.execute('select * from ci_data where repo="pingcap/tidb" and time >= %s and time <= %s', (begin_time.strftime('%Y-%m-%d %H:%M:%S'), end_time.strftime('%Y-%m-%d %H:%M:%S')))
     runs = cursor.fetchall()
@@ -379,14 +398,32 @@ def main():
 
 
     total_job_cnt = len(runs)
+#################################################
+# Per Pull Request analysis
+#################################################
 
     # for pr_number, pr in pr_map.items():
-    #     pr.print_commits()
+    #     pr.log()
     
+
+#################################################
+# Per Job analysis
+#################################################
     # for job_name, pipeline in job_map.items():
     #     pipeline.print_prs()
 
+#################################################
+# Fail info belonging analysis
+#################################################
+
     # sorted(job_list, key=lambda job: job.fail_cnt, reverse=True)[0].print_prs()
+
+#################################################
+# Write log info to files
+# format of each line:
+#   job_id failinfo
+#################################################
+
 
     # for run in filter(lambda x: x.status == "FAILURE" and x.job_name == "tidb_ghpr_unit_test", run_list):
     #     # run.log(show_fail_info=True)
@@ -402,14 +439,26 @@ def main():
 
     fail_info_map = {}
 
+    # Building a fail map
     for log in log_list:
-        job_id, fail_info = log[:-1].split(" ", 1)
+        run_id, fail_info = log[:-1].split(" ", 1)
+        run_id = int(run_id)
+
         if not fail_info in fail_info_map:
             fail_info_map[fail_info] = Fail_Info(fail_info)
-        fail_info_map[fail_info].update(run_map[int(job_id)])
+
+        fail_info_map[fail_info].update(run_map[int(run_id)])
+        pr_map[run_map[run_id].pr_number].fail_update(fail_info, run_map[run_id])
+
+    for number, pr in sorted(filter(lambda x: len(x[1].fail_info_map) > 1 ,pr_map.items()), key=lambda x: x[1].fail_cnt, reverse=True):
+        pr.log(show_commits=False, show_fail=True, color_pr=False)
+            
+        
     
-    for _, fail in fail_info_map.items():
-        fail.log()
+    
+    # Fails Per Fail Cases
+    # for _, fail in fail_info_map.items():
+    #     fail.log()
 
 #################################################
 
