@@ -1,5 +1,4 @@
 def notRun = 1
-def buildSlave = "${GO_BUILD_SLAVE}"
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -63,6 +62,8 @@ if (isNeedGo1160) {
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+def buildSlave = "${GO_BUILD_SLAVE}"
 
 try {
     stage("Pre-check"){
