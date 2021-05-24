@@ -8,9 +8,6 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
-//def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_SLAVE}"
-
 def TIKV_BRANCH = params.getOrDefault("ghprbTargetBranch","")
 def PD_BRANCH = params.getOrDefault("ghprbTargetBranch","")
 
@@ -57,6 +54,7 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 def buildSlave = "${GO_BUILD_SLAVE}"
+def testSlave = "${GO_TEST_SLAVE}"
 
 def sessionTestSuitesString = "testPessimisticSuite"
 
