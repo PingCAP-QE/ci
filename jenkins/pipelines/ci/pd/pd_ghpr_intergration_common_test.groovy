@@ -43,20 +43,29 @@ println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
 
 def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
-//def build_node = "build_go1112"
-//def test_node = "test_go1112"
-def build_node = "${GO_BUILD_SLAVE}"
-def test_node = "${GO_TEST_SLAVE}"
-if(ghprbTargetBranch == "master" ||ghprbTargetBranch == "release-3.0"|| ghprbTargetBranch == "release-3.1" || ghprbTargetBranch == "release-2.1" || ghprbTargetBranch == "release-4.0") {
-        build_node = "${GO_BUILD_SLAVE}"
-        test_node = "${GO_TEST_SLAVE}"
+
+@Library("pingcap") _
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
 }
+println "buildSlave_NAME=${GO_BUILD_SLAVE}"
+println "testSlave_NAME=${GO_TEST_SLAVE}"
+
+def buildSlave = "${GO_BUILD_SLAVE}"
+def testSlave = "${GO_TEST_SLAVE}"
+
 try {
     stage('Prepare') {
         def prepares = [:]
 
         prepares["Part #1"] = {
-            node(build_node) {
+            node(buildSlave) {
                 def ws = pwd()
                 deleteDir()
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -105,7 +114,7 @@ try {
         }
 
         prepares["Part #2"] = {
-            node(build_node) {
+            node(buildSlave) {
                def ws = pwd()
                 deleteDir()
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -162,7 +171,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, test_cmd ->
-            node(test_node) {
+            node(testSlave) {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 def ws = pwd()
                 deleteDir()
@@ -280,7 +289,7 @@ try {
         }
 
         tests["Integration Connection Test"] = {
-            node(test_node) {
+            node(testSlave) {
                 def ws = pwd()
                 def mytest = "connectiontest"
                 deleteDir()

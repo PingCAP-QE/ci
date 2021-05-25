@@ -32,9 +32,25 @@ if (params.containsKey("release_test")) {
 
 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
 
+@Library("pingcap") _
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "buildSlave_NAME=${GO_BUILD_SLAVE}"
+println "testSlave_NAME=${GO_TEST_SLAVE}"
+
+def buildSlave = "${GO_BUILD_SLAVE}"
+def testSlave = "${GO_TEST_SLAVE}"
+
 try {
     stage('Prepare') {failpointPath
-        node ("${GO_BUILD_SLAVE}") {
+        node (testSlave) {
             def ws = pwd()
             deleteDir()
             dir("go/src/github.com/pingcap/pd") {
@@ -77,7 +93,7 @@ try {
 
     stage('Unit Test') {
         def run_unit_test = { chunk_suffix ->
-            node("${GO_TEST_SLAVE}") {
+            node(testSlave) {
                 def ws = pwd()
                 deleteDir()
                 unstash 'pd'
@@ -135,7 +151,7 @@ try {
     }
 
     currentBuild.result = "SUCCESS"
-    node("${GO_BUILD_SLAVE}"){
+    node(testSlave){
         container("golang"){
             sh """
 		    echo "done" > done
