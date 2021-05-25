@@ -448,13 +448,13 @@ catchError {
                 "lightning_checkpoint"
         ]
         def test_cases = [:]
-        // Add unit tests
-        test_cases["unit test"] = {
-            run_unit_test()
-        }
-
-        // Add slow integration tests
+        
         if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+            // Add unit tests
+            test_cases["unit test"] = {
+                run_unit_test()
+            }
+            // Add slow integration tests
             make_parallel_jobs(
                     slow_case_names, 1,
                     TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
