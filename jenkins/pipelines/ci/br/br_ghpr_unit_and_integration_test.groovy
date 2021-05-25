@@ -417,6 +417,7 @@ catchError {
                             test_case_names = [
                                 "br_full",
                                 "br_full_ddl",
+                                "br_incompatible_tidb_config",
                                 "br_incremental_ddl",
                                 "br_incremental_only_ddl",
                             ]
