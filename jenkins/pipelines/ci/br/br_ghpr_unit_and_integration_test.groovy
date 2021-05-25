@@ -405,6 +405,7 @@ catchError {
 
                     // Collect test case names.
                     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                    println "have? ${params.containsKey("triggered_by_upstream_pr_ci")}"
                     switch (from) {
                         case "tikv":
                             test_case_names = [
@@ -455,6 +456,7 @@ catchError {
 
         // Add slow integration tests
         if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+            println "have?? ${!params.containsKey("triggered_by_upstream_pr_ci")}"
             make_parallel_jobs(
                     slow_case_names, 1,
                     TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
