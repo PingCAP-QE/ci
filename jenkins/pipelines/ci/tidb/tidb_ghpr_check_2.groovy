@@ -1,18 +1,4 @@
 def notRun = 1
-def buildSlave = "${GO_BUILD_SLAVE}"
-
-@Library("pingcap") _
-
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-} else {
-    println "This build use go1.13"
-}
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 def slackcolor = 'good'
 def githash
@@ -21,9 +7,6 @@ def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
-
-//def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_SLAVE}"
 
 def TIKV_BRANCH = params.getOrDefault("ghprbTargetBranch","")
 def PD_BRANCH = params.getOrDefault("ghprbTargetBranch","")
@@ -56,6 +39,22 @@ if (m2) {
 }
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
+
+@Library("pingcap") _
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+def buildSlave = "${GO_BUILD_SLAVE}"
+def testSlave = "${GO_TEST_SLAVE}"
 
 def sessionTestSuitesString = "testPessimisticSuite"
 

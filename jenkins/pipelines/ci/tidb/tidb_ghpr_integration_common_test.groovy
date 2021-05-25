@@ -84,7 +84,7 @@ try {
         }
 
         def buildSlave = "${GO_BUILD_SLAVE}"
-        def testSlave = "test_go"
+        def testSlave = "${GO_TEST_SLAVE}"
 
         stage('Prepare') {
             def prepareStartTime = System.currentTimeMillis()

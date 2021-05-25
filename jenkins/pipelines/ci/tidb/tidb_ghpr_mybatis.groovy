@@ -1,16 +1,3 @@
-@Library("pingcap") _
-
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-} else {
-    println "This build use go1.13"
-}
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
-
 def notRun = 1
 if (!params.force){
     node("${GO_BUILD_SLAVE}"){
@@ -60,6 +47,19 @@ if (m4) {
 }
 m4 = null
 println "TIDB_PRIVATE_TEST_BRANCH=${TIDB_PRIVATE_TEST_BRANCH}"
+
+@Library("pingcap") _
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 try {
     stage('Mybatis Test') {
