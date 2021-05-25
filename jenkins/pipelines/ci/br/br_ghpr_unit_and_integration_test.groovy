@@ -441,19 +441,20 @@ catchError {
     }
 
     stage("Unit/Integration Test") {
-        def slow_case_names = []
+        def slow_case_names = [
+            "br_300_small_tables",
+            "br_full_ddl",
+            "lightning_checkpoint"
+        ].intersect(test_case_names)
         def test_cases = [:]
         
         if (!params.containsKey("triggered_by_upstream_pr_ci")) {
-            slow_case_names = [
-                "br_300_small_tables",
-                "br_full_ddl",
-                "lightning_checkpoint"
-            ]
             // Add unit tests
             test_cases["unit test"] = {
                 run_unit_test()
             }
+        }
+        if (!slow_case_names.isEmpty()) {
             // Add slow integration tests
             make_parallel_jobs(
                     slow_case_names, 1,
