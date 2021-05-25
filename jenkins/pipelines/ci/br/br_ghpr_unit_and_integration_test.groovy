@@ -404,7 +404,6 @@ catchError {
                     """
 
                     // Collect test case names.
-                    def grep = ""
                     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
                     switch (from) {
                         case "tikv":
@@ -418,11 +417,14 @@ catchError {
                             test_case_names = [
                                 "br_full",
                                 "br_full_ddl",
+                                "br_incremental_ddl",
+                                "br_incremental_only_ddl",
                             ]
                             break;
                         case "pd":
                             test_case_names = [
-
+                                "br_full",
+                                "br_incompatible_tidb_config",
                             ]
                             break;
                         default:
