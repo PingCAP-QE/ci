@@ -412,30 +412,27 @@ catchError {
                     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
                     switch (from) {
                         case "tikv":
-                            slow_case_names = []
                             test_case_names = [
                                 "br_full",
                                 "br_gcs",
                                 "br_s3",
-                            ] + slow_case_names
-                            
+                            ]
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
                         case "tidb":
-                            slow_case_names = [
-                                //"br_full_ddl",
-                            ]
                             test_case_names = [
                                 "br_incremental_ddl",
                                 "br_incompatible_tidb_config",
                                 "br_log_restore",
-                            ] + slow_case_names
+                            ]
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
                         case "pd":
-                            slow_case_names = []
                             test_case_names = [
                                 "br_other",
                                 "br_split_region_fail",
-                            ] + slow_case_names
+                            ]
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
                         default:
                             def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
