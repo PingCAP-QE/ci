@@ -374,6 +374,11 @@ def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, ti
 
 catchError {
     def test_case_names = []
+    def slow_case_names = [
+        "br_300_small_tables",
+        "br_full_ddl",
+        "lightning_checkpoint"
+    ]
 
     stage('Prepare') {
         node("${GO_BUILD_SLAVE}") {
@@ -412,6 +417,7 @@ catchError {
                                 "br_gcs",
                                 "br_s3",
                             ]
+                            slow_case_names = []
                             break;
                         case "tidb":
                             test_case_names = [
@@ -419,12 +425,16 @@ catchError {
                                 "br_incompatible_tidb_config",
                                 "br_log_restore",
                             ]
+                            slow_case_names = [
+                                "br_full_ddl",
+                            ]
                             break;
                         case "pd":
                             test_case_names = [
                                 "br_other",
                                 "br_split_region_fail",
                             ]
+                            slow_case_names = []
                             break;
                         default:
                             def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
@@ -441,11 +451,6 @@ catchError {
     }
 
     stage("Unit/Integration Test") {
-        def slow_case_names = [
-            "br_300_small_tables",
-            "br_full_ddl",
-            "lightning_checkpoint"
-        ].intersect(test_case_names)
         def test_cases = [:]
         
         if (!params.containsKey("triggered_by_upstream_pr_ci")) {
