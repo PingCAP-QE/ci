@@ -421,7 +421,7 @@ catchError {
                             break;
                         case "tidb":
                             test_case_names = [
-                                "br_full_ddl",
+                                "br_incremental_ddl",
                                 "br_incompatible_tidb_config",
                                 "br_log_restore",
                             ]
