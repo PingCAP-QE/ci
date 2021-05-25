@@ -454,7 +454,7 @@ catchError {
         }
 
         // Add slow integration tests
-        if (params.containsKey("triggered_by_upstream_pr_ci")) {
+        if (!params.containsKey("triggered_by_upstream_pr_ci")) {
             make_parallel_jobs(
                     slow_case_names, 1,
                     TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
