@@ -422,8 +422,8 @@ catchError {
                             break;
                         case "pd":
                             test_case_names = [
-                                "br_full",
-                                "br_incompatible_tidb_config",
+                                "br_other",
+                                "br_split_region_fail",
                             ]
                             break;
                         default:
@@ -441,14 +441,15 @@ catchError {
     }
 
     stage("Unit/Integration Test") {
-        def slow_case_names = [
-                "br_300_small_tables",
-                "br_full_ddl",
-                "lightning_checkpoint"
-        ]
+        def slow_case_names = []
         def test_cases = [:]
         
         if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+            slow_case_names = [
+                "br_300_small_tables",
+                "br_full_ddl",
+                "lightning_checkpoint"
+            ]
             // Add unit tests
             test_cases["unit test"] = {
                 run_unit_test()
