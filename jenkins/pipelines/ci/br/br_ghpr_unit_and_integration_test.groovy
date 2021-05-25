@@ -454,11 +454,13 @@ catchError {
         }
 
         // Add slow integration tests
-        make_parallel_jobs(
-                slow_case_names, 1,
-                TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
-        ).each { v ->
-            test_cases["(slow) ${v[0][0]}"] = v[1]
+        if (params.containsKey("triggered_by_upstream_pr_ci")) {
+            make_parallel_jobs(
+                    slow_case_names, 1,
+                    TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
+            ).each { v ->
+                test_cases["(slow) ${v[0][0]}"] = v[1]
+            }
         }
         // Add rest integration tests
         test_case_names -= slow_case_names
