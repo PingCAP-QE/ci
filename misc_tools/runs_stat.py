@@ -3,6 +3,7 @@ import os
 import json
 from mysql.connector import connect
 from datetime import timedelta, date, datetime
+from pathlib import Path
 import subprocess
 
 class bcolors:
@@ -18,6 +19,7 @@ class bcolors:
     WHITE = '\033[37m'
 
 bcolor = ['\033[31m', '\033[32m', '\033[96m', '\033[92m', '\033[93m', '\033[91m', '\033[31m', '\033[34m', '\033[35m', '\033[37m']
+
 def sec_to_hours(seconds):
     a=seconds//3600
     b=(seconds%3600)//60
@@ -106,8 +108,9 @@ class Commit:
         self.fail_cnt = 0
         self.success_cnt = 0
         self.abort_cnt = 0
+        pr.add_commit_hash(self)
     
-    def add_job(self, job: Run):
+    def add_run(self, job: Run):
         self.jobs.append(job)
         self.pr.update(job)
         if job.status == "SUCCESS": 
@@ -229,9 +232,6 @@ class PR:
             self.fail_info_map[fail_info] = Fail_Info(fail_info)
         fail = self.fail_info_map[fail_info]
         fail.update(run)
-
-
-
     
 class Job:
     def __init__(self, job: Run):
@@ -264,36 +264,13 @@ class Job:
         print(bcolors.WARNING + self.job_name + bcolors.ENDC, end=" ")  
         total_cnt = self.success_cnt + self.fail_cnt + self.abort_cnt
         if total_cnt > 0:
-            print(bcolors.OKCYAN + "runs: " + bcolors.ENDC + str(total_cnt), end=" ")
+            print(bcolors.OKCYAN + "runs_raw: " + bcolors.ENDC + str(total_cnt), end=" ")
             print("success: "  + bcolors.OKGREEN + str(self.success_cnt) + " " + '{:.1%}'.format(self.success_cnt / (total_cnt)) + bcolors.ENDC, end=" ")
             print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (total_cnt)) + bcolors.ENDC, end=" ")
             print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (total_cnt)) + bcolors.ENDC, end=" ")     
         print()
         for pr_num, pr in self.prs.items():
             pr.log(job_name=self.job_name) # TODO , show_line=False, indent="    ")
-
-
-def summary(begin_time, pr_map, commit_hash_map, job_map, runs, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt):
-    print()
-    print("-"*150)
-
-    print(bcolors.BOLD + "Stat Summary" + bcolors.ENDC)
-    print("Time: " +  bcolors.WARNING + begin_time.strftime('%Y-%m-%d %H:%M:%S') + bcolors.ENDC + " to " + bcolors.WARNING + end_time.strftime('%Y-%m-%d %H:%M:%S') + bcolors.ENDC)
-    print(bcolors.HEADER + "Number of PRs:   " + bcolors.ENDC + str(len(pr_map)).rjust(5))
-    print(bcolors.HEADER + "Number of hashes:" + bcolors.ENDC + str(len(commit_hash_map)).rjust(5))
-    print(bcolors.HEADER + "Number of jobs:  " + bcolors.ENDC + str(len(job_map)).rjust(5))
-    print(bcolors.HEADER + "Number of runs:  " + bcolors.ENDC + str(len(runs)).rjust(5), end=" ")
-    print()
-
-    if total_job_cnt > 0:
-        print(bcolors.OKCYAN + "success_cnt:  " + bcolors.ENDC + str(success_job_cnt).rjust(5), end="  ")
-        print(bcolors.OKCYAN + "fail_cnt:  " + bcolors.ENDC + str(fail_job_cnt).rjust(5), end="  ")
-        print(bcolors.OKCYAN + "abort_cnt:  " + bcolors.ENDC + str(abort_job_cnt).rjust(5), end="  ")
-        print()
-        print(bcolors.OKCYAN + "success_rate: " + bcolors.ENDC + '{:5.1%}'.format(success_job_cnt / total_job_cnt), end="  ")
-        print(bcolors.OKCYAN + "fail_rate: " + bcolors.ENDC + '{:5.1%}'.format(fail_job_cnt / total_job_cnt), end="  ")
-        print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:5.1%}'.format(abort_job_cnt / total_job_cnt), end="  ")        
-    print()
 
 class Fail_Info:
     def __init__(self, info):
@@ -310,7 +287,7 @@ class Fail_Info:
         if show_line:
             print("-" * 150)
         print(indent + bcolors.OKCYAN + "Fail Info: " + bcolors.ENDC + self.info)
-        print(bcolors.HEADER + "\tFailed runs cnt: " + bcolors.ENDC + str(self.fail_cnt()))
+        print(bcolors.HEADER + "\tFailed runs_raw cnt: " + bcolors.ENDC + str(self.fail_cnt()))
         
         for run in sorted(self.run_list, key=lambda x: x.pr_number):
             print("", end="\t")
@@ -321,8 +298,51 @@ class Fail_Info:
                 end=bcolors.HEADER + "Link: " + bcolors.ENDC + bcolors.WHITE+ run.pr_link + bcolors.ENDC
             )
         print()
-            
-def main():
+
+class RedirectStdStreams(object):
+    def __init__(self, stdout=None, stderr=None):
+        self._stdout = stdout or sys.stdout
+        self._stderr = stderr or sys.stderr
+
+    def __enter__(self):
+        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+        self.old_stdout.flush(); self.old_stderr.flush()
+        sys.stdout, sys.stderr = self._stdout, self._stderr
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._stdout.flush(); self._stderr.flush()
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+
+def summary(begin_time, end_time, pr_map, commit_hash_map, job_map, runs, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt, miss_cnt):
+    print()
+    print("-"*150)
+
+    print(bcolors.BOLD + "Stat Summary" + bcolors.ENDC)
+    print("Time: " +  bcolors.WARNING + begin_time.strftime('%Y-%m-%d %H:%M:%S') + bcolors.ENDC + " to " + bcolors.WARNING + end_time.strftime('%Y-%m-%d %H:%M:%S') + bcolors.ENDC)
+    print(bcolors.HEADER + "Number of PRs:   " + bcolors.ENDC + str(len(pr_map)).rjust(5))
+    # print(bcolors.HEADER + "Number of hashes:" + bcolors.ENDC + str(len(commit_hash_map)).rjust(5))
+    print(bcolors.HEADER + "Number of jobs:  " + bcolors.ENDC + str(len(job_map)).rjust(5))
+    print(bcolors.HEADER + "Number of runs:  " + bcolors.ENDC + str(len(runs)).rjust(5), end=" ")
+    print()
+
+    if total_job_cnt > 0:
+        print(bcolors.OKCYAN + "success_cnt:  " + bcolors.ENDC + str(success_job_cnt).rjust(5), end="  ")
+        print(bcolors.OKCYAN + "fail_cnt:  " + bcolors.ENDC + str(fail_job_cnt).rjust(5), end="  ")
+        print(bcolors.OKCYAN + "abort_cnt:  " + bcolors.ENDC + str(abort_job_cnt).rjust(5), end="  ")
+        print()
+        print(bcolors.OKCYAN + "success_rate: " + bcolors.ENDC + '{:5.1%}'.format(success_job_cnt / total_job_cnt), end="  ")
+        print(bcolors.OKCYAN + "fail_rate: " + bcolors.ENDC + '{:5.1%}'.format(fail_job_cnt / total_job_cnt), end="  ")
+        print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:5.1%}'.format(abort_job_cnt / total_job_cnt), end="  ")
+        print()
+        print(bcolors.OKCYAN + "fail_info not found: " + bcolors.ENDC + str(miss_cnt), end="  ")   
+
+    # TODO 
+    # Top PR
+    # TOP JOB     
+    print()
+
+def get_runs_raw(begin_time, end_time):
     env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))
     connection = connect(
             host = env["host"],
@@ -332,91 +352,79 @@ def main():
             database = env["database"],
         )
     cursor = connection.cursor()
-    # begin_time = date.today()
-    begin_time = datetime(2021, 5, 20, 0, 0)    
-    end_time = begin_time + timedelta(days=1)
+    
+    begin_time_str = begin_time.strftime('%Y-%m-%d')
+
     cursor.execute('select * from ci_data where repo="pingcap/tidb" and time >= %s and time <= %s', (begin_time.strftime('%Y-%m-%d %H:%M:%S'), end_time.strftime('%Y-%m-%d %H:%M:%S')))
-    runs = cursor.fetchall()
+    runs_raw = cursor.fetchall()
+    connection.close()
+    return runs_raw
+
+def main(begin_time, end_time, hour_report=False):
+    runs_raw = get_runs_raw(begin_time, end_time)
 
     pr_map = {}
     commit_hash_map = {}
     job_map = {}
     run_map = {}
+    fail_info_map = {}
 
-    job_list = []
     run_list = []
 
     total_job_cnt = 0
     fail_job_cnt = 0
     success_job_cnt = 0
+    miss_cnt = 0
     abort_job_cnt = 0
 
-    # for line in runs:
-    for record in runs:
-        # jobs.append(Job(record))
+    for record in runs_raw:
         run = Run(record)
         run_map[run.job_id] = run
+        run_list.append(run)
+
         if run.pr_number == 0:
             continue
-
-        run_list.append(run)
 
         pr_number = run.pr_number
         commit_hash = run.commit
 
-        if pr_number in pr_map:
-            pr = pr_map[pr_number]
-        else:
-            pr = PR(run)
-            pr_map[pr_number] = pr
+        if not pr_number in pr_map:
+            pr_map[pr_number] = PR(run)
+        pr = pr_map[pr_number]
+        pr.add_run(run)
         
-        if commit_hash in commit_hash_map:
-            commit = commit_hash_map[commit_hash]
-        else:
-            commit = Commit(run, pr)
-            commit_hash_map[commit_hash] = commit
-            pr.add_commit_hash(commit)
-        commit.add_job(run)
+        if not commit_hash in commit_hash_map:
+            commit_hash_map[commit_hash] = Commit(run, pr)
+        commit = commit_hash_map[commit_hash]
+        commit.add_run(run)
 
-        if run.job_name in job_map:
-            job = job_map[run.job_name]
-        else:
-            job = Job(run)
-            job_map[run.job_name] = job
-            job_list.append(job)
-
-        # stat for different runs
+        if not run.job_name in job_map:
+            job_map[run.job_name] = Job(run)
+        job = job_map[run.job_name]
         job.update(run, pr)
 
-        # stat for global job situation
-        if run.status == "SUCCESS": 
-            success_job_cnt += 1
-        elif run.status == "ABORTED":
-            abort_job_cnt += 1
-        elif run.status == "FAILURE":
-            fail_job_cnt += 1
-
-
-    total_job_cnt = len(runs)
-#################################################
-# Per Pull Request analysis
-#################################################
-
-    # for pr_number, pr in pr_map.items():
-    #     pr.log()
+        if run.status != "FAILURE":
+            continue
     
+        fail_infos = run.get_fail_info()
+        if len(fail_infos) < 1:
+            miss_cnt += 1
+        for fail_info in fail_infos:
+            if not fail_info in fail_info_map:
+                fail_info_map[fail_info] = Fail_Info(fail_info)
+            fail = fail_info_map[fail_info]
+            fail.update(run)
+            pr.fail_update(fail_info, run)
 
-#################################################
-# Per Job analysis
-#################################################
-    # for job_name, pipeline in job_map.items():
-    #     pipeline.print_prs()
 
-#################################################
-# Fail info belonging analysis
-#################################################
 
-    # sorted(job_list, key=lambda job: job.fail_cnt, reverse=True)[0].print_prs()
+
+
+    success_job_cnt = len(filter(lambda x: x.status == "SUCCESS", run_list))
+    fail_job_cnt = len(filter(lambda x: x.status == "FAILURE", run_list))
+    abort_job_cnt = len(filter(lambda x: x.status == "ABORTED", run_list))
+
+    total_job_cnt = len(runs_raw)
 
 #################################################
 # Write log info to files
@@ -424,41 +432,79 @@ def main():
 #   job_id failinfo
 #################################################
 
+    # TODO check if log exists
 
-    # for run in filter(lambda x: x.status == "FAILURE" and x.job_name == "tidb_ghpr_unit_test", run_list):
+    # fail_log_dir_path = env["log_dir"] + "fails/"
+    # miss_cnt = 0
+
+    # for run in filter(lambda x: x.status == "FAILURE", run_list):
+    #     Path(fail_log_dir_path + run.job_name).mkdir(parents=True, exist_ok=True)
     #     # run.log(show_fail_info=True)
+    #     log = open(fail_log_dir_path + run.job_name + "/" + begin_time_str + ".log", "a")
     #     infos = run.get_fail_info()
+    #     if len(infos) < 1:
+    #         miss_cnt += 1
     #     for info in infos:
-    #         print(run.job_id, end=" ")
-    #         print(info)
+    #         log.write(str(run.job_id) + " " + info + "\n")
+
+#################################################
+# Per Pull Request analysis
+#################################################
+
+    # pr_log_dir = env["log_dir"] + "prs/"
+    # with RedirectStdStreams(stdout=open(pr_log_dir + begin_time_str + ".log", "w")):
+    #     for pr_number, pr in pr_map.items():
+    #         pr.log()
+    
+
+# #################################################
+# # Per Job analysis
+# #################################################
+    # job_log_dir = env["log_dir"] + "jobs/"
+    # with RedirectStdStreams(stdout=open(job_log_dir + begin_time_str + ".log", "w")):
+    #     for job_name, pipeline in job_map.items():
+    #         pipeline.print_prs()
 
 #################################################
 # Fail info belonging analysis
 #################################################
-    log_list = open(env["log_dir"] + "/cases.log").readlines()
 
-    fail_info_map = {}
 
-    # Building a fail map
-    for log in log_list:
-        run_id, fail_info = log[:-1].split(" ", 1)
-        run_id = int(run_id)
 
-        if not fail_info in fail_info_map:
-            fail_info_map[fail_info] = Fail_Info(fail_info)
+#################################################
+# Fail info belonging analysis
+#################################################
+    # fail_log_dir = env["log_dir"] + "fail_infos/"
+    # with RedirectStdStreams(stdout=open(fail_log_dir + begin_time_str + ".log", "w")):
+    #     for _, job in job_map.items():
+    #         log_path = env["log_dir"] + "fails/" + job.job_name + "/"+ begin_time.strftime('%Y-%m-%d') + ".log"
+    #         if not os.path.isfile(log_path):
+    #             continue
 
-        fail_info_map[fail_info].update(run_map[int(run_id)])
-        pr_map[run_map[run_id].pr_number].fail_update(fail_info, run_map[run_id])
+    #         log_list = open(log_path).readlines()
 
-    for number, pr in sorted(filter(lambda x: len(x[1].fail_info_map) > 1 ,pr_map.items()), key=lambda x: x[1].fail_cnt, reverse=True):
-        pr.log(show_commits=False, show_fail=True, color_pr=False)
+    #         fail_info_map = {}
+
+    #         # Building a fail map
+    #         for log in log_list:
+    #             run_id, fail_info = log[:-1].split(" ", 1)
+    #             run_id = int(run_id)
+
+    #             if not fail_info in fail_info_map:
+    #                 fail_info_map[fail_info] = Fail_Info(fail_info)
+
+    #             fail_info_map[fail_info].update(run_map[int(run_id)])
+    #             pr_map[run_map[run_id].pr_number].fail_update(fail_info, run_map[run_id])
+
+    #         for number, pr in sorted(filter(lambda x: len(x[1].fail_info_map) > 1 ,pr_map.items()), key=lambda x: x[1].fail_cnt, reverse=True):
+    #             pr.log(show_commits=False, show_fail=True, color_pr=False)
             
-        
-    
     
     # Fails Per Fail Cases
-    # for _, fail in fail_info_map.items():
-    #     fail.log()
+    # fail_cases_log = env["log_dir"] + "fail_cases/"
+    # with RedirectStdStreams(stdout=open(fail_cases_log + begin_time_str + ".log", "w")):
+    #     for _, fail in fail_info_map.items():
+    #         fail.log()
 
 #################################################
 
@@ -468,9 +514,19 @@ def main():
     #         run.log(show_fail_info=True)
 
 
-    # summary(begin_time, pr_map, commit_hash_map, job_map, runs, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt)
+    summary(begin_time, end_time, pr_map, commit_hash_map, job_map, runs_raw, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt, miss_cnt)
 
-
-
+    print("Top ten failed job: ")
+    for job in sorted(job_map.items(), key=lambda x: x.fail_cnt, reverse=True)[:10]:
+        job.print_prs()
+    
+    print("Top ten failed pr:")
+    for x, y in sorted(pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
+        y.log()
+    
 if (__name__ == "__main__"):
-    main()
+    # begin_time = date.today()
+    begin_time = datetime(2021, 5, 24, 0, 0)    
+    end_time = begin_time + timedelta(days=1)
+
+    main(begin_time, end_time)
