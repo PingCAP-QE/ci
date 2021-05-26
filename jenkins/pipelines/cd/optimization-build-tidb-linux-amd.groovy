@@ -21,7 +21,7 @@ arch = "amd64"
 platform = "centos7"
 
 def ifFileCacheExists(product,hash,binary) {
-    if (FORCE_REBUILD){
+    if (params.FORCE_REBUILD){
         return false
     }
     if(!fileExists("gethash.py")){

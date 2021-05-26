@@ -20,7 +20,7 @@ arch = "arm64"
 platform = "centos7"
 
 def ifFileCacheExists(product,hash,binary) {
-    if (FORCE_REBUILD){
+    if (params.FORCE_REBUILD){
         return false
     }
     if(!fileExists("gethash.py")){
@@ -50,6 +50,9 @@ def TIDB_CTL_HASH = "master"
 def build_upload = { product, hash, binary ->
     stage("Build ${product}") {
         node("arm") {
+            if (ifFileCacheExists(product, hash, binary)) {
+                return
+            }
             def repo = "git@github.com:pingcap/${product}.git"
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
@@ -161,45 +164,29 @@ try {
     stage("Build") {
         builds = [:]
 
-        if (!ifFileCacheExists("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")) {
-            builds["Build tidb-ctl"] = {
+        builds["Build tidb-ctl"] = {
             build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
-            } 
-        }
-        if (!ifFileCacheExists("tidb", TIDB_HASH, "tidb-server")) {
-            builds["Build tidb"] = {
+        } 
+        builds["Build tidb"] = {
             build_upload("tidb", TIDB_HASH, "tidb-server")
-            }
         }
-        if (!ifFileCacheExists("tidb-binlog", BINLOG_HASH, "tidb-binlog")) {
-            builds["Build tidb-binlog"] = {
+        builds["Build tidb-binlog"] = {
             build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
-            }
         }
-        if (!ifFileCacheExists("tidb-tools", TOOLS_HASH, "tidb-tools")) {
-            builds["Build tidb-tools"] = {
+        builds["Build tidb-tools"] = {
             build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
-            }
         }
-        if (!ifFileCacheExists("pd", PD_HASH, "pd-server")) {
-            builds["Build pd"] = {
+        builds["Build pd"] = {
             build_upload("pd", PD_HASH, "pd-server")
-            }
         }
-        if (!ifFileCacheExists("ticdc", CDC_HASH, "ticdc")) {
-            builds["Build ticdc"] = {
+        builds["Build ticdc"] = {
             build_upload("ticdc", CDC_HASH, "ticdc")
-            }
         }
-        if (!ifFileCacheExists("br", BR_HASH, "br")) {
-            builds["Build br"] = {
+        builds["Build br"] = {
             build_upload("br", BR_HASH, "br")
-            }
         }
-        if (!ifFileCacheExists("dumpling", DUMPLING_HASH, "dumpling")) {
-            builds["Build dumpling"] = {
+        builds["Build dumpling"] = {
             build_upload("dumpling", DUMPLING_HASH, "dumpling")
-            }
         }
         
         if (SKIP_TIFLASH == "false") {
