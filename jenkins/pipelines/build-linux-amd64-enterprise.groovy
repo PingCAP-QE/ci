@@ -66,7 +66,7 @@ try {
                     }
                 }
                 dir("go/src/github.com/pingcap/enterprise-plugin") {
-                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "release-5.0"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/enterprise-plugin.git']]]
+                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: RELEASE_BRANCH]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/enterprise-plugin.git']]]
                     def plugin_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
                 def filepath_whitelist = "builds/pingcap/tidb-plugins/optimization/enterprise/${RELEASE_TAG}/centos7/whitelist-1.so"
