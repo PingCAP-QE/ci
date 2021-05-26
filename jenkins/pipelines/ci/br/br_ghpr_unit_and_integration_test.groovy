@@ -416,6 +416,12 @@ catchError {
                                 "br_full",
                                 "br_gcs",
                                 "br_s3",
+                                "lightning_alter_random",
+                                "lightning_new_collation",
+                                "lightning_row-format-v2",
+                                "lightning_s3",
+                                "lightning_sqlmode",
+                                "lightning_tiflash",
                             ]
                             slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
@@ -424,6 +430,12 @@ catchError {
                                 "br_incremental_ddl",
                                 "br_incompatible_tidb_config",
                                 "br_log_restore",
+                                "lightning_alter_random",
+                                "lightning_new_collation",
+                                "lightning_row-format-v2",
+                                "lightning_s3",
+                                "lightning_sqlmode",
+                                "lightning_tiflash",
                             ]
                             slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
@@ -431,6 +443,12 @@ catchError {
                             test_case_names = [
                                 "br_other",
                                 "br_split_region_fail",
+                                "lightning_alter_random",
+                                "lightning_new_collation",
+                                "lightning_row-format-v2",
+                                "lightning_s3",
+                                "lightning_sqlmode",
+                                "lightning_tiflash",
                             ]
                             slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
