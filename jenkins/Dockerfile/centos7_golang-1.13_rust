@@ -42,7 +42,8 @@ ENV RUSTUP_HOME /rust
 ENV CARGO_HOME /rust
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly-2018-07-18 -y \
-	&& $RUSTUP_HOME/bin/rustup default nightly-2018-07-18
+	&& $RUSTUP_HOME/bin/rustup default nightly-2018-07-18 \
+	&& mkdir /rust/registry /rust/git
 
 ENV PATH $CARGO_HOME/bin:$RUSTUP_HOME/bin:$PATH
 
