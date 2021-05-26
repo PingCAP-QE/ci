@@ -1,10 +1,17 @@
 import sys
 import os
 import json
-from mysql.connector import connect
 from datetime import timedelta, date, datetime
+from string import printable
+from mysql.connector import connect
 from pathlib import Path
+from functools import reduce
 import subprocess
+# from apscheduler.schedulers.blocking import BlockingScheduler
+import hmac
+import hashlib
+import base64
+import requests
 
 class bcolors:
     HEADER = '\033[95m'
@@ -55,10 +62,22 @@ class Run:
             self.author = self.description['ghprbPullAuthorLogin']
             self.pr_link = self.description['ghprbPullLink']
 
+    def get_fail_file_path(self):
+        return env["log_dir"] + "fails/" + self.job_name + "/" + str(self.job_id)
+
     def get_fail_info(self):
+        # fail_log_dir_path = env["log_dir"] + "fails/" + self.job_name + "/"
+        # Path(fail_log_dir_path).mkdir(parents=True, exist_ok=True)
+
+        # if os.path.isfile(self.get_fail_file_path()):
+        #     return list(map(lambda x: x[:-1], open(self.get_fail_file_path()).readlines()))
+        # else:
         cmd = 'cat /mnt/ci.pingcap.net/jenkins_home/jobs/'+ self.job_name + '/builds/'+ str(self.job_id) + '/log | grep -A 10 "\--------" | grep FAIL: '
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         raw = ps.communicate()[0].decode("utf-8").split("\n")
+
+        file = open(self.get_fail_file_path(), "w")
+        file.writelines(list(map(lambda x: x.split("FAIL: ")[1] + "\n", filter(lambda x: "FAIL: " in x, raw))))
         return list(map(lambda x: x.split("FAIL: ")[1], filter(lambda x: "FAIL: " in x, raw)))
 
     def get_status_log(self):
@@ -164,6 +183,7 @@ class PR:
         self.abort_cnt = 0
         self.fail_info_map = {} # fail_info to Fail_Info Map
         self.__commit_hashes = []
+        self.job = job
 
     
     def add_commit_hash(self, commit: Commit):
@@ -214,14 +234,20 @@ class PR:
             print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:.1%}'.format(self.get_abort_rate()), end=" ")        
         print()
 
+        
         if show_commits:
-            print(indent + self.repo, end=" ")
-            print(bcolors.BOLD + self.branch + bcolors.ENDC, end=" ")
-            print(bcolors.OKCYAN + "pr_title: " + bcolors.ENDC + self.title)
-            for commit in self.__commit_hashes:
-                print("", end="\t")
-                commit.print_jobs(job_name)
-            print()
+            try:
+                print(indent + self.repo, end=" ")
+                print(bcolors.BOLD + self.branch + bcolors.ENDC, end=" ")
+                print(bcolors.OKCYAN + "pr_title: " + bcolors.ENDC + ''.join(filter(lambda x: x in printable, self.title)))
+                for commit in self.__commit_hashes:
+                    print("", end="\t")
+                    commit.print_jobs(job_name)
+                print()
+            except:
+                print(str(self.job.description).encode('utf-8'))
+                
+
         
         if show_fail:
             for fail_info, fail in self.fail_info_map.items():
@@ -262,12 +288,11 @@ class Job:
         print()
         print(bcolors.BOLD + bcolors.FAIL +  "Job Name: " + bcolors.ENDC + bcolors.ENDC, end="")
         print(bcolors.WARNING + self.job_name + bcolors.ENDC, end=" ")  
-        total_cnt = self.success_cnt + self.fail_cnt + self.abort_cnt
-        if total_cnt > 0:
-            print(bcolors.OKCYAN + "runs_raw: " + bcolors.ENDC + str(total_cnt), end=" ")
-            print("success: "  + bcolors.OKGREEN + str(self.success_cnt) + " " + '{:.1%}'.format(self.success_cnt / (total_cnt)) + bcolors.ENDC, end=" ")
-            print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (total_cnt)) + bcolors.ENDC, end=" ")
-            print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (total_cnt)) + bcolors.ENDC, end=" ")     
+        if self.total_cnt > 0:
+            print(bcolors.OKCYAN + "runs_raw: " + bcolors.ENDC + str(self.total_cnt), end=" ")
+            print("success: "  + bcolors.OKGREEN + str(self.success_cnt) + " " + '{:.1%}'.format(self.success_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
+            print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
+            print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
         print()
         for pr_num, pr in self.prs.items():
             pr.log(job_name=self.job_name) # TODO , show_line=False, indent="    ")
@@ -314,7 +339,15 @@ class RedirectStdStreams(object):
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
-def summary(begin_time, end_time, pr_map, commit_hash_map, job_map, runs, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt, miss_cnt):
+def ilen(iterable):
+    return reduce(lambda sum, element: sum + 1, iterable, 0)
+
+def summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt):
+    success_cnt = ilen(filter(lambda x: x.status == "SUCCESS", run_list))
+    fail_cnt = ilen(filter(lambda x: x.status == "FAILURE", run_list))
+    abort_cnt = ilen(filter(lambda x: x.status == "ABORTED", run_list))
+    total_cnt = len(run_list)
+
     print()
     print("-"*150)
 
@@ -323,17 +356,17 @@ def summary(begin_time, end_time, pr_map, commit_hash_map, job_map, runs, total_
     print(bcolors.HEADER + "Number of PRs:   " + bcolors.ENDC + str(len(pr_map)).rjust(5))
     # print(bcolors.HEADER + "Number of hashes:" + bcolors.ENDC + str(len(commit_hash_map)).rjust(5))
     print(bcolors.HEADER + "Number of jobs:  " + bcolors.ENDC + str(len(job_map)).rjust(5))
-    print(bcolors.HEADER + "Number of runs:  " + bcolors.ENDC + str(len(runs)).rjust(5), end=" ")
+    print(bcolors.HEADER + "Number of runs:  " + bcolors.ENDC + str(len(run_list)).rjust(5), end=" ")
     print()
 
-    if total_job_cnt > 0:
-        print(bcolors.OKCYAN + "success_cnt:  " + bcolors.ENDC + str(success_job_cnt).rjust(5), end="  ")
-        print(bcolors.OKCYAN + "fail_cnt:  " + bcolors.ENDC + str(fail_job_cnt).rjust(5), end="  ")
-        print(bcolors.OKCYAN + "abort_cnt:  " + bcolors.ENDC + str(abort_job_cnt).rjust(5), end="  ")
+    if total_cnt > 0:
+        print(bcolors.OKCYAN + "success_cnt:  " + bcolors.ENDC + str(success_cnt).rjust(5), end="  ")
+        print(bcolors.OKCYAN + "fail_cnt:  " + bcolors.ENDC + str(fail_cnt).rjust(5), end="  ")
+        print(bcolors.OKCYAN + "abort_cnt:  " + bcolors.ENDC + str(abort_cnt).rjust(5), end="  ")
         print()
-        print(bcolors.OKCYAN + "success_rate: " + bcolors.ENDC + '{:5.1%}'.format(success_job_cnt / total_job_cnt), end="  ")
-        print(bcolors.OKCYAN + "fail_rate: " + bcolors.ENDC + '{:5.1%}'.format(fail_job_cnt / total_job_cnt), end="  ")
-        print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:5.1%}'.format(abort_job_cnt / total_job_cnt), end="  ")
+        print(bcolors.OKCYAN + "success_rate: " + bcolors.ENDC + '{:5.1%}'.format(success_cnt / total_cnt), end="  ")
+        print(bcolors.OKCYAN + "fail_rate: " + bcolors.ENDC + '{:5.1%}'.format(fail_cnt / total_cnt), end="  ")
+        print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:5.1%}'.format(abort_cnt / total_cnt), end="  ")
         print()
         print(bcolors.OKCYAN + "fail_info not found: " + bcolors.ENDC + str(miss_cnt), end="  ")   
 
@@ -343,7 +376,6 @@ def summary(begin_time, end_time, pr_map, commit_hash_map, job_map, runs, total_
     print()
 
 def get_runs_raw(begin_time, end_time):
-    env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))
     connection = connect(
             host = env["host"],
             port = env["port"],
@@ -360,96 +392,80 @@ def get_runs_raw(begin_time, end_time):
     connection.close()
     return runs_raw
 
+class Result:
+    def __init__(self, runs_raw, begin_time,end_time):
+        pr_map = {}
+        commit_hash_map = {}
+        job_map = {}
+        fail_info_map = {}
+        run_list = []
+        miss_cnt = 0
+
+        for record in runs_raw:
+            run = Run(record)
+            run_list.append(run)
+
+            if run.pr_number == 0:
+                continue
+
+            pr_number = run.pr_number
+            commit_hash = run.commit
+
+            if not pr_number in pr_map:
+                pr_map[pr_number] = PR(run)
+            pr = pr_map[pr_number]
+            
+            if not commit_hash in commit_hash_map:
+                commit_hash_map[commit_hash] = Commit(run, pr)
+            commit = commit_hash_map[commit_hash]
+            commit.add_run(run)
+
+            if not run.job_name in job_map:
+                job_map[run.job_name] = Job(run)
+            job = job_map[run.job_name]
+            job.update(run, pr)
+
+            if run.status != "FAILURE":
+                continue
+        
+            fail_infos = run.get_fail_info()
+            if len(fail_infos) < 1:
+                miss_cnt += 1
+            for fail_info in fail_infos:
+                if not fail_info in fail_info_map:
+                    fail_info_map[fail_info] = Fail_Info(fail_info)
+                fail = fail_info_map[fail_info]
+                fail.update(run)
+                pr.fail_update(fail_info, run)
+
+        self.pr_map = pr_map
+        self.commit_hash_map = commit_hash_map
+        self.job_map = job_map
+        self.fail_info_map = fail_info_map
+        self.run_list = run_list
+        self.miss_cnt = miss_cnt
+        self.begin_time = begin_time
+        self.end_time = end_time
+        self.success_cnt = ilen(filter(lambda x: x.status == "SUCCESS", run_list))
+        self.fail_cnt = ilen(filter(lambda x: x.status == "FAILURE", run_list))
+        self.abort_cnt = ilen(filter(lambda x: x.status == "ABORTED", run_list))
+        self.total_cnt = len(run_list)
+
 def main(begin_time, end_time, hour_report=False):
     runs_raw = get_runs_raw(begin_time, end_time)
 
-    pr_map = {}
-    commit_hash_map = {}
-    job_map = {}
-    run_map = {}
-    fail_info_map = {}
+    res = Result(runs_raw, begin_time, end_time)
 
-    run_list = []
+    pr_map = res.pr_map
+    commit_hash_map = res.commit_hash_map
+    job_map = res.job_map
+    fail_info_map = res.fail_info_map
+    run_list = res.run_list
+    miss_cnt = res.miss_cnt
 
-    total_job_cnt = 0
-    fail_job_cnt = 0
-    success_job_cnt = 0
-    miss_cnt = 0
-    abort_job_cnt = 0
-
-    for record in runs_raw:
-        run = Run(record)
-        run_map[run.job_id] = run
-        run_list.append(run)
-
-        if run.pr_number == 0:
-            continue
-
-        pr_number = run.pr_number
-        commit_hash = run.commit
-
-        if not pr_number in pr_map:
-            pr_map[pr_number] = PR(run)
-        pr = pr_map[pr_number]
-        pr.add_run(run)
-        
-        if not commit_hash in commit_hash_map:
-            commit_hash_map[commit_hash] = Commit(run, pr)
-        commit = commit_hash_map[commit_hash]
-        commit.add_run(run)
-
-        if not run.job_name in job_map:
-            job_map[run.job_name] = Job(run)
-        job = job_map[run.job_name]
-        job.update(run, pr)
-
-        if run.status != "FAILURE":
-            continue
-    
-        fail_infos = run.get_fail_info()
-        if len(fail_infos) < 1:
-            miss_cnt += 1
-        for fail_info in fail_infos:
-            if not fail_info in fail_info_map:
-                fail_info_map[fail_info] = Fail_Info(fail_info)
-            fail = fail_info_map[fail_info]
-            fail.update(run)
-            pr.fail_update(fail_info, run)
-
-
-
-
-
-    success_job_cnt = len(filter(lambda x: x.status == "SUCCESS", run_list))
-    fail_job_cnt = len(filter(lambda x: x.status == "FAILURE", run_list))
-    abort_job_cnt = len(filter(lambda x: x.status == "ABORTED", run_list))
-
-    total_job_cnt = len(runs_raw)
-
-#################################################
-# Write log info to files
-# format of each line:
-#   job_id failinfo
-#################################################
-
-    # TODO check if log exists
-
-    # fail_log_dir_path = env["log_dir"] + "fails/"
-    # miss_cnt = 0
-
-    # for run in filter(lambda x: x.status == "FAILURE", run_list):
-    #     Path(fail_log_dir_path + run.job_name).mkdir(parents=True, exist_ok=True)
-    #     # run.log(show_fail_info=True)
-    #     log = open(fail_log_dir_path + run.job_name + "/" + begin_time_str + ".log", "a")
-    #     infos = run.get_fail_info()
-    #     if len(infos) < 1:
-    #         miss_cnt += 1
-    #     for info in infos:
-    #         log.write(str(run.job_id) + " " + info + "\n")
-
-#################################################
-# Per Pull Request analysis
-#################################################
+    #################################################
+    # Per Pull Request analysis
+    #################################################
 
     # pr_log_dir = env["log_dir"] + "prs/"
     # with RedirectStdStreams(stdout=open(pr_log_dir + begin_time_str + ".log", "w")):
@@ -457,56 +473,25 @@ def main(begin_time, end_time, hour_report=False):
     #         pr.log()
     
 
-# #################################################
-# # Per Job analysis
-# #################################################
+    # #################################################
+    # # Per Job analysis
+    # #################################################
     # job_log_dir = env["log_dir"] + "jobs/"
     # with RedirectStdStreams(stdout=open(job_log_dir + begin_time_str + ".log", "w")):
     #     for job_name, pipeline in job_map.items():
     #         pipeline.print_prs()
 
-#################################################
-# Fail info belonging analysis
-#################################################
+    #################################################
+    # Fail info belonging analysis
+    #################################################
 
-
-
-#################################################
-# Fail info belonging analysis
-#################################################
-    # fail_log_dir = env["log_dir"] + "fail_infos/"
-    # with RedirectStdStreams(stdout=open(fail_log_dir + begin_time_str + ".log", "w")):
-    #     for _, job in job_map.items():
-    #         log_path = env["log_dir"] + "fails/" + job.job_name + "/"+ begin_time.strftime('%Y-%m-%d') + ".log"
-    #         if not os.path.isfile(log_path):
-    #             continue
-
-    #         log_list = open(log_path).readlines()
-
-    #         fail_info_map = {}
-
-    #         # Building a fail map
-    #         for log in log_list:
-    #             run_id, fail_info = log[:-1].split(" ", 1)
-    #             run_id = int(run_id)
-
-    #             if not fail_info in fail_info_map:
-    #                 fail_info_map[fail_info] = Fail_Info(fail_info)
-
-    #             fail_info_map[fail_info].update(run_map[int(run_id)])
-    #             pr_map[run_map[run_id].pr_number].fail_update(fail_info, run_map[run_id])
-
-    #         for number, pr in sorted(filter(lambda x: len(x[1].fail_info_map) > 1 ,pr_map.items()), key=lambda x: x[1].fail_cnt, reverse=True):
-    #             pr.log(show_commits=False, show_fail=True, color_pr=False)
-            
-    
     # Fails Per Fail Cases
     # fail_cases_log = env["log_dir"] + "fail_cases/"
     # with RedirectStdStreams(stdout=open(fail_cases_log + begin_time_str + ".log", "w")):
     #     for _, fail in fail_info_map.items():
     #         fail.log()
 
-#################################################
+    #################################################
 
     # for run in filter(lambda x: x.status == "FAILURE", run_list):
     #     info = run.get_fail_info()
@@ -514,19 +499,115 @@ def main(begin_time, end_time, hour_report=False):
     #         run.log(show_fail_info=True)
 
 
-    summary(begin_time, end_time, pr_map, commit_hash_map, job_map, runs_raw, total_job_cnt, success_job_cnt, fail_job_cnt, abort_job_cnt, miss_cnt)
-
-    print("Top ten failed job: ")
-    for job in sorted(job_map.items(), key=lambda x: x.fail_cnt, reverse=True)[:10]:
+    print(bcolors.BOLD + bcolors.WHITE + "Top ten failed job: " + bcolors.ENDC + bcolors.ENDC)
+    for _, job in sorted(job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
         job.print_prs()
     
-    print("Top ten failed pr:")
-    for x, y in sorted(pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
-        y.log()
-    
-if (__name__ == "__main__"):
-    # begin_time = date.today()
-    begin_time = datetime(2021, 5, 24, 0, 0)    
-    end_time = begin_time + timedelta(days=1)
+    print(bcolors.BOLD + bcolors.WHITE + "Top ten failed pr:" + bcolors.ENDC + bcolors.ENDC)
+    for _, pr in sorted(pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
+        pr.log(show_fail=True, )
 
-    main(begin_time, end_time)
+    summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
+
+    send(res)
+
+    return res
+
+
+def report():
+    end_time = datetime.now()
+    end_time = end_time - timedelta(minutes=end_time.minute, seconds=end_time.second)
+    begin_time = end_time - timedelta(hours=1)
+
+    print("Logging from" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + " to " + end_time.strftime('%Y-%m-%d-%H:%M:%S'))
+
+    tmp_res = "/tmp/ci_analysis/" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + ".log"
+    Path("/tmp/ci_analysis/").mkdir(parents=True, exist_ok=True)
+    with RedirectStdStreams(stdout=open(tmp_res, "w")):
+        res = main(begin_time, end_time + timedelta(hours=1))
+    
+    send(res)
+
+def get_sign(key:str, ts: int):
+    key = "lrMWueGz4s96HofTd3Pj7b"
+    ts = int(datetime.now().timestamp())
+    ts = 1621941942
+    string_to_sign = str(ts) + '\n' + key
+    return base64.b64encode(hashlib.sha256(string_to_sign.encode('utf-8')).digest())
+
+def add_content(field, content):
+    field["text"]["content"] += content
+
+def send(res: Result):
+    card = json.load(open(os.getenv("STAT_ENV_PATH") + "/bot.json", "r", encoding="utf-8"))
+    # card = json.load(open("bot.json", encoding="utf-8"))
+
+    fields = card["elements"][0]["fields"]
+
+    add_content(fields[0], res.begin_time.strftime('%Y-%m-%d-%H:%M:%S') + " to " + res.end_time.strftime('%Y-%m-%d-%H:%M:%S'))
+    add_content(fields[2], str(len(res.pr_map)))
+    add_content(fields[3], str(len(res.job_map)))
+    add_content(fields[5], str(len(res.run_list)))
+    add_content(fields[6], str(res.fail_cnt))
+    for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt)))[:3]:
+        add_content(fields[8], "\n**#" + str(pr.number) + "** *" + pr.title + "*\n")
+        add_content(fields[8],  "**total_job**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
+        add_content(fields[8],  "**success_cnt:** " +  str(pr.success_cnt) + " ")
+        add_content(fields[8],  "**fail_cnt:** " +  str(pr.fail_cnt) + " ")
+        add_content(fields[8],  "**abort_cnt:** " +  str(pr.abort_cnt) + " ")
+        add_content(fields[8],  "**success_rate:** " +  '{:.1%}'.format(pr.get_success_rate()) + " ")
+        add_content(fields[8],  "**fail_rate:** " +  '{:.1%}'.format(pr.get_fail_rate()) + " ")
+        add_content(fields[8],  "**abort_rate:** " +  '{:.1%}'.format(pr.get_abort_rate()) + " ")        
+
+
+    for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt)))[:3]:
+        add_content(fields[10], "\n" + job.job_name + " ")
+        add_content(fields[10], "**success: **"  + str(job.success_cnt) + " " + '{:.1%}'.format(job.success_cnt / (job.total_cnt)) + " ")
+        add_content(fields[10], "**fail: **" + str(job.fail_cnt) + " " + '{:.1%}'.format(job.fail_cnt / (job.total_cnt)) + " ")
+        add_content(fields[10], "**abort: **" + str(job.abort_cnt) + " " + '{:.1%}'.format(job.abort_cnt / (job.total_cnt)) + " ")     
+
+    # print(json.dumps(card))
+    bot_post(card)
+
+def bot_post(card):
+    body = {}
+    body["msg_type"] = "interactive"
+    body["card"] = card
+
+    res = requests.post("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/", json={"app_id": env["app_id"], "app_secret": env["app_secret"]})
+    token = json.loads(res.text)['tenant_access_token']
+
+    res = requests.post("https://open.feishu.cn/open-apis/chat/v4/list/", 
+            json={"page_size": "10"}, 
+            headers = {'content-type': 'application/json', 
+                      'Authorization': "Bearer " + token},
+          )
+
+    for group in json.loads(res.text)["data"]["groups"]:
+        chat_id = group["chat_id"]
+        res = requests.post("https://open.feishu.cn/open-apis/message/v4/send/", 
+            json={"chat_id": group["chat_id"],
+                  "msg_type": "interactive",
+                  "card": card
+                }, 
+            headers = {'content-type': 'application/json', 
+                      'Authorization': "Bearer " + token},
+          )
+        print(res.text)
+
+
+if (__name__ == "__main__"):
+    env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))    
+    # env = json.load(open("env.json"))    
+
+    # scheduler = BlockingScheduler()
+    # scheduler.add_job(report, 'interval', minutes=1)
+
+    # try:
+    #     scheduler.start()
+    # except (KeyboardInterrupt, SystemExit):
+    #     pass
+
+    # main(begin_time, begin_time + timedelta(hours=1))
+    now = datetime.now()
+    main(now - timedelta(days=1), now)
