@@ -48,7 +48,15 @@ if (m4) {
 m4 = null
 println "TIDB_PRIVATE_TEST_BRANCH=${TIDB_PRIVATE_TEST_BRANCH}"
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
