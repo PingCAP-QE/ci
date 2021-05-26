@@ -7,7 +7,7 @@ from mysql.connector import connect
 from pathlib import Path
 from functools import reduce
 import subprocess
-# from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 import hmac
 import hashlib
 import base64
@@ -498,7 +498,6 @@ def main(begin_time, end_time, hour_report=False):
     #     if len(info) < 1:
     #         run.log(show_fail_info=True)
 
-
     print(bcolors.BOLD + bcolors.WHITE + "Top ten failed job: " + bcolors.ENDC + bcolors.ENDC)
     for _, job in sorted(job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
         job.print_prs()
@@ -515,9 +514,10 @@ def main(begin_time, end_time, hour_report=False):
 
 
 def report():
-    end_time = datetime.now()
-    end_time = end_time - timedelta(minutes=end_time.minute, seconds=end_time.second)
-    begin_time = end_time - timedelta(hours=1)
+    now = datetime.now()
+    begin_time = now - timedelta(hours=1, minutes=now.minute, seconds=now.second)
+    end_time = begin_time + timedelta(hours=1)
+    
 
     print("Logging from" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + " to " + end_time.strftime('%Y-%m-%d-%H:%M:%S'))
 
@@ -525,8 +525,7 @@ def report():
     Path("/tmp/ci_analysis/").mkdir(parents=True, exist_ok=True)
     with RedirectStdStreams(stdout=open(tmp_res, "w")):
         res = main(begin_time, end_time + timedelta(hours=1))
-    
-    send(res)
+
 
 def get_sign(key:str, ts: int):
     key = "lrMWueGz4s96HofTd3Pj7b"
@@ -549,7 +548,7 @@ def send(res: Result):
     add_content(fields[3], str(len(res.job_map)))
     add_content(fields[5], str(len(res.run_list)))
     add_content(fields[6], str(res.fail_cnt))
-    for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt)))[:3]:
+    for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
         add_content(fields[8], "\n**#" + str(pr.number) + "** *" + pr.title + "*\n")
         add_content(fields[8],  "**total_job**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
         add_content(fields[8],  "**success_cnt:** " +  str(pr.success_cnt) + " ")
@@ -560,7 +559,7 @@ def send(res: Result):
         add_content(fields[8],  "**abort_rate:** " +  '{:.1%}'.format(pr.get_abort_rate()) + " ")        
 
 
-    for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt)))[:3]:
+    for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
         add_content(fields[10], "\n" + job.job_name + " ")
         add_content(fields[10], "**success: **"  + str(job.success_cnt) + " " + '{:.1%}'.format(job.success_cnt / (job.total_cnt)) + " ")
         add_content(fields[10], "**fail: **" + str(job.fail_cnt) + " " + '{:.1%}'.format(job.fail_cnt / (job.total_cnt)) + " ")
@@ -600,14 +599,14 @@ if (__name__ == "__main__"):
     env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))    
     # env = json.load(open("env.json"))    
 
-    # scheduler = BlockingScheduler()
-    # scheduler.add_job(report, 'interval', minutes=1)
+    scheduler = BlockingScheduler()
+    scheduler.add_job(report, 'interval', hours=1)
 
-    # try:
-    #     scheduler.start()
-    # except (KeyboardInterrupt, SystemExit):
-    #     pass
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        pass
 
     # main(begin_time, begin_time + timedelta(hours=1))
-    now = datetime.now()
-    main(now - timedelta(days=1), now)
+    # now = datetime.now()
+    # main(now - timedelta(days=1), now)
