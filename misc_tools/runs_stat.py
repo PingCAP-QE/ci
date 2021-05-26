@@ -63,7 +63,9 @@ class Run:
             self.pr_link = self.description['ghprbPullLink']
 
     def get_fail_file_path(self):
-        return env["log_dir"] + "fails/" + self.job_name + "/" + str(self.job_id)
+        dir_path = env["log_dir"] + "fails/" + self.job_name + "/"
+        Path(dir_path).mkdir(parents=True, exist_ok=True)
+        return dir_path + str(self.job_id)
 
     def get_fail_info(self):
         # fail_log_dir_path = env["log_dir"] + "fails/" + self.job_name + "/"
@@ -387,7 +389,7 @@ def get_runs_raw(begin_time, end_time):
     
     begin_time_str = begin_time.strftime('%Y-%m-%d')
 
-    cursor.execute('select * from ci_data where repo="pingcap/tidb" and time >= %s and time <= %s', (begin_time.strftime('%Y-%m-%d %H:%M:%S'), end_time.strftime('%Y-%m-%d %H:%M:%S')))
+    cursor.execute('select * from ci_data where time >= %s and time <= %s', (begin_time.strftime('%Y-%m-%d %H:%M:%S'), end_time.strftime('%Y-%m-%d %H:%M:%S')))
     runs_raw = cursor.fetchall()
     connection.close()
     return runs_raw
@@ -549,21 +551,25 @@ def send(res: Result):
     add_content(fields[5], str(len(res.run_list)))
     add_content(fields[6], str(res.fail_cnt))
     for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
-        add_content(fields[8], "\n**#" + str(pr.number) + "** *" + pr.title + "*\n")
+        add_content(fields[8], "  \n**" + pr.repo + " " + pr.branch + " #" + str(pr.number)+"**\n")
+        if len(pr.title) > 0:
+            add_content(fields[8], "title: *" + pr.title + "*\n")
+        add_content(fields[8],  "    ")
         add_content(fields[8],  "**total_job**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
-        add_content(fields[8],  "**success_cnt:** " +  str(pr.success_cnt) + " ")
-        add_content(fields[8],  "**fail_cnt:** " +  str(pr.fail_cnt) + " ")
-        add_content(fields[8],  "**abort_cnt:** " +  str(pr.abort_cnt) + " ")
-        add_content(fields[8],  "**success_rate:** " +  '{:.1%}'.format(pr.get_success_rate()) + " ")
+        add_content(fields[8],  "**success:** " +  str(pr.success_cnt) + " ")
+        add_content(fields[8],  "**fail:** " +  str(pr.fail_cnt) + " ")
+        add_content(fields[8],  "**abort:** " +  str(pr.abort_cnt) + " ")
+        add_content(fields[8],  "\n    **success_rate:** " +  '{:.1%}'.format(pr.get_success_rate()) + " ")
         add_content(fields[8],  "**fail_rate:** " +  '{:.1%}'.format(pr.get_fail_rate()) + " ")
         add_content(fields[8],  "**abort_rate:** " +  '{:.1%}'.format(pr.get_abort_rate()) + " ")        
 
-
     for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
-        add_content(fields[10], "\n" + job.job_name + " ")
+        add_content(fields[10], "\n***" + job.job_name + "*** ")
         add_content(fields[10], "**success: **"  + str(job.success_cnt) + " " + '{:.1%}'.format(job.success_cnt / (job.total_cnt)) + " ")
         add_content(fields[10], "**fail: **" + str(job.fail_cnt) + " " + '{:.1%}'.format(job.fail_cnt / (job.total_cnt)) + " ")
-        add_content(fields[10], "**abort: **" + str(job.abort_cnt) + " " + '{:.1%}'.format(job.abort_cnt / (job.total_cnt)) + " ")     
+        add_content(fields[10], "**abort: **" + str(job.abort_cnt) + " " + '{:.1%}'.format(job.abort_cnt / (job.total_cnt)) + " ")
+        for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(job.prs.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:2]:
+            add_content(fields[10], "\n    " + pr.repo + " " + pr.branch + " #" + str(pr.number))
 
     # print(json.dumps(card))
     bot_post(card)
@@ -607,6 +613,6 @@ if (__name__ == "__main__"):
     except (KeyboardInterrupt, SystemExit):
         pass
 
-    # main(begin_time, begin_time + timedelta(hours=1))
+
     # now = datetime.now()
-    # main(now - timedelta(days=1), now)
+    # main(now - timedelta(hours=1), now)
