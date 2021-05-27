@@ -38,7 +38,15 @@ if (params.containsKey("release_test")) {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 println "$GO1160_BUILD_SLAVE"
 println "$GO1160_TEST_SLAVE"

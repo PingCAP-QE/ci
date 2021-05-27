@@ -44,7 +44,6 @@ node("${GO_TEST_SLAVE}") {
             node("build_go1130_binlog") {
                 container("golang") {
                     dir("go/src/github.com/pingcap/tidb-binlog") {
-                        deleteDir()
                         sh """
                             GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
                         """
