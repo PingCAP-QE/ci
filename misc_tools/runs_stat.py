@@ -7,11 +7,12 @@ from mysql.connector import connect
 from pathlib import Path
 from functools import reduce
 import subprocess
-from apscheduler.schedulers.blocking import BlockingScheduler
 import hmac
 import hashlib
 import base64
 import requests
+import schedule
+import time
 
 class bcolors:
     HEADER = '\033[95m'
@@ -642,16 +643,16 @@ def bot_post(card):
           )
         print(res.text)
 
-
 if (__name__ == "__main__"):
     env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))    
     # env = json.load(open("env.json"))    
 
-    scheduler = BlockingScheduler()
-    scheduler.add_job(report, 'interval', hours=1)
+    schedule.every().hour.at(":00").do(report)
 
     try:
-        scheduler.start()
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         pass
 
