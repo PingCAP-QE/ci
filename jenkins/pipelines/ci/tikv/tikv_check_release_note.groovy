@@ -15,6 +15,7 @@ if (isNeedGo1160) {
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
 } else {
     println "This build use go1.13"
+    GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
@@ -23,7 +24,7 @@ catchError {
     stage("check release note") {
             //sh "echo $ghprbPullLongDescription | egrep 'Release note'"
             //sh "python -v"
-        node("BUILD_NODE_NAME") {
+        node("${GO_BUILD_SLAVE}") {
             //def goVersion = new Utils(this).detectGoVersion("https://raw.githubusercontent.com/pingcap/tidb/master/circle.yml")
             //buildSlave = GO_BUILD_SLAVE
             //testSlave = GO_TEST_SLAVE

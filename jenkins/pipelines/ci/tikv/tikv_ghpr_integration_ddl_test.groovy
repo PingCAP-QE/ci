@@ -51,7 +51,7 @@ if (isNeedGo1160) {
     GO_TEST_SLAVE = "test_heavy_go1160_memvolume"
 } else {
     println "This build use go1.13"
-    GO_TEST_SLAVE = "test_go_heavy"
+    GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
