@@ -53,7 +53,7 @@ def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16 because ghprTargetBranch=master"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    GO_TEST_SLAVE = "test_heavy_go1160_memvolume"
 } else {
     println "This build use go1.13"
     GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
