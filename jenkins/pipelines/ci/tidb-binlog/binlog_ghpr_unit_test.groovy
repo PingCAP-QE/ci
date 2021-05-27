@@ -41,17 +41,14 @@ node("${GO_TEST_SLAVE}") {
     
     catchError {
         stage("unit test") {
-            node("build_go1130_binlog") {
-                container("golang") {
-                    dir("go/src/github.com/pingcap/tidb-binlog") {
-                        sh """
-                            GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
-                        """
-                    }
+            container("golang") {
+                dir("go/src/github.com/pingcap/tidb-binlog") {
+                    sh """
+                        GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
+                    """
                 }
-            }
+            }   
         }
-
         currentBuild.result = "SUCCESS"
     }
 
