@@ -49,10 +49,13 @@ class Run:
         self.duration = row_items[3] 
         self.comment = row_items[7]
         self.analysis_res = row_items[8]
+        self.link = "https://ci.pingcap.net/blue/organizations/jenkins/" + self.job_name + "/detail/" + self.job_name + "/" + str(self.job_id) + "/pipeline/"
         
         # PR information
         self.repo = row_items[10]
         self.branch = row_items[6]
+
+        self.fail_info = []
 
         self.description = json.loads(row_items[9]) # Not so necessary for now
         if len(self.description) != 19:
@@ -74,13 +77,16 @@ class Run:
         # if os.path.isfile(self.get_fail_file_path()):
         #     return list(map(lambda x: x[:-1], open(self.get_fail_file_path()).readlines()))
         # else:
+        if len(self.fail_info) > 0:
+            return self.fail_info
         cmd = 'cat /mnt/ci.pingcap.net/jenkins_home/jobs/'+ self.job_name + '/builds/'+ str(self.job_id) + '/log | grep -A 10 "\--------" | grep FAIL: '
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         raw = ps.communicate()[0].decode("utf-8").split("\n")
 
         file = open(self.get_fail_file_path(), "w")
         file.writelines(list(map(lambda x: x.split("FAIL: ")[1] + "\n", filter(lambda x: "FAIL: " in x, raw))))
-        return list(map(lambda x: x.split("FAIL: ")[1], filter(lambda x: "FAIL: " in x, raw)))
+        self.fail_info = list(map(lambda x: x.split("FAIL: ")[1], filter(lambda x: "FAIL: " in x, raw)))
+        return self.fail_info
 
     def get_status_log(self):
         res = ""
@@ -184,14 +190,16 @@ class PR:
         self.success_cnt = 0
         self.abort_cnt = 0
         self.fail_info_map = {} # fail_info to Fail_Info Map
-        self.__commit_hashes = []
+        self.commit_hashes = []
+        self.runs = []
         self.job = job
 
     
     def add_commit_hash(self, commit: Commit):
-        self.__commit_hashes.append(commit)
+        self.commit_hashes.append(commit)
 
     def update(self, job: Run):
+        self.runs.append(job)
         if job.status == "SUCCESS": 
             self.success_cnt += 1
         elif job.status == "ABORTED":
@@ -213,20 +221,16 @@ class PR:
         return self.abort_cnt / (self.success_cnt + self.fail_cnt + self.abort_cnt)
 
 
-    def log(self, job_name = "", indent="", show_commits=True, show_fail=False, color_pr=True):
-        if len(job_name) == 0:
-            print("-" * 150)
-            indent = ""
-        else:
-            indent = "    "
+    def log(self, indent="", show_commits=True, show_fail=False, color_pr=True, show_runs=False):
 
+        print(indent + "-" * 150)
         print(indent + bcolors.BOLD + "Pull Request " + bcolors.ENDC, end="")
         if color_pr:
             print(bcolor[self.number % len(bcolor)] + "#" + str(self.number) + bcolors.ENDC, end=" ")  
         else:
             print(bcolors.WHITE + "#" + str(self.number) + bcolors.ENDC, end=" ")
 
-        if len(self.__commit_hashes) > 1 or show_commits == False:
+        if len(self.commit_hashes) > 1 or show_commits == False:
             print(bcolors.OKCYAN + "total_job: " + bcolors.ENDC + str((self.success_cnt + self.fail_cnt + self.abort_cnt)), end=" ")
             print(bcolors.OKCYAN + "success_cnt: " + bcolors.ENDC + str(self.success_cnt), end=" ")
             print(bcolors.OKCYAN + "fail_cnt: " + bcolors.ENDC + str(self.fail_cnt), end=" ")
@@ -236,24 +240,27 @@ class PR:
             print(bcolors.OKCYAN + "abort_rate: " + bcolors.ENDC + '{:.1%}'.format(self.get_abort_rate()), end=" ")        
         print()
 
-        
+        if show_runs:
+            for run in self.runs:
+                run.log(begin=indent+"\t")
+
+
         if show_commits:
             try:
                 print(indent + self.repo, end=" ")
                 print(bcolors.BOLD + self.branch + bcolors.ENDC, end=" ")
                 print(bcolors.OKCYAN + "pr_title: " + bcolors.ENDC + ''.join(filter(lambda x: x in printable, self.title)))
-                for commit in self.__commit_hashes:
+                for commit in self.commit_hashes:
                     print("", end="\t")
-                    commit.print_jobs(job_name)
+                    commit.print_jobs()
                 print()
             except:
                 print(str(self.job.description).encode('utf-8'))
                 
-
-        
         if show_fail:
             for fail_info, fail in self.fail_info_map.items():
                 fail.log(indent="    ", show_line=False)
+        
     
     def fail_update(self, fail_info, run):
         if not fail_info in self.fail_info_map:
@@ -268,6 +275,9 @@ class Job:
         self.branch = job.branch
         self.prs = {}
 
+        # TODO refractor after
+        self.local_prs = {}
+
         self.fail_cnt = 0
         self.success_cnt = 0
         self.abort_cnt = 0
@@ -276,7 +286,11 @@ class Job:
     def update(self, job: Run, pr: PR):
         if not pr.number in self.prs:
             self.prs[pr.number] = pr
-
+        
+        if not pr.number in self.local_prs:
+            self.local_prs[pr.number] = PR(job)
+        self.local_prs[pr.number].update(job)
+        
         if job.status == "SUCCESS":
             self.success_cnt += 1
         elif job.status == "ABORTED":
@@ -296,8 +310,8 @@ class Job:
             print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
             print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
         print()
-        for pr_num, pr in self.prs.items():
-            pr.log(job_name=self.job_name) # TODO , show_line=False, indent="    ")
+        for pr_num, pr in self.local_prs.items():
+            pr.log(indent="\t", show_commits=False, show_runs=True) # TODO , show_line=False, indent="    ")
 
 class Fail_Info:
     def __init__(self, info):
@@ -499,18 +513,22 @@ def main(begin_time, end_time, hour_report=False):
     #     info = run.get_fail_info()
     #     if len(info) < 1:
     #         run.log(show_fail_info=True)
-
-    print(bcolors.BOLD + bcolors.WHITE + "Top ten failed job: " + bcolors.ENDC + bcolors.ENDC)
-    for _, job in sorted(job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
+    summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
+    print()
+    print("-" * 150)
+    print(bcolors.BOLD + bcolors.WHITE + "Jobs: " + bcolors.ENDC + bcolors.ENDC)
+    for _, job in sorted(job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True):
         job.print_prs()
     
-    print(bcolors.BOLD + bcolors.WHITE + "Top ten failed pr:" + bcolors.ENDC + bcolors.ENDC)
-    for _, pr in sorted(pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)[:10]:
-        pr.log(show_fail=True, )
+    print()
+    print("-" * 150)
+    print(bcolors.BOLD + bcolors.WHITE + "PRs: " + bcolors.ENDC + bcolors.ENDC)
+    for _, pr in sorted(pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True):
+        pr.log(show_fail=True, color_pr=False, )
 
-    summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
 
-    send(res)
+    # if res.fail_cnt > 3:
+        # send(res)
 
     return res
 
@@ -523,10 +541,10 @@ def report():
 
     print("Logging from" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + " to " + end_time.strftime('%Y-%m-%d-%H:%M:%S'))
 
-    tmp_res = "/tmp/ci_analysis/" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + ".log"
     Path("/tmp/ci_analysis/").mkdir(parents=True, exist_ok=True)
+    tmp_res = "/tmp/ci_analysis/" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + ".log"
     with RedirectStdStreams(stdout=open(tmp_res, "w")):
-        res = main(begin_time, end_time + timedelta(hours=1))
+        res = main(begin_time, end_time)
 
 
 def get_sign(key:str, ts: int):
@@ -546,31 +564,36 @@ def send(res: Result):
     fields = card["elements"][0]["fields"]
 
     add_content(fields[0], res.begin_time.strftime('%Y-%m-%d-%H:%M:%S') + " to " + res.end_time.strftime('%Y-%m-%d-%H:%M:%S'))
-    add_content(fields[2], str(len(res.pr_map)))
-    add_content(fields[3], str(len(res.job_map)))
-    add_content(fields[5], str(len(res.run_list)))
-    add_content(fields[6], str(res.fail_cnt))
+    add_content(fields[1], str(len(res.pr_map)))
+    add_content(fields[2], str(len(res.job_map)))
+    add_content(fields[3], str(len(res.run_list)))
+    add_content(fields[4], str(res.fail_cnt))
     for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
-        add_content(fields[8], "  \n**" + pr.repo + " " + pr.branch + " #" + str(pr.number)+"**\n")
-        if len(pr.title) > 0:
-            add_content(fields[8], "title: *" + pr.title + "*\n")
-        add_content(fields[8],  "    ")
-        add_content(fields[8],  "**total_job**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
-        add_content(fields[8],  "**success:** " +  str(pr.success_cnt) + " ")
-        add_content(fields[8],  "**fail:** " +  str(pr.fail_cnt) + " ")
-        add_content(fields[8],  "**abort:** " +  str(pr.abort_cnt) + " ")
-        add_content(fields[8],  "\n    **success_rate:** " +  '{:.1%}'.format(pr.get_success_rate()) + " ")
-        add_content(fields[8],  "**fail_rate:** " +  '{:.1%}'.format(pr.get_fail_rate()) + " ")
-        add_content(fields[8],  "**abort_rate:** " +  '{:.1%}'.format(pr.get_abort_rate()) + " ")        
+        add_content(fields[6], "  \n**" + pr.repo + " " + pr.branch +"**")
+        add_content(fields[6], " **[#" + str(pr.number)+"](" + pr.link +  ") **")
+        add_content(fields[6],  " ")
+        add_content(fields[6],  "**🟢:** " +  str(pr.success_cnt) + " ")
+        add_content(fields[6],  "**🔴:** " +  str(pr.fail_cnt) + " ")
+        add_content(fields[6],  "**🟡:** " +  str(pr.abort_cnt) + " ")      
+        add_content(fields[6],  "**sum**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
 
-    for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
-        add_content(fields[10], "\n***" + job.job_name + "*** ")
-        add_content(fields[10], "**success: **"  + str(job.success_cnt) + " " + '{:.1%}'.format(job.success_cnt / (job.total_cnt)) + " ")
-        add_content(fields[10], "**fail: **" + str(job.fail_cnt) + " " + '{:.1%}'.format(job.fail_cnt / (job.total_cnt)) + " ")
-        add_content(fields[10], "**abort: **" + str(job.abort_cnt) + " " + '{:.1%}'.format(job.abort_cnt / (job.total_cnt)) + " ")
-        for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(job.prs.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:2]:
-            add_content(fields[10], "\n    " + pr.repo + " " + pr.branch + " #" + str(pr.number))
-
+    for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True))):
+        add_content(fields[8], "\n**" + job.job_name + "** ")
+        add_content(fields[8], "**🟢: **"  + str(job.success_cnt) + " ")
+        add_content(fields[8], "**🔴: **" + str(job.fail_cnt) + " ")
+        add_content(fields[8], "**🟡: **" + str(job.abort_cnt) + " ")
+        for _, local_pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(job.local_prs.items(), key=lambda x: x[1].fail_cnt, reverse=True))):
+            add_content(fields[8], "\n    " + local_pr.repo + " [#" + str(local_pr.number)+"](" + local_pr.link +  ")")
+            for run in list(filter(lambda x: x.status == "FAILURE", local_pr.runs)):
+                add_content(fields[8], "\n        [" + str(run.job_id) + "](" + run.link + ") fail_msg: ")
+                fail_infos = run.get_fail_info()
+                if len(fail_infos) == 0:
+                    add_content(fields[8], "Not Found [View Log](" + run.link + ")")
+                elif len(fail_infos) == 1:
+                    add_content(fields[8], fail_infos[0])
+                else:
+                    for info in fail_infos:
+                        add_content(fields[8], "\n         " + info)
     # print(json.dumps(card))
     bot_post(card)
 
@@ -608,11 +631,10 @@ if (__name__ == "__main__"):
     scheduler = BlockingScheduler()
     scheduler.add_job(report, 'interval', hours=1)
 
-    try:
-        scheduler.start()
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    # try:
+    #     scheduler.start()
+    # except (KeyboardInterrupt, SystemExit):
+    #     pass
 
-
-    # now = datetime.now()
-    # main(now - timedelta(hours=1), now)
+    now = datetime.now()
+    main(now - timedelta(hours=3), now)
