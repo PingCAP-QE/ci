@@ -377,6 +377,7 @@ catchError {
     def slow_case_names = [
         "br_300_small_tables",
         "br_full_ddl",
+        "br_tikv_outage",
         "lightning_checkpoint"
     ]
 
