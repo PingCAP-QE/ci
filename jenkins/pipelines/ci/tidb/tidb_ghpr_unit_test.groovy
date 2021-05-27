@@ -38,7 +38,15 @@ if (params.containsKey("release_test")) {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 println "$GO1160_BUILD_SLAVE"
 println "$GO1160_TEST_SLAVE"
@@ -374,36 +382,52 @@ try {
             // 将执行较慢的 chunk 放在前面优先调度，以减轻调度的延迟对执行时间的影响
             def tests = [:]
 
-            tests["Race Test Chunk #9 executor"] = {
-                run_race_test_heavy(9)
+            def suites = """testSuite1|testSuite|testSuite7|testSuite5|testSuiteAgg|
+                            testSuiteJoin1|tiflashTestSuite|testFastAnalyze|testSuiteP2|testSuite2"""
+            def cmd1 = String.format('-check.f "%s"', suites)
+            def cmd2 = String.format('-check.exclude "%s"', suites)
+            tests["Race Test Chunk #9 executor-part1"] = {
+                run_race_test_heavy_with_args(9, cmd1)
+            }
+            tests["Race Test Chunk #9 executor-part2"] = {
+                run_race_test_heavy_with_args(9, cmd2)
             }
 
             tests["Race Test Chunk #10"] = {
                 run_race_test(10)
             }
-            // run race #6/#8 in parallel mode for master branch\
+            // run race #8 in parallel mode for master branch\
             if (ghprbTargetBranch == "master") {
-                tests["Race Test Chunk #7 ddl-dbsuite"] = {
+                tests["Race Test Chunk #7 ddl-DBSuite|SerialDBSuite"] = {
                     run_race_test_heavy_with_args(7, '-check.f "testDBSuite|testSerialDBSuite"')
                 }
 
-                tests["Race Test Chunk #7 ddl-other"] = {
+                tests["Race Test Chunk #7 ddl-other suite"] = {
                     run_race_test_heavy_with_args(7, '-check.exclude "testDBSuite|testSerialDBSuite"')
                 }
 
-                tests["Race Test Chunk #6"] = {
-                    run_race_test_heavy_parallel(6)
+                tests["Race Test Chunk #6 planner/core-testIntegrationSerialSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testIntegrationSerialSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-testIntegrationSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testIntegrationSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-testPlanSuite"] = {
+                    run_race_test_heavy_with_args(6, '-check.f "testPlanSuite"')	
+                }
+                tests["Race Test Chunk #6 planner/core-other suite"] = {
+                    run_race_test_heavy_with_args(6, '-check.exclude "testPlanSuite|testIntegrationSuite|testIntegrationSerialSuite"')
                 }
                 tests["Race Test Chunk #8 session"] = {
                     run_race_test_heavy_parallel(8)
                 }
 
             } else {
-                tests["Race Test Chunk #7"] = {
+                tests["Race Test Chunk #7 ddl"] = {
                     run_race_test_heavy(7)
                 }
 
-                tests["Race Test Chunk #6"] = {
+                tests["Race Test Chunk #6 planner/core"] = {
                     run_race_test_heavy(6)
                 }
 

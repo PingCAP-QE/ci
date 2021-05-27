@@ -24,9 +24,15 @@ if (ghprbPullId != null && ghprbPullId != "") {
 
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
-@Library("pingcap") _
-
-println "$GO1160_BUILD_SLAVE"
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
@@ -216,11 +222,13 @@ try {
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                                 sh """
+				GO111MODULE=on go mod tidy
                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                                """
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                                 sh """
+				GO111MODULE=on go mod tidy
                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                                """
                             }
