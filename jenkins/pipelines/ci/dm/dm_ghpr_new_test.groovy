@@ -38,6 +38,30 @@ def print_all_vars() {
     println "[MYSQL_ARGS]: ${MYSQL_ARGS}"
 }
 
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
+} else {
+    println "This build use go1.13"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
+
 def checkout_and_stash_dm_code() {
     node("${GO_BUILD_SLAVE}") {
         container('golang') {
@@ -128,7 +152,7 @@ def run_single_unit_test(String case_name) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
-                            image: 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached', ttyEnabled: true,
+                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: 'cat'),
                     containerTemplate(
@@ -182,7 +206,7 @@ def run_single_it_test(String case_name) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
-                            image: 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached', ttyEnabled: true,
+                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: 'cat'),
                     containerTemplate(
