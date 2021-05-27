@@ -97,7 +97,7 @@ try {
 }
 
 stage("upload status"){
-    node{
+    node("master"){
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }

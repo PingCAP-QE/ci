@@ -55,6 +55,28 @@ if (ghprbPullTitle != null && (ghprbPullTitle.find("DNM") != null || ghprbPullTi
     retryCount = 1
 }
 
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16 because ghprTargetBranch=master"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = "test_heavy_go1160_memvolume"
+} else {
+    println "This build use go1.13"
+    GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
 try {
     stage("Pre-check") {
 
@@ -412,7 +434,7 @@ try {
     }
     stage('Test') {
         def run_test = { chunk_suffix ->
-            node("${GO_TEST_TIKV_SLAVE}") {
+            node("${GO_TEST_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -471,7 +493,7 @@ try {
         }
 
         def run_exclude_5 = { componment, exclude1, exclude2, exclude3, exclude4, exclude5 ->
-            node("${GO_TEST_TIKV_SLAVE}") {
+            node("${GO_TEST_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
 
@@ -526,7 +548,7 @@ try {
         }
 
         def run_exclude_3 = { componment, exclude1, exclude2, exclude3 ->
-            node("${GO_TEST_TIKV_SLAVE}") {
+            node("${GO_TEST_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -595,7 +617,7 @@ try {
 
 
         def run_root_exact = { componment, exclude ->
-            node("${GO_TEST_TIKV_SLAVE}") {
+            node("${GO_TEST_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -652,7 +674,7 @@ try {
         }
 
         def run_integration_chunk = { chunk_index ->
-            node("${GO_TEST_TIKV_SLAVE}") {
+            node("${GO_TEST_SLAVE}") {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -832,7 +854,7 @@ try {
 }
 
 stage("upload status") {
-    node {
+    node("master") {
         println currentBuild.result
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
