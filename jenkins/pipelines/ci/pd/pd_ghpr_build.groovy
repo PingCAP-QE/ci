@@ -23,7 +23,7 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 try {
-    node("${BUILD_NODE_NAME}") {
+    node("${GO_BUILD_SLAVE}") {
         def ws = pwd()
         deleteDir()
 

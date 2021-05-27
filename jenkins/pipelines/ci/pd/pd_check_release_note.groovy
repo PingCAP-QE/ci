@@ -23,7 +23,7 @@ catchError {
     stage("check release note") {
             //sh "echo $ghprbPullLongDescription | egrep 'Release note'"
             //sh "python -v"
-        node("${BUILD_NODE_NAME}") {
+        node("${GO_BUILD_SLAVE}") {
             //def goVersion = new Utils(this).detectGoVersion("https://raw.githubusercontent.com/pingcap/tidb/master/circle.yml")
             //buildSlave = GO_BUILD_SLAVE
             //testSlave = GO_TEST_SLAVE
