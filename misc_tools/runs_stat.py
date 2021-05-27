@@ -259,7 +259,7 @@ class PR:
                 
         if show_fail:
             for fail_info, fail in self.fail_info_map.items():
-                fail.log(indent="    ", show_line=False)
+                fail.log(indent="\t", show_line=False)
         
     
     def fail_update(self, fail_info, run):
@@ -331,7 +331,7 @@ class Fail_Info:
         print(bcolors.HEADER + "\tFailed runs_raw cnt: " + bcolors.ENDC + str(self.fail_cnt()))
         
         for run in sorted(self.run_list, key=lambda x: x.pr_number):
-            print("", end="\t")
+            print(indent, end="\t")
             # print(bcolors.HEADER + "PR Number: " + bcolors.ENDC + str(run.pr_number), end=" ")
             run.log(
                 show_status=False, color_pullid=False, show_job_name=False,
@@ -527,8 +527,8 @@ def main(begin_time, end_time, hour_report=False):
         pr.log(show_fail=True, color_pr=False, )
 
 
-    # if res.fail_cnt > 3:
-        # send(res)
+    if res.fail_cnt > 3:
+        send(res)
 
     return res
 
@@ -568,7 +568,8 @@ def send(res: Result):
     add_content(fields[2], str(len(res.job_map)))
     add_content(fields[3], str(len(res.run_list)))
     add_content(fields[4], str(res.fail_cnt))
-    for _, pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))[:3]:
+    failed_prs = list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))
+    for _, pr in failed_prs[:4]:
         add_content(fields[6], "  \n**" + pr.repo + " " + pr.branch +"**")
         add_content(fields[6], " **[#" + str(pr.number)+"](" + pr.link +  ") **")
         add_content(fields[6],  " ")
@@ -576,25 +577,43 @@ def send(res: Result):
         add_content(fields[6],  "**🔴:** " +  str(pr.fail_cnt) + " ")
         add_content(fields[6],  "**🟡:** " +  str(pr.abort_cnt) + " ")      
         add_content(fields[6],  "**sum**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
+        failed_runs = list(filter(lambda x: x.status == "FAILURE", pr.runs))
+        for run in failed_runs[:3]:
+            add_content(fields[6], "\n        [" + str(run.job_id) + "](" + run.link + ") ...**" + "_".join(run.job_name.split('_')[-2:]) + "**: ")
+            fail_infos = run.get_fail_info()
+            if len(fail_infos) == 0:
+                add_content(fields[6], "Msg Not Found [View Log](" + run.link + ")")
+            elif len(fail_infos) == 1:
+                add_content(fields[6], fail_infos[0])
+            else:
+                for info in fail_infos:
+                    add_content(fields[6], "\n             " + info)
+        if len(failed_runs) > 3:
+            add_content(fields[6], "\n         ... **" + str(len(failed_runs) - 3) + "** *more failed runs.*")
+    if len(failed_prs) > 4:
+        add_content(fields[6], "\n**" + str(len(failed_prs) - 4) + "** *more pr(s) contain failed runs.*")
 
-    for _, job in list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True))):
+
+    failed_jobs = list(filter(lambda x: x[1].fail_cnt > 0, sorted(res.job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True)))
+    for _, job in failed_jobs[:4]:
         add_content(fields[8], "\n**" + job.job_name + "** ")
         add_content(fields[8], "**🟢: **"  + str(job.success_cnt) + " ")
         add_content(fields[8], "**🔴: **" + str(job.fail_cnt) + " ")
         add_content(fields[8], "**🟡: **" + str(job.abort_cnt) + " ")
-        for _, local_pr in list(filter(lambda x: x[1].fail_cnt > 0, sorted(job.local_prs.items(), key=lambda x: x[1].fail_cnt, reverse=True))):
-            add_content(fields[8], "\n    " + local_pr.repo + " [#" + str(local_pr.number)+"](" + local_pr.link +  ")")
-            for run in list(filter(lambda x: x.status == "FAILURE", local_pr.runs)):
-                add_content(fields[8], "\n        [" + str(run.job_id) + "](" + run.link + ") fail_msg: ")
-                fail_infos = run.get_fail_info()
-                if len(fail_infos) == 0:
-                    add_content(fields[8], "Not Found [View Log](" + run.link + ")")
-                elif len(fail_infos) == 1:
-                    add_content(fields[8], fail_infos[0])
-                else:
-                    for info in fail_infos:
-                        add_content(fields[8], "\n         " + info)
-    # print(json.dumps(card))
+        local_failed_prs = list(filter(lambda x: x[1].fail_cnt > 0, sorted(job.local_prs.items(), key=lambda x: x[1].fail_cnt, reverse=True)))
+        for idx, pair in enumerate(local_failed_prs[:6]):
+            local_pr = pair[1]
+            if idx % 3 == 0:
+                add_content(fields[8], "\n    ")
+            else:
+                add_content(fields[8], "    ")
+            add_content(fields[8], local_pr.repo.split('/')[-1] + "[#" + str(local_pr.number)+"](" + local_pr.link +  ")" + "\\[**" + str(local_pr.fail_cnt) + "** times\\]")
+        if len(local_failed_prs) > 6:
+            add_content(fields[8], "\n    **" + str(len(local_failed_prs) - 6) + "** *more prs contain failed run of this job.*")
+    if len(failed_jobs) > 4:
+        add_content(fields[8], "\n... **" + str(len(failed_jobs) - 4) + "** *more jobs contain failed run.*")
+            
+    print(json.dumps(card))
     bot_post(card)
 
 def bot_post(card):
@@ -631,10 +650,10 @@ if (__name__ == "__main__"):
     scheduler = BlockingScheduler()
     scheduler.add_job(report, 'interval', hours=1)
 
-    # try:
-    #     scheduler.start()
-    # except (KeyboardInterrupt, SystemExit):
-    #     pass
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        pass
 
-    now = datetime.now()
-    main(now - timedelta(hours=3), now)
+    # now = datetime.now()
+    # main(now - timedelta(hours=3), now)
