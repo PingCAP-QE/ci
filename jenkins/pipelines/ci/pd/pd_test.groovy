@@ -32,7 +32,15 @@ if (params.containsKey("release_test")) {
 
 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
@@ -42,15 +50,12 @@ if (isNeedGo1160) {
 } else {
     println "This build use go1.13"
 }
-println "buildSlave_NAME=${GO_BUILD_SLAVE}"
-println "testSlave_NAME=${GO_TEST_SLAVE}"
-
-def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_SLAVE}"
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 try {
     stage('Prepare') {failpointPath
-        node (testSlave) {
+        node ("${GO_TEST_SLAVE}") {
             def ws = pwd()
             deleteDir()
             dir("go/src/github.com/pingcap/pd") {
@@ -93,7 +98,7 @@ try {
 
     stage('Unit Test') {
         def run_unit_test = { chunk_suffix ->
-            node(testSlave) {
+            node("${GO_TEST_SLAVE}") {
                 def ws = pwd()
                 deleteDir()
                 unstash 'pd'
@@ -151,7 +156,7 @@ try {
     }
 
     currentBuild.result = "SUCCESS"
-    node(testSlave){
+    node("${GO_TEST_SLAVE}"){
         container("golang"){
             sh """
 		    echo "done" > done

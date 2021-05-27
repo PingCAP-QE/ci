@@ -1,10 +1,15 @@
 def slackcolor = 'good'
 def githash
 
-@Library("pingcap") _
-
-println "$GO1160_BUILD_SLAVE"
-println "$GO1160_TEST_SLAVE"
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
@@ -17,10 +22,8 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
-def buildSlave = "${GO_BUILD_SLAVE}"
-
 try {
-    node(buildSlave) {
+    node("${BUILD_NODE_NAME}") {
         def ws = pwd()
         deleteDir()
 
@@ -82,7 +85,7 @@ try {
 }
 
 stage("upload status"){
-    node{
+    node("master"){
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }

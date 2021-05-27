@@ -44,7 +44,15 @@ def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualComm
 
 def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
 def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
 if (isNeedGo1160) {
@@ -54,18 +62,15 @@ if (isNeedGo1160) {
 } else {
     println "This build use go1.13"
 }
-println "buildSlave_NAME=${GO_BUILD_SLAVE}"
-println "testSlave_NAME=${GO_TEST_SLAVE}"
-
-def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_SLAVE}"
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 try {
     stage('Prepare') {
         def prepares = [:]
 
         prepares["Part #1"] = {
-            node(buildSlave) {
+            node("${GO_BUILD_SLAVE}") {
                 def ws = pwd()
                 deleteDir()
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -114,7 +119,7 @@ try {
         }
 
         prepares["Part #2"] = {
-            node(buildSlave) {
+            node("${GO_BUILD_SLAVE}") {
                def ws = pwd()
                 deleteDir()
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -171,7 +176,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, test_cmd ->
-            node(testSlave) {
+            node("${GO_TEST_SLAVE}") {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 def ws = pwd()
                 deleteDir()
@@ -289,7 +294,7 @@ try {
         }
 
         tests["Integration Connection Test"] = {
-            node(testSlave) {
+            node("${GO_TEST_SLAVE}") {
                 def ws = pwd()
                 def mytest = "connectiontest"
                 deleteDir()
@@ -390,7 +395,7 @@ finally {
 }
 
 stage("upload status"){
-    node{
+    node("master"){
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
