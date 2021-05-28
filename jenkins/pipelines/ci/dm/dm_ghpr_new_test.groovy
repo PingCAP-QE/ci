@@ -9,7 +9,6 @@
 
 */
 
-
 // def ghprbSourceBranch = "${ghprbSourceBranch}"
 // if (ghprbSourceBranch.contains('cherry-pick') && "${ghprbPullAuthorLogin}"=='ti-chi-bot') {
 //     echo 'skip this cherry pick test'
@@ -48,15 +47,15 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(['master'], ghprbTargetBranch)
 if (isNeedGo1160) {
-    println "This build use go1.16"
+    println 'This build use go1.16'
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached'
 } else {
-    println "This build use go1.13"
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+    println 'This build use go1.13'
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/pingcap/centos7_golang-1.16:latest'
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
@@ -285,7 +284,7 @@ def run_single_it_test(String case_name) {
                 stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "integration-cov-${case_name}"
             }
         }
-    }
+                     }
 }
 
 def run_make_coverage() {
@@ -369,14 +368,20 @@ pipeline {
         }
 
         stage('Parallel Run Tests') {
-            options { retry(count: 3) }
             failFast true
             parallel {
                 // Unit Test
                 stage('UT-relay') {
                     steps {
                         script {
-                            run_single_unit_test('relay')
+                            try {
+                                run_single_unit_test('relay')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_unit_test('relay')
+                                }
+                            }
                         }
                     }
                 }
@@ -384,7 +389,14 @@ pipeline {
                 stage('UT-syncer') {
                     steps {
                         script {
-                            run_single_unit_test('syncer')
+                            try {
+                                run_single_unit_test('syncer')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_unit_test('syncer')
+                                }
+                            }
                         }
                     }
                 }
@@ -392,7 +404,14 @@ pipeline {
                 stage('UT-pkg_binlog') {
                     steps {
                         script {
-                            run_single_unit_test('pkg_binlog')
+                            try {
+                                run_single_unit_test('pkg_binlog')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_unit_test('pkg_binlog')
+                                }
+                            }
                         }
                     }
                 }
@@ -400,7 +419,14 @@ pipeline {
                 stage('UT-others') {
                     steps {
                         script {
-                            run_single_unit_test('others')
+                            try {
+                                run_single_unit_test('others')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_unit_test('others')
+                                }
+                            }
                         }
                     }
                 }
@@ -410,7 +436,14 @@ pipeline {
                 stage('IT-all_mode') {
                     steps {
                         script {
-                            run_single_it_test('all_mode')
+                            try {
+                                run_single_it_test('all_mode')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('all_mode')
+                                }
+                            }
                         }
                     }
                 }
@@ -418,7 +451,14 @@ pipeline {
                 stage('IT-dmctl') {
                     steps {
                         script {
-                            run_single_it_test('dmctl_advance dmctl_basic dmctl_command')
+                            try {
+                                run_single_it_test('dmctl_advance dmctl_basic dmctl_command')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('dmctl_advance dmctl_basic dmctl_command')
+                                }
+                            }
                         }
                     }
                 }
@@ -426,7 +466,14 @@ pipeline {
                 stage('IT-ha_cases') {
                     steps {
                         script {
-                            run_single_it_test('ha_cases')
+                            try {
+                                run_single_it_test('ha_cases')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_cases')
+                                }
+                            }
                         }
                     }
                 }
@@ -434,7 +481,14 @@ pipeline {
                 stage('IT-ha_cases2') {
                     steps {
                         script {
-                            run_single_it_test('ha_cases2')
+                            try {
+                                run_single_it_test('ha_cases2')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_cases2')
+                                }
+                            }
                         }
                     }
                 }
@@ -442,7 +496,14 @@ pipeline {
                 stage('IT-ha_master') {
                     steps {
                         script {
-                            run_single_it_test('ha_master')
+                            try {
+                                run_single_it_test('ha_master')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_master')
+                                }
+                            }
                         }
                     }
                 }
@@ -450,7 +511,14 @@ pipeline {
                 stage('IT-handle_error') {
                     steps {
                         script {
-                            run_single_it_test('handle_error')
+                            try {
+                                run_single_it_test('handle_error')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('handle_error')
+                                }
+                            }
                         }
                     }
                 }
@@ -458,7 +526,14 @@ pipeline {
                 stage('IT-i* group') {
                     steps {
                         script {
-                            run_single_it_test('import_goroutine_leak incremental_mode initial_unit')
+                            try {
+                                run_single_it_test('import_goroutine_leak incremental_mode initial_unit')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('import_goroutine_leak incremental_mode initial_unit')
+                                }
+                            }
                         }
                     }
                 }
@@ -466,7 +541,14 @@ pipeline {
                 stage('IT-load_interrupt') {
                     steps {
                         script {
-                            run_single_it_test('load_interrupt')
+                            try {
+                                run_single_it_test('load_interrupt')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('load_interrupt')
+                                }
+                            }
                         }
                     }
                 }
@@ -474,7 +556,14 @@ pipeline {
                 stage('IT-many_tables') {
                     steps {
                         script {
-                            run_single_it_test('many_tables')
+                            try {
+                                run_single_it_test('many_tables')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('many_tables')
+                                }
+                            }
                         }
                     }
                 }
@@ -482,7 +571,14 @@ pipeline {
                 stage('IT-online_ddl') {
                     steps {
                         script {
-                            run_single_it_test('online_ddl')
+                            try {
+                                run_single_it_test('online_ddl')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('online_ddl')
+                                }
+                            }
                         }
                     }
                 }
@@ -490,7 +586,14 @@ pipeline {
                 stage('IT-relay_interrupt') {
                     steps {
                         script {
-                            run_single_it_test('relay_interrupt')
+                            try {
+                                run_single_it_test('relay_interrupt')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('relay_interrupt')
+                                }
+                            }
                         }
                     }
                 }
@@ -498,7 +601,14 @@ pipeline {
                 stage('IT-safe_mode group') {
                     steps {
                         script {
-                            run_single_it_test('safe_mode sequence_safe_mode')
+                            try {
+                                run_single_it_test('safe_mode sequence_safe_mode')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('safe_mode sequence_safe_mode')
+                                }
+                            }
                         }
                     }
                 }
@@ -506,7 +616,14 @@ pipeline {
                 stage('IT-shardddl1') {
                     steps {
                         script {
-                            run_single_it_test('shardddl1')
+                            try {
+                                run_single_it_test('shardddl1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl1')
+                                }
+                            }
                         }
                     }
                 }
@@ -514,7 +631,14 @@ pipeline {
                 stage('IT-shardddl2') {
                     steps {
                         script {
-                            run_single_it_test('shardddl2')
+                            try {
+                                run_single_it_test('shardddl2')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl2')
+                                }
+                            }
                         }
                     }
                 }
@@ -522,7 +646,14 @@ pipeline {
                 stage('IT-shardddl3') {
                     steps {
                         script {
-                            run_single_it_test('shardddl3')
+                            try {
+                                run_single_it_test('shardddl3')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl3')
+                                }
+                            }
                         }
                     }
                 }
@@ -530,7 +661,14 @@ pipeline {
                 stage('IT-shardddl4') {
                     steps {
                         script {
-                            run_single_it_test('shardddl4')
+                            try {
+                                run_single_it_test('shardddl4')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl4')
+                                }
+                            }
                         }
                     }
                 }
@@ -538,7 +676,14 @@ pipeline {
                 stage('IT-sharding group') {
                     steps {
                         script {
-                            run_single_it_test('sharding sequence_sharding')
+                            try {
+                                run_single_it_test('sharding sequence_sharding')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('sharding sequence_sharding')
+                                }
+                            }
                         }
                     }
                 }
@@ -546,7 +691,14 @@ pipeline {
                 stage('IT-start_task') {
                     steps {
                         script {
-                            run_single_it_test('start_task')
+                            try {
+                                run_single_it_test('start_task')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('start_task')
+                                }
+                            }
                         }
                     }
                 }
@@ -554,7 +706,14 @@ pipeline {
                 stage('IT-status_and_apis') {
                     steps {
                         script {
-                            run_single_it_test('print_status http_apis')
+                            try {
+                                run_single_it_test('print_status http_apis')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('print_status http_apis')
+                                }
+                            }
                         }
                     }
                 }
@@ -562,11 +721,19 @@ pipeline {
                 stage('IT-others') {
                     steps {
                         script {
-                            run_single_it_test('others')
+                            try {
+                                run_single_it_test('others')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('others')
+                                }
+                            }
                         }
                     }
                 }
-                // END Integration Test
+
+            // END Integration Test
             }
         }
 
