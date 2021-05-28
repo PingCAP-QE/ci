@@ -374,6 +374,12 @@ def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, ti
 
 catchError {
     def test_case_names = []
+    def slow_case_names = [
+        "br_300_small_tables",
+        "br_full_ddl",
+        "br_tikv_outage",
+        "lightning_checkpoint"
+    ]
 
     stage('Prepare') {
         node("${GO_BUILD_SLAVE}") {
@@ -404,9 +410,54 @@ catchError {
                     """
 
                     // Collect test case names.
-                    def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
-                    for (name in list.split("\\n")) {
-                        test_case_names << name
+                    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                    switch (from) {
+                        case "tikv":
+                            test_case_names = [
+                                "br_full",
+                                "br_gcs",
+                                "br_s3",
+                                "lightning_alter_random",
+                                "lightning_new_collation",
+                                "lightning_row-format-v2",
+                                "lightning_s3",
+                                "lightning_sqlmode",
+                                "lightning_tiflash",
+                            ]
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
+                            break;
+                        case "tidb":
+                            test_case_names = [
+                                "br_incremental_ddl",
+                                "br_incompatible_tidb_config",
+                                "br_log_restore",
+                                "lightning_alter_random",
+                                "lightning_new_collation",
+                                "lightning_row-format-v2",
+                                "lightning_s3",
+                                "lightning_sqlmode",
+                                "lightning_tiflash",
+                            ]
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
+                            break;
+                        case "pd":
+                            test_case_names = [
+                                "br_other",
+                                "br_split_region_fail",
+                                "lightning_alter_random",
+                                "lightning_new_collation",
+                                "lightning_row-format-v2",
+                                "lightning_s3",
+                                "lightning_sqlmode",
+                                "lightning_tiflash",
+                            ]
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
+                            break;
+                        default:
+                            def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
+                            for (name in list.split("\\n")) {
+                                test_case_names << name
+                            }
                     }
                 }
 
@@ -417,23 +468,22 @@ catchError {
     }
 
     stage("Unit/Integration Test") {
-        def slow_case_names = [
-                "br_300_small_tables",
-                "br_full_ddl",
-                "lightning_checkpoint"
-        ]
         def test_cases = [:]
-        // Add unit tests
-        test_cases["unit test"] = {
-            run_unit_test()
+        
+        if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+            // Add unit tests
+            test_cases["unit test"] = {
+                run_unit_test()
+            }
         }
-
-        // Add slow integration tests
-        make_parallel_jobs(
-                slow_case_names, 1,
-                TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
-        ).each { v ->
-            test_cases["(slow) ${v[0][0]}"] = v[1]
+        if (!slow_case_names.isEmpty()) {
+            // Add slow integration tests
+            make_parallel_jobs(
+                    slow_case_names, 1,
+                    TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
+            ).each { v ->
+                test_cases["(slow) ${v[0][0]}"] = v[1]
+            }
         }
         // Add rest integration tests
         test_case_names -= slow_case_names
