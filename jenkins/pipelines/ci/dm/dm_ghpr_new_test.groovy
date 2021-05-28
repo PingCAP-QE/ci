@@ -302,9 +302,15 @@ def run_make_coverage() {
             unstash 'integration-cov-all_mode'
             unstash 'integration-cov-dmctl_advance dmctl_basic dmctl_command'
             unstash 'integration-cov-ha_cases'
+            unstash 'integration-cov-ha_cases_1'
+            unstash 'integration-cov-ha_cases_2'
             unstash 'integration-cov-ha_cases2'
+            unstash 'integration-cov-ha_cases3'
+            unstash 'integration-cov-ha_cases3_1'
             unstash 'integration-cov-ha_master'
             unstash 'integration-cov-handle_error'
+            unstash 'integration-cov-handle_error_2'
+            unstash 'integration-cov-handle_error_3'
             unstash 'integration-cov-print_status http_apis'
             unstash 'integration-cov-import_goroutine_leak incremental_mode initial_unit'
             unstash 'integration-cov-load_interrupt'
@@ -318,6 +324,11 @@ def run_make_coverage() {
             unstash 'integration-cov-shardddl3'
             unstash 'integration-cov-shardddl4'
             unstash 'integration-cov-sharding sequence_sharding'
+            unstash 'integration-cov-new_relay'
+            unstash 'integration-cov-import_v10x'
+            unstash 'integration-cov-tls'
+            unstash 'integration-cov-sharding2'
+            unstash 'integration-cov-ha'
         } catch (Exception e) {
             println e
         }
@@ -351,12 +362,12 @@ pipeline {
                     }catch (info) {
                         retry(count: 3) {
                             echo 'checkout failed, retry..'
-                            sleep 5
+                            sleep 1
                             checkout_and_stash_dm_code()
                         }
                     }
                 }
-                run_make_check()
+                // run_make_check() check code style move to github actions..
             }
         }
 
@@ -478,6 +489,36 @@ pipeline {
                     }
                 }
 
+                stage('IT-ha_cases_1') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('ha_cases_1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_cases_1')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases_2') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('ha_cases_2')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_cases_2')
+                                }
+                            }
+                        }
+                    }
+                }
+
                 stage('IT-ha_cases2') {
                     steps {
                         script {
@@ -487,6 +528,36 @@ pipeline {
                                 retry(count: 3) {
                                     sleep 1
                                     run_single_it_test('ha_cases2')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases3') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('ha_cases3')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_cases3')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases3_1') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('ha_cases3_1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha_cases3_1')
                                 }
                             }
                         }
@@ -517,6 +588,36 @@ pipeline {
                                 retry(count: 3) {
                                     sleep 1
                                     run_single_it_test('handle_error')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-handle_error_2') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('handle_error_2')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('handle_error_2')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-handle_error_3') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('handle_error_3')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('handle_error_3')
                                 }
                             }
                         }
@@ -628,6 +729,21 @@ pipeline {
                     }
                 }
 
+                stage('IT-shardddl1_1') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('shardddl1_1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl1_1')
+                                }
+                            }
+                        }
+                    }
+                }
+
                 stage('IT-shardddl2') {
                     steps {
                         script {
@@ -637,6 +753,21 @@ pipeline {
                                 retry(count: 3) {
                                     sleep 1
                                     run_single_it_test('shardddl2')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-shardddl2_1') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('shardddl2_1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl2_1')
                                 }
                             }
                         }
@@ -658,6 +789,21 @@ pipeline {
                     }
                 }
 
+                stage('IT-shardddl3_1') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('shardddl3_1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl3_1')
+                                }
+                            }
+                        }
+                    }
+                }
+
                 stage('IT-shardddl4') {
                     steps {
                         script {
@@ -667,6 +813,21 @@ pipeline {
                                 retry(count: 3) {
                                     sleep 1
                                     run_single_it_test('shardddl4')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-shardddl4_1') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('shardddl4_1')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('shardddl4_1')
                                 }
                             }
                         }
@@ -712,6 +873,81 @@ pipeline {
                                 retry(count: 3) {
                                     sleep 1
                                     run_single_it_test('print_status http_apis')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-new_relay') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('new_relay')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('new_relay')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-import_v10x') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('import_v10x')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('import_v10x')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-tls') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('tls')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('tls')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-sharding2') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('sharding2')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('sharding2')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('IT-ha') {
+                    steps {
+                        script {
+                            try {
+                                run_single_it_test('ha')
+                            }catch (info) {
+                                retry(count: 3) {
+                                    sleep 1
+                                    run_single_it_test('ha')
                                 }
                             }
                         }
