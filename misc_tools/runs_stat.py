@@ -633,6 +633,8 @@ def bot_post(card):
 
     for group in json.loads(res.text)["data"]["groups"]:
         chat_id = group["chat_id"]
+        if group["name"] != "CI Status Report":
+            continue
         res = requests.post("https://open.feishu.cn/open-apis/message/v4/send/", 
             json={"chat_id": group["chat_id"],
                   "msg_type": "interactive",
@@ -641,7 +643,7 @@ def bot_post(card):
             headers = {'content-type': 'application/json', 
                       'Authorization': "Bearer " + token},
           )
-        print(res.text)
+        # print(res.text)
 
 if (__name__ == "__main__"):
     env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))    
