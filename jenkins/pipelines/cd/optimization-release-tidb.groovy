@@ -15,6 +15,7 @@
 * @SKIP_TIFLASH
 * @STAGE
 * @FORCE_REBUILD
+* @TIKV_PRID
 */
 
 def get_hash = { hash_or_branch, repo ->
@@ -97,6 +98,8 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                     ]
         }
@@ -119,6 +122,8 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                     ]
         }
@@ -141,15 +146,13 @@ catchError {
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                     ]
         }
         if (STAGE == "build") {
             builds["Build on linux/amd64"] = build_linux_amd
             parallel builds
-        } else {
-            parallel builds
-            build_linux_amd()
         }
     }
 //    build stage return
