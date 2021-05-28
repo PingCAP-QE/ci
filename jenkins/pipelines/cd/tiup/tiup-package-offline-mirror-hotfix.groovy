@@ -180,7 +180,7 @@ def package_tools = { plat, arch ->
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${br_hash}/centos7/br.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${BR_TAG}/${br_hash}/centos7/br.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer.tar.gz
 
             tar xf tidb-binlog.tar.gz
