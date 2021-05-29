@@ -87,7 +87,7 @@ def fallback() {
                     stage("Build") {
                         timeout(time: 70, unit: 'MINUTES') {
                             container("builder") {
-                                sh "NPROC=5 release-centos7/build/build-tiflash-ci.sh"
+                                sh "NPROC=5 BUILD_BRANCH=${ghprbTargetBranch} release-centos7/build/build-tiflash-ci.sh"
                             }
                             container("docker") {
                                 sh """
@@ -113,18 +113,6 @@ def fallback() {
                                     docker push hub.pingcap.net/tiflash/tics:pr-${ghprbPullId}
                                     """
                                 }
-                            }
-                            if (ghprbCommentBody =~ /\/(re)?build/) {
-                                build(job: "tics_ghpr_test", wait: false, parameters: [
-                                        string(name: 'ghprbActualCommit', value: ghprbActualCommit),
-                                        string(name: 'ghprbPullId', value: ghprbPullId),
-                                        string(name: 'ghprbPullTitle', value: ghprbPullTitle),
-                                        string(name: 'ghprbPullLink', value: ghprbPullLink),
-                                        string(name: 'ghprbPullDescription', value: ghprbPullDescription),
-                                        string(name: 'ghprbCommentBody', value: ghprbCommentBody),
-                                        string(name: 'ghprbTargetBranch', value: ghprbTargetBranch),
-                                        string(name: 'tiflashTag', value: tiflashTag),
-                                ])
                             }
                         }
                     }
