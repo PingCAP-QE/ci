@@ -31,8 +31,12 @@ try {
             stage("Test") {
                 dir("${ws}/go/src/github.com/pingcap/importer") {
                     timeout(30) {
-                        sh " uname -a "
-                        sh " make build "
+                        sh """
+                        uname -a
+                        echo using gcc 8
+                        source /opt/rh/devtoolset-8/enable
+                        make build 
+                        """
                     }
                     deleteDir()
                 }
