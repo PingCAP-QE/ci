@@ -14,20 +14,6 @@ import requests
 import schedule
 import time
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WHITE = '\033[37m'
-
-bcolor = ['\033[31m', '\033[32m', '\033[96m', '\033[92m', '\033[93m', '\033[91m', '\033[31m', '\033[34m', '\033[35m', '\033[37m']
-
 def sec_to_hours(seconds):
     a=seconds//3600
     b=(seconds%3600)//60
@@ -100,7 +86,7 @@ class Run:
         res += self.status + bcolors.ENDC
         return res
     
-    def log(self, begin="", end="", show_fail_info=False, show_time=True, show_job_name=True, show_status=True, color_pullid=True):
+    def log(self, begin="", end="", show_fail_info=False, show_time=True, show_job_name=True, show_status=True, color_pullid=False):
         print("", end=begin)
         print(bcolors.HEADER + "Run id:" + bcolors.ENDC + str(self.job_id).rjust(5, ' '), end=" ")
         print(bcolors.OKBLUE + self.commit[:9] + bcolors.ENDC, end=" ")
@@ -117,10 +103,14 @@ class Run:
             print(bcolors.HEADER + "job_name: " + bcolors.ENDC + self.job_name, end=" ")
         if show_fail_info and self.status == "FAILURE":
             infos = self.get_fail_info()
-            if len(infos) == 1:
-                print(bcolors.FAIL + "fail_cause: " + bcolors.ENDC + infos[0], end=" ")
-            elif len(infos) > 1:
+            # if len(infos) == 1:
+            #     print(bcolors.FAIL + "fail_cause: " + bcolors.ENDC + infos[0], end=" ")
+            # elif len(infos) > 1:
+            if len(infos) == 0:
+                print(bcolors.WARNING + "Error message not found" + bcolors.ENDC, end="")
+            else:
                 print()
+                end=""
                 for info in infos:
                     print("\t"*3 + bcolors.FAIL + "fail_cause: " + bcolors.ENDC + info)
         print(end)
@@ -161,7 +151,7 @@ class Commit:
             return 0.0
         return self.abort_cnt / len(self.jobs)
     
-    def print_jobs(self, job_name = ""):
+    def print_jobs(self, job_name = "", color_pr=True,  show_fail_info=False):
         print(bcolors.BOLD + "Commit " + bcolors.ENDC, end="")
         print(bcolors.OKBLUE + self.hash[:10] + bcolors.ENDC, end=" ")
         print(bcolors.HEADER + "total_job: " + bcolors.ENDC + str(len(self.jobs)), end=" ")
@@ -175,10 +165,7 @@ class Commit:
 
         for job in list(filter(lambda job: len(job_name) == 0 or job.job_name == job_name, self.jobs)):
             print("", end="\t\t")
-            if len(job_name) == 0 or job.status != "FAILURE":
-                job.log()
-            else:
-                job.log(show_fail_info=True)
+            job.log(show_fail_info=True, color_pullid=color_pr)
 
 class PR:
     def __init__(self, job):
@@ -242,8 +229,8 @@ class PR:
         print()
 
         if show_runs:
-            for run in self.runs:
-                run.log(begin=indent+"\t")
+            for run in sorted(self.runs, key=lambda x: x.time):
+                run.log(begin=indent+"\t", show_fail_info=True, color_pullid=False)
 
 
         if show_commits:
@@ -253,7 +240,7 @@ class PR:
                 print(bcolors.OKCYAN + "pr_title: " + bcolors.ENDC + ''.join(filter(lambda x: x in printable, self.title)))
                 for commit in self.commit_hashes:
                     print("", end="\t")
-                    commit.print_jobs()
+                    commit.print_jobs(color_pr=False,  show_fail_info=True)
                 print()
             except:
                 print(str(self.job.description).encode('utf-8'))
@@ -300,10 +287,10 @@ class Job:
             self.fail_cnt += 1
         self.total_cnt += 1
 
-    def print_prs(self):
-        print("-" * 150)
+    def print_prs(self, no_success=False):
+        print("  "+"-" * 150)
         print()
-        print(bcolors.BOLD + bcolors.FAIL +  "Job Name: " + bcolors.ENDC + bcolors.ENDC, end="")
+        print(bcolors.BOLD + bcolors.FAIL +  "  Job Name: " + bcolors.ENDC + bcolors.ENDC, end="")
         print(bcolors.WARNING + self.job_name + bcolors.ENDC, end=" ")  
         if self.total_cnt > 0:
             print(bcolors.OKCYAN + "runs_raw: " + bcolors.ENDC + str(self.total_cnt), end=" ")
@@ -311,8 +298,13 @@ class Job:
             print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
             print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
         print()
-        for pr_num, pr in self.local_prs.items():
-            pr.log(indent="\t", show_commits=False, show_runs=True) # TODO , show_line=False, indent="    ")
+        if no_success:
+            pr_list = list(filter(lambda x: x[1].fail_cnt > 0, self.local_prs.items()))
+        else:
+            pr_list = self.local_prs.items()
+
+        for pr_num, pr in pr_list:
+            pr.log(indent="\t", show_commits=False, show_runs=True, color_pr=False) # TODO , show_line=False, indent="    ")
 
 class Fail_Info:
     def __init__(self, info):
@@ -327,8 +319,8 @@ class Fail_Info:
     
     def log(self, indent="", show_line=True):
         if show_line:
-            print("-" * 150)
-        print(indent + bcolors.OKCYAN + "Fail Info: " + bcolors.ENDC + self.info)
+            print("  " + "-" * 150)
+        print(indent + bcolors.OKCYAN + "  Fail Info: " + bcolors.ENDC + self.info)
         print(bcolors.HEADER + "\tFailed runs_raw cnt: " + bcolors.ENDC + str(self.fail_cnt()))
         
         for run in sorted(self.run_list, key=lambda x: x.pr_number):
@@ -514,22 +506,22 @@ def main(begin_time, end_time, hour_report=False):
     #     info = run.get_fail_info()
     #     if len(info) < 1:
     #         run.log(show_fail_info=True)
+    
     summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
     print()
     print("-" * 150)
     print(bcolors.BOLD + bcolors.WHITE + "Jobs: " + bcolors.ENDC + bcolors.ENDC)
     for _, job in sorted(job_map.items(), key=lambda x: x[1].fail_cnt, reverse=True):
-        job.print_prs()
+        job.print_prs(no_success=True)
     
     print()
     print("-" * 150)
     print(bcolors.BOLD + bcolors.WHITE + "PRs: " + bcolors.ENDC + bcolors.ENDC)
     for _, pr in sorted(pr_map.items(), key=lambda x: x[1].fail_cnt, reverse=True):
-        pr.log(show_fail=True, color_pr=False, )
+        pr.log(show_fail=True, color_pr=False, indent="  ")
 
-
-    if res.fail_cnt > 3:
-        send(res)
+    # if res.fail_cnt > 3:
+    #     send(res)
 
     return res
 
@@ -538,7 +530,6 @@ def report():
     now = datetime.now()
     begin_time = now - timedelta(hours=1, minutes=now.minute, seconds=now.second)
     end_time = begin_time + timedelta(hours=1)
-    
 
     print("Logging from" + begin_time.strftime('%Y-%m-%d-%H:%M:%S') + " to " + end_time.strftime('%Y-%m-%d-%H:%M:%S'))
 
@@ -548,12 +539,6 @@ def report():
         res = main(begin_time, end_time)
 
 
-def get_sign(key:str, ts: int):
-    key = "lrMWueGz4s96HofTd3Pj7b"
-    ts = int(datetime.now().timestamp())
-    ts = 1621941942
-    string_to_sign = str(ts) + '\n' + key
-    return base64.b64encode(hashlib.sha256(string_to_sign.encode('utf-8')).digest())
 
 def add_content(field, content):
     field["text"]["content"] += content
@@ -649,14 +634,14 @@ if (__name__ == "__main__"):
     env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))    
     # env = json.load(open("env.json"))    
 
-    schedule.every().hour.at(":00").do(report)
+    # schedule.every().hour.at(":00").do(report)
 
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    # try:
+    #     while True:
+    #         schedule.run_pending()
+    #         time.sleep(1)
+    # except (KeyboardInterrupt, SystemExit):
+    #     pass
 
-    # now = datetime.now()
-    # main(now - timedelta(hours=3), now)
+    now = datetime(2021, 5, 29, 00, 00)
+    main(now - timedelta(days=1), now)
