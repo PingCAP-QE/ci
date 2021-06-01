@@ -14,10 +14,10 @@ def prepare_binaries() {
 
                     dir("go/src/github.com/pingcap/ticdc") {
                         sh """
-                            GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
-                            GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
-                            GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
-                            GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
+                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
+                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
+                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
+                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
                             tar czvf ticdc_bin.tar.gz bin/*
                             curl -F test/cdc/ci/ticdc_bin_${env.BUILD_NUMBER}.tar.gz=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
                         """
@@ -54,7 +54,7 @@ def tests(sink_type, node_label) {
                         sh """
                             rm -rf /tmp/tidb_cdc_test
                             mkdir -p /tmp/tidb_cdc_test
-                            GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
+                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
                             rm -rf cov_dir
                             mkdir -p cov_dir
                             ls /tmp/tidb_cdc_test
@@ -86,7 +86,7 @@ def tests(sink_type, node_label) {
                                 rm -rf /tmp/tidb_cdc_test
                                 mkdir -p /tmp/tidb_cdc_test
                                 echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
-                                GO111MODULE=off GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
                                 rm -rf cov_dir
                                 mkdir -p cov_dir
                                 ls /tmp/tidb_cdc_test
