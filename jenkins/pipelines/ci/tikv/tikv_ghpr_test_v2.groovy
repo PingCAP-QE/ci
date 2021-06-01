@@ -1,22 +1,44 @@
+def notRun = 1
 def chunk_count = 20
+
+if (ghprbPullTitle.find("Bump version") != null) {
+    currentBuild.result = 'SUCCESS'
+    return
+}
+
+stage("PreCheck") {
+    if (!params.force) {
+        node("build_tikv") {
+            container("rust-cached-${ghprbTargetBranch}") {
+                notRun = sh(returnStatus: true, script: """
+                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+                """)
+            }
+        }
+    }
+
+    if (notRun == 0) {
+        println "the ${ghprbActualCommit} has been tested"
+        currentBuild.result = 'SUCCESS'
+        return
+    }
+}
 
 stage("Prepare") {
     def clippy = {
-        node("build_tikv_cache") {
+        node("build_tikv") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-            def is_lint_passed = false
-            container("rust") {
-                is_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/lint_passed') == 0)
-                println "Skip linting: ${is_lint_passed}"
+            def is_cached_lint_passed = false
+            container("rust-cached-${ghprbTargetBranch}") {
+                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
+                println "Skip linting: ${is_cached_lint_passed}"
             }
 
-            if (!is_lint_passed) {
-                container("rust") {
+            if (!is_cached_lint_passed) {
+                container("rust-cached-${ghprbTargetBranch}") {
                     sh label: 'Prepare workspace', script: """
                         cd \$HOME/tikv-src
-                        ln -s \$HOME/tikv-target \$HOME/tikv-src/target
-                        ln -s \$HOME/tikv-git \$HOME/tikv-src/.git
                         if [[ "${ghprbPullId}" == 0 ]]; then
                             git fetch origin
                         else
@@ -26,11 +48,13 @@ stage("Prepare") {
                     """
 
                     sh label: 'Run lint: format', script: """
+                        cd \$HOME/tikv-src
                         export RUSTFLAGS=-Dwarnings
                         make format && git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
                     """
 
                     sh label: 'Run lint: clippy', script: """
+                        cd \$HOME/tikv-src
                         export RUSTFLAGS=-Dwarnings
                         export FAIL_POINT=1
                         export ROCKSDB_SYS_SSE=1
@@ -45,8 +69,9 @@ stage("Prepare") {
                     """
 
                     sh label: 'Post-lint: Save lint status', script: """
-                    echo 1 > lint_passed
-                    curl -F tikv_test/${ghprbActualCommit}/lint_passed=@lint_passed ${FILE_SERVER2_URL}/upload
+                    cd \$HOME/tikv-src
+                    echo 1 > cached_lint_passed
+                    curl -F tikv_test/${ghprbActualCommit}/cached_lint_passed=@cached_lint_passed ${FILE_SERVER2_URL}/upload
                     """
                 }
             }
@@ -54,21 +79,19 @@ stage("Prepare") {
     }
 
     def build = {
-        node("build_tikv_cache") {
+        node("build_tikv") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_artifact_existed = false
-            container("rust") {
-                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/build_passed') == 0)
+            container("rust-cached-${ghprbTargetBranch}") {
+                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
                 println "Skip building test artifact: ${is_artifact_existed}"
             }
 
             if (!is_artifact_existed) {
-                container("rust") {
+                container("rust-cached-${ghprbTargetBranch}") {
                     sh label: 'Prepare workspace', script: """
                         cd \$HOME/tikv-src
-                        ln -s \$HOME/tikv-target \$HOME/tikv-src/target
-                        ln -s \$HOME/tikv-git \$HOME/tikv-src/.git
                         if [[ "${ghprbPullId}" == 0 ]]; then
                             git fetch origin
                         else
@@ -78,6 +101,7 @@ stage("Prepare") {
                     """
 
                     sh label: 'Build test artifact', script: """
+                    cd \$HOME/tikv-src
                     export RUSTFLAGS=-Dwarnings
                     export FAIL_POINT=1
                     export ROCKSDB_SYS_SSE=1
@@ -110,59 +134,99 @@ stage("Prepare") {
                     """
 
                     sh label: 'Post-build: Check SSE instructions', script: """
+                    cd \$HOME/tikv-src
                     if [ -f scripts/check-sse4_2.sh ]; then
                         sh scripts/check-sse4_2.sh
                     fi
                     """
 
                     sh label: 'Post-build: Check Jemalloc linking', script: """
+                    cd \$HOME/tikv-src
                     if [ -f scripts/check-bins-for-jemalloc.sh ]; then
                         sh scripts/check-bins-for-jemalloc.sh
                     fi
                     """
 
                     sh label: 'Post-build: Upload test artifacts', script: """
-                    cat test.json| grep -v proc-macro | jq -r "select(.profile.test == true) | .filenames[]" | sort -u > test.list
-                    total=0
-                    for bin in `cat test.list`; do
-                        count=`\$bin --list | wc -l`
-                        if [[ \$count -gt 1 ]]; then
-                        echo \$bin >> test.list2
-                        total=\$(( total + count - 2 ))
-                        fi
-                    done
-                    chunk=\$(( total / ${chunk_count} ))
-                    remain=\$chunk
-                    part=0
-                    for bin in `cat test.list2`; do
-                        curl -F tikv_test/${ghprbActualCommit}\$bin=@\$bin ${FILE_SERVER2_URL}/upload
-                        \$bin --list | head -n -2 | awk '{print substr(\$1, 1, length(\$1)-1)}' > cases
-                        origin_count=`cat cases | wc -l`
-                        count=\$origin_count
-                        while [[ \$remain -lt \$count ]]; do
-                        echo \$bin --test --exact `tail -n \$count cases | head -n \$remain` --nocapture >> test-chunk-\$part
-                        part=\$(( part + 1 ))
-                        count=\$(( count - remain ))
-                        remain=\$chunk
-                        done
-                        if [[ \$count -gt 0 ]]; then
-                        if [[ \$origin_count -eq \$count ]]; then
-                            echo \$bin --test --nocapture >>test-chunk-\$part
-                        else
-                            echo \$bin --test --exact `tail -n \$count cases` --nocapture >> test-chunk-\$part
-                        fi
-                        remain=\$(( remain - count ))
-                        fi
-                        if [[ \$remain -eq 0 ]]; then
-                        remain=\$chunk
-                        part=\$(( part + 1 ))
-                        fi
-                    done
+                    cd \$HOME/tikv-src
+                    python <<EOF
+import sys
+import subprocess
+import json
+import multiprocessing
+chunk_count = ${chunk_count}
+scores = list()
+def score(bin, l):
+    if "integration" in bin or "failpoint" in bin:
+        if "test_split_region" in l:
+            return 50
+        else:
+            return 20
+    elif "deps/tikv-" in bin:
+        return 10
+    else:
+        return 1
+def write_to(part):
+    f = open("test-chunk-%d" % part, 'w')
+    f.write("#/usr/bin/env bash\\n")
+    f.write("set -ex\\n")
+    return f
+def upload(bin):
+    return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER2_URL}/upload"])
+total_score=0
+visited_files=set()
+with open('test.json', 'r') as f:
+    for l in f:
+        if "proc-macro" in l:
+            continue
+        meta = json.loads(l)
+        if "profile" in meta and meta["profile"]["test"]:
+            for bin in meta["filenames"]:
+                if bin in visited_files:
+                    continue
+                visited_files.add(bin)
+                cases = subprocess.check_output([bin, '--list']).splitlines()
+                if len(cases) < 2:
+                    continue
+                cases = list(c[:c.index(': ')] for c in cases if ': ' in c)
+                bin_score = sum(score(bin, c) for c in cases)
+                scores.append((bin, cases, bin_score))
+                total_score += bin_score
+chunk_score = total_score / chunk_count
+current_chunk_score=0
+part=0
+writer = write_to(part)
+pool = multiprocessing.Pool(processes=2)
+scores.sort(key=lambda t: t[0])
+for bin, cases, bin_score in scores:
+    pool.apply_async(upload, (bin,))
+    if current_chunk_score + bin_score <= chunk_score:
+        writer.write("%s --test --nocapture\\n" % bin)
+        current_chunk_score += bin_score
+        continue
+    batch_cases = list()
+    for c in cases:
+        c_score = score(bin, c)
+        if current_chunk_score + c_score > chunk_score and part < chunk_count and batch_cases:
+            writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+            current_chunk_score = 0
+            part += 1
+            writer.close()
+            writer = write_to(part)
+            batch_cases = list()
+        batch_cases.append(c)
+        current_chunk_score += c_score
+    if batch_cases:
+        writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+pool.close()
+writer.close()
+pool.join()
+EOF
                     chmod a+x test-chunk-*
-                    tar czf test-chunk.tar.gz test-chunk-*
+                    tar czf test-chunk.tar.gz test-chunk-* src tests components target/*/*.so
                     curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER2_URL}/upload
-                    echo 1 > build_passed
-                    curl -F tikv_test/${ghprbActualCommit}/build_passed=@build_passed ${FILE_SERVER2_URL}/upload
+                    echo 1 > cached_build_passed
+                    curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER2_URL}/upload
                     """
                 }
             }
@@ -187,9 +251,10 @@ stage('Test') {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                     deleteDir()
-                    retry(retryCount) {timeout(15) {
+                    timeout(15) {
                         sh """
                         # set -o pipefail
+                        ln -s `pwd` \$HOME/tikv-src
                         uname -a
                         export RUSTFLAGS=-Dwarnings
                         export FAIL_POINT=1
@@ -212,7 +277,7 @@ stage('Test') {
                             chmod +x \$i;
                         done
                         CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
-                        chunk_count=`cat test-chunk-${chunk_suffix} | wc -l`
+                        chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
                         ok_count=`grep "test result: ok" tests.out | wc -l`
                         if [ "\$chunk_count" -eq "\$ok_count" ]; then
                             echo "test pass"
@@ -231,7 +296,7 @@ stage('Test') {
                         fi
                         exit \$status
                         """
-                    }}
+                    }
                 }
             }
         }
@@ -239,8 +304,9 @@ stage('Test') {
 
     def tests = [:]
     for (int i = 0; i <= chunk_count; i ++) {
-        tests["Part${i}"] = {
-            run_test(i)
+        def k = i
+        tests["Part${k}"] = {
+            run_test(k)
         }
     }
 
