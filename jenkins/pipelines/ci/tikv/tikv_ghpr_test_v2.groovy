@@ -2,17 +2,17 @@ def chunk_count = 20
 
 stage("Prepare") {
     def clippy = {
-        node("build_tikv") {
+        node("build_tikv_cache") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_lint_passed = false
-            container("rust-cached-${ghprbTargetBranch}") {
+            container("rust") {
                 is_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/lint_passed') == 0)
                 println "Skip linting: ${is_lint_passed}"
             }
 
             if (!is_lint_passed) {
-                container("rust-cached-${ghprbTargetBranch}") {
+                container("rust") {
                     sh label: 'Prepare workspace', script: """
                         cd \$HOME/tikv-src
                         ln -s \$HOME/tikv-target \$HOME/tikv-src/target
@@ -54,17 +54,17 @@ stage("Prepare") {
     }
 
     def build = {
-        node("build_tikv") {
+        node("build_tikv_cache") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_artifact_existed = false
-            container("rust-cached-${ghprbTargetBranch}") {
+            container("rust") {
                 is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/build_passed') == 0)
                 println "Skip building test artifact: ${is_artifact_existed}"
             }
 
             if (!is_artifact_existed) {
-                container("rust-cached-${ghprbTargetBranch}") {
+                container("rust") {
                     sh label: 'Prepare workspace', script: """
                         cd \$HOME/tikv-src
                         ln -s \$HOME/tikv-target \$HOME/tikv-src/target
