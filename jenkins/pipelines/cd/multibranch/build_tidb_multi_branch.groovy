@@ -1,3 +1,25 @@
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master"], env.BRANCH_NAME)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+
 def BUILD_URL = 'git@github.com:pingcap/tidb.git'
 
 def build_path = 'go/src/github.com/pingcap/tidb'
@@ -90,79 +112,81 @@ try {
             }
         }
         
-        stage ("Build plugins") {
-            if (branch != "release-2.0" && branch != "release-2.1" && !branch.startsWith("refs/tags/v2")) {
-                dir("go/src/github.com/pingcap/tidb-build-plugin") {
-                    deleteDir()
+        node("build_go1130") {
+            stage ("Build plugins") {
+                if (branch != "release-2.0" && branch != "release-2.1" && !branch.startsWith("refs/tags/v2")) {
+                    dir("go/src/github.com/pingcap/tidb-build-plugin") {
+                        deleteDir()
+                        container("golang") {
+                            timeout(20) {
+                                // checkout scm: [$class: 'GitSCM', 
+                                // branches: [[name: branch]],  
+                                // extensions: [[$class: 'LocalBranch']],
+                                // userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tidb.git']]]
+                                sh """
+                                cp -R ${ws}/${build_path}/. ./
+                                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
+                                # GOPATH=${ws}/go  make
+                                cd cmd/pluginpkg
+                                go build
+                                """
+                            }
+                        }
+                    }
+
+                    def filepath_whitelist = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/whitelist-1.so"
+                    def filepath_bytidb_whitelist = "builds/pingcap/tidb-plugins/bytidb/${githash}/centos7/whitelist-1.so"
+                    def md5path_whitelist = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/whitelist-1.so.md5"
+                    def filepath_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so"
+                    def filepath_bytidb_audit = "builds/pingcap/tidb-plugins/bytidb/${githash}/centos7/audit-1.so"
+                    def md5path_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so.md5"
+
                     container("golang") {
-                        timeout(20) {
-                            // checkout scm: [$class: 'GitSCM', 
-                            // branches: [[name: branch]],  
-                            // extensions: [[$class: 'LocalBranch']],
-                            // userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tidb.git']]]
-                            sh """
-                            cp -R ${ws}/${build_path}/. ./
-                            mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                            # GOPATH=${ws}/go  make
-                            cd cmd/pluginpkg
-                            go build
-                            """
+                        dir("go/src/github.com/pingcap/enterprise-plugin") {
+
+                            if (plugin_branch.startsWith("refs/tags/v3.0")){
+                                plugin_branch = "release-3.0"
+                            }
+
+                            if (plugin_branch.startsWith("refs/tags/v3.1")){
+                                plugin_branch = "release-3.1"
+                            }
+
+                            if (plugin_branch.startsWith("refs/tags/v4.0")){
+                                plugin_branch = "release-4.0"
+                            }
+
+
+                            if (plugin_branch.startsWith("release-3.0")){
+                                plugin_branch = "release-3.0"
+                            }
+                            println plugin_branch
+                            git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/enterprise-plugin.git", branch: plugin_branch
                         }
-                    }
-                }
-
-                def filepath_whitelist = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/whitelist-1.so"
-                def filepath_bytidb_whitelist = "builds/pingcap/tidb-plugins/bytidb/${githash}/centos7/whitelist-1.so"
-                def md5path_whitelist = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/whitelist-1.so.md5"
-                def filepath_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so"
-                def filepath_bytidb_audit = "builds/pingcap/tidb-plugins/bytidb/${githash}/centos7/audit-1.so"
-                def md5path_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so.md5"
-
-                container("golang") {
-                    dir("go/src/github.com/pingcap/enterprise-plugin") {
-
-                        if (plugin_branch.startsWith("refs/tags/v3.0")){
-                            plugin_branch = "release-3.0"
-                        }
-
-                        if (plugin_branch.startsWith("refs/tags/v3.1")){
-                            plugin_branch = "release-3.1"
-                        }
-
-                        if (plugin_branch.startsWith("refs/tags/v4.0")){
-                            plugin_branch = "release-4.0"
-                        }
-
-
-                        if (plugin_branch.startsWith("release-3.0")){
-                            plugin_branch = "release-3.0"
-                        }
-                        println plugin_branch
-                         git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/enterprise-plugin.git", branch: plugin_branch
-                    }
-                    dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
+                        dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                         
-                            sh """
-                            GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
-                            md5sum whitelist-1.so > whitelist-1.so.md5
-                            curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
-                            curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
-                            curl -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
-                            """
-                    }
+                                sh """
+                                GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                                md5sum whitelist-1.so > whitelist-1.so.md5
+                                curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
+                                curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
+                                curl -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
+                                """
+                        }
 
-                    dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
-                        sh """
-                        GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
-                        md5sum audit-1.so > audit-1.so.md5
-                        curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
-                        curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
-                        curl -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
-                        """
+                        dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
+                            sh """
+                            GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                            md5sum audit-1.so > audit-1.so.md5
+                            curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
+                            curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
+                            curl -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
+                            """
+                        }
                     }
+                }else{
+                    println "skipped plugin"
                 }
-            }else{
-                println "skipped plugin"
             }
         }
 
