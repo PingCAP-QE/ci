@@ -103,3 +103,4 @@ def bot_post(card):
             headers = {'content-type': 'application/json', 
                       'Authorization': "Bearer " + token},
           )
+        print(res.text)

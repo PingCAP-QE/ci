@@ -7,7 +7,7 @@ from string import printable
 from mysql.connector import connect
 from pathlib import Path
 from functools import reduce
-from bcolor import bcolor, bcolors
+from bcolor import bcolor, bcolors, WHITE, CYAN, BOLD
 
 env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))
 
@@ -173,13 +173,26 @@ class PR:
         self.commit_hashes = []
         self.runs = []
         self.job = job
+        self.job_cnt = {}
 
     
     def add_commit_hash(self, commit: Commit):
         self.commit_hashes.append(commit)
 
+    def rerun_cnt(self, job_name):
+        if job_name in self.job_cnt:
+            return self.job_cnt[job_name]
+        else:
+            return 0
+
     def update(self, job: Run):
         self.runs.append(job)
+
+        if job.job_name in self.job_cnt:
+            self.job_cnt[job.job_name] += 1
+        else:
+            self.job_cnt[job.job_name] = 0
+
         if job.status == "SUCCESS": 
             self.success_cnt += 1
         elif job.status == "ABORTED":
@@ -188,8 +201,6 @@ class PR:
             self.fail_cnt += 1
 
     def log(self, indent="", show_commits=True, show_fail=False, color_pr=True, show_runs=False):
-
-        print(indent + "-" * 150)
         print(indent + bcolors.BOLD + "Pull Request " + bcolors.ENDC, end="")
 
         if color_pr:
@@ -246,6 +257,7 @@ class Job:
         self.success_cnt = 0
         self.abort_cnt = 0
         self.total_cnt = 0
+        self.rerun_cnt = 0
     
     def update(self, job: Run, pr: PR):
         if not pr.number in self.prs:
@@ -253,6 +265,8 @@ class Job:
         
         if not pr.number in self.local_prs:
             self.local_prs[pr.number] = PR(job)
+        else:
+            self.rerun_cnt += 1
         self.local_prs[pr.number].update(job)
         
         if job.status == "SUCCESS":
@@ -261,7 +275,18 @@ class Job:
             self.abort_cnt += 1
         elif job.status == "FAILURE":
             self.fail_cnt += 1
+
         self.total_cnt += 1
+    def log(self):
+        print(bcolors.BOLD + bcolors.FAIL +  "Job Name: " + bcolors.ENDC + bcolors.ENDC, end="")
+        print(bcolors.WARNING + self.job_name + bcolors.ENDC, end=" ")  
+        print(bcolors.OKCYAN + "runs_raw: " + bcolors.ENDC + str(self.total_cnt), end=" ")
+        print("success: "  + bcolors.OKGREEN + str(self.success_cnt) + " " + '{:.1%}'.format(self.success_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
+        print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
+        print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
+        print("rerun: " + bcolors.OKCYAN + str(self.rerun_cnt) + " " + '{:.1%}'.format(self.rerun_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
+        print()
+
 
     def print_prs(self, no_success=False):
         print("  "+"-" * 150)
@@ -273,6 +298,8 @@ class Job:
             print("success: "  + bcolors.OKGREEN + str(self.success_cnt) + " " + '{:.1%}'.format(self.success_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
             print("fail: " + bcolors.FAIL + str(self.fail_cnt) + " " + '{:.1%}'.format(self.fail_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")
             print("abort: " + bcolors.WARNING + str(self.abort_cnt) + " " + '{:.1%}'.format(self.abort_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
+            print("rerun: " + bcolors.WARNING + str(self.rerun_cnt) + " " + '{:.1%}'.format(self.rerun_cnt / (self.total_cnt)) + bcolors.ENDC, end=" ")     
+
         print()
         if no_success:
             pr_list = list(filter(lambda x: x[1].fail_cnt > 0, self.local_prs.items()))
@@ -295,8 +322,8 @@ class Fail_Info:
     
     def log(self, indent="", show_line=True):
         if show_line:
-            print("  " + "-" * 150)
-        print(indent + bcolors.OKCYAN + "  Fail Info: " + bcolors.ENDC + self.info)
+            print(indent + "-" * 150)
+        print(indent + bcolors.OKCYAN + "Fail Info: " + bcolors.ENDC + self.info)
         print(bcolors.HEADER + "\tFailed runs_raw cnt: " + bcolors.ENDC + str(self.fail_cnt()))
         
         for run in sorted(self.run_list, key=lambda x: x.pr_number):
@@ -461,9 +488,9 @@ def pr_list(pr_map):
 
 
 if __name__ == "__main__":
-    begin_time = datetime(2021, 5, 28, 00, 00)
-    end_time = datetime(2021, 5, 28, 1, 00)
-    res = get_result(datetime(2021, 5, 28, 00, 00), datetime(2021, 5, 28, 1, 00))
+    end_time = datetime.today()
+    begin_time = end_time - timedelta(hours=1) 
+    res = get_result(begin_time, end_time)
     pr_map = res.pr_map
     commit_hash_map = res.commit_hash_map
     job_map = res.job_map
@@ -471,9 +498,25 @@ if __name__ == "__main__":
     run_list = res.run_list
     miss_cnt = res.miss_cnt
 
+    # for _, fail in sorted(fail_info_map.items(), key=lambda x:len(x[1].run_list), reverse=True):
+    #     fail.log()
+
     summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
-    print()
-    job_list(job_map)
+
+    for job_name, job in sorted(job_map.items(), key=lambda x: x[1].rerun_cnt, reverse=True):
+        job.log()
+        rerun_list = list(filter(lambda x: x[1].rerun_cnt(job_name) > 0, sorted(job.local_prs.items(), key=lambda x: x[1].rerun_cnt(job_name), reverse=True)))
+        for pr_number, pr in rerun_list:
+            print(WHITE("\tPull Request ") + pr.repo + " #" + str(pr.number) + CYAN(" rerun cnt: ") + str(pr.rerun_cnt(job_name)))
+            for run in list(filter(lambda x: x.job_name == job_name, pr.runs)):
+                run.log(begin="\t\t", show_fail_info=True)
+            
+            
+
+
+    # summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
+    # print()
+    # job_list(job_map)
     
-    print()
-    pr_list(pr_map)
+    # print()
+    # pr_list(pr_map)
