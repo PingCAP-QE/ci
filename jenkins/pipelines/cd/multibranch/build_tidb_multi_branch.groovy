@@ -1,3 +1,25 @@
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master"], env.BRANCH_NAME)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+
 def BUILD_URL = 'git@github.com:pingcap/tidb.git'
 
 def build_path = 'go/src/github.com/pingcap/tidb'
@@ -143,6 +165,7 @@ try {
                     dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                         
                             sh """
+                            go mod tidy
                             GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                             md5sum whitelist-1.so > whitelist-1.so.md5
                             curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
@@ -153,6 +176,7 @@ try {
 
                     dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                         sh """
+                        go mod tidy
                         GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                         md5sum audit-1.so > audit-1.so.md5
                         curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
