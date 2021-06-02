@@ -171,8 +171,6 @@ try {
                             cat packages.list.short | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/store/tikv" | grep -v "\${package_base}/server" > packages.list.short.1
                             mv packages.list.short.1 packages.list.short
 
-                            cat packages.list | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/server" | grep -v "\${package_base}/ddl" | grep -v "\${package_base}/executor" > packages.list.unit.leak
-
                             split packages.list.short -n r/3 packages_race_ -a 1 --numeric-suffixes=1
 
                             # failpoint-ctl => 3.0+
