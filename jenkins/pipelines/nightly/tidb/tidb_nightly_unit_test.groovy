@@ -171,6 +171,22 @@ try {
                             cat packages.list.short | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/store/tikv" | grep -v "\${package_base}/server" > packages.list.short.1
                             mv packages.list.short.1 packages.list.short
 
+                            cat packages.list | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/server" | grep -v "\${package_base}/ddl" | grep -v "\${package_base}/executor" > packages.list.unit.leak
+
+                            split packages.list.unit.leak -n r/3 packages_unit_ -a 1 --numeric-suffixes=1
+                            cat packages.list | grep "\${package_base}/ddl" > packages_unit_4
+                            echo "\${package_base}/executor" > packages_unit_5
+                            cat packages.list | grep "\${package_base}/planner/core" > packages_unit_6
+                            cat packages.list | grep "\${package_base}/server" > packages_unit_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_unit_8
+
+                            split packages.list.unit.leak -n r/3 packages_leak_ -a 1 --numeric-suffixes=1
+                            cat packages.list | grep "\${package_base}/ddl" > packages_leak_4
+                            echo "\${package_base}/executor" > packages_leak_5
+                            cat packages.list | grep "\${package_base}/planner/core" > packages_leak_6
+                            cat packages.list | grep "\${package_base}/server" > packages_leak_7
+                            cat packages.list | grep "\${package_base}/executor/" > packages_leak_8
+
                             split packages.list.short -n r/3 packages_race_ -a 1 --numeric-suffixes=1
 
                             # failpoint-ctl => 3.0+
@@ -202,6 +218,44 @@ try {
         }
 
         stage('Unit Test') {
+            def run_unit_test = { chunk_suffix ->
+                node(testSlave) {
+                    def ws = pwd()
+                    deleteDir()
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+
+                    unstash 'tidb'
+
+                    dir("go/src/github.com/pingcap/tidb") {
+                        container("golang") {
+                            try{
+                                timeout(10) {
+                                    sh """
+                                set +e
+                                killall -9 -r -q tidb-server
+                                killall -9 -r -q tikv-server
+                                killall -9 -r -q pd-server
+                                rm -rf /tmp/tidb
+                                set -e
+                                export log_level=info 
+                                time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) #  > test.log
+                                """
+                                }
+                            }catch (err) {
+                                throw err
+                            }finally {
+                                // sh"""
+                                // cat test.log
+                                // go get github.com/tebeka/go2xunit
+                                // cat test.log | go2xunit > junit.xml
+                                // """
+                                // junit "junit.xml"
+                            }
+                        }
+                    }
+                }
+            }
+
             def run_race_test = { chunk_suffix ->
                 node(testSlave) {
                     def ws = pwd()
@@ -287,6 +341,43 @@ try {
                 run_race_test_heavy_with_args(chunk_suffix, "-check.p")
             }
 
+            def run_leak_test = { chunk_suffix ->
+                node(testSlave) {
+                    def ws = pwd()
+                    deleteDir()
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+
+                    unstash 'tidb'
+
+                    dir("go/src/github.com/pingcap/tidb") {
+                        container("golang") {
+                            try{
+                                timeout(20) {
+                                    sh """
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                rm -rf /tmp/tidb
+                                set -e
+                                export log_level=info 
+                                time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) # > test.log
+                                """
+                                }
+                            }catch (err) {
+                                throw err
+                            }finally {
+                                // sh"""
+                                // cat test.log
+                                // go get github.com/tebeka/go2xunit
+                                // cat test.log | go2xunit > junit.xml
+                                // """
+                                // junit "junit.xml"
+                            }
+                        }
+                    }
+                }
+            }
 
             // 将执行较慢的 chunk 放在前面优先调度，以减轻调度的延迟对执行时间的影响
             def tests = [:]
@@ -371,6 +462,71 @@ try {
 
             tests["Race Test Chunk #13"] = {
                 run_race_test(13)
+            }
+
+
+            tests["Unit Test Chunk #1"] = {
+                run_unit_test(1)
+            }
+
+            tests["Unit Test Chunk #2"] = {
+                run_unit_test(2)
+            }
+
+            tests["Unit Test Chunk #3"] = {
+                run_unit_test(3)
+            }
+
+            tests["Unit Test Chunk #4"] = {
+                run_unit_test(4)
+            }
+
+            tests["Unit Test Chunk #5"] = {
+                run_unit_test(5)
+            }
+
+            tests["Unit Test Chunk #6"] = {
+                run_unit_test(6)
+            }
+
+            tests["Unit Test Chunk #7"] = {
+                run_unit_test(7)
+            }
+
+            tests["Unit Test Chunk #8"] = {
+                run_unit_test(8)
+            }
+
+            tests["Leak Test Chunk #1"] = {
+                run_leak_test(1)
+            }
+
+            tests["Leak Test Chunk #2"] = {
+                run_leak_test(2)
+            }
+
+            tests["Leak Test Chunk #3"] = {
+                run_leak_test(3)
+            }
+
+            tests["Leak Test Chunk #4"] = {
+                run_leak_test(4)
+            }
+
+            tests["Leak Test Chunk #5"] = {
+                run_leak_test(5)
+            }
+
+            tests["Leak Test Chunk #6"] = {
+                run_leak_test(6)
+            }
+
+            tests["Leak Test Chunk #7"] = {
+                run_leak_test(7)
+            }
+
+            tests["Leak Test Chunk #8"] = {
+                run_leak_test(8)
             }
 
             parallel tests
