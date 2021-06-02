@@ -5,7 +5,7 @@ properties([
                 string(name: 'REFSPEC', defaultValue: '+refs/heads/*:refs/remotes/origin/*', description: '', trim: true),
                 string(name: 'TIUP_MIRRORS', defaultValue: 'http://172.16.4.71:31888', description: '', trim: true),
                 booleanParam(name: 'TIUP_PUBLISH', defaultValue: false, description: ''),
-                choice(name: 'BUILD_METHOD', choices: ['go1.16.4-module', 'go1.13-module', 'go1.12-module', 'go1.11.2-module'], description: ''),
+                // choice(name: 'BUILD_METHOD', choices: ['go1.16.4-module', 'go1.13-module', 'go1.12-module', 'go1.11.2-module'], description: ''),
                 booleanParam(name: 'FAILPOINT', defaultValue: false, description: ''),
                 string(name: 'VERSION', defaultValue: '', description: '', trim: true),
         ])
@@ -93,24 +93,31 @@ catchError {
     def label = 'build-go1130'
     def image = 'hub.pingcap.net/jenkins/centos7_golang-1.13'
 
-    switch (params.BUILD_METHOD) {
-        case 'go1.13-module':
-            label = 'build-go1130'
-            image = 'hub.pingcap.net/jenkins/centos7_golang-1.13'
-            break
-        case 'go1.12-module':
-            label = 'build-go1120'
-            image = 'hub.pingcap.net/jenkins/centos7_golang-1.12'
-            break
-        case 'go1.11.2-module':
-            label = 'build-go1112'
-            image = 'hub.pingcap.net/jenkins/centos7_golang-1.11.2'
-            break
-        case 'go1.16.4-module':
-            label = 'build-go1164'
-            image = 'hub.pingcap.net/pingcap/centos7_golang-1.16'
-            break
+    if (params.VERSION < "v5.1.0" && params.VERSION != "nightly") {
+        label = 'build-go1130'
+        image = 'hub.pingcap.net/jenkins/centos7_golang-1.13'
+    } else {
+        label = 'build-go1164'
+        image = 'hub.pingcap.net/pingcap/centos7_golang-1.16'
     }
+    // switch (params.BUILD_METHOD) {
+    //     case 'go1.13-module':
+    //         label = 'build-go1130'
+    //         image = 'hub.pingcap.net/jenkins/centos7_golang-1.13'
+    //         break
+    //     case 'go1.12-module':
+    //         label = 'build-go1120'
+    //         image = 'hub.pingcap.net/jenkins/centos7_golang-1.12'
+    //         break
+    //     case 'go1.11.2-module':
+    //         label = 'build-go1112'
+    //         image = 'hub.pingcap.net/jenkins/centos7_golang-1.11.2'
+    //         break
+    //     case 'go1.16.4-module':
+    //         label = 'build-go1164'
+    //         image = 'hub.pingcap.net/pingcap/centos7_golang-1.16'
+    //         break
+    // }
 
     run(label, image) { main() }
 }
