@@ -4,7 +4,7 @@ properties([
                 string(name: 'BRANCH', defaultValue: 'master', description: '', trim: true),
                 string(name: 'TIUP_MIRRORS', defaultValue: 'http://172.16.4.71:31888', description: '', trim: true),
                 booleanParam(name: 'TIUP_PUBLISH', defaultValue: false, description: ''),
-                string(name: 'REFSPEC', defaultValue: '+refs/heads/*:refs/remotes/origin/*', description: '', trim: true),
+                string(name: 'REFSPEC', defaultValue: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pr/*', description: '', trim: true),
                 string(name: 'MAKE_TARGET', defaultValue: 'dist_release', description: '', trim: true),
                 string(name: 'VERSION', defaultValue: '', description: '', trim: true),
         ])
