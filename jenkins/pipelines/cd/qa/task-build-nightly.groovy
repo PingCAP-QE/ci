@@ -26,7 +26,7 @@ catchError {
                 "pd-all-releases": {
                     for (branch in ["release-3.0", "release-3.1", "release-4.0", "release-5.0-rc", "release-5.0", "master"]) {
                         try {
-                            var build_method
+                            def build_method
                             build_method = "go1.16.4-module"
                             if (["release-3.0", "release-3.1", "release-4.0", "release-5.0-rc", "release-5.0"].contains(branch)) {
                                 build_method = "go1.13-module"
@@ -42,7 +42,7 @@ catchError {
                 "tidb-all-releases": {
                     for (branch in ["release-3.0", "release-3.1", "release-4.0", "release-5.0-rc", "release-5.0", "master"]) {
                         try {
-                            var build_method = "go1.16.4-module"
+                            def build_method = "go1.16.4-module"
                             if (["release-3.0", "release-3.1", "release-4.0", "release-5.0-rc", "release-5.0"].contains(branch)) {
                                 build_method = "go1.13-module"
                             }
