@@ -101,6 +101,7 @@ if (params.containsKey("release_test")) {
     CDC_BRANCH = params.release_test__release_branch
     tiflashCommit = params.getOrDefault("release_test__tiflash_commit", "")
     tiflashBranch = params.release_test__release_branch
+    ghprbTargetBranch = params.release_test__release_branch
     // Override BR commit hash
     ghprbActualCommit = params.getOrDefault("release_test__br_commit", "")
 }
