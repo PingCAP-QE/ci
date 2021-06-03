@@ -130,7 +130,7 @@ class Run:
                 end=""
                 for info in infos:
                     print("\t"*3 + bcolors.FAIL + "fail_cause: " + bcolors.ENDC + info[0])
-                    for line in line[1].split("\n"):
+                    for line in info[1].split("\n"):
                         print("\t"*3 + line)
         print(end)
 

@@ -69,26 +69,26 @@ def main():
     miss_cnt = res.miss_cnt
 
     stat.summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
-    print()
-    stat.job_list(job_map)
+    # print()
+    # stat.job_list(job_map)
     
-    print()
-    stat.pr_list(pr_map)
+    # print()
+    # stat.pr_list(pr_map)
 
     card = append_rerun(send(res), res)
-    print(json.dumps(card))
+    # print(json.dumps(card))
     bot_post(card)
 
 def daily_report():
-    print((date.today() - timedelta(days=1)).strftime('%Y-%m-%d-%H:%M:%S') + " Dailt report running")
+    print((date.today() - timedelta(days=1)).strftime('%Y-%m-%d-%H:%M:%S') + " Dailt report running...", end="")
     Path("/root/ci_stat/daily_log/").mkdir(parents=True, exist_ok=True)
     tmp_res = "/root/ci_stat/daily_log/" + (date.today() - timedelta(days=1)).strftime('%Y-%m-%d-%H:%M:%S') + ".log"
     with RedirectStdStreams(stdout=open(tmp_res, "w")):
         res = main()
-
+    print("done")
 
 if __name__ == "__main__":
-    schedule.every().day.at("09:49").do(daily_report)
+    schedule.every().day.at("00:00").do(daily_report)
 
     try:
         while True:
