@@ -9,7 +9,6 @@
 
 */
 
-
 // def ghprbSourceBranch = "${ghprbSourceBranch}"
 // if (ghprbSourceBranch.contains('cherry-pick') && "${ghprbPullAuthorLogin}"=='ti-chi-bot') {
 //     echo 'skip this cherry pick test'
@@ -48,15 +47,15 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(['master'], ghprbTargetBranch)
 if (isNeedGo1160) {
-    println "This build use go1.16"
+    println 'This build use go1.16'
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/pingcap/centos7_golang-1.16:latest'
 } else {
-    println "This build use go1.13"
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
+    println 'This build use go1.13'
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached'
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
@@ -135,7 +134,7 @@ def build_dm_bin() {
                 sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
                 sh 'mv gh-ost bin/'
 
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             }
             dir("${ws}") {
                 stash includes: 'go/src/github.com/pingcap/dm/**', name: 'dm-with-bin', useDefaultExcludes: false
@@ -148,7 +147,7 @@ def run_single_unit_test(String case_name) {
     label = "test-${UUID.randomUUID()}"
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-ci',
+            namespace: 'jenkins-tidb',
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -167,7 +166,7 @@ def run_single_unit_test(String case_name) {
     ) {
         node(label) {
             println "${NODE_NAME}"
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             container('golang') {
                 ws = pwd()
                 deleteDir()
@@ -192,7 +191,7 @@ def run_single_unit_test(String case_name) {
                 }
                 // stash this test coverage file
                 stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "unit-cov-${case_name}"
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             }
         }
     }
@@ -202,7 +201,7 @@ def run_single_it_test(String case_name) {
     label = "test-${UUID.randomUUID()}"
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-ci',
+            namespace: 'jenkins-tidb',
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -232,7 +231,7 @@ def run_single_it_test(String case_name) {
                      emptyDirVolume(mountPath: '/home/jenkins', memory: true)]) {
         node(label) {
             println "${NODE_NAME}"
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             container('golang') {
                 def ws = pwd()
                 deleteDir()
@@ -290,7 +289,7 @@ def run_single_it_test(String case_name) {
 
 def run_make_coverage() {
     node("${GO_TEST_SLAVE}") {
-        println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+        println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
         ws = pwd()
         deleteDir()
         unstash 'dm-with-bin'
@@ -303,9 +302,15 @@ def run_make_coverage() {
             unstash 'integration-cov-all_mode'
             unstash 'integration-cov-dmctl_advance dmctl_basic dmctl_command'
             unstash 'integration-cov-ha_cases'
+            unstash 'integration-cov-ha_cases_1'
+            unstash 'integration-cov-ha_cases_2'
             unstash 'integration-cov-ha_cases2'
+            unstash 'integration-cov-ha_cases3'
+            unstash 'integration-cov-ha_cases3_1'
             unstash 'integration-cov-ha_master'
             unstash 'integration-cov-handle_error'
+            unstash 'integration-cov-handle_error_2'
+            unstash 'integration-cov-handle_error_3'
             unstash 'integration-cov-print_status http_apis'
             unstash 'integration-cov-import_goroutine_leak incremental_mode initial_unit'
             unstash 'integration-cov-load_interrupt'
@@ -319,6 +324,11 @@ def run_make_coverage() {
             unstash 'integration-cov-shardddl3'
             unstash 'integration-cov-shardddl4'
             unstash 'integration-cov-sharding sequence_sharding'
+            unstash 'integration-cov-new_relay'
+            unstash 'integration-cov-import_v10x'
+            unstash 'integration-cov-tls'
+            unstash 'integration-cov-sharding2'
+            unstash 'integration-cov-ha'
         } catch (Exception e) {
             println e
         }
@@ -352,12 +362,12 @@ pipeline {
                     }catch (info) {
                         retry(count: 3) {
                             echo 'checkout failed, retry..'
-                            sleep 5
+                            sleep 1
                             checkout_and_stash_dm_code()
                         }
                     }
                 }
-                run_make_check()
+            // run_make_check() check code style move to github actions..
             }
         }
 
@@ -369,7 +379,6 @@ pipeline {
         }
 
         stage('Parallel Run Tests') {
-            options { retry(count: 3) }
             failFast true
             parallel {
                 // Unit Test
@@ -431,10 +440,42 @@ pipeline {
                     }
                 }
 
+                stage('IT-ha_cases_1') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases_1')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases_2') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases_2')
+                        }
+                    }
+                }
+
                 stage('IT-ha_cases2') {
                     steps {
                         script {
                             run_single_it_test('ha_cases2')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases3') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases3')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases3_1') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases3_1')
                         }
                     }
                 }
@@ -451,6 +492,22 @@ pipeline {
                     steps {
                         script {
                             run_single_it_test('handle_error')
+                        }
+                    }
+                }
+
+                stage('IT-handle_error_2') {
+                    steps {
+                        script {
+                            run_single_it_test('handle_error_2')
+                        }
+                    }
+                }
+
+                stage('IT-handle_error_3') {
+                    steps {
+                        script {
+                            run_single_it_test('handle_error_3')
                         }
                     }
                 }
@@ -511,10 +568,26 @@ pipeline {
                     }
                 }
 
+                stage('IT-shardddl1_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl1_1')
+                        }
+                    }
+                }
+
                 stage('IT-shardddl2') {
                     steps {
                         script {
                             run_single_it_test('shardddl2')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl2_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl2_1')
                         }
                     }
                 }
@@ -527,10 +600,26 @@ pipeline {
                     }
                 }
 
+                stage('IT-shardddl3_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl3_1')
+                        }
+                    }
+                }
+
                 stage('IT-shardddl4') {
                     steps {
                         script {
                             run_single_it_test('shardddl4')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl4_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl4_1')
                         }
                     }
                 }
@@ -559,6 +648,46 @@ pipeline {
                     }
                 }
 
+                stage('IT-new_relay') {
+                    steps {
+                        script {
+                            run_single_it_test('new_relay')
+                        }
+                    }
+                }
+
+                stage('IT-import_v10x') {
+                    steps {
+                        script {
+                            run_single_it_test('import_v10x')
+                        }
+                    }
+                }
+
+                stage('IT-tls') {
+                    steps {
+                        script {
+                            run_single_it_test('tls')
+                        }
+                    }
+                }
+
+                stage('IT-sharding2') {
+                    steps {
+                        script {
+                            run_single_it_test('sharding2')
+                        }
+                    }
+                }
+
+                stage('IT-ha') {
+                    steps {
+                        script {
+                            run_single_it_test('ha')
+                        }
+                    }
+                }
+
                 stage('IT-others') {
                     steps {
                         script {
@@ -566,7 +695,8 @@ pipeline {
                         }
                     }
                 }
-                // END Integration Test
+
+            // END Integration Test
             }
         }
 
