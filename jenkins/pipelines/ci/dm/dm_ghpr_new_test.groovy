@@ -619,7 +619,7 @@ pipeline {
                 stage('IT-shardddl4_1') {
                     steps {
                         script {
-                            run_single_it_tst('shardddl4_1')
+                            run_single_it_test('shardddl4_1')
                         }
                     }
                 }
