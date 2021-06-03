@@ -134,7 +134,7 @@ def build_dm_bin() {
                 sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
                 sh 'mv gh-ost bin/'
 
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             }
             dir("${ws}") {
                 stash includes: 'go/src/github.com/pingcap/dm/**', name: 'dm-with-bin', useDefaultExcludes: false
@@ -147,7 +147,7 @@ def run_single_unit_test(String case_name) {
     label = "test-${UUID.randomUUID()}"
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-ci',
+            namespace: 'jenkins-tidb',
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -166,7 +166,7 @@ def run_single_unit_test(String case_name) {
     ) {
         node(label) {
             println "${NODE_NAME}"
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             container('golang') {
                 ws = pwd()
                 deleteDir()
@@ -191,7 +191,7 @@ def run_single_unit_test(String case_name) {
                 }
                 // stash this test coverage file
                 stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "unit-cov-${case_name}"
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             }
         }
     }
@@ -201,7 +201,7 @@ def run_single_it_test(String case_name) {
     label = "test-${UUID.randomUUID()}"
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-ci',
+            namespace: 'jenkins-tidb',
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -231,7 +231,7 @@ def run_single_it_test(String case_name) {
                      emptyDirVolume(mountPath: '/home/jenkins', memory: true)]) {
         node(label) {
             println "${NODE_NAME}"
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             container('golang') {
                 def ws = pwd()
                 deleteDir()
@@ -284,12 +284,12 @@ def run_single_it_test(String case_name) {
                 stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "integration-cov-${case_name}"
             }
         }
-                     }
+    }
 }
 
 def run_make_coverage() {
     node("${GO_TEST_SLAVE}") {
-        println "debug command:\nkubectl -n jenkins-ci exec -ti ${env.NODE_NAME} bash"
+        println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
         ws = pwd()
         deleteDir()
         unstash 'dm-with-bin'
