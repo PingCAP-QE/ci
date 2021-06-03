@@ -39,8 +39,15 @@ def append_rerun(card, res):
             for run in run_list[:3]:
                 fail_infos = run.get_fail_info()
                 add_content(fields[6], "\n        [" + str(run.job_id) + "](" + run.link + ") ...**" + "_".join(run.job_name.split('_')[-2:]) + "**: ")
-                for info in fail_infos:
-                    add_content(fields[6], "\n             " + info)
+                if len(fail_infos) == 0:
+                    add_content(fields[6], "Msg Not Found [View Log](" + run.link + ")")
+                else:
+                    for info in fail_infos:
+                        add_content(fields[6], "\n             " + info[0])
+                        for detail in info[1].split("\n")[:5]:
+                            add_content(fields[6], "\n                 " + detail[:83])
+                        if len(detail) > 83:
+                            add_content(fields[6], " ...")
             if len(pr.runs) > 3 and len(run_list) > 0:
                 add_content(fields[6], "\n         ... **" + str(pr.rerun_cnt(job_name) + 1 - min(3, len(run_list))) + "** more runs. ")
         if len(rerun_list) > 3:

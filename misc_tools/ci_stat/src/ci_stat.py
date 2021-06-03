@@ -69,13 +69,27 @@ class Run:
         # else:
         if len(self.fail_info) > 0:
             return self.fail_info
-        cmd = 'cat /mnt/ci.pingcap.net/jenkins_home/jobs/'+ self.job_name + '/builds/'+ str(self.job_id) + '/log | grep -A 10 "\--------" | grep FAIL: '
+        # cmd = 'cat /mnt/ci.pingcap.net/jenkins_home/jobs/'+ self.job_name + '/builds/'+ str(self.job_id) + '/log | grep -A 20 "\--------" | grep FAIL: -A 20'
+        cmd = 'cat /mnt/ci.pingcap.net/jenkins_home/jobs/'+ self.job_name + '/builds/'+ str(self.job_id) + '/log ' + '| cut -d" " -f2- | grep -v "^\[2021" | grep -A 101 "\--------" | grep "^FAIL:" -A 20'
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        raw = ps.communicate()[0].decode("utf-8").split("\n")
+        raw = ps.communicate()[0].decode("utf-8").split("--\n")
+        if len(raw) == 0:
+            return [["Message not found", ""]]
 
         file = open(self.get_fail_file_path(), "w")
-        file.writelines(list(map(lambda x: x.split("FAIL: ")[1] + "\n", filter(lambda x: "FAIL: " in x, raw))))
-        self.fail_info = list(map(lambda x: x.split("FAIL: ")[1], filter(lambda x: "FAIL: " in x, raw)))
+        # file.writelines(list(map(lambda x: x.split("FAIL: ")[1] + "\n", filter(lambda x: "FAIL: " in x, raw))))
+        for line in list(map(lambda x: x.split("\n\n")[:2], raw)):
+            if len(line) != 2 :
+                continue
+            try:
+                file.write("*"*120 + "\n")
+                file.write(line[0] + "\n")
+                file.write(line[1] + "\n")
+            except:
+                print(self.job_name, self.job_id) 
+
+        self.fail_info =  list(filter(lambda x: len(x) >= 2, map(lambda x: x.split("\n\n")[:2], raw)))
+        # = list(map(lambda x: x.split("FAIL: ")[1], filter(lambda x: "FAIL: " in x, raw)))
         return self.fail_info
 
     def get_status_log(self):
@@ -115,7 +129,9 @@ class Run:
                 print()
                 end=""
                 for info in infos:
-                    print("\t"*3 + bcolors.FAIL + "fail_cause: " + bcolors.ENDC + info)
+                    print("\t"*3 + bcolors.FAIL + "fail_cause: " + bcolors.ENDC + info[0])
+                    for line in line[1].split("\n"):
+                        print("\t"*3 + line)
         print(end)
 
 class Commit:
@@ -390,7 +406,8 @@ class Result:
             fail_infos = run.get_fail_info()
             if len(fail_infos) < 1:
                 miss_cnt += 1
-            for fail_info in fail_infos:
+            for fail_info_detail in fail_infos:
+                fail_info = fail_info_detail[0]
                 if not fail_info in fail_info_map:
                     fail_info_map[fail_info] = Fail_Info(fail_info)
                 fail = fail_info_map[fail_info]
@@ -489,7 +506,7 @@ def pr_list(pr_map):
 
 if __name__ == "__main__":
     end_time = datetime.today()
-    begin_time = end_time - timedelta(hours=1) 
+    begin_time = end_time - timedelta(hours=6) 
     res = get_result(begin_time, end_time)
     pr_map = res.pr_map
     commit_hash_map = res.commit_hash_map
@@ -501,15 +518,19 @@ if __name__ == "__main__":
     # for _, fail in sorted(fail_info_map.items(), key=lambda x:len(x[1].run_list), reverse=True):
     #     fail.log()
 
+    print(send(res))
+
     summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, miss_cnt)
 
-    for job_name, job in sorted(job_map.items(), key=lambda x: x[1].rerun_cnt, reverse=True):
-        job.log()
-        rerun_list = list(filter(lambda x: x[1].rerun_cnt(job_name) > 0, sorted(job.local_prs.items(), key=lambda x: x[1].rerun_cnt(job_name), reverse=True)))
-        for pr_number, pr in rerun_list:
-            print(WHITE("\tPull Request ") + pr.repo + " #" + str(pr.number) + CYAN(" rerun cnt: ") + str(pr.rerun_cnt(job_name)))
-            for run in list(filter(lambda x: x.job_name == job_name, pr.runs)):
-                run.log(begin="\t\t", show_fail_info=True)
+    # for job_name, job in sorted(job_map.items(), key=lambda x: x[1].rerun_cnt, reverse=True):
+    #     job.log()
+    #     rerun_list = list(filter(lambda x: x[1].rerun_cnt(job_name) > 0, sorted(job.local_prs.items(), key=lambda x: x[1].rerun_cnt(job_name), reverse=True)))
+    #     for pr_number, pr in rerun_list:
+    #         print(WHITE("\tPull Request ") + pr.repo + " #" + str(pr.number) + CYAN(" rerun cnt: ") + str(pr.rerun_cnt(job_name)))
+    #         for run in list(filter(lambda x: x.job_name == job_name, pr.runs)):
+    #             run.log(begin="\t\t", show_fail_info=True)
+
+    
             
             
 

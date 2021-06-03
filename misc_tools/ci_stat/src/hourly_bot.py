@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import base64
 import requests
+from functools import reduce
 
 def get_sign(key:str, ts: int):
     key = "lrMWueGz4s96HofTd3Pj7b"
@@ -41,13 +42,17 @@ def send(res: Result):
         for run in failed_runs[:3]:
             add_content(fields[6], "\n        [" + str(run.job_id) + "](" + run.link + ") ...**" + "_".join(run.job_name.split('_')[-2:]) + "**: ")
             fail_infos = run.get_fail_info()
+            # fail_infos =  list(reduce(lambda x, y: x + [y[0]] + y[1].split("\n"), fail_infos, []))
             if len(fail_infos) == 0:
                 add_content(fields[6], "Msg Not Found [View Log](" + run.link + ")")
-            elif len(fail_infos) == 1:
-                add_content(fields[6], fail_infos[0])
             else:
                 for info in fail_infos:
-                    add_content(fields[6], "\n             " + info)
+                    add_content(fields[6], "\n             " + info[0])
+                    for detail in info[1].split("\n")[:5]:
+                        add_content(fields[6], "\n                 " + detail[:83])
+                        if len(detail) > 83:
+                            add_content(fields[6], " ...")
+
         if len(failed_runs) > 3:
             add_content(fields[6], "\n         ... **" + str(len(failed_runs) - 3) + "** *more failed runs.*")
     if len(failed_prs) > 4:
