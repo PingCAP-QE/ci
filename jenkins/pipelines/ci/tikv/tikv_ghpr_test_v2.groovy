@@ -8,8 +8,8 @@ if (ghprbPullTitle.find("Bump version") != null) {
 
 stage("PreCheck") {
     if (!params.force) {
-        node("build_tikv") {
-            container("rust-cached-${ghprbTargetBranch}") {
+        node("${GO_BUILD_SLAVE}"){
+            container("golang") {
                 notRun = sh(returnStatus: true, script: """
                 if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
                 """)
@@ -25,18 +25,28 @@ stage("PreCheck") {
 }
 
 stage("Prepare") {
+    def label='tikv_cached_${${ghprbTargetBranch}'
+    podTemplate(name: label, label: label,
+        nodeSelector: 'role_type=slave', instanceCap: 10,
+        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+        containers: [
+            containerTemplate(name: 'rust', image: 'hub.pingcap.net/jenkins/tikv-cached-${${ghprbTargetBranch}:latest',
+                alwaysPullImage: true, privileged: true,
+                resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                ttyEnabled: true, command: 'cat'),
+        ]) {
     def clippy = {
-        node("build_tikv") {
+        node(label) {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_cached_lint_passed = false
-            container("rust-cached-${ghprbTargetBranch}") {
+            container("rust") {
                 is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
                 println "Skip linting: ${is_cached_lint_passed}"
             }
 
             if (!is_cached_lint_passed) {
-                container("rust-cached-${ghprbTargetBranch}") {
+                container("rust") {
                     sh label: 'Prepare workspace', script: """
                         cd \$HOME/tikv-src
                         if [[ "${ghprbPullId}" == 0 ]]; then
@@ -79,17 +89,17 @@ stage("Prepare") {
     }
 
     def build = {
-        node("build_tikv") {
+        node(label) {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_artifact_existed = false
-            container("rust-cached-${ghprbTargetBranch}") {
+            container("rust") {
                 is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
                 println "Skip building test artifact: ${is_artifact_existed}"
             }
 
             if (!is_artifact_existed) {
-                container("rust-cached-${ghprbTargetBranch}") {
+                container("rust") {
                     sh label: 'Prepare workspace', script: """
                         cd \$HOME/tikv-src
                         if [[ "${ghprbPullId}" == 0 ]]; then
@@ -241,6 +251,7 @@ EOF
         build()
     }
     parallel prepare
+    }
 }
 
 stage('Test') {
@@ -322,4 +333,5 @@ stage('Post-test') {
             """
         }
     }
+}
 }
