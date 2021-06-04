@@ -5,7 +5,7 @@ if (ghprbPullTitle.find("Bump version") != null) {
     currentBuild.result = 'SUCCESS'
     return
 }
-
+try {
 stage("PreCheck") {
     if (!params.force) {
         node("${GO_BUILD_SLAVE}"){
@@ -20,7 +20,7 @@ stage("PreCheck") {
     if (notRun == 0) {
         println "the ${ghprbActualCommit} has been tested"
         currentBuild.result = 'SUCCESS'
-        return
+        throw new RuntimeException("hasBeenTested")
     }
 }
 
@@ -306,8 +306,7 @@ stage('Test') {
                         else
                             # test failed
                             status=1
-                            printf "\n\n ===== cat target/my_test.log ===== \n"
-                            cat target/my_test.log | cut -d ' ' -f 2-
+                            grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
                         fi
                         if grep 'core dumped' tests.out > /dev/null 2>&1
                         then
@@ -343,5 +342,24 @@ stage('Post-test') {
             curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
             """
         }
+    }
+}
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    currentBuild.result = "ABORTED"
+} catch (Exception e) {
+    errorDescription = e.getMessage()
+    if (errorDescription == "hasBeenTested") {
+        currentBuild.result = 'SUCCESS'
+    } else {
+        currentBuild.result = "FAILURE"
+        echo "${e}"
+    }
+}
+
+
+stage("upload status") {
+    node("master") {
+        println currentBuild.result
+        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
