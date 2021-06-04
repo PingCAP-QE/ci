@@ -25,17 +25,17 @@ stage("PreCheck") {
 }
 
 stage("Prepare") {
-    def label='tikv_cached_${${ghprbTargetBranch}'
+    def clippy = {
+    def label="tikv_cached_${ghprbTargetBranch}_clippy"
     podTemplate(name: label, label: label,
-        nodeSelector: 'role_type=slave', instanceCap: 10,
+        nodeSelector: 'role_type=slave', instanceCap: 3,
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
-            containerTemplate(name: 'rust', image: 'hub.pingcap.net/jenkins/tikv-cached-${${ghprbTargetBranch}:latest',
+            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${ghprbTargetBranch}:latest",
                 alwaysPullImage: true, privileged: true,
                 resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                 ttyEnabled: true, command: 'cat'),
         ]) {
-    def clippy = {
         node(label) {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
@@ -87,8 +87,19 @@ stage("Prepare") {
             }
         }
     }
+    }
 
     def build = {
+        def label="tikv_cached_${ghprbTargetBranch}_build"
+    podTemplate(name: label, label: label,
+        nodeSelector: 'role_type=slave', instanceCap: 7,
+        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+        containers: [
+            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${ghprbTargetBranch}:latest",
+                alwaysPullImage: true, privileged: true,
+                resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                ttyEnabled: true, command: 'cat'),
+        ]) {
         node(label) {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
@@ -242,6 +253,7 @@ EOF
             }
         }
     }
+    }
 
     def prepare = [:]
     prepare["Lint"] = {
@@ -251,7 +263,6 @@ EOF
         build()
     }
     parallel prepare
-    }
 }
 
 stage('Test') {
@@ -333,5 +344,4 @@ stage('Post-test') {
             """
         }
     }
-}
 }
