@@ -2,19 +2,19 @@ stage("Build") {
     node("delivery") {
         println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-        def checkAndBuild = { branch, content, tag, args, allowStaleCache ->
+        def checkAndBuild = { ghBranch, content, tag, args, allowStaleCache ->
             container("dind"){
                 docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
                     // 2 means no image, 1 means stale, 0 means uptodate.
                     def cacheState = 2
                     if (!params.skip_sha_check) {
-                        cacheState = sh(label: "Check if ${branch}:${tag} can be skipped", returnStatus: true, script: """
-                        docker pull hub.pingcap.net/jenkins/tikv-cached-${branch}:${tag} || exit 2
-                        docker run -i --rm hub.pingcap.net/jenkins/tikv-cached-${branch}:${tag} <<EOF
+                        cacheState = sh(label: "Check if ${ghBranch}:${tag} can be skipped", returnStatus: true, script: """
+                        docker pull hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:${tag} || exit 2
+                        docker run -i --rm hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:${tag} <<EOF
 cd tikv-src
-last_hash=\\`git rev-parse origin/${branch}\\`
-git fetch origin ${branch}
-[[ \\`git rev-parse origin/${branch}\\` == "\\\${last_hash}" ]]
+last_hash=\\`git rev-parse origin/${ghBranch}\\`
+git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch}
+[[ \\`git rev-parse origin/${ghBranch}\\` == "\\\${last_hash}" ]]
 EOF""")
                     }
                     // If there is no such image, always rebuild. Otherwise rebuild if we want latest caches.
@@ -29,7 +29,7 @@ EOF""")
 ${content}
 EOF
     """
-                        docker.build("jenkins/tikv-cached-${branch}:${tag}", "${args} .").push()
+                        docker.build("jenkins/tikv-cached-${ghBranch}:${tag}", "${args} .").push()
                     }
                 }
             }
@@ -58,7 +58,7 @@ RUN cd tikv-src \
 RUN rustup set profile minimal
 
 RUN cd tikv-src \
-        && git fetch origin ${ghBranch} \
+        && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
         && git checkout origin/${ghBranch} \
         && rustup component add rustfmt clippy \
         && cargo fetch
@@ -69,7 +69,7 @@ ARG BUILD_DATE
 
 # Cache for daily build
 RUN cd tikv-src \
-        && git fetch origin ${ghBranch} \
+        && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
         && git checkout origin/${ghBranch} \
         && grpcio_ver=\\`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2\\` \
         && if [[ ! "0.8.0" > "\\\$grpcio_ver" ]]; then echo using gcc 8; source /opt/rh/devtoolset-8/enable; fi \
@@ -84,7 +84,7 @@ MAINTAINER Jay Lee <jay@pingcap.com>
 ARG BUILD_DATE
 
 RUN cd tikv-src \
-        && git fetch origin ${ghBranch} \
+        && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
         && git checkout origin/${ghBranch} \
         && grpcio_ver=\\`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2\\` \
         && if [[ ! "0.8.0" > "\\\$grpcio_ver" ]]; then echo using gcc 8; source /opt/rh/devtoolset-8/enable; fi \
