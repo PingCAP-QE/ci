@@ -244,7 +244,7 @@ writer.close()
 pool.join()
 EOF
                     chmod a+x test-chunk-*
-                    tar czf test-chunk.tar.gz test-chunk-* src tests components target/*/*.so
+                    tar czf test-chunk.tar.gz test-chunk-* src tests components target/*/deps/*plugin.so
                     curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER2_URL}/upload
                     echo 1 > cached_build_passed
                     curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER2_URL}/upload
