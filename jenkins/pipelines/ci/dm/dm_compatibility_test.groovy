@@ -63,7 +63,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(["master", "release-2.0"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
