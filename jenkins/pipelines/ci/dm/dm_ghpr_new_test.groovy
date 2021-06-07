@@ -271,12 +271,6 @@ def run_single_it_test(String case_name) {
                                         cat "\$log"
                                         echo "____________________________________"
                                     done
-                                    for log in `ls /tmp/dm_test/*/*/*/log/*.log`; do
-                                        echo "____________________________________"
-                                        echo "\$log"
-                                        cat "\$log"
-                                        echo "____________________________________"
-                                    done
                                     """
                         throw e
                     }
