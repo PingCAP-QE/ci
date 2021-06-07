@@ -478,14 +478,14 @@ try {
                                         cd release-centos7
                                         while ! make image_tiflash_ci ;do echo "fail @ `date "+%Y-%m-%d %H:%M:%S"`"; sleep 60; done
                                     """
-                                }
-                                docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-                                    sh """
-                                        docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}
-                                        docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tics:${RELEASE_TAG}
-                                        docker push hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}
-                                        docker push hub.pingcap.net/tiflash/tics:${RELEASE_TAG}
-                                    """
+                                    docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
+                                        sh """
+                                            docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}
+                                            docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tics:${RELEASE_TAG}
+                                            docker push hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}
+                                            docker push hub.pingcap.net/tiflash/tics:${RELEASE_TAG}
+                                        """
+                                    }
                                 }
                             }
                         }
