@@ -244,7 +244,7 @@ writer.close()
 pool.join()
 EOF
                     chmod a+x test-chunk-*
-                    tar czf test-chunk.tar.gz test-chunk-* src tests components target/*/deps/*plugin.so
+                    tar czf test-chunk.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
                     curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER2_URL}/upload
                     echo 1 > cached_build_passed
                     curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER2_URL}/upload
@@ -305,18 +305,11 @@ stage('Test') {
                             echo "test pass"
                         else
                             # test failed
-                            status=1
                             grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
                             awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
-                        fi
-                        if grep 'core dumped' tests.out > /dev/null 2>&1
-                        then
-                            # there is a core dumped, which should not happen.
-                            status=1
-                            echo 'there is a core dumped, which should not happen'
                             gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                            exit 1
                         fi
-                        exit \$status
                         """
                     }
                 }
