@@ -12,6 +12,30 @@
 * @RELEASE_TAG
 * @PRE_RELEASE
 */
+GO_BIN_PATH="/usr/local/go/bin"
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    if (targetBranch == "nightly"){
+        return true
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], RELEASE_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BIN_PATH="/usr/local/go1.16.4/bin"
+} else {
+    println "This build use go1.13"
+}
+println "GO_BIN_PATH=${GO_BIN_PATH}"
+
+
 def slackcolor = 'good'
 def githash
 def os = "darwin"
@@ -79,7 +103,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 go version
                 go build -o /Users/pingcap/binarys/tidb-ctl
 
@@ -111,7 +135,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 
                 make clean
                 go version
@@ -145,7 +169,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make
@@ -179,7 +203,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make
@@ -211,7 +235,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make build
@@ -243,7 +267,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                export PATH=/Users/pingcap/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 go version
                 make
                 make tools
@@ -278,7 +302,7 @@ try {
 
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                     go version
                     mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                     GOPATH=\$GOPATH:${ws}/go make build
@@ -316,7 +340,7 @@ try {
 
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                     #GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn make build
                     make build
                     rm -rf ${target}
@@ -349,7 +373,7 @@ try {
 
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                     make build
                     rm -rf ${target}
                     mkdir -p ${target}/bin
@@ -380,7 +404,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
                 CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 make dist_release
                 rm -rf ${target}
                 mkdir -p ${target}/bin
@@ -411,7 +435,7 @@ try {
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
                 ROCKSDB_SYS_SSE=0 make release
                 rm -rf ${target}
                 mkdir -p ${target}/bin
@@ -423,48 +447,50 @@ try {
         }
 
         if(SKIP_TIFLASH == "false" && (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0")) {
-            stage("build tiflash") {
-                dir("tics") {
+            node("mac-i5"){
+                stage("build tiflash") {
+                    dir("tics") {
 
-                    def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath
+                        def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
+                        def filepath
 
-                    if(RELEASE_TAG == "nightly") {
-                        filepath = "builds/pingcap/tiflash/master/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
-                    } else {
-                        filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
-                    }
-
-                    retry(20) {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
+                        if(RELEASE_TAG == "nightly") {
+                            filepath = "builds/pingcap/tiflash/master/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                         } else {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'LocalBranch'], [$class: 'CloneOption', noTags: true, timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tics.git']]]
+                            filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                         }
+
+                        retry(20) {
+                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                deleteDir()
+                            }
+                            if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
+                            } else {
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'LocalBranch'], [$class: 'CloneOption', noTags: true, timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tics.git']]]
+                            }
+                        }
+
+                        sh """
+                        export GOPATH=/Users/pingcap/gopkg
+                        export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
+                        mkdir -p release-darwin/build/
+                        [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
+                        [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
+                        [ -f "release-darwin/build/build-tiflash-proxy.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-proxy.sh > release-darwin/build/build-tiflash-proxy.sh
+                        [ -f "release-darwin/build/build-tiflash-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-release.sh > release-darwin/build/build-tiflash-release.sh
+                        chmod +x release-darwin/build/*
+                        ./release-darwin/build/build-release.sh
+                        ls -l ./release-darwin/tiflash/
+                        """
+
+                        sh """
+                        cd release-darwin
+                        mv tiflash ${target}
+                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        """
                     }
-
-                    sh """
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/go/bin:/usr/local/opt/binutils/bin/
-                    mkdir -p release-darwin/build/
-                    [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
-                    [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
-                    [ -f "release-darwin/build/build-tiflash-proxy.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-proxy.sh > release-darwin/build/build-tiflash-proxy.sh
-                    [ -f "release-darwin/build/build-tiflash-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-release.sh > release-darwin/build/build-tiflash-release.sh
-                    chmod +x release-darwin/build/*
-                    ./release-darwin/build/build-release.sh
-                    ls -l ./release-darwin/tiflash/
-                    """
-
-                    sh """
-                    cd release-darwin
-                    mv tiflash ${target}
-                    tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    """
                 }
             }
         }

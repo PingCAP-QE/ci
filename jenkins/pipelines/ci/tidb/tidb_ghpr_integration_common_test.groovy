@@ -51,9 +51,17 @@ def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActual
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 def testStartTimeMillis = System.currentTimeMillis()
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -84,7 +92,7 @@ try {
         }
 
         def buildSlave = "${GO_BUILD_SLAVE}"
-        def testSlave = "test_go"
+        def testSlave = "${GO_TEST_SLAVE}"
 
         stage('Prepare') {
             def prepareStartTime = System.currentTimeMillis()

@@ -30,7 +30,7 @@ println "TIDB_BRANCH=${TIDB_BRANCH}"
 
 try {
    stage('Integration Lightning Test') {
-        node {
+        node("master") {
             def pd_commit = ghprbTargetBranch
             if (ghprbPullId != "" || ghprbPullId == "0") {
                 pd_commit = "pr/${ghprbPullId}"

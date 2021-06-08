@@ -12,6 +12,31 @@
 * @RELEASE_TAG
 * @PRE_RELEASE
 */
+GO_BIN_PATH="/usr/local/go/bin"
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    if (targetBranch == "nightly"){
+        return true
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], RELEASE_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BIN_PATH="/usr/local/go1.16.4/bin"
+} else {
+    println "This build use go1.13"
+}
+println "GO_BIN_PATH=${GO_BIN_PATH}"
+
+
+
 def slackcolor = 'good'
 def githash
 def os = "linux"
@@ -61,6 +86,7 @@ try {
                 def filepath = "builds/pingcap/tidb-ctl/${TIDB_CTL_HASH}/centos7/tidb-ctl-${os}-${arch}.tar.gz"
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 go version
                 go build -o tidb-ctl
                 rm -rf ${target}
@@ -91,6 +117,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make
@@ -122,6 +149,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make
@@ -152,6 +180,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make
@@ -183,6 +212,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 make build
@@ -215,6 +245,7 @@ try {
 
                 sh """
                 # pd golang 1.12
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 go version
                 make
                 make tools
@@ -248,6 +279,7 @@ try {
                     }
 
                     sh """
+                    export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                     make build
                     mkdir -p ${target}/bin
                     mv bin/cdc ${target}/bin/
@@ -285,6 +317,7 @@ try {
 
                     sh """
                     # git checkout ${BR_HASH}
+                    export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                     GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn make build
                     rm -rf ${target}
                     mkdir -p ${target}/bin
@@ -313,6 +346,7 @@ try {
                     }
 
                     sh """
+                    export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                     make build
                     rm -rf ${target}
                     mkdir -p ${target}/bin

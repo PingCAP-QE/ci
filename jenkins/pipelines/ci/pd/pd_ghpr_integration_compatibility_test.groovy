@@ -49,20 +49,33 @@ if (m4) {
 }
 m4 = null
 println "PD_OLD_BRANCH=${PD_OLD_BRANCH}"
-//def build_node = "build_go1112"
-//def test_node = "test_go1112"
-def build_node = "build_go1130"
-def test_node = "${GO_TEST_SLAVE}"
-if(ghprbTargetBranch == "master"|| ghprbTargetBranch == "release-3.0"|| ghprbTargetBranch == "release-3.1" || ghprbTargetBranch == "release-2.1" || ghprbTargetBranch == "release-4.0") {
-        build_node = "build_go1130"
-        test_node = "${GO_TEST_SLAVE}"
+
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
 }
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
 
 try {
     stage('Prepare') {
-        node(build_node) {
+        node("${GO_BUILD_SLAVE}") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             def ws = pwd()
             deleteDir()
@@ -102,7 +115,7 @@ try {
     }
 
     stage('Integration Compatibility Test') {
-        node(test_node) {
+        node("${GO_TEST_SLAVE}") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             
             def ws = pwd()

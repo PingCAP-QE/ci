@@ -33,6 +33,9 @@ try {
                     if ( DOCKER_TAG == "release-5.0" ){
                         DOCKER_TAG = "v5.0.0-nightly"
                     }
+                    if ( DOCKER_TAG == "release-5.1" ){
+                        DOCKER_TAG = "v5.1.0-nightly"
+                    }
 
                     sh """
                 cd /home/jenkins

@@ -43,20 +43,34 @@ if (TIDB_TEST_BRANCH == "release-3.0" || TIDB_TEST_BRANCH == "release-3.1") {
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
-//def build_node = "build_go1112"
-//def test_node = "test_go1112"
-def build_node = "build_go1130"
-def test_node = "build_go1130"
-if(ghprbTargetBranch == "master" ||ghprbTargetBranch == "release-3.0"||ghprbTargetBranch == "release-3.1" ||ghprbTargetBranch == "release-2.1" || ghprbTargetBranch == "release-4.0") {
-        build_node = "build_go1130"
-        test_node = "${GO_TEST_SLAVE}"
+
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
     }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
 try {
     stage('Integration DLL Test') {
         def tests = [:]
 
         def run = { test_dir, mytest, ddltest ->
-            node(test_node) {
+            node("${GO_TEST_SLAVE}") {
                 def ws = pwd()
                 deleteDir()
 
@@ -218,7 +232,7 @@ finally {
 }
 
 stage("upload status"){
-    node{
+    node("master"){
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }

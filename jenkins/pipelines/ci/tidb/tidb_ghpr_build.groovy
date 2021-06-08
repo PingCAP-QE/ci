@@ -24,9 +24,17 @@ if (ghprbPullId != null && ghprbPullId != "") {
 
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
-@Library("pingcap") _
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
 
-def isNeedGo1160 = isBranchMatched(["master"], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE

@@ -14,7 +14,7 @@ if (m1) {
 }
 m1 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
-def testSlave = "test_go_heavy"
+
 // parse pd branch
 def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m2) {
@@ -34,12 +34,34 @@ println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
 
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16 because ghprTargetBranch=master"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = "test_heavy_go1160_memvolume"
+} else {
+    println "This build use go1.13"
+    GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
 try {
     stage('Integration DLL Test') {
         def tests = [:]
 
         def run = { test_dir, mytest, ddltest ->
-            node(testSlave) {
+            node("${GO_TEST_SLAVE}") {
                 def ws = pwd()
                 deleteDir()
 
@@ -202,7 +224,7 @@ finally {
 }
 
 stage("upload status"){
-    node{
+    node("master"){
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }

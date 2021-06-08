@@ -1,8 +1,30 @@
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+if (isNeedGo1160) {
+    println "This build use go1.16 because ghprTargetBranch=master"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = "test_heavy_go1160_memvolume"
+} else {
+    println "This build use go1.13"
+    GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
 catchError {
     stage("check release note") {
             //sh "echo $ghprbPullLongDescription | egrep 'Release note'"
             //sh "python -v"
-        node('build_go1130') {
+        node("${GO_BUILD_SLAVE}") {
             //def goVersion = new Utils(this).detectGoVersion("https://raw.githubusercontent.com/pingcap/tidb/master/circle.yml")
             //buildSlave = GO_BUILD_SLAVE
             //testSlave = GO_TEST_SLAVE
