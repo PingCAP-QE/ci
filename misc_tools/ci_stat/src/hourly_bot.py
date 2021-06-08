@@ -36,7 +36,8 @@ def send(res: Result):
         add_content(fields[6],  " ")
         add_content(fields[6],  "**🟢:** " +  str(pr.success_cnt) + " ")
         add_content(fields[6],  "**🔴:** " +  str(pr.fail_cnt) + " ")
-        add_content(fields[6],  "**🟡:** " +  str(pr.abort_cnt) + " ")      
+        add_content(fields[6],  "**🟡:** " +  str(pr.abort_cnt) + " ")
+        add_content(fields[6], "**🔄: **" + str(pr.rerun_cnt()) + " ")
         add_content(fields[6],  "**sum**: " +  str((pr.success_cnt + pr.fail_cnt + pr.abort_cnt)) + " ")
         failed_runs = list(filter(lambda x: x.status == "FAILURE", pr.runs))
         for run in failed_runs[:3]:
@@ -65,6 +66,7 @@ def send(res: Result):
         add_content(fields[8], "**🟢: **"  + str(job.success_cnt) + " ")
         add_content(fields[8], "**🔴: **" + str(job.fail_cnt) + " ")
         add_content(fields[8], "**🟡: **" + str(job.abort_cnt) + " ")
+        add_content(fields[8], "**🔄: **" + str(job.rerun_cnt) + " ")
         local_failed_prs = list(filter(lambda x: x[1].fail_cnt > 0, sorted(job.local_prs.items(), key=lambda x: x[1].fail_cnt, reverse=True)))
         for idx, pair in enumerate(local_failed_prs[:6]):
             local_pr = pair[1]

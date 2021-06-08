@@ -190,12 +190,17 @@ class PR:
         self.runs = []
         self.job = job
         self.job_cnt = {}
+        self.total_rerun_cnt = -1
 
     
     def add_commit_hash(self, commit: Commit):
         self.commit_hashes.append(commit)
 
-    def rerun_cnt(self, job_name):
+    def rerun_cnt(self, job_name=""):
+        if len(job_name) == 0:
+            if self.total_rerun_cnt == -1:
+                self.total_rerun_cnt = reduce(lambda sum, element: sum + element[1], self.job_cnt.items(), 0)
+            return self.total_rerun_cnt
         if job_name in self.job_cnt:
             return self.job_cnt[job_name]
         else:
