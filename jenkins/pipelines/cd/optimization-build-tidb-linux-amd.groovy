@@ -14,6 +14,26 @@
 * @FORCE_REBUILD
 * @TIKV_PRID
 */
+def boolean tagNeedUpgradeGoVersion(String tag) {
+    if (tag.startsWith("v") && tag > "v5.1") {
+        println "tag=${tag} need upgrade go version"
+        return true
+    }
+    return false
+}
+
+def isNeedGo1160 = tagNeedUpgradeGoVersion(RELEASE_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+
 def slackcolor = 'good'
 def githash
 os = "linux"
@@ -54,7 +74,7 @@ try {
     // stage prepare
     // stage build
     stage("Validating HASH") {
-        node("build_go1130") {
+        node("${GO_BUILD_SLAVE}") {
             container("golang") {
                 def ws = pwd()
                 deleteDir()
@@ -75,7 +95,7 @@ try {
 
 
         builds["Build tidb-ctl"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 container("golang") {
                     def ws = pwd()
                     deleteDir()
@@ -98,7 +118,7 @@ try {
             }
         }
         builds["Build tidb && plugins"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
                     return
                 }
@@ -237,7 +257,7 @@ try {
             }
         }
         builds["Build tidb-binlog"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("tidb-binlog",BINLOG_HASH,"tidb-binlog")){
                     return
                 }
@@ -268,7 +288,7 @@ try {
             }
         }
         builds["Build tidb-tools"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("tidb-tools",TOOLS_HASH,"tidb-tools")){
                     return
                 }
@@ -296,7 +316,7 @@ try {
             }
         }
         builds["Build pd"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("pd",PD_HASH,"pd-server")){
                     return
                 }
@@ -328,7 +348,7 @@ try {
             }
         }
         builds["Build cdc"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("ticdc",CDC_HASH,"ticdc")){
                     return
                 }
@@ -358,7 +378,7 @@ try {
             }
         }
         builds["Build dumpling"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("dumpling",DUMPLING_HASH,"dumpling")){
                     return
                 }
@@ -385,7 +405,7 @@ try {
             }
         }
         builds["Build br"] = {
-            node("build_go1130") {
+            node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("br",BR_HASH,"br")){
                     return
                 }
