@@ -233,6 +233,7 @@ try {
                 dir("${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                     container("golang") {
                         sh """
+                            go mod tidy
                             GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                         """
                         sh """
@@ -245,6 +246,7 @@ try {
                 dir("${ws}/go/src/github.com/pingcap/enterprise-plugin/audit") {
                     container("golang") {
                         sh """
+                            go mod tidy
                             GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                         """
                         sh """
