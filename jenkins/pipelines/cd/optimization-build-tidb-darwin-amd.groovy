@@ -106,6 +106,7 @@ def build_upload = { product, hash, binary ->
                                                            url          : "${repo}"]]]
                     }
                 }
+                sh "git clean -fnd"
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
