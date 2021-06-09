@@ -78,7 +78,6 @@ def build_upload = { product, hash, binary ->
             def repo = "git@github.com:pingcap/${product}.git"
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
-                deleteDir()
                 try {
                     checkout changelog: false, poll: true,
                             scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
@@ -144,6 +143,7 @@ def build_upload = { product, hash, binary ->
                     if [ ${product} != "pd" ]; then
                         make clean
                     fi;
+                    git clean -fnd
                     make
                     if [ ${product} = "pd" ]; then
                         make tools;
