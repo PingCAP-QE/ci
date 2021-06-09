@@ -273,6 +273,7 @@ try {
 
                                 throw err
                             }finally {
+                                rm test.log
                                 // sh"""
                                 // cat test.log
                                 // go get github.com/tebeka/go2xunit
