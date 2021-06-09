@@ -75,6 +75,7 @@ def build_upload = { product, hash, binary ->
             def repo = "git@github.com:pingcap/${product}.git"
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
+                deleteDir()
                 try {
                     checkout changelog: false, poll: true, scm: [$class                           : 'GitSCM', branches: [[name: "${hash}"]],
                                                                  doGenerateSubmoduleConfigurations: false,
@@ -105,7 +106,6 @@ def build_upload = { product, hash, binary ->
                                                                                                           url          : "${repo}"]]]
                     }
                 }
-                sh "git clean -fnd"
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
