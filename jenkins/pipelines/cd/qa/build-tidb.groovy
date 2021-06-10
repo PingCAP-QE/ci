@@ -93,7 +93,7 @@ catchError {
     def label = 'build-go1130'
     def image = 'hub.pingcap.net/jenkins/centos7_golang-1.13'
 
-    if (params.VERSION < "v5.1.0" && params.VERSION != "nightly") {
+    if (params.BRANCH < "v5.1.0" && params.BRANCH != "master") {
         label = 'build-go1130'
         image = 'hub.pingcap.net/jenkins/centos7_golang-1.13'
     } else {
