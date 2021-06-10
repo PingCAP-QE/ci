@@ -38,7 +38,14 @@ class Run:
         self.time = row_items[4]
         self.duration = row_items[3] 
         self.comment = row_items[7]
-        self.analysis_res = row_items[8]
+
+        self.case_mark = False
+        if not (row_items[8] is None):
+            self.analysis_res = json.loads(row_items[8])
+            if "case" in self.analysis_res:
+                self.case_mark = True
+                self.case = self.analysis_res["case"]
+
         self.link = "https://ci.pingcap.net/blue/organizations/jenkins/" + self.job_name + "/detail/" + self.job_name + "/" + str(self.job_id) + "/pipeline/"
         
         # PR information
@@ -54,6 +61,7 @@ class Run:
             self.pr_number = int(self.description['ghprbPullId'])
             self.author = self.description['ghprbPullAuthorLogin']
             self.pr_link = self.description['ghprbPullLink']
+            
 
     def get_fail_file_path(self):
         dir_path = env["log_dir"] + "fails/" + self.job_name + "/"
@@ -379,6 +387,7 @@ class Result:
         job_map = {}
         fail_info_map = {}
         run_list = []
+        special_list = []
         miss_cnt = 0
 
         for record in runs_raw:
@@ -386,6 +395,7 @@ class Result:
             run_list.append(run)
 
             if run.pr_number == 0:
+                special_list.append(run)
                 continue
 
             pr_number = run.pr_number
@@ -424,6 +434,7 @@ class Result:
         self.job_map = job_map
         self.fail_info_map = fail_info_map
         self.run_list = run_list
+        self.special_list = special_list
         self.miss_cnt = miss_cnt
         self.begin_time = begin_time
         self.end_time = end_time
@@ -475,7 +486,7 @@ def summary(begin_time, end_time, pr_map, commit_hash_map, job_map, run_list, mi
     # TOP JOB     
     print()
 
-def get_runs_raw(begin_time, end_time):
+def get_runs_raw(begin_time, end_time, job_name):
     connection = connect(
             host = env["host"],
             port = env["port"],
@@ -486,14 +497,19 @@ def get_runs_raw(begin_time, end_time):
     cursor = connection.cursor()
     
     begin_time_str = begin_time.strftime('%Y-%m-%d')
-
-    cursor.execute('select * from ci_data where time >= %s and time <= %s', (begin_time.strftime('%Y-%m-%d %H:%M:%S'), end_time.strftime('%Y-%m-%d %H:%M:%S')))
+    query = "select * from ci_data where time >= '" + begin_time.strftime('%Y-%m-%d %H:%M:%S') + "' and time <= '"+ end_time.strftime('%Y-%m-%d %H:%M:%S') + "'"
+    if len(job_name) != 0:
+        for job in job_name:
+            query = query + " and job = '" + job + "'"
+    print(query)
+    query
+    cursor.execute(query)
     runs_raw = cursor.fetchall()
     connection.close()
     return runs_raw
 
-def get_result(begin, end):
-    return Result(get_runs_raw(begin, end) ,begin, end)
+def get_result(begin, end, job_name=[]):
+    return Result(get_runs_raw(begin, end, job_name) ,begin, end)
 
 def job_list(job_map):
     print("-" * 150)
