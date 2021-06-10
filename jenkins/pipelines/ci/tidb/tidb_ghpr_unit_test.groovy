@@ -222,12 +222,19 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
+                                time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) | tee test.log
                                 """
                                 }
                             }catch (err) {
+                                sh """
+                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                """
                                 throw err
-                            }//finally {
+                            } finally {
+                                sh """
+                                    rm test.log
+                                """
+                            }
                             // sh"""
                             // cat test.log
                             // go get github.com/tebeka/go2xunit
@@ -261,12 +268,18 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
+                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} | tee test.log
                                 """
                                 }
                             }catch (err) {
+                                sh """
+                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                """
                                 throw err
                             }finally {
+                                sh """
+                                    rm test.log
+                                """
                                 // sh"""
                                 // cat test.log
                                 // go get github.com/tebeka/go2xunit
