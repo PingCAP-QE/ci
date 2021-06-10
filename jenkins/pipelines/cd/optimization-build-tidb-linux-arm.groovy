@@ -136,7 +136,7 @@ def build_upload = { product, hash, binary ->
                         if [ ${product} != "pd" ]; then
                             make clean
                         fi;
-                        git clean -fnd
+                        git checkout .
                         make
                         if [ ${product} = "pd" ]; then
                             make tools;
