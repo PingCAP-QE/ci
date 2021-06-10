@@ -57,6 +57,11 @@ stage("Prepare") {
                         git checkout -f ${ghprbActualCommit}
                     """
 
+                    def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
+                    if (should_skip == 0) {
+                        throw new RuntimeException("ci skip")
+                    }
+
                     sh label: 'Run lint: format', script: """
                         cd \$HOME/tikv-src
                         export RUSTFLAGS=-Dwarnings
@@ -120,6 +125,11 @@ stage("Prepare") {
                         fi
                         git checkout -f ${ghprbActualCommit}
                     """
+
+                    def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
+                    if (should_skip == 0) {
+                        throw new RuntimeException("ci skip")
+                    }
 
                     sh label: 'Build test artifact', script: """
                     cd \$HOME/tikv-src
@@ -342,7 +352,7 @@ stage('Post-test') {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {
     errorDescription = e.getMessage()
-    if (errorDescription == "hasBeenTested") {
+    if (errorDescription == "hasBeenTested" || errorDescription == "ci skip") {
         currentBuild.result = 'SUCCESS'
     } else {
         currentBuild.result = "FAILURE"
