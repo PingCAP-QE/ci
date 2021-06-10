@@ -2,12 +2,15 @@ import sys
 import os
 import json
 import subprocess
+import codecs
 from datetime import timedelta, date, datetime
 from string import printable
 from mysql.connector import connect
 from pathlib import Path
 from functools import reduce
 from bcolor import bcolor, bcolors, WHITE, CYAN, BOLD
+
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 env = json.load(open(os.getenv("STAT_ENV_PATH") + "/env.json"))
 
