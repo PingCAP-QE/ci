@@ -22,34 +22,34 @@ node("${GO_TEST_SLAVE}") {
             echo("default params: ${default_params}")
             parallel(
                     Build1: {
-                        build(job: "tidb_ghpr_common_test", parameters: default_params)
+                        build(job: "tidb_ghpr_common_test", parameters: default_params, wait: true,)
                     },
 //            Build2: {
-//                build(job: "tidb_ghpr_integration_common_test", parameters: default_params)
+//                build(job: "tidb_ghpr_integration_common_test", parameters: default_params, wait: true,)
 //            },
 //            Build3: {
-//                build(job: "tidb_ghpr_integration_campatibility_test", parameters: default_params)
+//                build(job: "tidb_ghpr_integration_campatibility_test", parameters: default_params, wait: true,)
 //            },
 //            Build4: {
-//                build(job: "tidb_ghpr_integration_common_test", parameters: default_params)
+//                build(job: "tidb_ghpr_integration_common_test", parameters: default_params, wait: true,)
 //            },
 //            Build5: {
-//                build(job: "tidb_ghpr_integration_copr_test", parameters: default_params)
+//                build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true,)
 //            },
 //            Build6: {
-//                build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params)
+//                build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params, wait: true,)
 //            },
 //            Build8: {
-//                build(job: "tidb_ghpr_mybatis", parameters: default_params)
+//                build(job: "tidb_ghpr_mybatis", parameters: default_params, wait: true,)
 //            },
 //            Build9: {
-//                build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params)
+//                build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params, wait: true,)
 //            },
 //            Build10: {
-//                build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params)
+//                build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params, wait: true,)
 //            },
 //            Build11: {
-//                build(job: "tidb_ghpr_unit_test", parameters: default_params)
+//                build(job: "tidb_ghpr_unit_test", parameters: default_params, wait: true,)
 //            },
             )
         }
