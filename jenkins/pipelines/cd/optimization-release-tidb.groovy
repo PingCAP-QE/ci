@@ -507,6 +507,13 @@ catchError {
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/tidb:${RELEASE_TAG}", "tidb_docker_build").push()
                 }
+
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/tidb:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tidb:${RELEASE_TAG}
+                    """
+                }
             }
 
             builds["Push tikv Docker"] = {
@@ -521,6 +528,12 @@ catchError {
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/tikv:${RELEASE_TAG}", "tikv_docker_build").push()
                 }
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/tikv:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tikv:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tikv:${RELEASE_TAG}
+                    """
+                }
             }
 
             builds["Push pd Docker"] = {
@@ -534,6 +547,12 @@ catchError {
 
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/pd:${RELEASE_TAG}", "pd_docker_build").push()
+                }
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/pd:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/pd:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/pd:${RELEASE_TAG}
+                    """
                 }
             }
 
@@ -559,6 +578,12 @@ __EOF__
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/tidb-lightning:${RELEASE_TAG}", "lightning_docker_build").push()
                 }
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/tidb-lightning:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-lightning:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tidb-lightning:${RELEASE_TAG}
+                    """
+                }
             }
 
             builds["Push br Docker"] = {
@@ -577,6 +602,12 @@ __EOF__
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/br:${RELEASE_TAG}", "br_docker_build").push()
                 }
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/br:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/br:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/br:${RELEASE_TAG}
+                    """
+                }
             }
 
             builds["Push dumpling Docker"] = {
@@ -594,6 +625,12 @@ __EOF__
 
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/dumpling:${RELEASE_TAG}", "dumpling_docker_build").push()
+                }
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/dumpling:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/dumpling:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/dumpling:${RELEASE_TAG}
+                    """
                 }
             }
 
@@ -622,52 +659,111 @@ __EOF__
                 withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                     docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
                 }
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker tag pingcap/tidb-binlog:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
+                    """
+                }
             }
 //ticdc 编译，制作镜像，push
             builds["Push cdc Docker"] = {
                 build job: 'release_cdc_docker',
                         wait: true,
                         parameters: [[$class: 'StringParameterValue', name: 'BUILD_TAG', value: "${RELEASE_TAG}"]]
+
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker pull pingcap/ticdc:${RELEASE_TAG}
+                        docker tag pingcap/ticdc:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
+                    """
+                }
             }
+            // tiflash 上传二进制，制作上传镜像 
+            builds["Push tiflash Docker"] = {
+                build job: 'release_tiflash_by_tag',
+                        wait: true,
+                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker pull pingcap/tiflash:${RELEASE_TAG}
+                        docker tag pingcap/tiflash:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
+                    """
+                }
+            }
+
+            builds["Push monitor initializer"] = {
+                build job: 'release-monitor',
+                        wait: true,
+                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+
+                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                    sh """
+                        docker pull pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                        docker tag pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                    """
+                }
+            }
+
+            builds["Publish tiup"] = {
+                build job: 'tiup-mirror-update-test',
+                        wait: true,
+                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+            }
+            
+            // 这一步显得没有必要
+            // builds["Push monitor reloader"] = {
+            //     docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+            //         sh """
+            //             docker pull pingcap/tidb-monitor-reloader:v1.0.1
+            //             docker tag pingcap/tidb-monitor-reloader:v1.0.1 uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
+            //             docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
+            //         """
+            //     }
+            // }
 
             stage("Push tarbll/image") {
                 parallel builds
             }
 
 // monitoring 编译，upload
-            stage("trigger release monitor") {
-                build job: 'release-monitor',
-                        wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
-            }
+            // stage("trigger release monitor") {
+            //     build job: 'release-monitor',
+            //             wait: true,
+            //             parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+            // }
 
             stage("Trigger jira version") {
                 build(job: "jira_create_release_version", wait: false, parameters: [string(name: "RELEASE_TAG", value: "${RELEASE_TAG}")])
             }
 
-            stage("trigger release tidb on tiup") {
-                build job: 'tiup-mirror-update-test',
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
-                        ]
-            }
-            stage("build ucloud image") {
-                build job: 'build-ucloud-image',
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_TAG', value: TIDB_TAG],
-                                [$class: 'StringParameterValue', name: 'TIKV_TAG', value: TIKV_TAG],
-                                [$class: 'StringParameterValue', name: 'PD_TAG', value: PD_TAG],
-                                [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: BINLOG_TAG],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: BR_TAG],
-                                [$class: 'StringParameterValue', name: 'BR_TAG', value: BR_TAG],
-                                [$class: 'StringParameterValue', name: 'CDC_TAG', value: CDC_TAG],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: TIFLASH_TAG],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: DUMPLING_TAG],
-                        ]
+            // stage("trigger release tidb on tiup") {
+            //     build job: 'tiup-mirror-update-test',
+            //             wait: true,
+            //             parameters: [
+            //                     [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
+            //             ]
+            // }
+            // stage("build ucloud image") {
+            //     build job: 'build-ucloud-image',
+            //             wait: true,
+            //             parameters: [
+            //                     [$class: 'StringParameterValue', name: 'TIDB_TAG', value: TIDB_TAG],
+            //                     [$class: 'StringParameterValue', name: 'TIKV_TAG', value: TIKV_TAG],
+            //                     [$class: 'StringParameterValue', name: 'PD_TAG', value: PD_TAG],
+            //                     [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: BINLOG_TAG],
+            //                     [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: BR_TAG],
+            //                     [$class: 'StringParameterValue', name: 'BR_TAG', value: BR_TAG],
+            //                     [$class: 'StringParameterValue', name: 'CDC_TAG', value: CDC_TAG],
+            //                     [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: TIFLASH_TAG],
+            //                     [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: DUMPLING_TAG],
+            //             ]
 
-            }
+            // }
 // 从 https://download.pingcap.org 下载和上传 latest 标志的包
             if (RELEASE_LATEST == "true") {
                 stage('Publish Latest') {
