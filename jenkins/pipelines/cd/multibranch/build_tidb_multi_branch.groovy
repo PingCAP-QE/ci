@@ -80,6 +80,7 @@ try {
                         GOPATH=${ws}/go WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
                         GOPATH=${ws}/go make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
                         GOPATH=${ws}/go make server_coverage || true
+                        git checkout .
                         GOPATH=${ws}/go make
 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
