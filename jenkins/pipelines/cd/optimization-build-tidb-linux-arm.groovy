@@ -14,6 +14,25 @@
 * @FORCE_REBUILD
 * @TIKV_PRID
 */
+GO_BIN_PATH="/usr/local/go/bin"
+def boolean tagNeedUpgradeGoVersion(String tag) {
+    if (tag.startsWith("v") && tag > "v5.1") {
+        println "tag=${tag} need upgrade go version"
+        return true
+    }
+    return false
+}
+
+def isNeedGo1160 = tagNeedUpgradeGoVersion(RELEASE_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BIN_PATH="/usr/local/go1.16.4/bin"
+} else {
+    println "This build use go1.13"
+}
+println "GO_BIN_PATH=${GO_BIN_PATH}"
+
+
 def slackcolor = 'good'
 os = "linux"
 arch = "arm64"
@@ -100,6 +119,7 @@ def build_upload = { product, hash, binary ->
                 }
                 if (product == "tidb-ctl") {
                     sh """
+                        export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                         go build -o ${product}
                         rm -rf ${target}
                         mkdir -p ${target}/bin
@@ -108,6 +128,7 @@ def build_upload = { product, hash, binary ->
                 }
                 if (product in ["tidb", "tidb-binlog", "pd"]) {
                     sh """
+                        export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                         for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${hash}
                         git branch -D refs/tags/${RELEASE_TAG} || true
@@ -115,6 +136,7 @@ def build_upload = { product, hash, binary ->
                         if [ ${product} != "pd" ]; then
                             make clean
                         fi;
+                        git checkout .
                         make
                         if [ ${product} = "pd" ]; then
                             make tools;
@@ -126,6 +148,7 @@ def build_upload = { product, hash, binary ->
                 }
                 if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
                     sh """
+                        export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                         for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                         git tag -f ${RELEASE_TAG} ${hash}
                         git branch -D refs/tags/${RELEASE_TAG} || true

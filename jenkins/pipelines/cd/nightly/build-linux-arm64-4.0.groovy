@@ -26,7 +26,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master"], RELEASE_TAG)
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], RELEASE_TAG)
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BIN_PATH="/usr/local/go1.16.4/bin"
