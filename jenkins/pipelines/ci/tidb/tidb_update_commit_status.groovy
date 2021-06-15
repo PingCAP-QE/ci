@@ -39,14 +39,14 @@ node("github-status-updater") {
 
     stage("Update commit status") {
         container("github-status-updater") {
-            withCredentials([string(credentialsId: 'test-ci-wulifu', variable: 'TOKEN')]) {
+            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                 sh '''
                 set +x
                 github-status-updater \
                     -action update_state \
                     -token ${TOKEN} \
-                    -owner purelind \
-                    -repo test-ci \
+                    -owner pingcap \
+                    -repo tidb \
                     -ref  ${TIDB_COMMIT_ID} \
                     -state ${STATUS} \
                     -context "${CONTEXT}" \
