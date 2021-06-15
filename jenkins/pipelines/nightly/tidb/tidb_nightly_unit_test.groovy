@@ -237,11 +237,15 @@ try {
                                 killall -9 -r -q pd-server
                                 rm -rf /tmp/tidb
                                 set -e
+                                set -o pipefail
                                 export log_level=info 
-                                time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) #  > test.log
+                                time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) | tee test.log
                                 """
                                 }
                             }catch (err) {
+                                sh """
+                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                """
                                 throw err
                             }finally {
                                 // sh"""
