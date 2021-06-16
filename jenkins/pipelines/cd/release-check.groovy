@@ -23,13 +23,14 @@ def check_image = { comps, edition, registry ->
     ]) {
         node(task) {
             container("docker") {
-                unstash 'release.json'
-                sh "cp ${RELEASE_TAG}.json /release-checker"
-                comps.each {
-                    sh """
-                    cd /release-checker
-                    python3 main.py image -c $it --registry ${registry} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}
-                    """
+                unstash 'qa'
+                dir("qa/tools/release-checker/checker") {
+                    comps.each {
+                        sh """
+                        cd /release-checker
+                        python3 main.py image -c $it --registry ${registry} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}
+                     """
+                    }
                 }
             }
         }
@@ -54,12 +55,10 @@ def check_pingcap = { arch, edition ->
         ]) {
             node(label) {
                 container("main") {
-                    unstash 'release.json'
-                    sh """
-                    cp ${RELEASE_TAG}.json /release-checker
-                    cd /release-checker
-                    python3 main.py pingcap --arch ${arch} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}
-                    """
+                    unstash 'qa'
+                    dir("qa/tools/release-checker/checker") {
+                        sh "python3 main.py pingcap --arch ${arch} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}"
+                    }
                 }
             }
         }
@@ -85,13 +84,14 @@ def check_tiup = { comps, label ->
         ]) {
             node(label) {
                 container("main") {
-                    unstash 'release.json'
-                    sh "cp ${RELEASE_TAG}.json /release-checker"
-                    comps.each {
-                        sh """
-                    cd /release-checker
-                    python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
-                    """
+                    unstash 'qa'
+                    dir("qa/tools/release-checker/checker") {
+                        comps.each {
+                            sh """
+                            cd /release-checker
+                            python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
+                            """
+                        }
                     }
                 }
             }
@@ -125,7 +125,7 @@ __EOF__
                 checkout scm: [$class           : 'GitSCM',
                                branches         : [[name: "release-checker"]],
                                extensions       : [[$class: 'LocalBranch']],
-                               userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'git@github.com:pingcap/qa.git']]]
+                               userRemoteConfigs: [[credentialsId: 'guoyu-test-ssh', url: 'git@github.com:dianqihanwangzi/qa.git']]]
 
             }
             sh "cp ${RELEASE_TAG}.json qa/tools/release-checker/checker"
