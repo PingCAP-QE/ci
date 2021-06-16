@@ -21,7 +21,7 @@ node("${GO_TEST_SLAVE}") {
 
     }
     stage("Build") {
-        build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true)
+        build(job: "tidb_ghpr_build", parameters: default_params, wait: true)
     }
     stage("Trigger Test Job") {
         container("golang") {
