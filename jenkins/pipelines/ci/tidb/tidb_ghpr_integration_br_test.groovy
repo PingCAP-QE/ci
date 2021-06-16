@@ -63,7 +63,7 @@ if (params.containsKey("triggered_by_upstream_ci")) {
             }
             def default_params = [
                     string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
-                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/integration_br_test'),
+                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/integration-br-test'),
                     string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
                     string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
                     string(name: 'STATUS', value: PARAM_STATUS ),

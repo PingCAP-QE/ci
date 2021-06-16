@@ -233,7 +233,7 @@ def fallback() {
                 }
                 def default_params = [
                         string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
-                        string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/tics_test'),
+                        string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/tics-test'),
                         string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
                         string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
                         string(name: 'STATUS', value: PARAM_STATUS ),
