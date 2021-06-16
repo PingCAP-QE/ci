@@ -329,7 +329,7 @@ try {
                                 }
                             }catch (err) {
                                 sh """
-                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
                                 """
                                 throw err
                             }finally {
@@ -379,7 +379,7 @@ try {
                                 }
                             }catch (err) {
                                 sh """
-                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
                                 """
                                 throw err
                             }finally {
