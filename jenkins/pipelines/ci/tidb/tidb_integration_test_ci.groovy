@@ -11,17 +11,22 @@ node("${GO_TEST_SLAVE}") {
         echo "push by ${PUSHER}"
         echo "commit message: ${GIT_COMMIT_MSG}"
 
+        default_params = [
+                string(name: 'triggered_by_upstream_ci', value: "tidb_integration_test_ci"),
+                booleanParam(name: 'release_test', value: true),
+                string(name: 'release_test__release_branch', value: GIT_BRANCH),
+                string(name: 'release_test__tidb_commit', value: GIT_COMMIT),
+        ]
+        echo("default params: ${default_params}")
+
+    }
+    stage("Build") {
+        build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true)
     }
     stage("Trigger Test Job") {
         container("golang") {
-            def default_params = [
-                    string(name: 'triggered_by_upstream_ci', value: "tidb_integration_test_ci"),
-                    booleanParam(name: 'release_test', value: true),
-                    string(name: 'release_test__release_branch', value: GIT_BRANCH),
-                    string(name: 'release_test__tidb_commit', value: GIT_COMMIT),
-            ]
-            echo("default params: ${default_params}")
             parallel(
+                    // integration test
                     tidb_ghpr_integration_br_test: {
                         build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true)
                     },
@@ -52,8 +57,16 @@ node("${GO_TEST_SLAVE}") {
 //                    tidb_ghpr_tics_test: {
 //                        build(job: "tidb_ghpr_tics_test", parameters: default_params, wait: true)
 //                    },
+
+//                    // unit test
 //                    tidb_ghpr_unit_test: {
 //                        build(job: "tidb_ghpr_unit_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_check: {
+//                        build(job: "tidb_ghpr_check", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_check_2: {
+//                        build(job: "tidb_ghpr_check_2", parameters: default_params, wait: true)
 //                    },
             )
         }

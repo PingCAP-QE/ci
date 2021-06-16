@@ -1,6 +1,3 @@
-def BUILD_NUMBER = "${env.BUILD_NUMBER}"
-def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
     ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
@@ -11,6 +8,9 @@ if (params.containsKey("release_test")) {
     ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
+
+def BUILD_NUMBER = "${env.BUILD_NUMBER}"
+def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 
 catchError {
     node("${GO_TEST_SLAVE}") {
