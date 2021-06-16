@@ -119,6 +119,7 @@ try {
                 sh """
                 export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 make clean
+                git checkout .
                 go version
                 make
                 rm -rf ${target}

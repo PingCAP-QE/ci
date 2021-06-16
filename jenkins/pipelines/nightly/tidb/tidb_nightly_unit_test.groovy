@@ -244,7 +244,7 @@ try {
                                 }
                             }catch (err) {
                                 sh """
-                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
                                 """
                                 throw err
                             }finally {
@@ -286,7 +286,7 @@ try {
                                 }
                             }catch (err) {
                                 sh """
-                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
                                 """
                                 throw err
                             }//finally {
@@ -324,12 +324,12 @@ try {
                                 set -e
                                 set -o pipefail
                                 export log_level=info
-                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} ｜ tee test.log
+                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} | tee test.log
                                 """
                                 }
                             }catch (err) {
                                 sh """
-                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
                                 """
                                 throw err
                             }finally {
@@ -374,12 +374,12 @@ try {
                                 set -e
                                 set -o pipefail
                                 export log_level=info 
-                                time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) ｜ tee test.log
+                                time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) | tee test.log
                                 """
                                 }
                             }catch (err) {
                                 sh """
-                                    cat test.log | cut -d" " -f2- | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
+                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
                                 """
                                 throw err
                             }finally {
