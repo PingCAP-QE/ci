@@ -27,7 +27,6 @@ def check_image = { comps, edition, registry ->
                 dir("qa/tools/release-checker/checker") {
                     comps.each {
                         sh """
-                        cd /release-checker
                         python3 main.py image -c $it --registry ${registry} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}
                      """
                     }
@@ -88,7 +87,6 @@ def check_tiup = { comps, label ->
                     dir("qa/tools/release-checker/checker") {
                         comps.each {
                             sh """
-                            cd /release-checker
                             python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
                             """
                         }
