@@ -138,6 +138,7 @@ try {
                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 
                 make clean
+                git checkout .
                 go version
                 make
                 rm -rf ${target}
