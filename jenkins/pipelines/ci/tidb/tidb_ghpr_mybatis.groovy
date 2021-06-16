@@ -1,3 +1,14 @@
+echo "release test: ${params.containsKey("release_test")}"
+if (params.containsKey("release_test")) {
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tidb_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
+
 def notRun = 1
 if (!params.force){
     node("${GO_BUILD_SLAVE}"){
@@ -13,16 +24,7 @@ if (notRun == 0){
     println "the ${ghprbActualCommit} has been tested"
     return
 }
-echo "release test: ${params.containsKey("release_test")}"
-if (params.containsKey("release_test")) {
-    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
-    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
-    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tidb_commit)
-    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
-    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
-    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
-    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
-}
+
 
 def TIDB_TEST_BRANCH = "master"
 def TIDB_PRIVATE_TEST_BRANCH = "master"
