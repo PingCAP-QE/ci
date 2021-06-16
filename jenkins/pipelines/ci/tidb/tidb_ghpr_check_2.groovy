@@ -212,7 +212,6 @@ try {
                         sh """
                         package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                         sed -i  's,go list ./...| grep -vE "cmd",go list ./...| grep -vE "cmd" | grep -vE "store/tikv\$\$",' ./Makefile
-                        sed -i "s,-cover \\\$(PACKAGES),-cover \${package_base}/store/tikv \\\$(PACKAGES)," ./Makefile
                         # export GOPROXY=http://goproxy.pingcap.net
                         if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi
 
