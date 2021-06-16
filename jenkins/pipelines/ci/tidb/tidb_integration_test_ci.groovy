@@ -22,36 +22,39 @@ node("${GO_TEST_SLAVE}") {
             ]
             echo("default params: ${default_params}")
             parallel(
-                    tidb_ghpr_common_test: {
-                        build(job: "tidb_ghpr_common_test", parameters: default_params, wait: true)
+                    tidb_ghpr_integration_br_test: {
+                        build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true)
                     },
-                    tidb_ghpr_integration_common_test: {
-                        build(job: "tidb_ghpr_integration_common_test", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_integration_campatibility_test: {
-                        build(job: "tidb_ghpr_integration_campatibility_test", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_integration_copr_test: {
-                        build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_integration_ddl_test: {
-                        build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_mybatis: {
-                        build(job: "tidb_ghpr_mybatis", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_sqllogic_test_1: {
-                        build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_sqllogic_test_2: {
-                        build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_tics_test: {
-                        build(job: "tidb_ghpr_tics_test", parameters: default_params, wait: true)
-                    },
-                    tidb_ghpr_unit_test: {
-                        build(job: "tidb_ghpr_unit_test", parameters: default_params, wait: true)
-                    },
+//                    tidb_ghpr_common_test: {
+//                        build(job: "tidb_ghpr_common_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_integration_common_test: {
+//                        build(job: "tidb_ghpr_integration_common_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_integration_campatibility_test: {
+//                        build(job: "tidb_ghpr_integration_campatibility_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_integration_copr_test: {
+//                        build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_integration_ddl_test: {
+//                        build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_mybatis: {
+//                        build(job: "tidb_ghpr_mybatis", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_sqllogic_test_1: {
+//                        build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_sqllogic_test_2: {
+//                        build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_tics_test: {
+//                        build(job: "tidb_ghpr_tics_test", parameters: default_params, wait: true)
+//                    },
+//                    tidb_ghpr_unit_test: {
+//                        build(job: "tidb_ghpr_unit_test", parameters: default_params, wait: true)
+//                    },
             )
         }
     }
