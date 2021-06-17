@@ -222,7 +222,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                [-s packages_race_${chunk_suffix} ] && time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
+                                [ -s packages_race_${chunk_suffix} ] && time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
                                 """
                                 }
                             }catch (err) {
