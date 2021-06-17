@@ -165,7 +165,7 @@ try {
                             grep  "\${package_base}/expression/" packages.list >> packages.list.short
                             echo  "\${package_base}/expression" > packages_race_12
                             grep "\${package_base}/planner/core" packages.list.short > packages_race_6
-                            grep "\${package_base}/store/tikv" packages.list.short > packages_race_5
+                            grep "\${package_base}/store/tikv" packages.list.short > packages_race_5 | true #store/tikv is removed from master
                             grep "\${package_base}/server" packages.list.short > packages_race_4
 
                             cat packages.list.short | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/store/tikv" | grep -v "\${package_base}/server" > packages.list.short.1
@@ -222,7 +222,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}); fi
                                 """
                                 }
                             }catch (err) {
@@ -261,7 +261,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs}; fi
                                 """
                                 }
                             }catch (err) {
