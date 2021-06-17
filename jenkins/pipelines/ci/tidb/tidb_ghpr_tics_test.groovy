@@ -9,7 +9,6 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-
 def checkoutTiCS(commit, pullId) {
     def refspec = "+refs/heads/*:refs/remotes/origin/*"
     if (pullId) {
@@ -53,16 +52,16 @@ def fallback() {
     try {
 
         def label = "tidb-test-tics"
-        def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${params.ghprbActualCommit}/centos7/tidb-server.tar.gz"
-        def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${params.ghprbActualCommit}/centos7/done"
+        def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+        def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 
-        def TIKV_BRANCH = params.ghprbTargetBranch
-        def PD_BRANCH = params.ghprbTargetBranch
-        def TICS_BRANCH = params.ghprbTargetBranch
-        def TIDB_BRANCH = params.ghprbTargetBranch
+        def TIKV_BRANCH = ghprbTargetBranch
+        def PD_BRANCH = ghprbTargetBranch
+        def TICS_BRANCH = ghprbTargetBranch
+        def TIDB_BRANCH = ghprbTargetBranch
 
         // parse tikv branch
-        def m1 = params.ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
+        def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
         if (m1) {
             TIKV_BRANCH = "${m1[0][1]}"
         }
@@ -70,7 +69,7 @@ def fallback() {
         println "TIKV_BRANCH=${TIKV_BRANCH}"
 
         // parse pd branch
-        def m2 = params.ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
+        def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
         if (m2) {
             PD_BRANCH = "${m2[0][1]}"
         }
@@ -78,7 +77,7 @@ def fallback() {
         println "PD_BRANCH=${PD_BRANCH}"
 
         // parse tics branch
-        def m3 = params.ghprbCommentBody =~ /tics\s*=\s*([^\s\\]+)(\s|\\|$)/
+        def m3 = ghprbCommentBody =~ /tics\s*=\s*([^\s\\]+)(\s|\\|$)/
         if (m3) {
             TICS_BRANCH = "${m3[0][1]}"
         }
@@ -113,7 +112,7 @@ def fallback() {
                                 fi
                                 """
                             }
-                            //checkoutTiCS("${TICS_BRANCH}", "${params.ghprbPullId}")
+                            //checkoutTiCS("${TICS_BRANCH}", "${ghprbPullId}")
                             checkoutTiCS("${TICS_BRANCH}", null)
                         }
                         stage("Test") {
@@ -258,9 +257,9 @@ def fallback() {
     stage('Summary') {
         echo "Send slack here ..."
         def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-        def slackmsg = "[#${params.ghprbPullId}: ${params.ghprbPullTitle}]" + "\n" +
-        "${params.ghprbPullLink}" + "\n" +
-        "${params.ghprbPullDescription}" + "\n" +
+        def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
+        "${ghprbPullLink}" + "\n" +
+        "${ghprbPullDescription}" + "\n" +
         "Build Result: `${currentBuild.currentResult}`" + "\n" +
         "Elapsed Time: `${duration} mins` " + "\n" +
         "${env.RUN_DISPLAY_URL}"
