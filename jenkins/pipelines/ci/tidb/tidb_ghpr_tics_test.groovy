@@ -50,7 +50,7 @@ def run(label, Closure body) {
 }
 
 def fallback() {
-    catchError {
+    try {
 
         def label = "tidb-test-tics"
         def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${params.ghprbActualCommit}/centos7/tidb-server.tar.gz"
@@ -213,6 +213,10 @@ def fallback() {
             },
         )
 
+        currentBuild.result = "SUCCESS"
+    } catch (err) {
+        echo "Caught: ${err}"
+        currentBuild.result = 'FAILURE'
     }
     
     stage("upload status"){
