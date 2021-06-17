@@ -222,7 +222,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                [ -s packages_race_${chunk_suffix} ] && time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) #> test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}); fi
                                 """
                                 }
                             }catch (err) {
@@ -261,7 +261,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 export log_level=info
-                                [ -s packages_race_${chunk_suffix} ] && time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} # > test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs}; fi
                                 """
                                 }
                             }catch (err) {
