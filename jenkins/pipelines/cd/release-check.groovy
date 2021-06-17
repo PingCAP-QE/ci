@@ -121,9 +121,9 @@ __EOF__
             stash includes: "${RELEASE_TAG}.json", name: "release.json"
             dir("qa") {
                 checkout scm: [$class           : 'GitSCM',
-                               branches         : [[name: "tarball-size"]],
+                               branches         : [[name: "release-checker"]],
                                extensions       : [[$class: 'LocalBranch']],
-                               userRemoteConfigs: [[credentialsId: 'guoyu-test-ssh', url: 'git@github.com:dianqihanwangzi/qa.git']]]
+                               userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'git@github.com:pingcap/qa.git']]]
 
             }
             sh "cp ${RELEASE_TAG}.json qa/tools/release-checker/checker"
