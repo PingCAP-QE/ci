@@ -49,7 +49,7 @@ def run(label, Closure body) {
 }
 
 def fallback() {
-    try {
+    catchError {
 
         def label = "tidb-test-tics"
         def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
@@ -213,11 +213,8 @@ def fallback() {
         )
 
         currentBuild.result = "SUCCESS"
-    } catch (err) {
-        echo "Caught: ${err}"
-        currentBuild.result = 'FAILURE'
     }
-    
+
     stage("upload status"){
         node("master") {
             sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
@@ -227,14 +224,14 @@ def fallback() {
     if (params.containsKey("triggered_by_upstream_ci")) {
         stage("update commit status") {
             node("master") {
-                if (currentBuild.result == "ABORTED") {
+                if (currentBuild.currentResult == "ABORTED") {
                     PARAM_DESCRIPTION = 'Jenkins job aborted'
                     // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
                     PARAM_STATUS = 'error'
-                } else if (currentBuild.result == "FAILURE") {
+                } else if (currentBuild.currentResult == "FAILURE") {
                     PARAM_DESCRIPTION = 'Jenkins job failed'
                     PARAM_STATUS = 'failure'
-                } else if (currentBuild.result == "SUCCESS") {
+                } else if (currentBuild.currentResult == "SUCCESS") {
                     PARAM_DESCRIPTION = 'Jenkins job success'
                     PARAM_STATUS = 'success'
                 } else {
