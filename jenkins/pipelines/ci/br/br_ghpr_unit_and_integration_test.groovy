@@ -363,11 +363,11 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             ls cover
                             """
                         } catch (Exception e) {
-                            sh "tail -1000 '/tmp/backup_restore_test/pd.log' || true"
-                            sh "tail -20000 '/tmp/backup_restore_test/tikv1.log' || true"
-                            sh "tail -20000 '/tmp/backup_restore_test/tikv2.log' || true"
-                            sh "tail -20000 '/tmp/backup_restore_test/tikv3.log' || true"
-                            sh "tail -20000 '/tmp/backup_restore_test/tikv4.log' || true"
+                            sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"
+                            sh "tail -40000 '/tmp/backup_restore_test/tikv1.log' || true"
+                            sh "tail -40000 '/tmp/backup_restore_test/tikv2.log' || true"
+                            sh "tail -40000 '/tmp/backup_restore_test/tikv3.log' || true"
+                            sh "tail -40000 '/tmp/backup_restore_test/tikv4.log' || true"
                             sh "tail -1000 '/tmp/backup_restore_test/tidb.log' || true"
                             sh "tail -1000 '/tmp/backup_restore_test/tiflash-manager.log' || true"
                             sh "tail -1000 '/tmp/backup_restore_test/tiflash-stdout.log' || true"
