@@ -85,7 +85,8 @@ def fallback() {
 		//TICS_BRANCH = "master"
         println "TICS_BRANCH=${TICS_BRANCH}"
         m3 = null
-        if (TIDB_BRANCH !="master" && TIDB_BRANCH !="release-4.0"){
+        // run test logic on branch master / release-4.0 / release-5.x
+        if (TIDB_BRANCH !="master" && TIDB_BRANCH !="release-4.0" && !TIDB_BRANCH.startsWith("release-5.")){
         	return
         }
 
