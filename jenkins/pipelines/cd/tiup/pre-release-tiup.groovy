@@ -10,7 +10,17 @@
 * @TIKV_BUMPVERSION_PRID
 */
 
-def tidb_sha1, tikv_sha1, pd_sha1, tiflash_sha1, br_sha1, binlog_sha1, lightning_sha1, importer_sha1, tools_sha1, cdc_sha1, dumpling_sha1
+tidb_sha1=""
+tikv_sha1=""
+pd_sha1=""
+tiflash_sha1="" 
+br_sha1=""
+binlog_sha1=""
+lightning_sha1=""
+importer_sha1=""
+tools_sha1=""
+cdc_sha1=""
+dumpling_sha1=""
 
 def get_sha() {
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
