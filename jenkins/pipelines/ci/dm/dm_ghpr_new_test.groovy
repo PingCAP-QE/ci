@@ -231,7 +231,7 @@ def run_single_it_test(String case_name) {
                      emptyDirVolume(mountPath: '/home/jenkins', memory: true)]) {
         node(label) {
             println "${NODE_NAME}"
-            println "debug command: \n kubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
+            println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
             container('golang') {
                 def ws = pwd()
                 deleteDir()
