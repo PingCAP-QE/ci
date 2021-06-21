@@ -231,7 +231,7 @@ def run_single_it_test(String case_name) {
                      emptyDirVolume(mountPath: '/home/jenkins', memory: true)]) {
         node(label) {
             println "${NODE_NAME}"
-            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+            println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
             container('golang') {
                 def ws = pwd()
                 deleteDir()
@@ -271,12 +271,6 @@ def run_single_it_test(String case_name) {
                                         cat "\$log"
                                         echo "____________________________________"
                                     done
-                                    for log in `ls /tmp/dm_test/*/*/*/log/*.log`; do
-                                        echo "____________________________________"
-                                        echo "\$log"
-                                        cat "\$log"
-                                        echo "____________________________________"
-                                    done
                                     """
                         throw e
                     }
@@ -298,7 +292,6 @@ def run_make_coverage() {
         unstash 'unit-cov-pkg_binlog'
         unstash 'unit-cov-others'
         try {
-            unstash 'integration-cov-others'
             unstash 'integration-cov-all_mode'
             unstash 'integration-cov-dmctl_advance dmctl_basic dmctl_command'
             unstash 'integration-cov-ha_cases'
@@ -311,24 +304,29 @@ def run_make_coverage() {
             unstash 'integration-cov-handle_error'
             unstash 'integration-cov-handle_error_2'
             unstash 'integration-cov-handle_error_3'
-            unstash 'integration-cov-print_status http_apis'
             unstash 'integration-cov-import_goroutine_leak incremental_mode initial_unit'
             unstash 'integration-cov-load_interrupt'
             unstash 'integration-cov-many_tables'
             unstash 'integration-cov-online_ddl'
             unstash 'integration-cov-relay_interrupt'
             unstash 'integration-cov-safe_mode sequence_safe_mode'
-            unstash 'integration-cov-start_task'
             unstash 'integration-cov-shardddl1'
+            unstash 'integration-cov-shardddl1_1'
             unstash 'integration-cov-shardddl2'
+            unstash 'integration-cov-shardddl2_1'
             unstash 'integration-cov-shardddl3'
+            unstash 'integration-cov-shardddl3_1'
             unstash 'integration-cov-shardddl4'
+            unstash 'integration-cov-shardddl4_1'
             unstash 'integration-cov-sharding sequence_sharding'
+            unstash 'integration-cov-start_task'
+            unstash 'integration-cov-print_status http_apis'
             unstash 'integration-cov-new_relay'
             unstash 'integration-cov-import_v10x'
             unstash 'integration-cov-tls'
             unstash 'integration-cov-sharding2'
             unstash 'integration-cov-ha'
+            unstash 'integration-cov-others'
         } catch (Exception e) {
             println e
         }
