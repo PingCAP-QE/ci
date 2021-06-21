@@ -144,13 +144,14 @@ def build_dm_bin() {
 }
 
 def run_single_unit_test(String case_name) {
-    label = "test-${UUID.randomUUID()}"
+    def label = 'dm-unit-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
             namespace: 'jenkins-tidb',
+            idleMinutes: 10,
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
+                            name: 'golang', alwaysPullImage: false,
                             image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: 'cat'),
@@ -198,13 +199,14 @@ def run_single_unit_test(String case_name) {
 }
 
 def run_single_it_test(String case_name) {
-    label = "test-${UUID.randomUUID()}"
+    def label = 'dm-integration-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
             namespace: 'jenkins-tidb',
+            idleMinutes: 30,
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
+                            name: 'golang', alwaysPullImage: false,
                             image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: 'cat'),
