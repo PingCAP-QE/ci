@@ -32,8 +32,10 @@ if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/pingcap/centos7_golang-1.16:latest'
 } else {
     println "This build use go1.13"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
@@ -124,7 +126,7 @@ catchError {
                 def label = "cdc-kafka-integration-${UUID.randomUUID().toString()}"
                 podTemplate(label: label, idleMinutes: 0,
                         containers: [
-                                containerTemplate(name: 'golang',alwaysPullImage: false, image: "${GO_DOCKER_IMAGE}",
+                                containerTemplate(name: 'golang',alwaysPullImage: false, image: "${POD_GO_DOCKER_IMAGE}",
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true, command: 'cat'),
                                 containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
