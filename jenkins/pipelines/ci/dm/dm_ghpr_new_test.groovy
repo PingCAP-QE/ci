@@ -242,8 +242,6 @@ def run_single_it_test(String case_name) {
                                 # use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                                 export PATH=bin:$PATH
 
-                                sudo yum update && sudo yum install -y procps python
-
                                 rm -rf /tmp/dm_test
                                 mkdir -p /tmp/dm_test
 
