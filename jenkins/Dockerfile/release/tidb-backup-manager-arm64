@@ -1,8 +1,8 @@
-FROM arm64v8/alpine:3.10
+FROM centos:8
 ARG RCLONE_VERSION=v1.51.0
 ARG SHUSH_VERSION=v1.4.0
 ARG TOOLKIT_V40=v4.0.12
-RUN apk update && apk add ca-certificates
+RUN yum makecache && yum install ca-certificates wget unzip -y
 
 RUN wget -nv https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-arm64.zip \
   && unzip rclone-${RCLONE_VERSION}-linux-arm64.zip \
