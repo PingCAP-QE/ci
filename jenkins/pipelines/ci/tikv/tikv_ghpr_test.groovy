@@ -1,10 +1,6 @@
 def notRun = 1
 def chunk_count = 20
 
-if (ghprbPullTitle.find("Bump version") != null) {
-    currentBuild.result = 'SUCCESS'
-    return
-}
 try {
 stage("PreCheck") {
     if (!params.force) {
