@@ -149,6 +149,7 @@ def run_single_unit_test(String case_name) {
             nodeSelector: 'role_type=slave',
             namespace: 'jenkins-ci',
             idleMinutes: 10,
+            envVars: [ ],
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -199,11 +200,10 @@ def run_single_unit_test(String case_name) {
 }
 
 def run_single_it_test(String case_name) {
-    def label = 'dm-integration-test'
+    def label = 'debug-dm-integration-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
             namespace: 'jenkins-ci',
-            idleMinutes: 30,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
