@@ -25,5 +25,13 @@ node("arm_image") {
             docker push pingcap/tidb-backup-manager-arm64:${TIDB_OPERATOR_TAG}
             """
         }
+        docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+            sh """
+            docker tag pingcap/tidb-operator-arm64:${TIDB_OPERATOR_TAG} uhub.service.ucloud.cn/pingcap/tidb-operator-arm64:${TIDB_OPERATOR_TAG}
+            docker tag pingcap/tidb-backup-manager-arm64:${TIDB_OPERATOR_TAG} uhub.service.ucloud.cn/pingcap/tidb-backup-manager-arm64:${TIDB_OPERATOR_TAG}
+            docker push uhub.service.ucloud.cn/pingcap/tidb-operator-arm64:${TIDB_OPERATOR_TAG}
+            docker push uhub.service.ucloud.cn/pingcap/tidb-backup-manager-arm64:${TIDB_OPERATOR_TAG}
+            """
+        }
     }
 }
