@@ -147,7 +147,7 @@ def run_single_unit_test(String case_name) {
     def label = 'dm-unit-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
+            namespace: 'jenkins-ci',
             idleMinutes: 10,
             containers: [
                     containerTemplate(
@@ -202,7 +202,7 @@ def run_single_it_test(String case_name) {
     def label = 'dm-integration-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
+            namespace: 'jenkins-ci',
             idleMinutes: 30,
             containers: [
                     containerTemplate(
