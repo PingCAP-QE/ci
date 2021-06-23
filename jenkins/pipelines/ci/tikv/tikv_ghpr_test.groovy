@@ -1,3 +1,14 @@
+if (params.containsKey("release_test")) {
+    echo "release test: ${params.containsKey("release_test")}"
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tidb_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", 0)
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
+
 def notRun = 1
 def chunk_count = 20
 
