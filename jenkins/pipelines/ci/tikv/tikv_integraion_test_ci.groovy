@@ -37,7 +37,7 @@ node("github-status-updater") {
                 string(name: 'triggered_by_upstream_ci', value: "tikv_integration_test_ci"),
                 booleanParam(name: 'release_test', value: true),
                 string(name: 'release_test__release_branch', value: TIKV_BRANCH),
-                string(name: 'release_test__TIKV_commit', value: TIKV_COMMIT_ID),
+                string(name: 'release_test__tikv_commit', value: TIKV_COMMIT_ID),
         ]
 
         echo("default params: ${default_params}")
@@ -46,17 +46,12 @@ node("github-status-updater") {
 
     try {
         stage("Build") {
-            // this job run lint & build & unit-test
-            build(job: "tikv_ghpr_test_ci", parameters: default_params, wait: true)
+            build(job: "tikv_ghpr_integration-copr-test", parameters: default_params, wait: true)
         }
         stage("Trigger Test Job") {
             container("golang") {
                 parallel(
                         // integration test
-                        // TODO groovy name rule: - is valid or not?
-                        tikv_ghpr_integration-copr-test: {
-                            build(job: "tikv_ghpr_integration-copr-test", parameters: default_params, wait: true)
-                        },
                         tikv_ghpr_integration_br_test: {
                             build(job: "tikv_ghpr_integration_br_test", parameters: default_params, wait: true)
                         },
@@ -69,6 +64,9 @@ node("github-status-updater") {
                         tikv_ghpr_integration_ddl_test: {
                             build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params, wait: true)
                         },
+//                        tikv_ghpr_test_ci: {
+//                            build(job: "tikv_ghpr_test_ci", parameters: default_params, wait: true)
+//                        }
                 )
             }
         }
