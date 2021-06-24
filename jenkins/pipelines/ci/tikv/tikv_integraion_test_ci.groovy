@@ -46,24 +46,24 @@ node("github-status-updater") {
 
     try {
         stage("Build") {
-            build(job: "tikv_ghpr_integration-copr-test", parameters: default_params, wait: true)
+            build(job: "tikv_ghpr_integration_common_test", parameters: default_params, wait: true)
         }
         stage("Trigger Test Job") {
             container("golang") {
                 parallel(
                         // integration test
-                        tikv_ghpr_integration_br_test: {
-                            build(job: "tikv_ghpr_integration_br_test", parameters: default_params, wait: true)
+                        tikv_ghpr_integration_copr_test: {
+                            build(job: "tikv_ghpr_integration-copr-test", parameters: default_params, wait: true)
                         },
-                        tikv_ghpr_integration_common_test: {
-                            build(job: "tikv_ghpr_integration_common_test", parameters: default_params, wait: true)
-                        },
-                        tikv_ghpr_integration_compatibility_test: {
-                            build(job: "tikv_ghpr_integration_compatibility_test", parameters: default_params, wait: true)
-                        },
-                        tikv_ghpr_integration_ddl_test: {
-                            build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params, wait: true)
-                        },
+//                        tikv_ghpr_integration_compatibility_test: {
+//                            build(job: "tikv_ghpr_integration_compatibility_test", parameters: default_params, wait: true)
+//                        },
+//                        tikv_ghpr_integration_ddl_test: {
+//                            build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params, wait: true)
+//                        },
+//                        tikv_ghpr_integration_br_test: {
+//                            build(job: "tikv_ghpr_integration_br_test", parameters: default_params, wait: true)
+//                        },
 //                        tikv_ghpr_test_ci: {
 //                            build(job: "tikv_ghpr_test_ci", parameters: default_params, wait: true)
 //                        }

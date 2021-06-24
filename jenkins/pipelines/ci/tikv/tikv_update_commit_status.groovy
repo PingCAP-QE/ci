@@ -27,9 +27,6 @@ properties([
         ])
 ])
 
-GITHUB_OWNER = "tikv"
-GITHUB_REPO = "tikv"
-
 node("github-status-updater") {
     stage("Print env") {
         echo "context = ${CONTEXT}"
@@ -48,8 +45,8 @@ node("github-status-updater") {
                     -action update_state \
                     -token ${TOKEN} \
                     -owner ${GITHUB_OWNER} \
-                    -repo ${GITHUB_REPO} \
-                    -ref  ${TIKV_COMMIT_ID} \
+                    -repo tikv \
+                    -ref  tikv \
                     -state ${STATUS} \
                     -context "${CONTEXT}" \
                     -description "${DESCRIPTION}" \
