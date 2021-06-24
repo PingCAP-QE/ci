@@ -44,9 +44,9 @@ node("github-status-updater") {
                 github-status-updater \
                     -action update_state \
                     -token ${TOKEN} \
-                    -owner ${GITHUB_OWNER} \
+                    -owner tikv \
                     -repo tikv \
-                    -ref  tikv \
+                    -ref  ${TIKV_COMMIT_ID} \
                     -state ${STATUS} \
                     -context "${CONTEXT}" \
                     -description "${DESCRIPTION}" \
