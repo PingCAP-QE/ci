@@ -1,12 +1,9 @@
 /*
     Run dm unit/intergation test in Jenkins with String paramaters
-
     * ghprbActualCommit (by bot)
     * ghprbPullId (by bot)
-
     * COVERALLS_TOKEN (set default in jenkins admin)
     * CODECOV_TOKEN (set default in jenkins admin)
-
 */
 
 // def ghprbSourceBranch = "${ghprbSourceBranch}"
@@ -147,9 +144,8 @@ def run_single_unit_test(String case_name) {
     def label = 'dm-unit-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-ci',
+            namespace: 'jenkins-tidb',
             idleMinutes: 10,
-            envVars: [ ],
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -183,7 +179,6 @@ def run_single_unit_test(String case_name) {
                                 export GOPATH=\$GOPATH:${ws}/go
                                 # wait for mysql
                                 set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-
                                 make unit_test_${case_name}
                                 rm -rf cov_dir
                                 mkdir -p cov_dir
@@ -200,10 +195,11 @@ def run_single_unit_test(String case_name) {
 }
 
 def run_single_it_test(String case_name) {
-    def label = 'debug-dm-integration-test'
+    def label = 'dm-integration-test'
     podTemplate(label: label,
             nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-ci',
+            namespace: 'jenkins-tidb',
+            idleMinutes: 30,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -228,9 +224,8 @@ def run_single_it_test(String case_name) {
                                     envVar(key: 'MYSQL_TCP_PORT', value: "${MYSQL2_PORT}")
                             ],
                             args: "${MYSQL_ARGS}")
-            ],
-            volumes:[emptyDirVolume(mountPath: '/tmp', memory: true),
-                     emptyDirVolume(mountPath: '/home/jenkins', memory: true)]) {
+            ]
+    ) {
         node(label) {
             println "${NODE_NAME}"
             println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
@@ -243,15 +238,12 @@ def run_single_it_test(String case_name) {
                         sh"""
                                 # use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                                 export PATH=bin:$PATH
-
                                 rm -rf /tmp/dm_test
                                 mkdir -p /tmp/dm_test
-
                                 export MYSQL_HOST1=${MYSQL_HOST}
                                 export MYSQL_PORT1=${MYSQL_PORT}
                                 export MYSQL_HOST2=${MYSQL_HOST}
                                 export MYSQL_PORT2=${MYSQL2_PORT}
-
                                 # wait for mysql container ready.
                                 set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                 set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
@@ -367,7 +359,7 @@ pipeline {
                         }
                     }
                 }
-            // run_make_check() check code style move to github actions..
+                // run_make_check() check code style move to github actions..
             }
         }
 
@@ -696,7 +688,7 @@ pipeline {
                     }
                 }
 
-            // END Integration Test
+                // END Integration Test
             }
         }
 
