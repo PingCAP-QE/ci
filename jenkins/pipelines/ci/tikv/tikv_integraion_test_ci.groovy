@@ -87,6 +87,8 @@ export COMMIT_ID=${TIKV_COMMIT_ID}
 export AUTHOR=${GEWT_AUTHOR}
 export AUTHOR_EMAIL=${GEWT_AUTHOR_EMAIL}
 export PULL_ID=${GEWT_PULL_ID}
+export GITHUB_OWNER=tikv
+export GITHUB_REPO=tikv
 EOF
                 """
                 }  else {
@@ -94,11 +96,13 @@ EOF
                 cat > env_param.conf <<EOF
 export BRANCH=${TIKV_BRANCH}
 export COMMIT_ID=${TIKV_COMMIT_ID}
+export GITHUB_OWNER=tikv
+export GITHUB_REPO=tikv
 EOF
                 """
                 }
                 sh "cat env_param.conf"
-                sh "curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tikv_integration_test_ci_alert.py"
+                sh "curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/integration_test_ci_alert.py"
 
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
                                  string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL")
@@ -108,7 +112,7 @@ EOF
                 export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
                 export FEISHU_ALERT_URL=${FEISHU_ALERT_URL}
                 source env_param.conf
-                python3 tikv_integration_test_ci_alert.py > alert_feishu.log
+                python3 integration_test_ci_alert.py > alert_feishu.log
                 set -x
                 cat alert_feishu.log
                 '''
