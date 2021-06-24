@@ -263,6 +263,8 @@ def run_single_it_test(String case_name) {
                                         echo "____________________________________"
                                         echo "\$log"
                                         cat "\$log"
+                                        echo "-------------print etcd wal error if exist-----------------------"
+                                        cat "\$log" | grep -A 30 "fail to start embed etcd"
                                         echo "____________________________________"
                                     done
                                     """
