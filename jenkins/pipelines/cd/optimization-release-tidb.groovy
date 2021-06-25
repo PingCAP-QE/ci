@@ -5,7 +5,6 @@
 * @BINLOG_TAG
 * @TIFLASH_TAG
 * @IMPORTER_TAG
-* @TOOLS_TAG
 * @BR_TAG
 * @CDC_TAG
 * @DUMPLING_TAG
@@ -36,7 +35,7 @@ catchError {
                 dir('centos7') {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     if (STAGE != "build") {
-                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || TOOLS_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
+                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
                             println "release must be used with tag."
                             sh "exit 2"
                         }
