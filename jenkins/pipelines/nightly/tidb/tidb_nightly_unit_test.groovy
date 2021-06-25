@@ -34,7 +34,9 @@ def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
-
+if (params.containsKey("release_test")) {
+    specStr = "+refs/heads/*:refs/remotes/origin/*"
+}
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
