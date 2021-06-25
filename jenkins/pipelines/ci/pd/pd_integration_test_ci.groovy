@@ -54,15 +54,15 @@ node("github-status-updater") {
                         pd_ghpr_integration_compatibility_test: {
                             build(job: "pd_ghpr_integration_compatibility_test", parameters: default_params, wait: true)
                         },
-//                        pd_ghpr_intergration_common_test: {
-//                            build(job: "pd_ghpr_intergration_common_test", parameters: default_params, wait: true)
-//                        },
-//                        pd_ghpr_intergration_ddl_test: {
-//                            build(job: "pd_ghpr_intergration_ddl_test", parameters: default_params, wait: true)
-//                        },
-//                        pd_ghpr_integration_br_test: {
-//                            build(job: "pd_ghpr_integration_br_test", parameters: default_params, wait: true)
-//                        },
+                        pd_ghpr_intergration_common_test: {
+                            build(job: "pd_ghpr_intergration_common_test", parameters: default_params, wait: true)
+                        },
+                        pd_ghpr_intergration_ddl_test: {
+                            build(job: "pd_ghpr_intergration_ddl_test", parameters: default_params, wait: true)
+                        },
+                        pd_ghpr_integration_br_test: {
+                            build(job: "pd_ghpr_integration_br_test", parameters: default_params, wait: true)
+                        },
                 )
             }
         }
