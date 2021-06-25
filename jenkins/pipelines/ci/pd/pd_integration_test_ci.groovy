@@ -101,7 +101,7 @@ EOF
                 sh "curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/integration_test_ci_alert.py"
 
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
-                                 string(credentialsId: 'debug-feishu-alert-url-integration-test', variable: "FEISHU_ALERT_URL")
+                                 string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL")
                 ]) {
                     sh '''#!/bin/bash
                 set +x
