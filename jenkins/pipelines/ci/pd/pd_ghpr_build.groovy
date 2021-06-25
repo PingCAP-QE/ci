@@ -1,5 +1,21 @@
+echo "release test: ${params.containsKey("release_test")}"
+if (params.containsKey("release_test")) {
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__pd_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
+
 def slackcolor = 'good'
 def githash
+
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
+if (ghprbPullId != null && ghprbPullId != "") {
+    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+}
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -38,7 +54,7 @@ try {
                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                     deleteDir()
                 }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/pd.git']]]
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/pd.git']]]
             }
         }
 
@@ -61,6 +77,9 @@ try {
         stage("Upload") {
             def filepath = "builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
             def refspath = "refs/pingcap/pd/pr/${ghprbPullId}/sha1"
+            if (params.containsKey("triggered_by_upstream_ci")) {
+                refspath = "refs/pingcap/pd/pr/branch-${ghprbTargetBranch}/sha1"
+            }
 
             dir("go/src/github.com/pingcap/pd") {
                 container("golang") {
