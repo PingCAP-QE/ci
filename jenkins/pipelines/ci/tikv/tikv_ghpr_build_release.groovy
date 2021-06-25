@@ -97,7 +97,7 @@ try {
             def donepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/done"
             def refspath = "refs/pingcap/tikv/pr/${ghprbPullId}/sha1"
             if (params.containsKey("triggered_by_upstream_ci")) {
-                refspath = "refs/pingcap/tidb/pr/branch-${ghprbTargetBranch}/sha1"
+                refspath = "refs/pingcap/tikv/pr/branch-${ghprbTargetBranch}/sha1"
             }
 
             dir("tikv") {
