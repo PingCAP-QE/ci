@@ -1,16 +1,50 @@
+echo "release test: ${params.containsKey("release_test")}"
+if (params.containsKey("release_test")) {
+    echo "release test: ${params.containsKey("release_test")}"
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tikv_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
+
 def slackcolor = 'good'
 def githash
 
-def release = "make dist_release"
+def release="make release"
+if ( ghprbTargetBranch == "master" || ghprbTargetBranch == "release-3.0" || ghprbTargetBranch == "release-3.1") {
+    release = "make dist_release"
+}
 
 def ghprbCommentBody = params.ghprbCommentBody ?: null
 
-def m1 = ghprbCommentBody =~ /\/release[\s|\\r|\\n]*\s([^\\].+)/
+def m1 = (ghprbCommentBody =~ /\/release[\s|\\r|\\n]*\s([^\\].+)/)
 if (m1) {
     release = "${m1[0][1]}"
 }
-
+m1 = null
 println "release: $release"
+
+// job param: notcomment default to True
+// /release : not comment binary download url
+// /release comment=true : comment binary download url
+def m2 = ghprbCommentBody =~ /\/release[\s]comment\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m2) {
+    needComment = "${m2[0][1]}"
+    if ( needComment == "true" | needComment == "True" ) {
+        notcomment = false
+    }
+}
+m2 = null
+
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
+if (ghprbPullId != null && ghprbPullId != "") {
+    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+}
+
+
 
 try {
     node("build") {
@@ -23,7 +57,7 @@ try {
                 if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                     deleteDir()
                 }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
             }
         }
 
@@ -44,7 +78,9 @@ try {
                         if [[ "${release}" =~ "make dist_release" ]];then
 	                        echo ${release}
                         else
-	                        mkdir -p bin && cp /home/jenkins/agent/.target/release/tikv-server bin/
+	                        mkdir -p bin
+                            cp /home/jenkins/agent/.target/release/tikv-server bin/
+                            cp /home/jenkins/agent/.target/release/tikv-ctl bin/
                         fi
                   
                         if [[ "${release}" =~ "make titan_release" ]];then
@@ -60,6 +96,9 @@ try {
             def filepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
             def donepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/done"
             def refspath = "refs/pingcap/tikv/pr/${ghprbPullId}/sha1"
+            if (params.containsKey("triggered_by_upstream_ci")) {
+                refspath = "refs/pingcap/tidb/pr/branch-${ghprbTargetBranch}/sha1"
+            }
 
             dir("tikv") {
                 container("rust") {
@@ -77,6 +116,10 @@ try {
             }
         }
     }
+
+    // job param: notcomment default to True
+    // /release : not comment binary download url
+    // /release comment=true : comment binary download url
     if (!notcomment.toBoolean()) {
         node("master") {
             withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
@@ -97,7 +140,7 @@ try {
 }
 
 stage("upload status"){
-    node("master"){
+    node{
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
