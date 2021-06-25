@@ -32,7 +32,7 @@ def get_sha() {
     binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     lightning_sha1 = br_sha1
     importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-    tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
 
