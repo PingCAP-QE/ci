@@ -78,7 +78,7 @@ try {
             def filepath = "builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
             def refspath = "refs/pingcap/pd/pr/${ghprbPullId}/sha1"
             if (params.containsKey("triggered_by_upstream_ci")) {
-                refspath = "refs/pingcap/tidb/pr/branch-${ghprbTargetBranch}/sha1"
+                refspath = "refs/pingcap/pd/pr/branch-${ghprbTargetBranch}/sha1"
             }
 
             dir("go/src/github.com/pingcap/pd") {

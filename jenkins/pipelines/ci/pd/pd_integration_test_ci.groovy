@@ -54,15 +54,15 @@ node("github-status-updater") {
                         pd_ghpr_integration_compatibility_test: {
                             build(job: "pd_ghpr_integration_compatibility_test", parameters: default_params, wait: true)
                         },
-/*                      pd_ghpr_intergration_common_test: {
-                            build(job: "pd_ghpr_intergration_common_test", parameters: default_params, wait: true)
-                        },
-                        pd_ghpr_intergration_ddl_test: {
-                            build(job: "pd_ghpr_intergration_ddl_test", parameters: default_params, wait: true)
-                        },
-                        pd_ghpr_integration_br_test: {
-                            build(job: "pd_ghpr_integration_br_test", parameters: default_params, wait: true)
-                        },*/
+//                        pd_ghpr_intergration_common_test: {
+//                            build(job: "pd_ghpr_intergration_common_test", parameters: default_params, wait: true)
+//                        },
+//                        pd_ghpr_intergration_ddl_test: {
+//                            build(job: "pd_ghpr_intergration_ddl_test", parameters: default_params, wait: true)
+//                        },
+//                        pd_ghpr_integration_br_test: {
+//                            build(job: "pd_ghpr_integration_br_test", parameters: default_params, wait: true)
+//                        },
                 )
             }
         }
@@ -101,7 +101,7 @@ EOF
                 sh "curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/integration_test_ci_alert.py"
 
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
-                                 string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL")
+                                 string(credentialsId: 'debug-feishu-alert-url-integration-test', variable: "FEISHU_ALERT_URL")
                 ]) {
                     sh '''#!/bin/bash
                 set +x
