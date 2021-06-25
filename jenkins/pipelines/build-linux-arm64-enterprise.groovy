@@ -1,6 +1,24 @@
 /*
 * @RELEASE_TAG
 */
+GO_BIN_PATH="/usr/local/go/bin"
+def boolean tagNeedUpgradeGoVersion(String tag) {
+    if (tag.startsWith("v") && tag > "v5.1") {
+        println "tag=${tag} need upgrade go version"
+        return true
+    }
+    return false
+}
+
+def isNeedGo1160 = tagNeedUpgradeGoVersion(RELEASE_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BIN_PATH="/usr/local/go1.16.4/bin"
+} else {
+    println "This build use go1.13"
+}
+println "GO_BIN_PATH=${GO_BIN_PATH}"
+
 def slackcolor = 'good'
 def githash
 def os = "linux"
@@ -44,6 +62,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 make clean
                 go version
                 TIDB_EDITION=Enterprise make
@@ -74,6 +93,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 go version
                 PD_EDITION=Enterprise make
                 PD_EDITION=Enterprise make tools
@@ -104,6 +124,7 @@ try {
                 }
 
                 sh """
+                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                 grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
                 if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
                     echo using gcc 8
