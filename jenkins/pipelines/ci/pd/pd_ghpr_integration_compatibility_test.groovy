@@ -245,7 +245,7 @@ finally {
                     PARAM_STATUS = 'error'
                 }
                 def default_params = [
-                        string(name: 'TIKV_COMMIT_ID', value: ghprbActualCommit ),
+                        string(name: 'PD_COMMIT_ID', value: ghprbActualCommit ),
                         string(name: 'CONTEXT', value: 'idc-jenkins-ci-pd/integration-compatibility-test'),
                         string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
                         string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),

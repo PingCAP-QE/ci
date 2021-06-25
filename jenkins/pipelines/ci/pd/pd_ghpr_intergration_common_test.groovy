@@ -343,7 +343,7 @@ if (params.containsKey("triggered_by_upstream_ci")) {
                 PARAM_STATUS = 'error'
             }
             def default_params = [
-                    string(name: 'TIKV_COMMIT_ID', value: ghprbActualCommit ),
+                    string(name: 'PD_COMMIT_ID', value: ghprbActualCommit ),
                     string(name: 'CONTEXT', value: 'idc-jenkins-ci-pd/integration-common-test'),
                     string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
                     string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
