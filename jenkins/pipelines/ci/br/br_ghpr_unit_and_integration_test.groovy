@@ -402,8 +402,12 @@ catchError {
     def slow_case_names = [
         "br_300_small_tables",
         "br_full_ddl",
+        "br_s3",
         "br_tikv_outage",
-        "lightning_checkpoint"
+        "br_tikv_outage2",
+        "br_tiflash",
+        "lightning_checkpoint",
+        "lightning_disk_quota"
     ]
 
     stage('Prepare') {
@@ -449,7 +453,6 @@ catchError {
                                 "lightning_sqlmode",
                                 "lightning_tiflash",
                             ]
-                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
                         case "tidb":
                             test_case_names = [
@@ -463,7 +466,6 @@ catchError {
                                 "lightning_sqlmode",
                                 "lightning_tiflash",
                             ]
-                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
                         case "pd":
                             test_case_names = [
@@ -476,7 +478,6 @@ catchError {
                                 "lightning_sqlmode",
                                 "lightning_tiflash",
                             ]
-                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                             break;
                         default:
                             def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
@@ -484,6 +485,8 @@ catchError {
                                 test_case_names << name
                             }
                     }
+                    // filter out the nonexistent tests
+                    slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                 }
 
                 // Stash testing binaries.
