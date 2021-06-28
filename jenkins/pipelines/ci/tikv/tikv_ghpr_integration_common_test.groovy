@@ -92,59 +92,17 @@ try {
 
         prepares["Part #1"] = {
             node("build") {
-                // checkout tikv
-                dir("/home/jenkins/agent/git/tikv") {
-                    // if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                dir("tikv") {
+                    container("rust") {
                         deleteDir()
-                    // }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
-                }
-
-
-                def filepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
-                def donepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/done"
-                def refspath = "refs/pingcap/tikv/pr/${ghprbPullId}/sha1"
-                if (params.containsKey("triggered_by_upstream_ci")) {
-                    refspath = "refs/pingcap/tikv/pr/branch-${ghprbTargetBranch}/sha1"
-                }
-
-                timestamps {
-                    dir("tikv") {
-                        container("rust") {
-                            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
-
-                            deleteDir()
-                            timeout(30) {
-                                sh """
-                                set +e
-                                curl --output /dev/null --silent --head --fail ${tikv_url}
-                                if [ \$? != 0 ]; then
-                                    set -e
-                                    rm ~/.gitconfig || true
-                                    cp -R /home/jenkins/agent/git/tikv/. ./
-                                    git checkout -f ${ghprbActualCommit}
-                                    grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                                    if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                        echo using gcc 8
-                                        source /opt/rh/devtoolset-8/enable
-                                    fi
-                                    CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
-                                    # use make release
-                                    mkdir -p bin
-                                    cp /home/jenkins/agent/.target/release/tikv-server bin/
-                                    cp /home/jenkins/agent/.target/release/tikv-ctl bin/
-                                    tar czvf tikv-server.tar.gz bin/*
-                                    curl -F ${filepath}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload
-                                    echo "pr/${ghprbActualCommit}" > sha1
-                                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                                    echo "done" > done
-                                    curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
-                                else
-                                    set -e
-                                    (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
-                                fi
-                                """
-                            }
+                        timeout(30) {
+                            sh """
+                        set +e
+                        while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
+                        set -e
+                        (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
+                        """
                         }
                     }
                 }
