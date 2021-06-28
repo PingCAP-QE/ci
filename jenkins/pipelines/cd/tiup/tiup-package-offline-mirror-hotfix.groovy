@@ -6,7 +6,6 @@
 * @TIFLASH_TAG
 * @BINLOG_TAG
 * @BR_TAG
-* @TOOLS_TAG
 * @IMPORTER_TAG
 * @ARCH_ARM
 * @ARCH_X86
@@ -137,7 +136,7 @@ def package_tools = { plat, arch ->
 
     binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
     pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
+    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
     br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
     importer_hash = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
 

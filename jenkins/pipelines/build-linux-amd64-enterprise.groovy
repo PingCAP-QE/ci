@@ -1,6 +1,26 @@
 /*
 * @RELEASE_TAG
 */
+def boolean tagNeedUpgradeGoVersion(String tag) {
+    if (tag.startsWith("v") && tag > "v5.1") {
+        println "tag=${tag} need upgrade go version"
+        return true
+    }
+    return false
+}
+
+def isNeedGo1160 = tagNeedUpgradeGoVersion(RELEASE_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+} else {
+    println "This build use go1.13"
+}
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+
 def slackcolor = 'good'
 def githash
 def os = "linux"
@@ -13,7 +33,7 @@ def TIFLASH_HASH
 def label = "build-tiflash-release"
 
 try {
-    node("build_go1130") {
+    node("${GO_BUILD_SLAVE}") {
         container("golang") {
             def ws = pwd()
             deleteDir()
@@ -75,6 +95,7 @@ try {
                 def md5path_audit = "builds/pingcap/tidb-plugins/optimization/enterprise/${RELEASE_TAG}/centos7/audit-1.so.md5"
                 dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                     sh """
+                   go mod tidy
                    GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                    """
                     sh """
@@ -85,6 +106,7 @@ try {
                 }
                 dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                     sh """
+                   go mod tidy
                    GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                    """
                     sh """

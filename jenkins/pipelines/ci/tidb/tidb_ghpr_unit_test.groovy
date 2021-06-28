@@ -221,8 +221,10 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
+                                set -o pipefail
                                 export log_level=info
-                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}); fi
+                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}); fi | tee test.log || \\
+                                (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                                 """
                                 }
                             }catch (err) {
@@ -260,8 +262,10 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
+                                set -o pipefail
                                 export log_level=info
-                                if [ -s packages_race_${chunk_suffix} ]; then time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs}; fi
+                                if [ -s packages_race_${chunk_suffix} ]; then time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs}; fi | tee test.log || \\
+                                (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                                 """
                                 }
                             }catch (err) {

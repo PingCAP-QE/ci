@@ -165,7 +165,7 @@ try {
                             grep  "\${package_base}/expression/" packages.list >> packages.list.short
                             echo  "\${package_base}/expression" > packages_race_12
                             grep "\${package_base}/planner/core" packages.list.short > packages_race_6
-                            grep "\${package_base}/store/tikv" packages.list.short > packages_race_5
+                            grep "\${package_base}/store/tikv" packages.list.short > packages_race_5 | true #store/tikv is removed from master
                             grep "\${package_base}/server" packages.list.short > packages_race_4
 
                             cat packages.list.short | grep -v "\${package_base}/planner/core" | grep -v "\${package_base}/store/tikv" | grep -v "\${package_base}/server" > packages.list.short.1
@@ -239,22 +239,21 @@ try {
                                 set -e
                                 set -o pipefail
                                 export log_level=info 
-                                time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}) | tee test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} go test -timeout 10m -v -p 5 -ldflags '-X "github.com/pingcap/tidb/config.checkBeforeDropLDFlag=1"' -cover \$(cat packages_unit_${chunk_suffix}); fi | tee test.log ||\\
+                                (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                                 """
                                 }
                             }catch (err) {
-                                sh """
-                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
-                                """
                                 throw err
-                            }finally {
+                            }
+                            //finally {
                                 // sh"""
                                 // cat test.log
                                 // go get github.com/tebeka/go2xunit
                                 // cat test.log | go2xunit > junit.xml
                                 // """
                                 // junit "junit.xml"
-                            }
+                            // }
                         }
                     }
                 }
@@ -281,13 +280,11 @@ try {
                                 set -e
                                 set -o pipefail
                                 export log_level=info
-                                time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) | tee test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}); fi | tee test.log || \\
+                                (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                                 """
                                 }
                             }catch (err) {
-                                sh """
-                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
-                                """
                                 throw err
                             }//finally {
                             // sh"""
@@ -324,22 +321,21 @@ try {
                                 set -e
                                 set -o pipefail
                                 export log_level=info
-                                time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs} | tee test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time GORACE="history_size=7" ${goTestEnv} go test -v -vet=off -p 5 -timeout 20m -race \$(cat packages_race_${chunk_suffix}) ${extraArgs}; fi  | tee test.log || \\
+                                (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                                 """
                                 }
                             }catch (err) {
-                                sh """
-                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
-                                """
                                 throw err
-                            }finally {
+                            }
+                            // finally {
                                 // sh"""
                                 // cat test.log
                                 // go get github.com/tebeka/go2xunit
                                 // cat test.log | go2xunit > junit.xml
                                 // """
                                 // junit "junit.xml"
-                            }
+                            // }
                         }
                     }
                 }
@@ -374,22 +370,20 @@ try {
                                 set -e
                                 set -o pipefail
                                 export log_level=info 
-                                time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}) | tee test.log
+                                if [ -s packages_race_${chunk_suffix} ]; then time ${goTestEnv} CGO_ENABLED=1 go test -v -p 5 -tags leak \$(cat packages_leak_${chunk_suffix}); fi | tee test.log || \\
+                                (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                                 """
                                 }
                             }catch (err) {
-                                sh """
-                                    cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"
-                                """
                                 throw err
-                            }finally {
+                            }//finally {
                                 // sh"""
                                 // cat test.log
                                 // go get github.com/tebeka/go2xunit
                                 // cat test.log | go2xunit > junit.xml
                                 // """
                                 // junit "junit.xml"
-                            }
+                            // }
                         }
                     }
                 }
