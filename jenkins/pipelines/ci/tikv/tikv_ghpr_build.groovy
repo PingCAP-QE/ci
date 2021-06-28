@@ -13,27 +13,19 @@ if (params.containsKey("release_test")) {
 def slackcolor = 'good'
 def githash
 
-def release="make release"
-if ( ghprbTargetBranch == "master" || ghprbTargetBranch == "release-3.0" || ghprbTargetBranch == "release-3.1") {
-    release = "make dist_release"
-}
+def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
+def release="release"
+
 
 def ghprbCommentBody = params.ghprbCommentBody ?: null
-
-def m1 = (ghprbCommentBody =~ /\/release[\s|\\r|\\n]*\s([^\\].+)/)
-if (m1) {
-    release = "${m1[0][1]}"
-}
-m1 = null
-println "release: $release"
 
 // job param: notcomment default to True
 // /release : not comment binary download url
 // /release comment=true : comment binary download url
-def m2 = ghprbCommentBody =~ /\/release[\s]comment\s*=\s*([^\s\\]+)(\s|\\|$)/
+def m2 = ghprbCommentBody =~ /\/run-build[\s]comment\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m2) {
     needComment = "${m2[0][1]}"
-    if ( needComment == "true" | needComment == "True" ) {
+    if ( needComment == "true" || needComment == "True" ) {
         notcomment = false
     }
 }
@@ -43,7 +35,6 @@ def specStr = "+refs/heads/*:refs/remotes/origin/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
-
 
 
 try {
@@ -66,27 +57,21 @@ try {
                 container("rust") {
                     timeout(120) {
                         sh """
-                        rm ~/.gitconfig || true
-                        cp -R /home/jenkins/agent/git/tikv/. ./
-                        git checkout -f ${ghprbActualCommit}
-                        grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                        if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                            echo using gcc 8
-                            source /opt/rh/devtoolset-8/enable
-                        fi
-                        CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 ${release}
-                        if [[ "${release}" =~ "make dist_release" ]];then
-	                        echo ${release}
-                        else
-	                        mkdir -p bin
+                            rm ~/.gitconfig || true
+                            cp -R /home/jenkins/agent/git/tikv/. ./
+                            git checkout -f ${ghprbActualCommit}
+                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
+                                echo using gcc 8
+                                source /opt/rh/devtoolset-8/enable
+                            fi
+                            CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
+                            # use make release
+                            mkdir -p bin
                             cp /home/jenkins/agent/.target/release/tikv-server bin/
-                            cp /home/jenkins/agent/.target/release/tikv-ctl bin/
-                        fi
-                  
-                        if [[ "${release}" =~ "make titan_release" ]];then
-	                        cp bin/tikv-server bin/tikv-server-titan
-                        fi
+                            cp /home/jenkins/agent/.target/release/tikv-ctl bin
                         """
+
                     }
                 }
             }
