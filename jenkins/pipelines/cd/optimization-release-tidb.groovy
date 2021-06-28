@@ -5,7 +5,6 @@
 * @BINLOG_TAG
 * @TIFLASH_TAG
 * @IMPORTER_TAG
-* @TOOLS_TAG
 * @BR_TAG
 * @CDC_TAG
 * @DUMPLING_TAG
@@ -36,7 +35,7 @@ catchError {
                 dir('centos7') {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     if (STAGE != "build") {
-                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || TOOLS_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
+                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
                             println "release must be used with tag."
                             sh "exit 2"
                         }
@@ -49,8 +48,7 @@ catchError {
                         pd_sha1 = get_hash(PD_TAG, "pd")
                         tidb_br_sha1 = get_hash(BR_TAG, "br")
                         tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
-                        tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")
-                        tidb_tools_sha1 = get_hash(TOOLS_TAG, "tidb-tools")
+                        tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")                 
                         importer_sha1 = get_hash(IMPORTER_TAG, "importer")
                         cdc_sha1 = get_hash(CDC_TAG, "ticdc")
                         dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
@@ -61,7 +59,6 @@ catchError {
                         tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
                         tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                         tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
                         importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
                         cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -70,6 +67,7 @@ catchError {
                     }
                     // lightning 从 4.0.12 开始和 br 的 hash 一样
                     tidb_lightning_sha1 = tidb_br_sha1
+                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
                 }
