@@ -509,15 +509,6 @@ catchError {
                 run_unit_test()
             }
         }
-        if (!slow_case_names.isEmpty()) {
-            // Add slow integration tests
-            make_parallel_jobs(
-                    slow_case_names, 2,
-                    TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
-            ).each { v ->
-                test_cases["${v[0][0]} ~ ${v[0][-1]}"] = v[1]
-            }
-        }
         if (!very_slow_case_names.isEmpty()) {
             make_parallel_jobs(
                 very_slow_case_names, 1,
@@ -526,11 +517,21 @@ catchError {
                 test_cases["(very slow) ${v[0][0]}"] = v[1]
             }
         }
+        if (!slow_case_names.isEmpty()) {
+            // Add slow integration tests
+            make_parallel_jobs(
+                    slow_case_names, 2,
+                    TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
+            ).each { v ->
+                test_cases["(slow) ${v[0][0]} ~ ${v[0][-1]}"] = v[1]
+            }
+        }
+        
         // Add rest integration tests
         test_case_names -= slow_case_names
         test_case_names -= very_slow_case_names
         // TODO: limit parallel size
-        def batch_size = (19 + test_case_names.size()).intdiv(22)
+        def batch_size = (25 + test_case_names.size()).intdiv(26)
         println batch_size
         make_parallel_jobs(
                 test_case_names, batch_size,
