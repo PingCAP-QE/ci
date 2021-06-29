@@ -1,3 +1,15 @@
+echo "release test: ${params.containsKey("release_test")}"
+if (params.containsKey("release_test")) {
+    echo "release test: ${params.containsKey("release_test")}"
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tikv_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
+
 def TIDB_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_TEST_BRANCH = ghprbTargetBranch
@@ -42,6 +54,11 @@ if (TIDB_TEST_BRANCH == "4.0-perf") {
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
+if (ghprbPullId != null && ghprbPullId != "") {
+    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+}
+
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
 def release="release"
 
@@ -75,56 +92,17 @@ try {
 
         prepares["Part #1"] = {
             node("build") {
-                // checkout tikv
-                dir("/home/jenkins/agent/git/tikv") {
-                    // if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                dir("tikv") {
+                    container("rust") {
                         deleteDir()
-                    // }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/tikv.git']]]
-                }
-
-
-                def filepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
-                def donepath = "builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/done"
-                def refspath = "refs/pingcap/tikv/pr/${ghprbPullId}/sha1"
-
-                timestamps {
-                    dir("tikv") {
-                        container("rust") {
-                            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
-
-                            deleteDir()
-                            timeout(30) {
-                                sh """
-                                set +e
-                                curl --output /dev/null --silent --head --fail ${tikv_url}
-                                if [ \$? != 0 ]; then
-                                    set -e
-                                    rm ~/.gitconfig || true
-                                    cp -R /home/jenkins/agent/git/tikv/. ./
-                                    git checkout -f ${ghprbActualCommit}
-                                    grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                                    if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                        echo using gcc 8
-                                        source /opt/rh/devtoolset-8/enable
-                                    fi
-                                    CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
-                                    # use make release
-                                    mkdir -p bin
-                                    cp /home/jenkins/agent/.target/release/tikv-server bin/
-                                    cp /home/jenkins/agent/.target/release/tikv-ctl bin/
-                                    tar czvf tikv-server.tar.gz bin/*
-                                    curl -F ${filepath}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload
-                                    echo "pr/${ghprbActualCommit}" > sha1
-                                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                                    echo "done" > done
-                                    curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
-                                else
-                                    set -e
-                                    (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
-                                fi
-                                """
-                            }
+                        timeout(30) {
+                            sh """
+                        set +e
+                        while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
+                        set -e
+                        (curl ${tikv_url} | tar xz) || (sleep 15 && curl ${tikv_url} | tar xz)
+                        """
                         }
                     }
                 }
@@ -482,16 +460,18 @@ try {
 
     node("master") {
         stage("trigger the dist release job if necessary") {
-            def tikv_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/done"
-            if (sh(returnStatus: true, script: "curl --output /dev/null --silent --head --fail ${tikv_done_url}") != 0) {
-                build job: 'tikv_ghpr_build_release', wait: false, parameters: [
-                    [$class: 'StringParameterValue', name: 'ghprbActualCommit', value: ghprbActualCommit], 
-                    [$class: 'StringParameterValue', name: 'ghprbPullId', value: ghprbPullId],
-                    [$class: 'StringParameterValue', name: 'ghprbTargetBranch', value: ghprbTargetBranch],
-                    [$class: 'StringParameterValue', name: 'ghprbPullTitle', value: ghprbPullTitle],
-                    [$class: 'StringParameterValue', name: 'ghprbPullLink', value: ghprbPullLink],
-                    [$class: 'StringParameterValue', name: 'ghprbPullDescription', value: ghprbPullDescription],
-                    [$class: 'BooleanParameterValue', name: 'notcomment', value: true]]
+            if ( !params.containsKey("triggered_by_upstream_ci")) {
+                def tikv_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/done"
+                if (sh(returnStatus: true, script: "curl --output /dev/null --silent --head --fail ${tikv_done_url}") != 0) {
+                    build job: 'tikv_ghpr_build_release', wait: false, parameters: [
+                            [$class: 'StringParameterValue', name: 'ghprbActualCommit', value: ghprbActualCommit],
+                            [$class: 'StringParameterValue', name: 'ghprbPullId', value: ghprbPullId],
+                            [$class: 'StringParameterValue', name: 'ghprbTargetBranch', value: ghprbTargetBranch],
+                            [$class: 'StringParameterValue', name: 'ghprbPullTitle', value: ghprbPullTitle],
+                            [$class: 'StringParameterValue', name: 'ghprbPullLink', value: ghprbPullLink],
+                            [$class: 'StringParameterValue', name: 'ghprbPullDescription', value: ghprbPullDescription],
+                            [$class: 'BooleanParameterValue', name: 'notcomment', value: true]]
+                }
             }
         }
     }
@@ -524,5 +504,35 @@ finally {
 stage("upload status"){
     node("master"){
         sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+    }
+}
+
+if (params.containsKey("triggered_by_upstream_ci")) {
+    stage("update commit status") {
+        node("master") {
+            if (currentBuild.result == "ABORTED") {
+                PARAM_DESCRIPTION = 'Jenkins job aborted'
+                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
+                PARAM_STATUS = 'error'
+            } else if (currentBuild.result == "FAILURE") {
+                PARAM_DESCRIPTION = 'Jenkins job failed'
+                PARAM_STATUS = 'failure'
+            } else if (currentBuild.result == "SUCCESS") {
+                PARAM_DESCRIPTION = 'Jenkins job success'
+                PARAM_STATUS = 'success'
+            } else {
+                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
+                PARAM_STATUS = 'error'
+            }
+            def default_params = [
+                    string(name: 'TIKV_COMMIT_ID', value: ghprbActualCommit ),
+                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tikv/integration-common-test'),
+                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
+                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
+                    string(name: 'STATUS', value: PARAM_STATUS ),
+            ]
+            echo("default params: ${default_params}")
+            build(job: "tikv_update_commit_status", parameters: default_params, wait: true)
+        }
     }
 }
