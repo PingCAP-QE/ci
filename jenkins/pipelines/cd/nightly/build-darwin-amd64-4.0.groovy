@@ -533,14 +533,14 @@ stage('Summary') {
                 "Build Number: ${BUILD_NUMBER}\\n" +
                 "Result: ${tiflash_result} ${result_mark}\\n" +
                 "RELEASE_TAG: ${RELEASE_TAG}\\n" +
-                "HASH: ${TIFLASH_HASH}\\n" 
+                "HASH: ${TIFLASH_HASH}\\n" + 
                 "Elapsed Time: ${duration} Mins\\n" +
                 "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/detail/build-darwin-amd64-4.0/${BUILD_NUMBER}/pipeline\\n" +
                 "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/"
         print feishumsg
         node {
             withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                sh """
+                sh '''
                   curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
                   -d '{
                     "msg_type": "text",
@@ -548,7 +548,7 @@ stage('Summary') {
                       "text": "$feishumsg"
                     }
                   }'
-                """
+                '''
             }
         }
     }
