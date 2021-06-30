@@ -540,17 +540,15 @@ stage('Summary') {
         print feishumsg
         node {
             withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                if (notify == "true" || notify == true) {
-                    sh """
-                      curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
-                      -d '{
-                        "msg_type": "text",
-                        "content": {
-                          "text": "$feishumsg"
-                        }
-                      }'
-                    """
-                }
+                sh """
+                  curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                  -d '{
+                    "msg_type": "text",
+                    "content": {
+                      "text": "$feishumsg"
+                    }
+                  }'
+                """
             }
         }
     }
