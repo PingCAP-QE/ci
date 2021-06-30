@@ -456,7 +456,7 @@ try {
                         tiflash_result = "FAILURE"
                         def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                         def filepath
-                        throw
+                        sh '''cat nothing'''
                         if(RELEASE_TAG == "nightly") {
                             filepath = "builds/pingcap/tiflash/master/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                         } else {
