@@ -518,6 +518,7 @@ stage('Summary') {
     
     // send a Lark message about result, now it only send tiflash compilation result.
     stage("sendLarkMessage") {
+        print "currentBuild.result=${currentBuild.result}"
         if (currentBuild.result == "ABORTED") {
             tiflash_result = "ABORTED"
         }
