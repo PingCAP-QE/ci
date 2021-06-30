@@ -540,16 +540,18 @@ stage('Summary') {
                 "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/"
         print feishumsg
         node {
-            if (notify == "true" || notify == true) {
-                sh """
-                  curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/ea22c6ca-afc8-4b8b-a196-025e5b96fccf -H 'Content-Type: application/json' \
-                  -d '{
-                    "msg_type": "text",
-                    "content": {
-                      "text": "$feishumsg"
-                    }
-                  }'
-                """
+            withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                if (notify == "true" || notify == true) {
+                    sh """
+                      curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                      -d '{
+                        "msg_type": "text",
+                        "content": {
+                          "text": "$feishumsg"
+                        }
+                      }'
+                    """
+                }
             }
         }
     }
