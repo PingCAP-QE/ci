@@ -529,7 +529,7 @@ stage('Summary') {
             result_mark = "✅"
         }
 
-        def feishumsg = "${JOB_NAME}\\n" +
+        def feishumsg = "tiflash_darwin_build_daily\\n" +
                 "Build Number: ${BUILD_NUMBER}\\n" +
                 "Result: ${tiflash_result} ${result_mark}\\n" +
                 "RELEASE_TAG: ${RELEASE_TAG}\\n" +
