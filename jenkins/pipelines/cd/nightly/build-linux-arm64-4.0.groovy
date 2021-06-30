@@ -518,7 +518,7 @@ stage('Summary') {
     //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     // }
 
-        // send a Lark message about result, now it only send tiflash compilation result.
+    // send a Lark message about result, now it only send tiflash compilation result.
     stage("sendLarkMessage") {
         print "currentBuild.result=${currentBuild.result}"
         if (currentBuild.result == "ABORTED") {
