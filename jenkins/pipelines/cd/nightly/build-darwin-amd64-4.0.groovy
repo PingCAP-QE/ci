@@ -41,6 +41,8 @@ def githash
 def os = "darwin"
 def arch = "amd64"
 def tag
+def tiflash_result = "NOT TRIAGED"
+def taskStartTimeInMillis = System.currentTimeMillis()
 
 try {
     node("mac") {
@@ -451,7 +453,7 @@ try {
             node("mac-i5"){
                 stage("build tiflash") {
                     dir("tics") {
-
+                        tiflash_result = "FAILURE"
                         def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                         def filepath
 
@@ -491,6 +493,7 @@ try {
                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
+                        tiflash_result = "SUCCESS"
                     }
                 }
             }
@@ -506,9 +509,48 @@ try {
 }
 
 stage('Summary') {
+    def duration = ((System.currentTimeMillis() - taskStartTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
     echo "Send slack here ..."
     //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     // if (currentBuild.result != "SUCCESS") {
     //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     // }
+    
+    // send a Lark message about result, now it only send tiflash compilation result.
+    stage("sendLarkMessage") {
+        if (currentBuild.result == "ABORTED") {
+            tiflash_result = "ABORTED"
+        }
+        def result_mark = "❌"
+        if (tiflash_result == "ABORTED" || tiflash_result == "NOT TRIAGED") {
+            result_mark = "🟡"
+        } 
+        if (tiflash_result == "SUCCESS") {
+            result_mark = "✅"
+        }
+
+        def feishumsg = "${JOB_NAME}\\n" +
+                "Build Number: ${BUILD_NUMBER}\\n" +
+                "Result: ${tiflash_result} ${result_mark}\\n" +
+                "RELEASE_TAG: ${RELEASE_TAG}\\n" +
+                "HASH: ${TIFLASH_HASH}\\n" +
+                "Version: ${version}\\n" +
+                "Elapsed Time: ${duration} Mins\\n" +
+                "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/detail/build-darwin-amd64-4.0/${BUILD_NUMBER}/pipeline\\n" +
+                "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/"
+        print feishumsg
+        node {
+            if (notify == "true" || notify == true) {
+                sh """
+                  curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/ea22c6ca-afc8-4b8b-a196-025e5b96fccf -H 'Content-Type: application/json' \
+                  -d '{
+                    "msg_type": "text",
+                    "content": {
+                      "text": "$feishumsg"
+                    }
+                  }'
+                """
+            }
+        }
+    }
 }
