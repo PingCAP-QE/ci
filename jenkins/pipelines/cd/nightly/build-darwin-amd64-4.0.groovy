@@ -41,8 +41,8 @@ def githash
 def os = "darwin"
 def arch = "amd64"
 def tag
-def tiflash_result = "NOT TRIAGED"
 def taskStartTimeInMillis = System.currentTimeMillis()
+def tiflash_result = "NOT TRIAGED"
 
 try {
     node("mac") {
