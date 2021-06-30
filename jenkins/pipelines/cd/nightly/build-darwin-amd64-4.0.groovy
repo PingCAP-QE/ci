@@ -91,363 +91,363 @@ try {
             TIDB_CTL_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=nightly -s=${FILE_SERVER_URL}").trim()
         }
 
-//         stage("Build tidb-ctl") {
-//             dir("go/src/github.com/pingcap/tidb-ctl") {
+        stage("Build tidb-ctl") {
+            dir("go/src/github.com/pingcap/tidb-ctl") {
 
-//                 retry(20) {
-//                     deleteDir()
-//                     // git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/tidb-ctl.git", branch: "master"
-//                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${TIDB_CTL_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-ctl.git']]]
-//                 }
+                retry(20) {
+                    deleteDir()
+                    // git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/tidb-ctl.git", branch: "master"
+                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${TIDB_CTL_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-ctl.git']]]
+                }
 
-//                 def target = "tidb-ctl-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/tidb-ctl/${TIDB_CTL_HASH}/darwin/tidb-ctl.tar.gz"
+                def target = "tidb-ctl-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/tidb-ctl/${TIDB_CTL_HASH}/darwin/tidb-ctl.tar.gz"
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                 go version
-//                 go build -o /Users/pingcap/binarys/tidb-ctl
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                go version
+                go build -o /Users/pingcap/binarys/tidb-ctl
 
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
-//                 tar -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
+                tar -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         stage("Build tidb") {
-//             dir("go/src/github.com/pingcap/tidb") {
+        stage("Build tidb") {
+            dir("go/src/github.com/pingcap/tidb") {
 
-//                 def target = "tidb-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/tidb/${TIDB_HASH}/darwin/tidb-server.tar.gz"
+                def target = "tidb-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/tidb/${TIDB_HASH}/darwin/tidb-server.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                 
-//                 make clean
-//                 git checkout .
-//                 go version
-//                 make
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
-//                 cp bin/* ${target}/bin
-//                 tar -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                make clean
+                git checkout .
+                go version
+                make
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
+                cp bin/* ${target}/bin
+                tar -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         stage("Build tidb-binlog") {
-//             dir("go/src/github.com/pingcap/tidb-binlog") {
+        stage("Build tidb-binlog") {
+            dir("go/src/github.com/pingcap/tidb-binlog") {
 
-//                 def target = "tidb-binlog-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/tidb-binlog/${BINLOG_HASH}/darwin/tidb-binlog.tar.gz"
+                def target = "tidb-binlog-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/tidb-binlog/${BINLOG_HASH}/darwin/tidb-binlog.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-binlog.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-binlog.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                 make clean
-//                 go version
-//                 make
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                make clean
+                go version
+                make
 
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp bin/* /Users/pingcap/binarys
-//                 cp bin/* ${target}/bin
-//                 tar -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp bin/* /Users/pingcap/binarys
+                cp bin/* ${target}/bin
+                tar -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         stage("Build tidb-lightning") {
-//             dir("go/src/github.com/pingcap/tidb-lightning") {
+        stage("Build tidb-lightning") {
+            dir("go/src/github.com/pingcap/tidb-lightning") {
 
-//                 def target = "tidb-lightning-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/tidb-lightning/${LIGHTNING_HASH}/darwin/tidb-lightning.tar.gz"
+                def target = "tidb-lightning-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/tidb-lightning/${LIGHTNING_HASH}/darwin/tidb-lightning.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-lightning.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-lightning.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                 make clean
-//                 go version
-//                 make
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp bin/* ${target}/bin
-//                 tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                make clean
+                go version
+                make
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp bin/* ${target}/bin
+                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         stage("Build tidb-tools") {
-//             dir("go/src/github.com/pingcap/tidb-tools") {
+        stage("Build tidb-tools") {
+            dir("go/src/github.com/pingcap/tidb-tools") {
 
-//                 def target = "tidb-tools-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/tidb-lightning/${TOOLS_HASH}/darwin/tidb-tools.tar.gz"
+                def target = "tidb-tools-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/tidb-lightning/${TOOLS_HASH}/darwin/tidb-tools.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${TOOLS_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-tools.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-tools.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${TOOLS_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-tools.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-tools.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                 make clean
-//                 go version
-//                 make build
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp bin/* ${target}/bin
-//                 tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                make clean
+                go version
+                make build
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp bin/* ${target}/bin
+                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         stage("Build pd") {
-//             dir("go/src/github.com/pingcap/pd") {
+        stage("Build pd") {
+            dir("go/src/github.com/pingcap/pd") {
 
-//                 def target = "pd-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/pd/${PD_HASH}/darwin/pd-server.tar.gz"
+                def target = "pd-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/pd/${PD_HASH}/darwin/pd-server.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PD_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/pd.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/pd.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PD_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/pd.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/pd.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                 go version
-//                 make
-//                 make tools
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                go version
+                make
+                make tools
 
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp bin/* /Users/pingcap/binarys
-//                 cp bin/* ${target}/bin
-//                 tar -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp bin/* /Users/pingcap/binarys
+                cp bin/* ${target}/bin
+                tar -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-//             stage("Build cdc") {
-//                 dir("go/src/github.com/pingcap/ticdc") {
+        if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
+            stage("Build cdc") {
+                dir("go/src/github.com/pingcap/ticdc") {
 
-//                     def target = "ticdc-${os}-${arch}"
-//                     def filepath = "builds/pingcap/ticdc/${CDC_HASH}/darwin/ticdc-${os}-${arch}.tar.gz"
+                    def target = "ticdc-${os}-${arch}"
+                    def filepath = "builds/pingcap/ticdc/${CDC_HASH}/darwin/ticdc-${os}-${arch}.tar.gz"
 
-//                     retry(20) {
-//                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                             deleteDir()
-//                         }
-//                         if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                             checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
-//                         } else {
-//                             checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/ticdc.git']]]
-//                         }
-//                     }
+                    retry(20) {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
+                        } else {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/ticdc.git']]]
+                        }
+                    }
 
-//                     sh """
-//                     export GOPATH=/Users/pingcap/gopkg
-//                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                     go version
-//                     mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-//                     GOPATH=\$GOPATH:${ws}/go make build
-//                     mkdir -p ${target}/bin
-//                     mv bin/cdc ${target}/bin/
-//                     tar -czvf ${target}.tar.gz ${target}
-//                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                     """
-//                 }
-//             }
-//         }
+                    sh """
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    go version
+                    mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
+                    GOPATH=\$GOPATH:${ws}/go make build
+                    mkdir -p ${target}/bin
+                    mv bin/cdc ${target}/bin/
+                    tar -czvf ${target}.tar.gz ${target}
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    """
+                }
+            }
+        }
 
-//         if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
-//             stage("Build br") {
-//                 dir("go/src/github.com/pingcap/br") {
+        if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
+            stage("Build br") {
+                dir("go/src/github.com/pingcap/br") {
 
-//                     def target = "br-${RELEASE_TAG}-${os}-${arch}"
-//                     def filepath
-//                     if(RELEASE_TAG == "nightly") {
-//                         filepath = "builds/pingcap/br/master/${BR_HASH}/darwin/br.tar.gz"
-//                     } else {
-//                         filepath = "builds/pingcap/br/${RELEASE_TAG}/${BR_HASH}/darwin/br.tar.gz"
-//                     }
+                    def target = "br-${RELEASE_TAG}-${os}-${arch}"
+                    def filepath
+                    if(RELEASE_TAG == "nightly") {
+                        filepath = "builds/pingcap/br/master/${BR_HASH}/darwin/br.tar.gz"
+                    } else {
+                        filepath = "builds/pingcap/br/${RELEASE_TAG}/${BR_HASH}/darwin/br.tar.gz"
+                    }
 
-//                     retry(20) {
-//                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                             deleteDir()
-//                         }
-//                         if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                             checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/br.git']]]
-//                         } else {
-//                             checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/br.git']]]
-//                         }
-//                     }
+                    retry(20) {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/br.git']]]
+                        } else {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/br.git']]]
+                        }
+                    }
 
-//                     sh """
-//                     export GOPATH=/Users/pingcap/gopkg
-//                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                     #GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn make build
-//                     make build
-//                     rm -rf ${target}
-//                     mkdir -p ${target}/bin
-//                     cp bin/* ${target}/bin
-//                     tar --exclude=br.tar.gz -czvf ${target}.tar.gz ${target}
-//                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                     """
-//                 }
-//             }
-//         }
+                    sh """
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    #GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn make build
+                    make build
+                    rm -rf ${target}
+                    mkdir -p ${target}/bin
+                    cp bin/* ${target}/bin
+                    tar --exclude=br.tar.gz -czvf ${target}.tar.gz ${target}
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    """
+                }
+            }
+        }
 
-//         if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.2") {
-//             stage("Build dumpling") {
-//                 dir("go/src/github.com/pingcap/dumpling") {
+        if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.2") {
+            stage("Build dumpling") {
+                dir("go/src/github.com/pingcap/dumpling") {
 
-//                     def target = "dumpling-${RELEASE_TAG}-${os}-${arch}"
-//                     def filepath = "builds/pingcap/dumpling/${DUMPLING_HASH}/darwin/dumpling-${os}-${arch}.tar.gz"
+                    def target = "dumpling-${RELEASE_TAG}-${os}-${arch}"
+                    def filepath = "builds/pingcap/dumpling/${DUMPLING_HASH}/darwin/dumpling-${os}-${arch}.tar.gz"
 
-//                     retry(20) {
-//                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                             deleteDir()
-//                         }
-//                         if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                             checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/dumpling.git']]]
-//                         } else {
-//                             checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/dumpling.git']]]
-//                         }
-//                     }
+                    retry(20) {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/dumpling.git']]]
+                        } else {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/dumpling.git']]]
+                        }
+                    }
 
-//                     sh """
-//                     export GOPATH=/Users/pingcap/gopkg
-//                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-//                     make build
-//                     rm -rf ${target}
-//                     mkdir -p ${target}/bin
-//                     cp bin/* ${target}/bin
-//                     tar -czvf ${target}.tar.gz ${target}
-//                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                     """
-//                 }
-//             }
-//         }
-// //当前的 mac 环境用的是 gcc8
-//         stage("Build TiKV") {
-//             dir("go/src/github.com/pingcap/tikv") {
+                    sh """
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    make build
+                    rm -rf ${target}
+                    mkdir -p ${target}/bin
+                    cp bin/* ${target}/bin
+                    tar -czvf ${target}.tar.gz ${target}
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    """
+                }
+            }
+        }
+//当前的 mac 环境用的是 gcc8
+        stage("Build TiKV") {
+            dir("go/src/github.com/pingcap/tikv") {
 
-//                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/tikv/${TIKV_HASH}/darwin/tikv-server.tar.gz"
+                def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/tikv.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIKV_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/tikv.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/tikv.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-//                 CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 make dist_release
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp bin/* /Users/pingcap/binarys
-//                 cp bin/* ${target}/bin
-//                 tar -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
+                CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 make dist_release
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp bin/* /Users/pingcap/binarys
+                cp bin/* ${target}/bin
+                tar -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
-//         stage("Build Importer") {
-//             dir("go/src/github.com/pingcap/importer") {
+        stage("Build Importer") {
+            dir("go/src/github.com/pingcap/importer") {
 
-//                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-//                 def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/darwin/importer.tar.gz"
+                def target = "importer-${RELEASE_TAG}-${os}-${arch}"
+                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/darwin/importer.tar.gz"
 
-//                 retry(20) {
-//                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                         deleteDir()
-//                     }
-//                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-//                     } else {
-//                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/importer.git']]]
-//                     }
-//                 }
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/importer.git']]]
+                    }
+                }
 
-//                 sh """
-//                 export GOPATH=/Users/pingcap/gopkg
-//                 export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-//                 ROCKSDB_SYS_SSE=0 make release
-//                 rm -rf ${target}
-//                 mkdir -p ${target}/bin
-//                 cp target/release/tikv-importer ${target}/bin
-//                 tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-//                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                 """
-//             }
-//         }
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
+                ROCKSDB_SYS_SSE=0 make release
+                rm -rf ${target}
+                mkdir -p ${target}/bin
+                cp target/release/tikv-importer ${target}/bin
+                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
+            }
+        }
 
         if(SKIP_TIFLASH == "false" && (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0")) {
             node("mac-i5"){
@@ -456,7 +456,6 @@ try {
                         tiflash_result = "FAILURE"
                         def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                         def filepath
-                        sh '''cat nothing'''
                         if(RELEASE_TAG == "nightly") {
                             filepath = "builds/pingcap/tiflash/master/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                         } else {
