@@ -503,7 +503,6 @@ try {
 
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
-    currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
 }
