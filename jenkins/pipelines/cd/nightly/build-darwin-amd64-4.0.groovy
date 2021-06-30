@@ -42,7 +42,7 @@ def os = "darwin"
 def arch = "amd64"
 def tag
 def taskStartTimeInMillis = System.currentTimeMillis()
-def tiflash_result = "NOT TRIAGED"
+def tiflash_result = "NOT TRIGGERED"
 
 try {
     node("mac") {
@@ -542,7 +542,7 @@ stage('Summary') {
             tiflash_result = "ABORTED"
         }
         def result_mark = "❌"
-        if (tiflash_result == "ABORTED" || tiflash_result == "NOT TRIAGED") {
+        if (tiflash_result == "ABORTED" || tiflash_result == "NOT TRIGGERED") {
             result_mark = "🟡"
         } 
         if (tiflash_result == "SUCCESS") {
