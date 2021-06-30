@@ -511,6 +511,7 @@ catch (Exception e) {
 }
 
 stage('Summary') {
+    def duration = ((System.currentTimeMillis() - taskStartTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
     echo "Send slack here ..."
     //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     // if (currentBuild.result != "SUCCESS") {
