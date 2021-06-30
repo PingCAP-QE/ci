@@ -454,45 +454,45 @@ try {
                 stage("build tiflash") {
                     dir("tics") {
                         tiflash_result = "FAILURE"
-//                         def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-//                         def filepath
+                        def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
+                        def filepath
 
-//                         if(RELEASE_TAG == "nightly") {
-//                             filepath = "builds/pingcap/tiflash/master/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
-//                         } else {
-//                             filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
-//                         }
+                        if(RELEASE_TAG == "nightly") {
+                            filepath = "builds/pingcap/tiflash/master/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
+                        } else {
+                            filepath = "builds/pingcap/tiflash/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
+                        }
 
-//                         retry(20) {
-//                             if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-//                                 deleteDir()
-//                             }
-//                             if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-//                                 checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
-//                             } else {
-//                                 checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'LocalBranch'], [$class: 'CloneOption', noTags: true, timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tics.git']]]
-//                             }
-//                         }
+                        retry(20) {
+                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                deleteDir()
+                            }
+                            if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
+                            } else {
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class:'CheckoutOption', timeout: 30], [$class: 'LocalBranch'], [$class: 'CloneOption', noTags: true, timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tics.git']]]
+                            }
+                        }
 
-//                         sh """
-//                         export GOPATH=/Users/pingcap/gopkg
-//                         export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-//                         mkdir -p release-darwin/build/
-//                         [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
-//                         [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
-//                         [ -f "release-darwin/build/build-tiflash-proxy.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-proxy.sh > release-darwin/build/build-tiflash-proxy.sh
-//                         [ -f "release-darwin/build/build-tiflash-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-release.sh > release-darwin/build/build-tiflash-release.sh
-//                         chmod +x release-darwin/build/*
-//                         ./release-darwin/build/build-release.sh
-//                         ls -l ./release-darwin/tiflash/
-//                         """
+                        sh """
+                        export GOPATH=/Users/pingcap/gopkg
+                        export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
+                        mkdir -p release-darwin/build/
+                        [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
+                        [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
+                        [ -f "release-darwin/build/build-tiflash-proxy.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-proxy.sh > release-darwin/build/build-tiflash-proxy.sh
+                        [ -f "release-darwin/build/build-tiflash-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-release.sh > release-darwin/build/build-tiflash-release.sh
+                        chmod +x release-darwin/build/*
+                        ./release-darwin/build/build-release.sh
+                        ls -l ./release-darwin/tiflash/
+                        """
 
-//                         sh """
-//                         cd release-darwin
-//                         mv tiflash ${target}
-//                         tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-//                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-//                         """
+                        sh """
+                        cd release-darwin
+                        mv tiflash ${target}
+                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        """
                         tiflash_result = "SUCCESS"
                     }
                 }
