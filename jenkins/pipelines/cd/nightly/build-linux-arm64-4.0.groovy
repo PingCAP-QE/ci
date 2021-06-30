@@ -41,6 +41,8 @@ def slackcolor = 'good'
 def githash
 def os = "linux"
 def arch = "arm64"
+def taskStartTimeInMillis = System.currentTimeMillis()
+def tiflash_result = "NOT TRIGGERED"
 
 try {
     node("arm") {
@@ -444,7 +446,7 @@ try {
 
                     stage("build tiflash") {
                         dir("tics") {
-
+                            tiflash_result = "FAILURE"
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                             def filepath
 
@@ -473,6 +475,7 @@ try {
                                 tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
                                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                                 """
+                            tiflash_result = "SUCCESS"
                         }
                     }
                 }
@@ -481,16 +484,75 @@ try {
     }
 
     currentBuild.result = "SUCCESS"
-} catch (Exception e) {
-    currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
-    echo "${e}"
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    println e
+    // this ambiguous condition means a user probably aborted
+    currentBuild.result = "ABORTED"
+} catch (hudson.AbortException e) {
+    println e
+    // this ambiguous condition means during a shell step, user probably aborted
+    if (e.getMessage().contains('script returned exit code 143')) {
+        currentBuild.result = "ABORTED"
+    } else {
+        currentBuild.result = "FAILURE"
+    }
+} catch (InterruptedException e) {
+    println e
+    currentBuild.result = "ABORTED"
+}
+catch (Exception e) {
+    if (e.getMessage().equals("hasBeenTested")) {
+        currentBuild.result = "SUCCESS"
+    } else {
+        currentBuild.result = "FAILURE"
+        slackcolor = 'danger'
+        echo "${e}"
+    }
 }
 
 stage('Summary') {
+    def duration = ((System.currentTimeMillis() - taskStartTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
     echo "Send slack here ..."
     //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     // if (currentBuild.result != "SUCCESS") {
     //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     // }
+
+    // send a Lark message about result, now it only send tiflash compilation result.
+    stage("sendLarkMessage") {
+        print "currentBuild.result=${currentBuild.result}"
+        if (currentBuild.result == "ABORTED") {
+            tiflash_result = "ABORTED"
+        }
+        def result_mark = "❌"
+        if (tiflash_result == "ABORTED" || tiflash_result == "NOT TRIGGERED") {
+            result_mark = "🟡"
+        } 
+        if (tiflash_result == "SUCCESS") {
+            result_mark = "✅"
+        }
+
+        def feishumsg = "tiflash_linux_arm64_build_daily\\n" +
+                "Build Number: ${BUILD_NUMBER}\\n" +
+                "Result: ${tiflash_result} ${result_mark}\\n" +
+                "Release Tag: ${RELEASE_TAG}\\n" +
+                "Git Hash: ${TIFLASH_HASH}\\n" + 
+                "Elapsed Time (all components): ${duration} Mins\\n" +
+                "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build-linux-arm64-4.0/detail/build-linux-arm64-4.0/${BUILD_NUMBER}/pipeline\\n" +
+                "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build-linux-arm64-4.0/"
+        print feishumsg
+        node {
+            withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                sh """
+                  curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                  -d '{
+                    "msg_type": "text",
+                    "content": {
+                      "text": "$feishumsg"
+                    }
+                  }'
+                """
+            }
+        }
+    }
 }
