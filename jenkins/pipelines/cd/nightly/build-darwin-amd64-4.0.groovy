@@ -533,8 +533,7 @@ stage('Summary') {
                 "Build Number: ${BUILD_NUMBER}\\n" +
                 "Result: ${tiflash_result} ${result_mark}\\n" +
                 "RELEASE_TAG: ${RELEASE_TAG}\\n" +
-                "HASH: ${TIFLASH_HASH}\\n" +
-                "Version: ${version}\\n" +
+                "HASH: ${TIFLASH_HASH}\\n" 
                 "Elapsed Time: ${duration} Mins\\n" +
                 "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/detail/build-darwin-amd64-4.0/${BUILD_NUMBER}/pipeline\\n" +
                 "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build-darwin-amd64-4.0/"
