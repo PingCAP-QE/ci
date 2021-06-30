@@ -531,7 +531,7 @@ stage('Summary') {
             result_mark = "✅"
         }
 
-        def feishumsg = "tiflash_arm_build_daily\\n" +
+        def feishumsg = "tiflash_linux_arm64_build_daily\\n" +
                 "Build Number: ${BUILD_NUMBER}\\n" +
                 "Result: ${tiflash_result} ${result_mark}\\n" +
                 "RELEASE_TAG: ${RELEASE_TAG}\\n" +
