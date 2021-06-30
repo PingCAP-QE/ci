@@ -535,8 +535,8 @@ stage('Summary') {
         def feishumsg = "tiflash_linux_arm64_build_daily\\n" +
                 "Build Number: ${BUILD_NUMBER}\\n" +
                 "Result: ${tiflash_result} ${result_mark}\\n" +
-                "RELEASE_TAG: ${RELEASE_TAG}\\n" +
-                "HASH: ${TIFLASH_HASH}\\n" + 
+                "Release Tag: ${RELEASE_TAG}\\n" +
+                "Git Hash: ${TIFLASH_HASH}\\n" + 
                 "Elapsed Time (all components): ${duration} Mins\\n" +
                 "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build-linux-arm64-4.0/detail/build-linux-arm64-4.0/${BUILD_NUMBER}/pipeline\\n" +
                 "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build-linux-arm64-4.0/"
