@@ -540,7 +540,7 @@ stage('Summary') {
         print feishumsg
         node {
             withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                sh '''
+                sh """
                   curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
                   -d '{
                     "msg_type": "text",
@@ -548,7 +548,7 @@ stage('Summary') {
                       "text": "$feishumsg"
                     }
                   }'
-                '''
+                """
             }
         }
     }
