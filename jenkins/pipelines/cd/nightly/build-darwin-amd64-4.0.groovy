@@ -502,9 +502,30 @@ try {
     }
 
     currentBuild.result = "SUCCESS"
-} catch (Exception e) {
-    slackcolor = 'danger'
-    echo "${e}"
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    println e
+    // this ambiguous condition means a user probably aborted
+    currentBuild.result = "ABORTED"
+} catch (hudson.AbortException e) {
+    println e
+    // this ambiguous condition means during a shell step, user probably aborted
+    if (e.getMessage().contains('script returned exit code 143')) {
+        currentBuild.result = "ABORTED"
+    } else {
+        currentBuild.result = "FAILURE"
+    }
+} catch (InterruptedException e) {
+    println e
+    currentBuild.result = "ABORTED"
+}
+catch (Exception e) {
+    if (e.getMessage().equals("hasBeenTested")) {
+        currentBuild.result = "SUCCESS"
+    } else {
+        currentBuild.result = "FAILURE"
+        slackcolor = 'danger'
+        echo "${e}"
+    }
 }
 
 stage('Summary') {
