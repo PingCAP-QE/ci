@@ -672,8 +672,8 @@ __EOF__
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
-                        docker pull pingcap/ticdc:${RELEASE_TAG}
-                        docker tag pingcap/ticdc:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
+                        docker pull registry-mirror.pingcap.net/pingcap/ticdc:${RELEASE_TAG}
+                        docker tag registry-mirror.pingcap.net/pingcap/ticdc:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
                         docker push uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
                     """
                 }
@@ -686,8 +686,8 @@ __EOF__
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
-                        docker pull pingcap/tiflash:${RELEASE_TAG}
-                        docker tag pingcap/tiflash:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
+                        docker pull registry-mirror.pingcap.net/pingcap/tiflash:${RELEASE_TAG}
+                        docker tag registry-mirror.pingcap.net/pingcap/tiflash:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
                         docker push uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
                     """
                 }
@@ -700,8 +700,8 @@ __EOF__
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
-                        docker pull pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                        docker tag pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                        docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                        docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
                         docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
                     """
                 }
@@ -736,8 +736,8 @@ __EOF__
             // builds["Push monitor reloader"] = {
             //     docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
             //         sh """
-            //             docker pull pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker tag pingcap/tidb-monitor-reloader:v1.0.1 uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
+            //             docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1
+            //             docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1 uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
             //             docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
             //         """
             //     }
