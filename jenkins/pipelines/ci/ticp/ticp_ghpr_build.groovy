@@ -55,6 +55,7 @@ node("${GO_BUILD_SLAVE}") {
                 stage('Build') {
                     sh """
                         GOPATH=\$GOPATH:${ws}/go make build
+                        GOPATH=\$GOPATH:${ws}/go make INSTALL_DIR=bin install
                     """
                 }
                 stage("Upload") {
