@@ -72,6 +72,7 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 def buildSlave = "${GO_BUILD_SLAVE}"
+def testSlave = "${GO_TEST_SLAVE}"
 
 try {
     stage("Pre-check"){
@@ -90,8 +91,6 @@ try {
             throw new RuntimeException("hasBeenTested")
         }
     }
-    //def buildSlave = "${GO_BUILD_SLAVE}"
-    def testSlave = "test_go"
 
     node(buildSlave) {
         stage("Checkout") {
