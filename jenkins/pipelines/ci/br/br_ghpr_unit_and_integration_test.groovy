@@ -399,16 +399,19 @@ def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, ti
 
 catchError {
     def test_case_names = []
+    // >= 2m 30s
+    def very_slow_case_names = [
+        "br_s3",    // 4m 3s
+        "br_tiflash",   // 2m 42s
+        "br_tikv_outage",   // 2m 39s
+        "br_tikv_outage2",  // 4m 40s
+        "lightning_disk_quota"  // 3m 9s
+    ]
     def slow_case_names = [
-        "br_300_small_tables",
-        "br_full_ddl",
-        "br_log_restore",
-        "br_s3",
-        "br_tikv_outage",
-        "br_tikv_outage2",
-        "br_tiflash",
-        "lightning_checkpoint",
-        "lightning_disk_quota"
+        "br_300_small_tables",  // 1m 47s
+        "br_full_ddl",  // 1m 19s
+        "br_log_restore",   // 2m 15s
+        "lightning_checkpoint", // 2m 0s
     ]
 
     stage('Prepare') {
@@ -487,6 +490,7 @@ catchError {
                             }
                     }
                     // filter out the nonexistent tests
+                    very_slow_case_names = very_slow_case_names - (very_slow_case_names - test_case_names)
                     slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                 }
 
@@ -505,19 +509,29 @@ catchError {
                 run_unit_test()
             }
         }
+        if (!very_slow_case_names.isEmpty()) {
+            make_parallel_jobs(
+                very_slow_case_names, 1,
+                TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
+            ).each { v ->
+                test_cases["(very slow) ${v[0][0]}"] = v[1]
+            }
+        }
         if (!slow_case_names.isEmpty()) {
             // Add slow integration tests
             make_parallel_jobs(
-                    slow_case_names, 1,
+                    slow_case_names, 2,
                     TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
             ).each { v ->
-                test_cases["(slow) ${v[0][0]}"] = v[1]
+                test_cases["(slow) ${v[0][0]} ~ ${v[0][-1]}"] = v[1]
             }
         }
+        
         // Add rest integration tests
         test_case_names -= slow_case_names
+        test_case_names -= very_slow_case_names
         // TODO: limit parallel size
-        def batch_size = (19 + test_case_names.size()).intdiv(20)
+        def batch_size = (25 + test_case_names.size()).intdiv(26)
         println batch_size
         make_parallel_jobs(
                 test_case_names, batch_size,
