@@ -279,7 +279,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                         tikv_download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", tikv_download_url)
                     }
                     sh label: "Download TiKV", script: """
-                    curl ${tikv_download_url} | tar xz bin/tikv-server
+                    curl ${tikv_download_url} | tar xz bin/tikv-server bin/tikv-ctl
                     """
                     // tikv-importer
                     def tikv_importer_sha1 = get_commit_hash("importer", importer)
