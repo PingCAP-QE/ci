@@ -1,5 +1,4 @@
 def notRun = 1
-def buildSlave = "${GO_BUILD_SLAVE}"
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -80,7 +79,7 @@ try {
                 throw new RuntimeException("hasBeenTested")
             }
         }
-        //   def buildSlave = "${GO_BUILD_SLAVE}"
+        def buildSlave = "${GO_BUILD_SLAVE}"
         def testSlave =  "${GO_TEST_SLAVE}"
 
         stage('Prepare') {
