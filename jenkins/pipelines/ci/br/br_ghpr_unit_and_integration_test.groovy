@@ -401,11 +401,11 @@ catchError {
     def test_case_names = []
     def slow_case_names = [
         "br_300_small_tables",
-        "br_full_ddl",
+       // "br_full_ddl",
         "br_log_restore",
-        "br_s3",
+      //  "br_s3",
         "br_tikv_outage",
-        "br_tikv_outage2",
+       // "br_tikv_outage2",
         "br_tiflash",
         "lightning_checkpoint",
         "lightning_disk_quota"
