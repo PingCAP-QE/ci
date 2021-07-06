@@ -1,0 +1,39 @@
+# docker build . -t hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest
+FROM hub.pingcap.net/jenkins/centos7_golang-1.13-arm64:latest
+
+USER root
+WORKDIR /root
+
+RUN yum install --nogpgcheck -y centos-release-scl epel-release \
+    && yum remove cmake -y \
+	&& yum install -y devtoolset-8 jq gflags cmake3 \
+	&& yum clean all
+
+RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
+ENV LIBRARY_PATH /usr/local/lib:\$LIBRARY_PATH
+ENV LD_LIBRARY_PATH /usr/local/lib:\$LD_LIBRARY_PATH
+
+RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protoc-3.17.3-linux-aarch_64.zip \
+	&& unzip -o protoc-3.17.3-linux-aarch_64.zip -d /usr/local bin/protoc \
+    && chown jenkins:jenkins /usr/local/bin/protoc \
+	&& rm -f protoc-3.17.3-linux-aarch_64.zip
+
+RUN mkdir /rust && chown jenkins:jenkins /rust
+
+USER jenkins
+WORKDIR /rust
+
+ENV RUSTUP_HOME /rust
+ENV CARGO_HOME /rust
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly-2021-04-15 -y \
+	&& $RUSTUP_HOME/bin/rustup default nightly-2021-04-15 \
+	&& mkdir /rust/registry /rust/git
+
+ENV PATH $CARGO_HOME/bin:$RUSTUP_HOME/bin:$PATH
+
+RUN rustup component add rustfmt
+RUN rustup component add clippy
+
+USER jenkins
+WORKDIR /home/jenkins
