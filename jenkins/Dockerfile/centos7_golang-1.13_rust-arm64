@@ -1,4 +1,4 @@
-# docker build . -t hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest
+# docker build . -t hub.pingcap.net/jenkins/centos7_golang-1.13_rust-arm64:latest
 FROM hub.pingcap.net/jenkins/centos7_golang-1.13-arm64:latest
 
 USER root
