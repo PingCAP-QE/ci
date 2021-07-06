@@ -401,10 +401,10 @@ catchError {
     def test_case_names = []
     // >= 2m 30s
     def very_slow_case_names = [
-        "br_s3",    // 4m 3s
+//        "br_s3",    // 4m 3s
         "br_tiflash",   // 2m 42s
         "br_tikv_outage",   // 2m 39s
-        "br_tikv_outage2",  // 4m 40s
+ //       "br_tikv_outage2",  // 4m 40s
         "lightning_disk_quota"  // 3m 9s
     ]
     def slow_case_names = [
