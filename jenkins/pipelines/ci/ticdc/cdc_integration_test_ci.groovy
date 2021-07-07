@@ -1,5 +1,5 @@
 
-node("${GO_TEST_SLAVE}") {
+node("github-status-updater") {
     stage("Print env"){
         // commit id / branch / pusher / commit message
         def trimPrefix = {
@@ -37,7 +37,7 @@ node("${GO_TEST_SLAVE}") {
                 string(name: 'triggered_by_upstream_ci', value: "cdc_integration_test_ci"),
                 booleanParam(name: 'release_test', value: true),
                 string(name: 'release_test__release_branch', value: CDC_BRANCH),
-                string(name: 'release_test__tikv_commit', value: CDC_COMMIT_ID),
+                string(name: 'release_test__cdc_commit', value: CDC_COMMIT_ID),
         ]
 
         echo("default params: ${default_params}")
