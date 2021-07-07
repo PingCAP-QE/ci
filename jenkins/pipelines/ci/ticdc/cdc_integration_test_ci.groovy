@@ -52,13 +52,13 @@ node("github-status-updater") {
                             build(job: "cdc_ghpr_test", parameters: default_params, wait: true)
                         },
                         cdc_ghpr_leak_test: {
-                            build(job: "cdc_ghpr_test", parameters: default_params, wait: true)
+                            build(job: "cdc_ghpr_leak_test", parameters: default_params, wait: true)
                         },
                         cdc_ghpr_integration_test: {
-                            build(job: "cdc_ghpr_test", parameters: default_params, wait: true)
+                            build(job: "cdc_ghpr_integration_test", parameters: default_params, wait: true)
                         },
-                        cdc_ghpr_kafka_integration_tes: {
-                            build(job: "cdc_ghpr_test", parameters: default_params, wait: true)
+                        cdc_ghpr_kafka_integration_test: {
+                            build(job: "cdc_ghpr_kafka_integration_test", parameters: default_params, wait: true)
                         },
                 )
             }
