@@ -452,13 +452,14 @@ catchError {
                     println "params: ${paramstring}"
                     println "ghprbPullId: ${ghprbPullId}"
                     println "refSpecs: ${refSpecs}"
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/br.git']]]
 
                     def filepath = "builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz"
 
                     if (!params.containsKey("triggered_by_upstream_pr_ci")
                      || sh(returnStdout: true, script: """curl --output /dev/null --silent --head -w %{http_code}"\\n" ${FILE_SERVER_URL}/download/${filepath}""") == "404") {
                         
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/br.git']]]
+
                         sh label: "Build and Compress testing binaries", script: """
                         git checkout -f ${ghprbActualCommit}
                         git rev-parse HEAD
