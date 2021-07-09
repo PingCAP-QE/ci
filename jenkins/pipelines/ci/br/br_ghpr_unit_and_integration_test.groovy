@@ -457,7 +457,7 @@ catchError {
                     def filepath = "builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz"
 
                     if (!params.containsKey("triggered_by_upstream_pr_ci")
-                     || sh(returnStdout: true, script: """curl --output /dev/null --silent --head -w %{http_code}"\n" ${FILE_SERVER_URL}/download/${filepath}""") == "404") {
+                     || sh(returnStdout: true, script: """curl --output /dev/null --silent --head -w %{http_code}"\\n" ${FILE_SERVER_URL}/download/${filepath}""") == "404") {
                         
                         sh label: "Build and Compress testing binaries", script: """
                         git checkout -f ${ghprbActualCommit}
