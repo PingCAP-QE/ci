@@ -328,6 +328,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     # minio and s3cmd for testing s3
                     curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio -o bin/minio && chmod 777 bin/minio
                     curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc -o bin/mc && chmod 777 bin/mc
+                    # download kes server
+                    curl ${FILE_SERVER_URL}/download/kes -o bin/kes && chmod 777 bin/kes
                     # fake-gcs-server for testing gcs
                     curl ${FILE_SERVER_URL}/download/builds/fake-gcs-server -o bin/fake-gcs-server && chmod 777 bin/fake-gcs-server
                     # br v4.0.8 for testing gcs incompatible test
