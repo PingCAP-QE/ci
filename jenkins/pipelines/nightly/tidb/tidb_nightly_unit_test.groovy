@@ -80,7 +80,7 @@ try {
                 throw new RuntimeException("hasBeenTested")
             }
         }
-        //   def buildSlave = "${GO_BUILD_SLAVE}"
+        buildSlave = "${GO_BUILD_SLAVE}"
         def testSlave =  "${GO_TEST_SLAVE}"
 
         stage('Prepare') {

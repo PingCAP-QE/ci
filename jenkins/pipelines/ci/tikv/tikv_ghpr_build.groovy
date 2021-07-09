@@ -14,7 +14,7 @@ def slackcolor = 'good'
 def githash
 
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
-def release="release"
+def release="dist_release"
 
 
 def ghprbCommentBody = params.ghprbCommentBody ?: null

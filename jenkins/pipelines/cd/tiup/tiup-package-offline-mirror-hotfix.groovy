@@ -28,7 +28,7 @@ def clone_package = { arch, dst ->
     }
 
     sh """
-    tiup mirror clone $dst $VERSION --os linux --arch ${arch} --alertmanager=v0.17.0 --grafana=v4.0.3 --prometheus=v4.0.3
+    tiup mirror clone $dst $VERSION --os linux --arch ${arch}
     """
     cloned[arch] = dst
 }

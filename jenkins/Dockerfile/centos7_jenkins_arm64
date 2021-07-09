@@ -1,0 +1,40 @@
+# docker build . -t hub.pingcap.net/jenkins/centos7_jenkins-arm64:latest
+FROM hub.pingcap.net/jenkins/centos7-arm64:latest
+
+USER root
+WORKDIR /root
+
+RUN yum makecache \
+	&& yum update -y \
+	&& yum install --nogpgcheck -y tar wget which file unzip python-pip lsof mariadb \
+	&& yum install --nogpgcheck -y make gcc gcc-c++ libstdc++-static pkg-config psmisc \
+	&& yum install --nogpgcheck -y libzstd-devel lz4-devel zlib-devel bzip2-devel snappy-devel libdwarf-devel elfutils-libelf-devel elfutils-devel binutils-devel \
+    && yum install --nogpgcheck -y curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-CPAN perl-devel \
+    && yum groupinstall 'Development Tools' -y \
+	&& yum install --nogpgcheck -y sudo  gdb \
+	&& yum install -y libssl-dev pkg-config cmake zlib1g-dev openssl* glibc* \
+	&& yum clean all
+
+RUN wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.18.0.tar.gz && tar xf git-2.18.0.tar.gz && cd git-2.18.0/ \
+    && make configure \
+    && ./configure --prefix=/usr/local \ 
+    && make all \
+    && make install
+
+ARG user=jenkins
+ARG group=jenkins
+ARG uid=1000
+ARG gid=1000
+
+ENV HOME /home/${user}
+RUN groupadd -g ${gid} ${group}
+RUN useradd -c "Jenkins user" -d $HOME -u ${uid} -g ${gid} -m ${user}
+RUN echo '%jenkins ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+ENV TZ Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN mkdir /git && chown ${user}:${group} /git
+
+USER ${user}
+WORKDIR /home/${user}

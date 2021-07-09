@@ -1,0 +1,32 @@
+# docker build . -t hub.pingcap.net/jenkins/jnlp-slave-arm64:latest
+FROM arm64v8/openjdk:10.0.1-jre
+
+LABEL Description="This is a base image, which provides the Jenkins agent executable (slave.jar)" Vendor="Jenkins project" Version="3.19"
+
+ARG VERSION=3.19
+ARG AGENT_WORKDIR=/home/jenkins/agent
+
+RUN apt-get update \
+  && apt-get install -y curl bash git openssh-client openssl \
+  && curl --create-dirs -sSLo /usr/share/jenkins/slave.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
+  && chmod 755 /usr/share/jenkins \
+  && chmod 644 /usr/share/jenkins/slave.jar 
+
+
+ARG user=jenkins
+ARG group=jenkins
+ARG uid=1000
+ARG gid=1000
+
+ENV HOME /home/${user}
+RUN groupadd -g ${gid} ${group}
+RUN useradd -c "Jenkins user" -d $HOME -u ${uid} -g ${gid} -m ${user}
+RUN echo '%jenkins ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER ${user}
+ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir /home/${user}/.jenkins && mkdir -p ${AGENT_WORKDIR}
+
+VOLUME /home/${user}/.jenkins
+VOLUME ${AGENT_WORKDIR}
+WORKDIR /home/${user}
