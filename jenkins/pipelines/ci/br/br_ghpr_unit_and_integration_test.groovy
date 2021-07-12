@@ -275,22 +275,22 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     case "tikv":
                         def download_url = "?/pr/tikv_unkown_commit_id/?"
                         download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
-                        def index_begin = download_url.indexOf("pr/")
-                        def index_end = download_url.indexOf("/", index_begin + 3)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
                         commit_id = "tikv_" + download_url.substring(index_begin, index_end)
                         break;
                     case "tidb":
                         def download_url = "?/pr/tidb_unkown_commit_id/?"
                         download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
-                        def index_begin = download_url.indexOf("pr/")
-                        def index_end = download_url.indexOf("/", index_begin + 3)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
                         commit_id = "tidb_" + download_url.substring(index_begin, index_end)
                         break;
                     case "pd":
                         def download_url = "?/pr/pd_unkown_commit_id/?"
                         download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
-                        def index_begin = download_url.indexOf("pr/")
-                        def index_end = download_url.indexOf("/", index_begin + 3)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
                         commit_id = "pd_" + download_url.substring(index_begin, index_end)
                         break;
                     default:
@@ -487,22 +487,22 @@ catchError {
                         case "tikv":
                             def download_url = "?/pr/tikv_unkown_commit_id/?"
                             download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
-                            def index_begin = download_url.indexOf("pr/")
-                            def index_end = download_url.indexOf("/", index_begin + 3)
+                            def index_begin = download_url.indexOf("pr/") + 3
+                            def index_end = download_url.indexOf("/", index_begin)
                             commit_id = "tikv_" + download_url.substring(index_begin, index_end)
                             break;
                         case "tidb":
                             def download_url = "?/pr/tidb_unkown_commit_id/?"
                             download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
-                            def index_begin = download_url.indexOf("pr/")
-                            def index_end = download_url.indexOf("/", index_begin + 3)
+                            def index_begin = download_url.indexOf("pr/") + 3
+                            def index_end = download_url.indexOf("/", index_begin)
                             commit_id = "tidb_" + download_url.substring(index_begin, index_end)
                             break;
                         case "pd":
                             def download_url = "?/pr/pd_unkown_commit_id/?"
                             download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
-                            def index_begin = download_url.indexOf("pr/")
-                            def index_end = download_url.indexOf("/", index_begin + 3)
+                            def index_begin = download_url.indexOf("pr/") + 3
+                            def index_end = download_url.indexOf("/", index_begin)
                             commit_id = "pd_" + download_url.substring(index_begin, index_end)
                             break;
                         default:
