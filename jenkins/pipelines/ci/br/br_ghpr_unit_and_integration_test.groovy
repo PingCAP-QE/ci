@@ -269,7 +269,34 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 scripts_builder.append("cd go/src/github.com/pingcap/br\n")
 
                 // br_integration_test
-                scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
+                def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                def commit_id = "${ghprbActualCommit}"
+                switch (from) {
+                    case "tikv":
+                        def download_url = "?/pr/tikv_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/")
+                        def index_end = download_url.indexOf("/", index_begin + 3)
+                        commit_id = "tikv_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "tidb":
+                        def download_url = "?/pr/tidb_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/")
+                        def index_end = download_url.indexOf("/", index_begin + 3)
+                        commit_id = "tidb_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "pd":
+                        def download_url = "?/pr/pd_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/")
+                        def index_end = download_url.indexOf("/", index_begin + 3)
+                        commit_id = "pd_" + download_url.substring(index_begin, index_end)
+                        break;
+                    default:
+
+                }
+                scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
 
                 // cdc
                 if (cdc != "") {
@@ -453,28 +480,51 @@ catchError {
                     println "ghprbPullId: ${ghprbPullId}"
                     println "refSpecs: ${refSpecs}"
 
-                    def filepath = "builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz"
+                    
+                    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                    def commit_id = "${ghprbActualCommit}"
+                    switch (from) {
+                        case "tikv":
+                            def download_url = "?/pr/tikv_unkown_commit_id/?"
+                            download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
+                            def index_begin = download_url.indexOf("pr/")
+                            def index_end = download_url.indexOf("/", index_begin + 3)
+                            commit_id = "tikv_" + download_url.substring(index_begin, index_end)
+                            break;
+                        case "tidb":
+                            def download_url = "?/pr/tidb_unkown_commit_id/?"
+                            download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
+                            def index_begin = download_url.indexOf("pr/")
+                            def index_end = download_url.indexOf("/", index_begin + 3)
+                            commit_id = "tidb_" + download_url.substring(index_begin, index_end)
+                            break;
+                        case "pd":
+                            def download_url = "?/pr/pd_unkown_commit_id/?"
+                            download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
+                            def index_begin = download_url.indexOf("pr/")
+                            def index_end = download_url.indexOf("/", index_begin + 3)
+                            commit_id = "pd_" + download_url.substring(index_begin, index_end)
+                            break;
+                        default:
 
-                    if (!params.containsKey("triggered_by_upstream_pr_ci")
-                     || sh(returnStdout: true, script: """curl --output /dev/null --silent --head -w %{http_code}"\\n" ${FILE_SERVER_URL}/download/${filepath}""") == "404") {
-                        
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/br.git']]]
-
-                        sh label: "Build and Compress testing binaries", script: """
-                        git checkout -f ${ghprbActualCommit}
-                        git rev-parse HEAD
-
-                        go version
-                        make build_for_integration_test
-
-                        tar czf br_integration_test.tar.gz * .[!.]*
-                        curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
-                        """
                     }
                     
+                    def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
+
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/br.git']]]
+
+                    sh label: "Build and Compress testing binaries", script: """
+                    git checkout -f ${ghprbActualCommit}
+                    git rev-parse HEAD
+
+                    go version
+                    make build_for_integration_test
+
+                    tar czf br_integration_test.tar.gz * .[!.]*
+                    curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
+                    """
 
                     // Collect test case names.
-                    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
                     switch (from) {
                         case "tikv":
                             test_case_names = [
