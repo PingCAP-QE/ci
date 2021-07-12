@@ -293,7 +293,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                         def index_end = download_url.indexOf("/", index_begin)
                         commit_id = "pd_" + download_url.substring(index_begin, index_end)
                         break;
-                    default:
 
                 }
                 scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
@@ -505,7 +504,6 @@ catchError {
                             def index_end = download_url.indexOf("/", index_begin)
                             commit_id = "pd_" + download_url.substring(index_begin, index_end)
                             break;
-                        default:
 
                     }
                     
