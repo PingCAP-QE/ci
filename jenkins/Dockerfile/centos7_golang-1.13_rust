@@ -6,8 +6,12 @@ MAINTAINER Liu Yin <liuy@pingcap.com>
 USER root
 WORKDIR /root
 
+RUN yum install --nogpgcheck -y epel-release \
+	&& yum install -y zstd \
+	&& yum clean all
+
 RUN yum install --nogpgcheck -y centos-release-scl \
-	&& yum install -y devtoolset-8 \
+	&& yum install -y devtoolset-8 llvm-toolset-7.0-git-clang-format devtoolset-8-libasan-devel devtoolset-8-libtsan-devel devtoolset-8-libubsan-devel \
 	&& yum clean all
 
 RUN yum remove -y cmake \
@@ -15,12 +19,6 @@ RUN yum remove -y cmake \
 	&& sh cmake-3.10.0.sh --skip-license --prefix=/usr/local \
 	&& cmake --version \
 	&& rm -rf cmake-3.10.0.sh
-
-# This is a workaround, we need to figure out why there is no jq in this image
-RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-RUN yum makecache \
-       && yum update -y \
-       && yum install --nogpgcheck -y jq llvm-toolset-7.0-git-clang-format
 
 RUN curl -L https://github.com/gflags/gflags/archive/v2.1.2.tar.gz -o gflags.tar.gz \
 	&& tar xf gflags.tar.gz \
