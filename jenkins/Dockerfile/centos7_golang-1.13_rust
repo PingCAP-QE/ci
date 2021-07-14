@@ -7,7 +7,12 @@ USER root
 WORKDIR /root
 
 RUN yum install --nogpgcheck -y epel-release \
-	&& yum install -y zstd \
+    && sed -e 's|^metalink=|#metalink=|g' \
+             -e 's|^#baseurl=https\?://download.fedoraproject.org/pub/epel/|baseurl=https://mirrors.ustc.edu.cn/epel/|g' \
+             -i.bak \
+             /etc/yum.repos.d/epel.repo
+
+RUN yum install -y zstd \
 	&& yum clean all
 
 RUN yum install --nogpgcheck -y centos-release-scl \
