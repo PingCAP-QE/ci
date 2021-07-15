@@ -75,22 +75,6 @@ try {
                 sh "whoami && go version"
             }
 
-            // ensure golangci-lint tool exist
-            dir("/home/jenkins/agent/git/tools") {
-                if (!fileExists("/home/jenkins/agent/git/tools/bin/golangci-lint")) {
-                    container("golang") {
-                        def golangcilintVersion = "v1.21.0"
-                        if ( ghprbTargetBranch == "master" || ghprbTargetBranch == "release-5.0" || ghprbTargetBranch == "release-5.1") {
-                            golangcilintVersion = "v1.29.0"
-                        }
-                        dir("/home/jenkins/agent/git/tools/") {
-                            sh """
-	                            curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b ./bin ${golangcilintVersion}
-	                        """
-                        }
-                    }
-                }
-            }
             // update code
             dir("/home/jenkins/agent/code-archive") {
                 // delete to clean workspace in case of agent pod reused lead to conflict.
@@ -146,11 +130,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb") {
                     timeout(30) {
                         sh """
-                        mkdir -p tools/bin
-                        cp /home/jenkins/agent/git/tools/bin/golangci-lint tools/bin/
                         git checkout -f ${ghprbActualCommit}
-                        ls -al tools/bin || true
-                        # GOPROXY=http://goproxy.pingcap.net
                         """
                     }
                     try {
