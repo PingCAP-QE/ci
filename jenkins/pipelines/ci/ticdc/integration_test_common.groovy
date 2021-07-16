@@ -39,6 +39,8 @@ def prepare_binaries() {
 
 def tests(sink_type, node_label) {
     stage("Tests") {
+        failFast true
+
         def test_cases = [:]
 
         test_cases["unit test"] = {
