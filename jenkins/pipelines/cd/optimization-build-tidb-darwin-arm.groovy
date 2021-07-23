@@ -234,6 +234,7 @@ try {
                             if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
                             }
+                            deleteDir()
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                             def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash.tar.gz"
                             retry(20) {
@@ -279,6 +280,7 @@ try {
                         if (checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
                             return
                         }
+                        deleteDir()
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
                         def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/${platform}/tikv-server.tar.gz"
 
@@ -329,6 +331,7 @@ try {
                         if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
                             return
                         }
+                        deleteDir()
                         def target = "importer-${RELEASE_TAG}-${os}-${arch}"
                         def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/${platform}/importer.tar.gz"
                         retry(20) {
