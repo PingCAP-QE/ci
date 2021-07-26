@@ -31,16 +31,7 @@ catchError {
             //testSlave = GO_TEST_SLAVE
             //sh "echo $ghprbPullLongDescription"
             println "description $ghprbPullLongDescription"
-            sh """
-            mkdir -p $ghprbActualCommit
-            rm -rf $ghprbActualCommit/description.txt
-            cat <<"EOT" >> $ghprbActualCommit/description.txt
-$ghprbPullLongDescription
-EOT"""
-            //echo "$ghprbPullLongDescription" > a.out
-            //sh "echo \"$ghprbPullLongDescription\" > $ghprbActualCommit"
-            sh "egrep 'Release [n|N]ote.*\\\\r\\\\n[-|\\*][[:space:]]+[a-zA-Z0-9`]+' $ghprbActualCommit/description.txt || ( echo 'No release note, Please follow https://github.com/pingcap/community/blob/master/contributors/release-note-checker.md' && exit 1) "
-
+  
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
         }
         
