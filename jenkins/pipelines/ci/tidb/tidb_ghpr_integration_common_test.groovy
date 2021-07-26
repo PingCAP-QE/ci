@@ -214,11 +214,7 @@ try {
             def tests = [:]
 
             def run = { test_dir, mytest, test_cmd ->
-                if (test_dir == "mysql_test") {
-                    testSlave = "${GO_TEST_HEAVY_SLAVE}"
-                    println "use memory volume"
-                }
-                node(testSlave) {
+                node("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
@@ -318,7 +314,7 @@ try {
             }
 
             def run_split = { test_dir, mytest, test_cmd, chunk ->
-                node(testSlave) {
+                node("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
@@ -456,7 +452,7 @@ try {
             }
 
             tests["Integration Explain Test"] = {
-                node (testSlave) {
+                node ("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
