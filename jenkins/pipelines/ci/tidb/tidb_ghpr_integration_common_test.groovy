@@ -66,11 +66,14 @@ if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    GO_TEST_HEAVY_SLAVE = "test_go1160_memvolume"
 } else {
     println "This build use go1.13"
+    GO_TEST_HEAVY_SLAVE = "test_tikv_go1130_memvolume"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
 
 try {
     timestamps {
@@ -211,7 +214,7 @@ try {
             def tests = [:]
 
             def run = { test_dir, mytest, test_cmd ->
-                node(testSlave) {
+                node("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
@@ -311,7 +314,7 @@ try {
             }
 
             def run_split = { test_dir, mytest, test_cmd, chunk ->
-                node(testSlave) {
+                node("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
@@ -449,7 +452,7 @@ try {
             }
 
             tests["Integration Explain Test"] = {
-                node (testSlave) {
+                node ("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
