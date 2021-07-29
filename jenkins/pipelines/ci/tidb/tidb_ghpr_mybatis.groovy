@@ -73,7 +73,7 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 try {
     stage('Mybatis Test') {
-        node("test_java") {
+        node("test_java_memvolume") {
             container("java") {
                 def ws = pwd()
                 deleteDir()
