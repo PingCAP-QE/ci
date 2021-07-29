@@ -2,21 +2,32 @@
 * @ARCH_ARM
 * @ARCH_X86
 * @ARCH_MAC
+* @ARCH_MAC_ARM
 */
 
 def ticdc_sha1, platform, tag
 def cdc_desc = "CDC is a change data capture tool for TiDB"
 
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
+
     if (HOTFIX_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
@@ -74,22 +85,27 @@ node("build_go1130") {
                     tag = HOTFIX_TAG
                 }
 
-                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
+                ticdc_sha1 = get_hash(ORIGIN_TAG,"ticdc")
             }
 
-            if (ARCH_X86) {
+            if (params.ARCH_X86) {
                 stage("TiUP build cdc on linux/amd64") {
                     update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "amd64"
                 }
             }
-            if (ARCH_ARM) {
+            if (params.ARCH_ARM) {
                 stage("TiUP build cdc on linux/arm64") {
                     update "ticdc", HOTFIX_TAG, ticdc_sha1, "linux", "arm64"
                 }
             }
-            if (ARCH_MAC) {
+            if (params.ARCH_MAC) {
                 stage("TiUP build cdc on darwin/amd64") {
                     update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "amd64"
+                }
+            }
+            if (params.ARCH_MAC_ARM) {
+                stage("TiUP build cdc on darwin/arm64") {
+                    update "ticdc", HOTFIX_TAG, ticdc_sha1, "darwin", "arm64"
                 }
             }
         }

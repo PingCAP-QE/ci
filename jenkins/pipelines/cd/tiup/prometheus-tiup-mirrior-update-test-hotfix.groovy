@@ -40,7 +40,7 @@ def unpack = { version, os, arch ->
 }
 
 def pack = { version, os, arch ->
-    def tag = ORIGIN_TAG
+    def tag = HOTFIX_TAG
     if (tag == "nightly") {
         tag = "master"
     }
@@ -48,30 +48,30 @@ def pack = { version, os, arch ->
     mv prometheus-${version}.${os}-${arch} prometheus
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/alertmanager/tidb.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/alertmanager/pd.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/tikv/tikv/${tag}/metrics/alertmanager/tikv.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/tikv/tikv/${tag}/metrics/alertmanager/tikv.accelerate.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/alertmanager/binlog.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/ticdc/${tag}/metrics/alertmanager/ticdc.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/alertmanager/lightning.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/metrics/alertmanager/tidb.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/pd/${RELEASE_BRANCH}/metrics/alertmanager/pd.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/tikv/tikv/${RELEASE_BRANCH}/metrics/alertmanager/tikv.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/tikv/tikv/${RELEASE_BRANCH}/metrics/alertmanager/tikv.accelerate.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${RELEASE_BRANCH}/metrics/alertmanager/binlog.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/ticdc/${RELEASE_BRANCH}/metrics/alertmanager/ticdc.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/alertmanager/lightning.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/blacker.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/bypass.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/kafka.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/node.rules.yml || true; \
     cp ../metrics/alertmanager/tiflash.rules.yml . || true; \
     else \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/tidb.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/pd.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/tikv.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/tikv.accelerate.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/binlog.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/lightning.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/blacker.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/bypass.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/kafka.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/node.rules.yml|| true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/roles/prometheus/files/tiflash.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tidb.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/pd.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tikv.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tikv.accelerate.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/binlog.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/lightning.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/blacker.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/bypass.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/kafka.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/node.rules.yml|| true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tiflash.rules.yml || true; \
     fi
 
     cd ..
@@ -103,27 +103,32 @@ node("build_go1130") {
         }
 
         stage("Checkout tics") {
-            def tag = ORIGIN_TAG
+            def tag = HOTFIX_TAG
             if (tag == "nightly") {
                 tag = "master"
             }
             if (tag == "master" || tag > "v4") {
-                checkoutTiCS(tag)
+                checkoutTiCS(RELEASE_BRANCH)
             }
         }
-        if (ARCH_X86) {
+        if (params.ARCH_X86) {
             stage("TiUP build prometheus on linux/amd64") {
                 update VERSION, "linux", "amd64"
             }
         }
-        if (ARCH_ARM) {
+        if (params.ARCH_ARM) {
             stage("TiUP build prometheus on linux/arm64") {
                 update VERSION, "linux", "arm64"
             }
         }
-        if (ARCH_MAC) {
+        if (params.ARCH_MAC) {
             stage("TiUP build prometheus on darwin/amd64") {
                 update VERSION, "darwin", "amd64"
+            }
+        }
+        if (params.ARCH_MAC_ARM) {
+            stage("TiUP build prometheus on darwin/arm64") {
+                update VERSION, "darwin", "arm64"
             }
         }
     }

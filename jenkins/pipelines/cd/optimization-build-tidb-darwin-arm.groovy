@@ -124,7 +124,7 @@ def build_upload = { product, hash, binary ->
                 if (product == "tidb-ctl") {
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     go build -o /Users/pingcap/binarys/${product}
                     rm -rf ${target}
                     mkdir -p ${target}/bin
@@ -139,7 +139,7 @@ def build_upload = { product, hash, binary ->
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} != "pd" ]; then
                         make clean
                     fi;
@@ -163,7 +163,7 @@ def build_upload = { product, hash, binary ->
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
                     fi;  
@@ -229,7 +229,7 @@ try {
         if (SKIP_TIFLASH == "false") {
             builds["Build tiflash"] = {
                 stage("Build tiflash") {
-                    node("mac-arm") {
+                    node("mac-arm-tiflash") {
                         dir("tics") {
                             if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
@@ -251,7 +251,8 @@ try {
                             """
                             sh """
                             export GOPATH=/Users/pingcap/gopkg
-                            export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
+                            export PROTOC=/opt/homebrew/bin/protoc
+                            export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                             mkdir -p release-darwin/build/
                             [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
                             [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
@@ -309,9 +310,10 @@ try {
                         """
                         
                         sh """
+                        export PROTOC=/opt/homebrew/bin/protoc
                         export GOPATH=/Users/pingcap/gopkg
-                        export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-                        CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 make dist_release
+                        export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
+                        CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
                         rm -rf ${target}
                         mkdir -p ${target}/bin
                         cp bin/* /Users/pingcap/binarys
@@ -324,44 +326,45 @@ try {
             }
         }
 
-        builds["Build importer"] = {
-            stage("Build importer") {
-                node("mac-arm") {
-                    dir("go/src/github.com/pingcap/importer") {
-                        if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
-                            return
-                        }
-                        deleteDir()
-                        def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                        def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/${platform}/importer.tar.gz"
-                        retry(20) {
-                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-                        }
+        // builds["Build importer"] = {
+        //     stage("Build importer") {
+        //         node("mac-arm") {
+        //             dir("go/src/github.com/pingcap/importer") {
+        //                 if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+        //                     return
+        //                 }
+        //                 deleteDir()
+        //                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
+        //                 def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/${platform}/importer.tar.gz"
+        //                 retry(20) {
+        //                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+        //                         deleteDir()
+        //                     }
+        //                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
+        //                 }
                         
-                        sh """
-                        for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-                        git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-                        git branch -D refs/tags/${RELEASE_TAG} || true
-                        git checkout -b refs/tags/${RELEASE_TAG}
-                        """
+        //                 sh """
+        //                 for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
+        //                 git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+        //                 git branch -D refs/tags/${RELEASE_TAG} || true
+        //                 git checkout -b refs/tags/${RELEASE_TAG}
+        //                 """
                         
-                        sh """
-                        export GOPATH=/Users/pingcap/gopkg
-                        export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-                        ROCKSDB_SYS_SSE=0 make release
-                        rm -rf ${target}
-                        mkdir -p ${target}/bin
-                        cp target/release/tikv-importer ${target}/bin
-                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-        }
+        //                 sh """
+        //                 export PROTOC=/opt/homebrew/bin/protoc
+        //                 export GOPATH=/Users/pingcap/gopkg
+        //                 export PATH=/opt/homebrew/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
+        //                 ROCKSDB_SYS_SSE=0 make release
+        //                 rm -rf ${target}
+        //                 mkdir -p ${target}/bin
+        //                 cp target/release/tikv-importer ${target}/bin
+        //                 tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+        //                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+        //                 """
+        //             }
+        //         }
+        //     }
+        // }
 
         parallel builds
     }

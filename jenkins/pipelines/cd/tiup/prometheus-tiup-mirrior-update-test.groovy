@@ -123,5 +123,9 @@ node("build_go1130") {
         stage("TiUP build prometheus on darwin/amd64") {
             update VERSION, "darwin", "amd64"
         }
+
+        stage("TiUP build prometheus on darwin/arm64") {
+            update VERSION, "darwin", "arm64"
+        }
     }
 }

@@ -4,13 +4,16 @@ def cdc_desc = "CDC is a change data capture tool for TiDB"
 def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
+
     if (RELEASE_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
@@ -81,6 +84,10 @@ node("build_go1130") {
 
             stage("TiUP build cdc on darwin/amd64") {
                 update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
+            }
+
+            stage("TiUP build cdc on darwin/arm64") {
+                update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "arm64"
             }
         }
     }

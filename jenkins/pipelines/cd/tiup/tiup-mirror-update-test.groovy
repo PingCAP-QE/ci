@@ -12,22 +12,24 @@ def pd_recover_desc = "PD Recover is a disaster recovery tool of PD, used to rec
 def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
 
     if (name == "tidb" || name == "tikv" || name == "pd") {
-        if (arch == "arm64") {
+        if (arch == "arm64" && os != "darwin") {
             tarball_name = "${name}-server-${os}-${arch}.tar.gz"
         } else {
             tarball_name = "${name}-server.tar.gz"
         }
     } else {
-        if (arch == "arm64") {
+        if (arch == "arm64" && os != "darwin") {
             tarball_name = "${name}-${os}-${arch}.tar.gz"
         } else {
             tarball_name = "${name}.tar.gz"
@@ -46,13 +48,13 @@ def download = { name, hash, os, arch ->
 
 def unpack = { name, os, arch ->
     if (name == "tidb" || name == "tikv" || name == "pd") {
-        if (arch == "arm64") {
+        if (arch == "arm64" && os != "darwin") {
             tarball_name = "${name}-server-${os}-${arch}.tar.gz"
         } else {
             tarball_name = "${name}-server.tar.gz"
         }
     } else {
-        if (arch == "arm64") {
+        if (arch == "arm64" && os != "darwin") {
             tarball_name = "${name}-${os}-${arch}.tar.gz"
         } else {
             tarball_name = "${name}.tar.gz"
@@ -175,8 +177,10 @@ def update_ctl = { version, os, arch ->
 
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
     } else {
         sh """
         exit 1
@@ -285,6 +289,15 @@ node("build_go1130") {
                 update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
                 update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
                 update_ctl RELEASE_TAG, "darwin", "amd64"
+            }
+
+            stage("TiUP build tidb on darwin/arm64") {
+                update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
+                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
+                update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
+                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                update_ctl RELEASE_TAG, "darwin", "arm64"
             }
 
             // stage("Upload") {
