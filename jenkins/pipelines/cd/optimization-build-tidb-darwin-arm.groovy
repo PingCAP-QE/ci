@@ -230,6 +230,7 @@ try {
             builds["Build tiflash"] = {
                 stage("Build tiflash") {
                     node("mac-arm-tiflash") {
+                        def ws = pwd()
                         dir("tics") {
                             if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
@@ -250,6 +251,8 @@ try {
                             git checkout -b refs/tags/${RELEASE_TAG}
                             """
                             sh """
+                            cp -f /Users/pingcap/birdstorm/fix-poco.sh ${ws}
+                            ${ws}/fix-poco.sh
                             export GOPATH=/Users/pingcap/gopkg
                             export PROTOC=/usr/local/bin/protoc
                             export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
