@@ -251,7 +251,7 @@ try {
                             """
                             sh """
                             export GOPATH=/Users/pingcap/gopkg
-                            export PROTOC=/opt/homebrew/bin/protoc
+                            export PROTOC=/usr/local/bin/protoc
                             export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                             mkdir -p release-darwin/build/
                             [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
@@ -310,7 +310,7 @@ try {
                         """
                         
                         sh """
-                        export PROTOC=/opt/homebrew/bin/protoc
+                        export PROTOC=/usr/local/bin/protoc
                         export GOPATH=/Users/pingcap/gopkg
                         export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                         CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
@@ -351,7 +351,7 @@ try {
         //                 """
                         
         //                 sh """
-        //                 export PROTOC=/opt/homebrew/bin/protoc
+        //                 export PROTOC=/usr/local/bin/protoc
         //                 export GOPATH=/Users/pingcap/gopkg
         //                 export PATH=/opt/homebrew/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
         //                 ROCKSDB_SYS_SSE=0 make release
