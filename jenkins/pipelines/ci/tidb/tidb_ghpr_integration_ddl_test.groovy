@@ -65,14 +65,17 @@ if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    GO_TEST_HEAVY_SLAVE = "test_go1160_memvolume"
 } else {
     println "This build use go1.13"
+    GO_TEST_HEAVY_SLAVE = "test_tikv_go1130_memvolume"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
 
 def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_SLAVE}"
+def testSlave = "${GO_TEST_HEAVY_SLAVE}"
 
 try {
     stage("Pre-check"){
