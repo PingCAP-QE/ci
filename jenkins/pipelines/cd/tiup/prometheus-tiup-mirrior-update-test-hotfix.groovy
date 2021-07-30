@@ -28,9 +28,15 @@ def checkoutTiCS(branch) {
 }
 
 def download = { version, os, arch ->
-    sh """
-    wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
-    """
+    if (os == "darwin" && arch == "arm64") {
+        sh """
+        curl -O ${FILE_SERVER_URL}/download/pingcap/prometheus-${version}.${os}-${arch}.tar.gz
+        """
+    }else {
+        sh """
+        wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
+        """
+    }
 }
 
 def unpack = { version, os, arch ->
@@ -128,7 +134,7 @@ node("build_go1130") {
         }
         if (params.ARCH_MAC_ARM) {
             stage("TiUP build prometheus on darwin/arm64") {
-                update VERSION, "darwin", "arm64"
+                update "2.28.1", "darwin", "arm64"
             }
         }
     }

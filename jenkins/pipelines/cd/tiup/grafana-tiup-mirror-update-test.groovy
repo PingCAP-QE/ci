@@ -28,9 +28,15 @@ def checkoutTiCS(branch) {
 }
 
 def download = { version, os, arch ->
-    sh """
-    wget -qnc https://download.pingcap.org/grafana-${version}.${os}-${arch}.tar.gz
-    """
+    if (os == "darwin" && arch == "arm64") {
+        sh """
+        curl -O ${FILE_SERVER_URL}/download/pingcap/grafana-${version}.${os}-${arch}.tar.gz
+        """
+    }else {
+        sh """
+        wget -qnc https://download.pingcap.org/grafana-${version}.${os}-${arch}.tar.gz
+        """
+    }
 }
 
 def unpack = { version, os, arch ->
@@ -144,7 +150,7 @@ node("build_go1130") {
         }
 
         stage("TiUP build grafana on darwin/arm64") {
-            update VERSION, "darwin", "arm64"
+            update "7.5.10", "darwin", "arm64"
         }
     }
 }

@@ -297,7 +297,7 @@ node("build_go1130") {
                 update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
                 update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
                 update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                update_ctl RELEASE_TAG, "darwin", "arm64"
+                // update_ctl RELEASE_TAG, "darwin", "arm64"
             }
 
             // stage("Upload") {
