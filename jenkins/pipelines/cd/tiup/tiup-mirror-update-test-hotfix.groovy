@@ -347,7 +347,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build cdc") {
-                build(job: "cdc-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsCDC)
+                build(job: "cdc-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsCDC)
             }
 
             def paramsBR = [
@@ -362,7 +362,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build br") {
-                build(job: "br-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsBR)
+                build(job: "br-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsBR)
             }
 
             def paramsDUMPLING = [
@@ -377,7 +377,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build dumpling") {
-                build(job: "dumpling-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsDUMPLING)
+                build(job: "dumpling-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsDUMPLING)
             }
 
             // since 4.0.12 the same as br
@@ -393,7 +393,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build lightning") {
-                build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
+                build(job: "lightning-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsLIGHTNING)
             }
 
             def paramsIMPORTER = [
@@ -409,7 +409,7 @@ node("build_go1130") {
 
             if (HOTFIX_TAG != "nightly" && HOTFIX_TAG < "v4.0.0") {
                 stage("TiUP build importer") {
-                    build(job: "importer-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsIMPORTER)
+                    build(job: "importer-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsIMPORTER)
                 }
             }
 
@@ -425,7 +425,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build tiflash") {
-                build(job: "tiflash-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsTIFLASH)
+                build(job: "tiflash-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsTIFLASH)
             }
 
             def paramsGRANFANA = [
@@ -440,7 +440,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build grafana") {
-                build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
+                build(job: "grafana-tiup-mirror-update-test-hotfix-m1", wait: true, parameters: paramsGRANFANA)
             }
 
             def paramsPROMETHEUS = [
@@ -455,7 +455,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
+                build(job: "prometheus-tiup-mirrior-update-test-hotfix-m1", wait: true, parameters: paramsPROMETHEUS)
             }
 
             // def params2 = [

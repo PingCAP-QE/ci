@@ -252,7 +252,9 @@ try {
                             """
                             sh """
                             cp -f /Users/pingcap/birdstorm/fix-poco.sh ${ws}
+                            cp -f /Users/pingcap/birdstorm/fix-libdaemon.sh ${ws}
                             ${ws}/fix-poco.sh
+                            ${ws}/fix-libdaemon.sh
                             export GOPATH=/Users/pingcap/gopkg
                             export PROTOC=/usr/local/bin/protoc
                             export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}

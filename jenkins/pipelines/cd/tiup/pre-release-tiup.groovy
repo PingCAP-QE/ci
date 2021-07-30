@@ -157,7 +157,7 @@ stage('Build') {
 }
 
 stage('releaese tiup') {
-    build job: "tiup-mirror-update-test-hotfix",
+    build job: "tiup-mirror-update-test-hotfix-m1",
         wait: true,
         parameters: [
                 [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
