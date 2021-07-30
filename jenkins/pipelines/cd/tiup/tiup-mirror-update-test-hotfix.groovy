@@ -326,7 +326,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    update_ctl HOTFIX_TAG, "darwin", "arm64"
+                    // update_ctl HOTFIX_TAG, "darwin", "arm64"
                 }
             }
 
