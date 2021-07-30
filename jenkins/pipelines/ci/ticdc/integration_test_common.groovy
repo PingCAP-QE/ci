@@ -1,4 +1,4 @@
-CONCURRENT_NUMBER = 8
+CONCURRENT_NUMBER = 20
 
 def prepare_binaries() {
     stage('Prepare Binaries') {
