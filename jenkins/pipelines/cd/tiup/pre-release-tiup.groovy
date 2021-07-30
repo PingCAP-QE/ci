@@ -25,7 +25,7 @@ dumpling_sha1=""
 def get_sha() {
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
     tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
