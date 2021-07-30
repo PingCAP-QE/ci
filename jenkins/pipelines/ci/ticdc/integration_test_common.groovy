@@ -1,4 +1,16 @@
-CONCURRENT_NUMBER = 20
+static def partition(array, size) {
+    def partitions = []
+    int partitionCount = array.size() / size
+
+    partitionCount.times { partitionNumber ->
+        def start = partitionNumber * size
+        def end = start + size - 1
+        partitions << array[start..end]
+    }
+
+    if (array.size() % size) partitions << array[partitionCount * size..-1]
+    return partitions
+}
 
 def prepare_binaries() {
     stage('Prepare Binaries') {
@@ -123,10 +135,8 @@ def tests(sink_type, node_label) {
             returnStdout: true
         ).trim().split()
 
-        int group_size = (int) (cases_name.size() / CONCURRENT_NUMBER)
-
         def step_cases = []
-        def cases_namesList = cases_name.collate(group_size)
+        def cases_namesList = partition(cases_name,2)
         cases_namesList.each{ case_names->
             step_cases.add(case_names)
         }
@@ -244,19 +254,6 @@ def coverage() {
             unstash 'ticdc'
             unstash 'unit_test'
 
-            // Err  java.io.NotSerializableException: groovy.lang.IntRange
-            // https://stackoverflow.com/questions/31654497/how-to-fix-notserializableexception-error-during-jenkins-workflow-build
-            // https://gist.github.com/oifland/ab56226d5f0375103141b5fbd7807398
-//            for(int i in 1..CONCURRENT_NUMBER) {
-//                unstash "integration_test_step_${i-1}"
-//            }
-            def step_names = []
-            for ( int i = 1; i < CONCURRENT_NUMBER; i++ ) {
-                step_names.add("integration_test_step_${i}")
-            }
-            step_names.each { item ->
-                unstash item
-            }
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
