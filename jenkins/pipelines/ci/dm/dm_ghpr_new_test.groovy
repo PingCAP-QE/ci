@@ -44,7 +44,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(['master', "release-2.0"], ghprbTargetBranch)
+def isNeedGo1160 = isBranchMatched(['master', 'release-2.0'], ghprbTargetBranch)
 if (isNeedGo1160) {
     println 'This build use go1.16'
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -110,6 +110,8 @@ def build_dm_bin() {
             unstash 'dm'
             ws = pwd()
             dir('go/src/github.com/pingcap/dm') {
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+
                 // build it test bin
                 sh 'make dm_integration_test_build'
 
@@ -130,8 +132,6 @@ def build_dm_bin() {
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                 sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
                 sh 'mv gh-ost bin/'
-
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
             }
             dir("${ws}") {
                 stash includes: 'go/src/github.com/pingcap/dm/**', name: 'dm-with-bin', useDefaultExcludes: false
@@ -319,6 +319,7 @@ def run_make_coverage() {
             unstash 'integration-cov-sharding2'
             unstash 'integration-cov-ha'
             unstash 'integration-cov-others'
+            unstash 'integration-cov-others_2'
         } catch (Exception e) {
             println e
         }
@@ -686,7 +687,15 @@ pipeline {
                     }
                 }
 
-                // END Integration Test
+
+                stage('IT-others-2') {
+                    steps {
+                        script {
+                            run_single_it_test('others_2')
+                        }
+                    }
+                }
+            // END Integration Test
             }
         }
 
