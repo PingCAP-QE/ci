@@ -123,15 +123,14 @@ def tests(sink_type, node_label) {
             returnStdout: true
         ).trim().split()
 
+        int group_size = (int) (cases_name.size() / CONCURRENT_NUMBER)
+
         def step_cases = []
-        def step_length = (int)(cases_name.size() / CONCURRENT_NUMBER + 0.5)
-        for(int i in 1..CONCURRENT_NUMBER) {
-            def end = i*step_length-1
-            if (i == CONCURRENT_NUMBER){
-                end = cases_name.size()-1
-            }
-            step_cases.add(cases_name[(i-1)*step_length..end])
+        def cases_namesList = cases_name.collate(group_size)
+        cases_namesList.each{ case_names->
+            step_cases.add(case_names)
         }
+
         step_cases.eachWithIndex{ case_names, index ->
             def step_name = "step_${index}"
             test_cases["integration test ${step_name}"] = {
