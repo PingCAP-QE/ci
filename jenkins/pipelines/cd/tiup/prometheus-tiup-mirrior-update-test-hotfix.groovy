@@ -134,6 +134,7 @@ node("build_go1130") {
         }
         if (params.ARCH_MAC_ARM) {
             stage("TiUP build prometheus on darwin/arm64") {
+                // prometheus did not provide the binary we need so we upgrade it.
                 update "2.28.1", "darwin", "arm64"
             }
         }

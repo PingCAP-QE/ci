@@ -130,7 +130,8 @@ node("build_go1130") {
             update VERSION, "darwin", "amd64"
         }
 
-        stage("TiUP build prometheus on darwin/arm64") {
+        stage("TiUP build prometheus on darwin/arm64") {c
+            // prometheus did not provide the binary we need so we upgrade it.
             update "2.28.1", "darwin", "arm64"
         }
     }
