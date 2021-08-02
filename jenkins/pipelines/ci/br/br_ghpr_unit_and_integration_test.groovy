@@ -551,6 +551,7 @@ catchError {
                     curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
                     """
 
+                    println "from before: ${from}"
                     // Collect test case names.
                     switch (from) {
                         case "tikv":
