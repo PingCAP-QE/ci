@@ -521,9 +521,8 @@ catchError {
                             break;
                     }
 
-                    echo ${git_repo_url}
-                    echo ${build_br_cmd}
-
+                    println "git_repo_url: ${git_repo_url}"
+                    println "br_cmd: ${build_br_cmd}"
                     def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
                     checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: ${git_repo_url}]]]
