@@ -17,6 +17,7 @@ if (ghprbPullId != null && ghprbPullId != "") {
 def TIKV_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_BRANCH = ghprbTargetBranch
+def TIDB_TOOLS_BRANCH = ghprbTargetBranch
 
 // parse tikv branch
 def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -39,6 +40,14 @@ if (m3) {
 }
 m3 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
+
+// parse tidb branch
+def m4 = ghprbCommentBody =~ /tidb-tools\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m4) {
+    TIDB_TOOLS_BRANCH = "${m3[0][1]}"
+}
+m4 = null
+println "TIDB_TOOLS_BRANCH=${TIDB_TOOLS_BRANCH}"
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -90,8 +99,11 @@ try {
                                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
                             }
                         }
-
-                        sh "git checkout -f ${ghprbActualCommit}"
+                        sh """
+                        git checkout -f ${ghprbActualCommit}
+                        make build
+                        ls -l ./bin && mv ./bin ${ws}/bin
+                        """
                     }
                 }
                
@@ -113,14 +125,19 @@ try {
                 }
                 sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
 
-        
-                // binlogctl && sync_diff_inspector
-                sh "curl https://download.pingcap.org/tidb-tools-v2.1.6-linux-amd64.tar.gz | tar xz"
-                sh "mv tidb-tools-v2.1.6-linux-amd64/bin/binlogctl bin/"
-                sh "mv tidb-tools-v2.1.6-linux-amd64/bin/sync_diff_inspector bin/"
-                sh "rm -r tidb-tools-v2.1.6-linux-amd64 || true"
+                dir("go/src/github.com/pingcap/tidb-tools") {
+                    def tidb_tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/${TIDB_TOOLS_BRANCH}/sha1").trim()
+                    def tidb_tools_file = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz"
+                    sh """
+                    curl ${tidb_tools_file} | tar xz
+                    ls -l ./bin
+                    rm -f bin/{ddl_checker,importer}
+                    mv ${ws}/bin/* ./bin/
+                    ls -l ./bin
+                    """
+                }
 
-                stash includes: "bin/**", name: "binaries"
+                stash includes: "go/src/github.com/pingcap/tidb-tools/bin/**", name: "binaries"
             }
         }
     }
@@ -170,7 +187,11 @@ try {
                         unstash 'binaries'
 
                         dir("go/src/github.com/pingcap/tidb-binlog") {
-                            sh "mv ${ws}/bin ./bin/"
+                            sh """
+                            ls -l ${ws}/go/src/github.com/pingcap/tidb-tools/bin
+                            mv ${ws}/go/src/github.com/pingcap/tidb-tools/bin ./bin
+                            ls -l ./bin
+                            """
                             try {
                                 sh """
                                 hostname
