@@ -538,7 +538,7 @@ catchError {
                     println "ghprbPullId: ${ghprbPullId}"
                     println "specStr: ${specStr}"
 
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: '${ghprbActualCommit}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: '${ghprbActualCommit}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '${specStr}', url: git_repo_url]]]
 
                     sh label: "Build and Compress testing binaries", script: """
                     git rev-parse HEAD
