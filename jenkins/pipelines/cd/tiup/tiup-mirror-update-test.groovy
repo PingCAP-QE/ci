@@ -290,16 +290,17 @@ node("build_go1130") {
                 update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
                 update_ctl RELEASE_TAG, "darwin", "amd64"
             }
-
-            stage("TiUP build tidb on darwin/arm64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
-                update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                // update_ctl RELEASE_TAG, "darwin", "arm64"
+            // if release nightly binary，do not release mac m1 version.
+            if (RELEASE_TAG != "nightly") {
+                stage("TiUP build tidb on darwin/arm64") {
+                    update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
+                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                    update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
+                    update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
+                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                    // update_ctl RELEASE_TAG, "darwin", "arm64"
+                }
             }
-
             // stage("Upload") {
             //     upload "package"
             // }
