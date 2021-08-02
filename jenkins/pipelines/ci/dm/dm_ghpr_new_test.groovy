@@ -213,10 +213,10 @@ def run_tls_source_it_test(String case_name) {
                                     envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
                             ],
                             args: "${MYSQL_ARGS}"),
-                    // mysql 5.7 2
+                    // mysql 8
                     containerTemplate(
                             name: 'mysql2', alwaysPullImage: false,
-                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
+                            image: 'hub.pingcap.net/zhangxuecheng/mysql:8.0.21',ttyEnabled: true,
                             resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                             envVars: [
                                     envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
@@ -316,9 +316,10 @@ def run_single_it_test(String case_name) {
                                     envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
                             ],
                             args: "${MYSQL_ARGS}"),
+                    // mysql 8.0.21
                     containerTemplate(
                             name: 'mysql2', alwaysPullImage: false,
-                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
+                            image: 'hub.pingcap.net/zhangxuecheng/mysql:8.0.21',ttyEnabled: true,
                             resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                             envVars: [
                                     envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
