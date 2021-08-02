@@ -536,6 +536,8 @@ catchError {
                         specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                     }
 
+                    println "ghprbPullId: ${ghprbPullId}"
+
                     checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: '${ghprbActualCommit}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
 
                     sh label: "Build and Compress testing binaries", script: """
