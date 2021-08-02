@@ -45,7 +45,7 @@ catchError {
                     default_params.upstream_pr_ci_ghpr_actual_commit = "${ghprbTargetBranch}"
                 }
                 // Trigger BRIE test without waiting its finish.
-                build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
+                build(job: "debug_br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
             }
             currentBuild.result = "SUCCESS"
         }
