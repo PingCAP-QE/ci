@@ -261,7 +261,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
             // unstash 'br'
 
-            
             timeout(30) {
                 scripts_builder = new StringBuilder()
 
@@ -270,6 +269,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                 // br_integration_test
                 def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                def get_tidb_from_local = false
                 def commit_id = "${ghprbActualCommit}"
                 switch (from) {
                     case "tikv":
@@ -294,6 +294,10 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                         commit_id = "pd_" + download_url.substring(index_begin, index_end)
                         break;
 
+                   case "tidb-br":
+                        // we build tidb-server from local, then put it into br_integration_test.tar.gz
+                        // so we can get it from br_integration_test.tar.gz
+                        get_tidb_from_local = true
                 }
                 scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
 
@@ -330,16 +334,17 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             .append("cp pd-source/bin/* bin/; rm -rf pd-source;) &\n")
 
                 // tidb
-                scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
+                if (!get_tidb_from_local) {
+                    scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
                             .append("mkdir tidb-source; ")
-                def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
-                if (params.containsKey("upstream_pr_ci_override_tidb_download_link")) {
-                    tidb_download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", tidb_download_url)
-                }
+                    def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
+                    if (params.containsKey("upstream_pr_ci_override_tidb_download_link")) {
+                        tidb_download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", tidb_download_url)
+                    }
 
-                scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
+                    scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
                             .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
-
+                }
                 // tiflash
                 if (tiflashCommit == "") {
                     scripts_builder.append("(tiflashCommit=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1); ")
@@ -479,8 +484,9 @@ catchError {
                     println "ghprbPullId: ${ghprbPullId}"
                     println "refSpecs: ${refSpecs}"
 
-                    
                     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                    def git_repo_url = "git@github.com:pingcap/br.git"
+                    def build_br_cmd = "make build_for_integration_test"
                     def commit_id = "${ghprbActualCommit}"
                     switch (from) {
                         case "tikv":
@@ -505,18 +511,26 @@ catchError {
                             commit_id = "pd_" + download_url.substring(index_begin, index_end)
                             break;
 
+                        // This branch triggered by BR in TiDB repo.
+                        // This could happen after BR merged into TiDB.
+                        case "tidb-br":
+                            // we get br from tidb repo.
+                            git_repo_url = "git@github.com:pingcap/tidb.git"
+                            // build br.test and tidb-server
+                            build_br_cmd = "make build_for_br_integration_test && make server"
+                            break;
                     }
                     
                     def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/br.git']]]
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: ${git_repo_url}]]]
 
                     sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
                     git rev-parse HEAD
 
                     go version
-                    make build_for_integration_test
+                    ${build_br_cmd}
 
                     tar czf br_integration_test.tar.gz * .[!.]*
                     curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload

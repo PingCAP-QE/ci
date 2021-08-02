@@ -27,11 +27,10 @@ catchError {
 
                 def default_params = [
                         booleanParam(name: 'force', value: true),
-                        // "Origin" means run every br integration tests.
-                        string(name: 'triggered_by_upstream_pr_ci', value: "Origin"),
+                        // "tidb-br" run every br integration tests after BR merged into TiDB.
+                        string(name: 'triggered_by_upstream_pr_ci', value: "tidb-br"),
                         string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
-                        // We tests BR on the same branch as TiDB's.
-                        string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbTargetBranch}"),
+                        string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbActualCommit}"),
                         string(name: 'upstream_pr_ci_ghpr_pull_id', value: "${ghprbPullId}"),
                         string(name: 'upstream_pr_ci_ghpr_pull_title', value: "${ghprbPullTitle}"),
                         string(name: 'upstream_pr_ci_ghpr_pull_link', value: "${ghprbPullLink}"),
@@ -42,7 +41,8 @@ catchError {
                 // these three branch don't have br integrated.
                 if (ghprbTargetBranch == "release-4.0" || ghprbTargetBranch == "release-5.0" || ghprbTargetBranch == "release-5.1") {
                     default_params.triggered_by_upstream_pr_ci = "tidb"
-
+                    // We tests BR on the same branch as TiDB's.
+                    default_params.upstream_pr_ci_ghpr_actual_commit = "${ghprbTargetBranch}"
                 }
                 // Trigger BRIE test without waiting its finish.
                 build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
