@@ -6,15 +6,17 @@ def tiflash_sha1, tarball_name, dir_name
 def download = { name, version, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
 
-    if (arch == "arm64") {
+    if (arch == "arm64"  && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -33,7 +35,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64") {
+    if (arch == "arm64" && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -115,6 +117,12 @@ try {
 
             stage("tiup release tidb-lightning darwin amd64") {
                 update "br", RELEASE_TAG, "darwin", "amd64"
+            }
+
+            if (RELEASE_TAG != "nightly") {
+                stage("tiup release tidb-lightning darwin arm64") {
+                    update "br", RELEASE_TAG, "darwin", "arm64"
+                }
             }
         }
     }
