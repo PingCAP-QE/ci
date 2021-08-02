@@ -485,6 +485,9 @@ catchError {
                     println "refSpecs: ${refSpecs}"
 
                     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+
+                    println "from: ${from}"
+
                     def git_repo_url = "git@github.com:pingcap/br.git"
                     def build_br_cmd = "make build_for_integration_test"
                     def commit_id = "${ghprbActualCommit}"
