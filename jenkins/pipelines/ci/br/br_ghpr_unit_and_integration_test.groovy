@@ -528,15 +528,15 @@ catchError {
                     println "br_cmd: ${build_br_cmd}"
                     def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
+                    specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                     // Use pullID to speed up git fetch
                     // or we will get timeout
                     if (ghprbPullId != null && ghprbPullId != "") {
                         specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-                    } else {
-                        specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                     }
 
                     println "ghprbPullId: ${ghprbPullId}"
+                    println "specStr: ${specStr}"
 
                     checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: '${ghprbActualCommit}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
 
