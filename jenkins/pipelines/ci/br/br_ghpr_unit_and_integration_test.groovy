@@ -601,7 +601,7 @@ catchError {
                             little_slow_case_names = []
                             break;
                         default:
-                            def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
+                            def list = sh(script: "ls br/tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
                             for (name in list.split("\\n")) {
                                 test_case_names << name
                             }
