@@ -186,6 +186,10 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
+def boolean isBRMergedIntoTiDB(params) {
+    return params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br"
+}
+
 def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
 if (isNeedGo1160) {
     println "This build use go1.16"
@@ -294,10 +298,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                         commit_id = "pd_" + download_url.substring(index_begin, index_end)
                         break;
 
-                   case "tidb-br":
-                        // we build tidb-server from local, then put it into br_integration_test.tar.gz
-                        // so we can get it from br_integration_test.tar.gz
-                        get_tidb_from_local = true
                 }
                 scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
 
@@ -334,7 +334,9 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             .append("cp pd-source/bin/* bin/; rm -rf pd-source;) &\n")
 
                 // tidb
-                if (!get_tidb_from_local) {
+                // we build tidb-server from local, then put it into br_integration_test.tar.gz
+                // so we can get it from br_integration_test.tar.gz
+                if (!isBRMergedIntoTiDB(params) {
                     scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
                             .append("mkdir tidb-source; ")
                     def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
@@ -378,6 +380,11 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
             dir("go/src/github.com/pingcap/br") {
                 for (case_name in case_names) {
                     timeout(120) {
+                        test_path = "tests"
+                        if (isBRMergedIntoTiDB(params)) {
+                        // in tidb repo
+                            test_path = "br/tests"
+                        }
                         try {
                             sh label: "Running ${case_name}", script: """
                             rm -rf /tmp/backup_restore_test
@@ -385,7 +392,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             rm -rf cover
                             mkdir cover
 
-                            if [[ ! -e tests/${case_name}/run.sh ]]; then
+                            if [[ ! -e ${test_path}/${case_name}/run.sh ]]; then
                                 echo ${case_name} not exists, skip.
                                 exit 0
                             fi
@@ -524,8 +531,6 @@ catchError {
                             break;
                     }
 
-                    println "git_repo_url: ${git_repo_url}"
-                    println "br_cmd: ${build_br_cmd}"
                     def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
                     specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
@@ -548,7 +553,6 @@ catchError {
                     curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
                     """
 
-                    println "from before: ${from}"
                     // Collect test case names.
                     switch (from) {
                         case "tikv":
@@ -599,9 +603,7 @@ catchError {
                             little_slow_case_names = []
                             break;
                         default:
-                            println "from: ${from}"
                             def list = sh(script: "ls br/tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
-                            println "list: ${list}"
                             for (name in list.split("\\n")) {
                                 test_case_names << name
                             }
