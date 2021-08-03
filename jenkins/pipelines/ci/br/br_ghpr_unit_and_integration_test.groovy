@@ -344,7 +344,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
                 }
 
-                sh "sleep 1000"
                 // tiflash
                 if (tiflashCommit == "") {
                     scripts_builder.append("(tiflashCommit=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1); ")
@@ -354,6 +353,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                 scripts_builder.append("curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash; ")
                             .append("mv tiflash/* bin/; rmdir tiflash;) &\n")
+
+                sleep 1000
 
                 // Testing S3 ans GCS.
                 // go-ycsb are manual uploaded for test br
@@ -382,8 +383,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     mv br/tests/* tests/
                     """
                 }
-                // debug
-                sh "sleep 1000"
                 // run cases in origin module
                 run_cases(case_names)
             }
@@ -618,7 +617,11 @@ catchError {
                             little_slow_case_names = []
                             break;
                         default:
-                            def list = sh(script: "ls br/tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
+                            list_path = "tests"
+                            if (isBRMergedIntoTiDB()) {
+                                list_path = "br/tests"
+                            }
+                            def list = sh(script: "ls ${list_path} | grep -E 'br_|lightning_'", returnStdout:true).trim()
                             for (name in list.split("\\n")) {
                                 test_case_names << name
                             }
