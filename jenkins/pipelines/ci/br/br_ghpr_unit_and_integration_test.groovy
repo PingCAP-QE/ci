@@ -450,7 +450,6 @@ def fast_checkout_tidb() {
     dir("/home/jenkins/agent/code-archive") {
         // delete to clean workspace in case of agent pod reused lead to conflict.
         deleteDir()
-        // copy code from nfs cache
         container("golang") {
             if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
                 timeout(5) {
@@ -468,16 +467,7 @@ def fast_checkout_tidb() {
                 echo "Clean dir then get tidb src code from fileserver"
                 deleteDir()
             }
-            if(!fileExists("go/src/github.com/pingcap/br/Makefile")) {
-                dir("go/src/github.com/pingcap/br") {
-                    sh """
-                        rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                        rm -rf /home/jenkins/agent/code-archive/tidb
-                        wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
-                        tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
-                    """
-                }
-            }
+
             specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
             if (ghprbPullId != null && ghprbPullId != "") {
                 specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
@@ -576,20 +566,40 @@ catchError {
 
                     def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
+                    // This happened after BR merged into TiDB.
                     if (isBRMergedIntoTiDB()) {
                         println "fast checkout tidb repo"
-                        fast_checkout_tidb()
-                        // This could happen after BR merged into TiDB.
+                        git_repo_url = "git@github.com:pingcap/tidb.git"
                         build_br_cmd = "make build_for_br_integration_test && make server"
-                    } else {
-                        println "checkout br repo"
-                        specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-                        if (ghprbPullId != null && ghprbPullId != "") {
-                            specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-                        }
 
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
+                        // copy code from nfs cache
+                        if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                            timeout(5) {
+                            sh """
+                            cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                            mkdir -p go/src/github.com/pingcap/br
+                            tar -xzf src-tidb.tar.gz -C go/src/github.com/pingcap/br --strip-components=1
+                            """
+                            }
+                        }
                     }
+                    specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                    if (ghprbPullId != null && ghprbPullId != "") {
+                        specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+                    }
+
+                    if(!fileExists("go/src/github.com/pingcap/br/Makefile")) {
+                       dir("go/src/github.com/pingcap/br") {
+                       sh """
+                       rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                       rm -rf /home/jenkins/agent/code-archive/tidb
+                       wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
+                       tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                       """
+                       }
+                    }
+
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
 
                     sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
