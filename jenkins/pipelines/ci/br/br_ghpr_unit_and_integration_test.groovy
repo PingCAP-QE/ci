@@ -336,7 +336,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 // tidb
                 // we build tidb-server from local, then put it into br_integration_test.tar.gz
                 // so we can get it from br_integration_test.tar.gz
-                if (!isBRMergedIntoTiDB() {
+                if (!isBRMergedIntoTiDB()) {
                     scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
                             .append("mkdir tidb-source; ")
                     def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
