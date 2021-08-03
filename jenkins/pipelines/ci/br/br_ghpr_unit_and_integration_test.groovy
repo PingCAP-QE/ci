@@ -377,15 +377,15 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 sh label: "Download and Go Version", script: scripts
             }
 
-            if (isBRMergedIntoTiDB()) {
-                dir("go/src/github.com/pingcap/br/br") {
-                    // run cases in sub module
-                    run_cases(case_names)
+            dir("go/src/github.com/pingcap/br") {
+                if (isBRMergedIntoTiDB()) {
+                    // move tests outside for compatibility
+                    sh label: "Running ${case_name}", script: """
+                    mv br/tests/* tests/
+                    """
                 }
-            } else {
-                dir("go/src/github.com/pingcap/br") {
-                    // run cases in origin module
-                    run_cases(case_names)
+                // run cases in origin module
+                run_cases(case_names)
                 }
             }
         }
