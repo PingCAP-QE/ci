@@ -72,10 +72,6 @@ if (getTargetBranch(ghprbTargetBranch)!=""){
     ghprbTargetBranch = "master"
 }
 
-def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-if (ghprbPullId != null && ghprbPullId != "") {
-    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-}
 
 def TIKV_BRANCH = ghprbTargetBranch
 def TIKV_IMPORTER_BRANCH = ghprbTargetBranch
@@ -482,6 +478,11 @@ def fast_checkout_tidb() {
                     """
                 }
             }
+            specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+            if (ghprbPullId != null && ghprbPullId != "") {
+                specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+            }
+
             try {
                 checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
             }   catch (info) {
@@ -582,6 +583,11 @@ catchError {
                         build_br_cmd = "make build_for_br_integration_test && make server"
                     } else {
                         println "checkout br repo"
+                        specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                        if (ghprbPullId != null && ghprbPullId != "") {
+                            specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+                        }
+
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
                     }
 
