@@ -344,7 +344,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
                             .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
                 } else {
-                    scripts_builder.append("\n\n\n")
+                    scripts_builder.append("\n")
                 }
 
                 // tiflash
@@ -389,20 +389,15 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                           try {
                               sh label: "Running ${case_name}", script: """
 
-                              echo START
                               rm -rf /tmp/backup_restore_test
                               mkdir -p /tmp/backup_restore_test
                               rm -rf cover
                               mkdir cover
 
-                              echo mkdir
-
                               if [[ ! -e tests/${case_name}/run.sh ]]; then
                                   echo ${case_name} not exists, skip.
                                   exit 0
                               fi
-
-                              echo tests
 
                               export GOPATH=\$GOPATH:${ws}/go
                               export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
