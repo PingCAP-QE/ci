@@ -384,64 +384,59 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     mv br/tests/* tests/
                     """
                 }
-                // run cases in origin module
-                run_cases(case_names)
+                for (case_name in case_names) {
+                      timeout(120) {
+                          try {
+                              sh label: "Running ${case_name}", script: """
+
+                              echo START
+                              rm -rf /tmp/backup_restore_test
+                              mkdir -p /tmp/backup_restore_test
+                              rm -rf cover
+                              mkdir cover
+
+                              echo mkdir
+
+                              if [[ ! -e tests/${case_name}/run.sh ]]; then
+                                  echo ${case_name} not exists, skip.
+                                  exit 0
+                              fi
+
+                              echo tests
+
+                              export GOPATH=\$GOPATH:${ws}/go
+                              export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
+
+                              TEST_NAME=${case_name} tests/run.sh
+
+                              # Must move coverage files to the current directory
+                              ls /tmp/backup_restore_test
+                              cp /tmp/backup_restore_test/cov.* cover/ || true
+                              ls cover
+                              """
+                          } catch (Exception e) {
+                              sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv1.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv2.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv3.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv4.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tidb.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-manager.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-stdout.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-stderr.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-proxy.log' || true"
+                              sh "cat '/tmp/backup_restore_test/importer.log' || true"
+                              sh "find '/tmp/backup_restore_test/' -name \"lightning*log\" -exec echo \">>>>>>>>> {}\" \\; -exec cat {} \\; || true"
+                              sh "echo 'Test failed'"
+                              throw e;
+                          }
+                      }
+                      // stash "cover/**" as we are already in "go/src/github.com/pingcap/br/".
+                      stash includes: "cover/**", name: "integration_test_${case_name}", useDefaultExcludes: false, allowEmpty: true
+                 }
             }
         }
     }
-}
-
-def run_cases(case_names) {
-   for (case_name in case_names) {
-       timeout(120) {
-           try {
-               sh label: "Running ${case_name}", script: """
-
-               echo START
-               rm -rf /tmp/backup_restore_test
-               mkdir -p /tmp/backup_restore_test
-               rm -rf cover
-               mkdir cover
-
-               echo mkdir
-
-               if [[ ! -e tests/${case_name}/run.sh ]]; then
-                   echo ${case_name} not exists, skip.
-                   exit 0
-               fi
-
-               echo tests
-
-               export GOPATH=\$GOPATH:${ws}/go
-               export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
-
-               TEST_NAME=${case_name} tests/run.sh
-
-               # Must move coverage files to the current directory
-               ls /tmp/backup_restore_test
-               cp /tmp/backup_restore_test/cov.* cover/ || true
-               ls cover
-               """
-           } catch (Exception e) {
-               sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"
-               sh "tail -40000 '/tmp/backup_restore_test/tikv1.log' || true"
-               sh "tail -40000 '/tmp/backup_restore_test/tikv2.log' || true"
-               sh "tail -40000 '/tmp/backup_restore_test/tikv3.log' || true"
-               sh "tail -40000 '/tmp/backup_restore_test/tikv4.log' || true"
-               sh "tail -1000 '/tmp/backup_restore_test/tidb.log' || true"
-               sh "tail -1000 '/tmp/backup_restore_test/tiflash-manager.log' || true"
-               sh "tail -1000 '/tmp/backup_restore_test/tiflash-stdout.log' || true"
-               sh "tail -1000 '/tmp/backup_restore_test/tiflash-stderr.log' || true"
-               sh "tail -1000 '/tmp/backup_restore_test/tiflash-proxy.log' || true"
-               sh "cat '/tmp/backup_restore_test/importer.log' || true"
-               sh "find '/tmp/backup_restore_test/' -name \"lightning*log\" -exec echo \">>>>>>>>> {}\" \\; -exec cat {} \\; || true"
-               sh "echo 'Test failed'"
-               throw e;
-           }
-       }
-       // stash "cover/**" as we are already in "go/src/github.com/pingcap/br/".
-       stash includes: "cover/**", name: "integration_test_${case_name}", useDefaultExcludes: false, allowEmpty: true
-   }
 }
 
 def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, tiflashBranch, tiflashCommit) {
