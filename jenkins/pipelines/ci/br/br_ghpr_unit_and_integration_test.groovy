@@ -343,6 +343,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
                             .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
                 }
+
+                sh "sleep 1000"
                 // tiflash
                 if (tiflashCommit == "") {
                     scripts_builder.append("(tiflashCommit=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1); ")
