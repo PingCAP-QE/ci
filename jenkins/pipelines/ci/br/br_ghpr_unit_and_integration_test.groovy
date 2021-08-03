@@ -397,15 +397,20 @@ def run_cases(case_names) {
            try {
                sh label: "Running ${case_name}", script: """
 
+               echo START
                rm -rf /tmp/backup_restore_test
                mkdir -p /tmp/backup_restore_test
                rm -rf cover
                mkdir cover
 
+               echo mkdir
+
                if [[ ! -e tests/${case_name}/run.sh ]]; then
                    echo ${case_name} not exists, skip.
                    exit 0
                fi
+
+               echo tests
 
                export GOPATH=\$GOPATH:${ws}/go
                export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
