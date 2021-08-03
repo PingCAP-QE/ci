@@ -224,8 +224,8 @@ def run_unit_test() {
                 """
 
                 sh label: "Run unit tests", script: """
-                mkdir -p go/src/github.com/pingcap/br/
-                cd go/src/github.com/pingcap/br
+                mkdir -p ${ws}/go/src/github.com/pingcap/br/
+                cd ${ws}/go/src/github.com/pingcap/br
 
                 curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz
 
@@ -264,8 +264,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
             timeout(30) {
                 scripts_builder = new StringBuilder()
 
-                scripts_builder.append("mkdir -p go/src/github.com/pingcap/br/bin\n")
-                scripts_builder.append("cd go/src/github.com/pingcap/br\n")
+                scripts_builder.append("mkdir -p ${ws}/go/src/github.com/pingcap/br/bin\n")
+                scripts_builder.append("cd ${ws}/go/src/github.com/pingcap/br\n")
 
                 // br_integration_test
                 def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
@@ -373,13 +373,15 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 sh label: "Download and Go Version", script: scripts
             }
 
-            dir("go/src/github.com/pingcap/br") {
+            dir("${ws}/go/src/github.com/pingcap/br") {
                 if (isBRMergedIntoTiDB()) {
                     // move tests outside for compatibility
                     sh label: "Running ${case_name}", script: """
                     mv br/tests/* tests/
                     """
                 }
+                // debug
+                sh "sleep 1000"
                 // run cases in origin module
                 run_cases(case_names)
             }
@@ -443,51 +445,6 @@ def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, ti
         }]
     }
     return batches
-}
-
-def fast_checkout_tidb() {
-    // update code
-    dir("/home/jenkins/agent/code-archive") {
-        // delete to clean workspace in case of agent pod reused lead to conflict.
-        deleteDir()
-        container("golang") {
-            if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
-                timeout(5) {
-                    sh """
-                        cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
-                        mkdir -p go/src/github.com/pingcap/br
-                        tar -xzf src-tidb.tar.gz -C go/src/github.com/pingcap/br --strip-components=1
-                    """
-                }
-            }
-        }
-        dir("go/src/github.com/pingcap/br") {
-            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                echo "Not a valid git folder: go/src/github.com/pingcap/br"
-                echo "Clean dir then get tidb src code from fileserver"
-                deleteDir()
-            }
-
-            specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-            if (ghprbPullId != null && ghprbPullId != "") {
-                specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-            }
-
-            try {
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-            }   catch (info) {
-                    retry(2) {
-                        echo "checkout failed, retry.."
-                        sleep 5
-                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        // if checkout one pr failed, we fallback to fetch all thre pr data
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    }
-            }
-        }
-    }
 }
 
 catchError {
@@ -742,7 +699,7 @@ catchError {
                     // "unit_test" is stashed under home folder, unstash here
                     // to restores coverage files to "go/src/github.com/pingcap/br/cover"
                     unstash 'unit_test'
-                    dir("go/src/github.com/pingcap/br") {
+                    dir("${ws}/go/src/github.com/pingcap/br") {
                         // "integration_test_${case_name}" is stashed under
                         // ""go/src/github.com/pingcap/br"", unstash here
                         // to restores coverage files to "cover"
