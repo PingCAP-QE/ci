@@ -186,7 +186,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def boolean isBRMergedIntoTiDB(Map<?, ?> params) {
+def boolean isBRMergedIntoTiDB(params) {
     return params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br"
 }
 
