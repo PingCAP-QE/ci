@@ -558,7 +558,6 @@ catchError {
 
                     go version
 
-                    sleep 1000
                     ${build_br_cmd}
 
                     tar czf br_integration_test.tar.gz * .[!.]*
