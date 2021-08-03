@@ -186,7 +186,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def boolean isBRMergedIntoTiDB(params) {
+def boolean isBRMergedIntoTiDB() {
     return params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br"
 }
 
@@ -336,7 +336,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 // tidb
                 // we build tidb-server from local, then put it into br_integration_test.tar.gz
                 // so we can get it from br_integration_test.tar.gz
-                if (!isBRMergedIntoTiDB(params) {
+                if (!isBRMergedIntoTiDB() {
                     scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
                             .append("mkdir tidb-source; ")
                     def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
@@ -381,7 +381,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 for (case_name in case_names) {
                     timeout(120) {
                         test_path = "tests"
-                        if (isBRMergedIntoTiDB(params)) {
+                        if (isBRMergedIntoTiDB()) {
                         // in tidb repo
                             test_path = "br/tests"
                         }
@@ -399,7 +399,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                             export GOPATH=\$GOPATH:${ws}/go
                             export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
-                            TEST_NAME=${case_name} tests/run.sh
+                            TEST_NAME=${case_name} ${test_path}/run.sh
 
                             # Must move coverage files to the current directory
                             ls /tmp/backup_restore_test
