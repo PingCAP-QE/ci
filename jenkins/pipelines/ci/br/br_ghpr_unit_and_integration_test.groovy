@@ -386,7 +386,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 }
                 // run cases in origin module
                 run_cases(case_names)
-                }
             }
         }
     }
