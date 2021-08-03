@@ -72,9 +72,9 @@ if (getTargetBranch(ghprbTargetBranch)!=""){
     ghprbTargetBranch = "master"
 }
 
-def refSpecs = "+refs/pull/*:refs/remotes/origin/pr/*"
-if (ghprbPullId == null || ghprbPullId == "") {
-    refSpecs = "+refs/heads/*:refs/remotes/origin/*"
+def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+if (ghprbPullId != null && ghprbPullId != "") {
+    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
 def TIKV_BRANCH = ghprbTargetBranch
@@ -438,6 +438,7 @@ def run_cases(case_names) {
        stash includes: "cover/**", name: "integration_test_${case_name}", useDefaultExcludes: false, allowEmpty: true
    }
 }
+
 def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, tiflashBranch, tiflashCommit) {
     def batches = []
     case_names.collate(batch_size).each { names ->
@@ -446,6 +447,56 @@ def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, ti
         }]
     }
     return batches
+}
+
+def fast_checkout_tidb() {
+    // update code
+    dir("/home/jenkins/agent/code-archive") {
+        // delete to clean workspace in case of agent pod reused lead to conflict.
+        deleteDir()
+        // copy code from nfs cache
+        container("golang") {
+            if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                timeout(5) {
+                    sh """
+                        cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                        mkdir -p go/src/github.com/pingcap/tidb
+                        tar -xzf src-tidb.tar.gz -C go/src/github.com/pingcap/br --strip-components=1
+                    """
+                }
+            }
+        }
+        dir("go/src/github.com/pingcap/br") {
+            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                echo "Not a valid git folder: go/src/github.com/pingcap/br"
+                echo "Clean dir then get tidb src code from fileserver"
+                deleteDir()
+            }
+            if(!fileExists("go/src/github.com/pingcap/br/Makefile")) {
+                dir("go/src/github.com/pingcap/br") {
+                    sh """
+                        rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                        rm -rf /home/jenkins/agent/code-archive/tidb
+                        wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                        tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                    """
+                }
+            }
+            try {
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+            }   catch (info) {
+                    retry(2) {
+                        echo "checkout failed, retry.."
+                        sleep 5
+                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        // if checkout one pr failed, we fallback to fetch all thre pr data
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                    }
+            }
+        }
+    }
 }
 
 catchError {
@@ -486,68 +537,53 @@ catchError {
                 def ws = pwd()
                 deleteDir()
 
+                def paramstring = ""
+                params.each{ k, v -> paramstring += "\n\t${k}:${v}" }
+                def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                def git_repo_url = "git@github.com:pingcap/br.git"
+                def build_br_cmd = "make build_for_integration_test"
+                def commit_id = "${ghprbActualCommit}"
+                switch (from) {
+                    case "tikv":
+                        def download_url = "?/pr/tikv_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "tikv_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "tidb":
+                        def download_url = "?/pr/tidb_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "tidb_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "pd":
+                        def download_url = "?/pr/pd_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "pd_" + download_url.substring(index_begin, index_end)
+                        break;
+                }
+
                 // Checkout and build testing binaries.
                 dir("go/src/github.com/pingcap/br") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
                     }
 
-                    def paramstring = ""
-                    params.each{ k, v -> paramstring += "\n\t${k}:${v}" }
-                    println "params: ${paramstring}"
-                    println "ghprbPullId: ${ghprbPullId}"
-                    println "refSpecs: ${refSpecs}"
-
-                    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-
-                    println "from: ${from}"
-
-                    def git_repo_url = "git@github.com:pingcap/br.git"
-                    def build_br_cmd = "make build_for_integration_test"
-                    def commit_id = "${ghprbActualCommit}"
-                    switch (from) {
-                        case "tikv":
-                            def download_url = "?/pr/tikv_unkown_commit_id/?"
-                            download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
-                            def index_begin = download_url.indexOf("pr/") + 3
-                            def index_end = download_url.indexOf("/", index_begin)
-                            commit_id = "tikv_" + download_url.substring(index_begin, index_end)
-                            break;
-                        case "tidb":
-                            def download_url = "?/pr/tidb_unkown_commit_id/?"
-                            download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
-                            def index_begin = download_url.indexOf("pr/") + 3
-                            def index_end = download_url.indexOf("/", index_begin)
-                            commit_id = "tidb_" + download_url.substring(index_begin, index_end)
-                            break;
-                        case "pd":
-                            def download_url = "?/pr/pd_unkown_commit_id/?"
-                            download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
-                            def index_begin = download_url.indexOf("pr/") + 3
-                            def index_end = download_url.indexOf("/", index_begin)
-                            commit_id = "pd_" + download_url.substring(index_begin, index_end)
-                            break;
-
-                        // This branch triggered by BR in TiDB repo.
-                        // This could happen after BR merged into TiDB.
-                        case "tidb-br":
-                            // we get br from tidb repo.
-                            git_repo_url = "git@github.com:pingcap/tidb.git"
-                            // build br.test and tidb-server
-                            build_br_cmd = "make build_for_br_integration_test && make server"
-                            break;
-                    }
-
                     def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
-                    specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-                    // Use pullID to speed up git fetch
-                    // or we will get timeout
-                    if (ghprbPullId != null && ghprbPullId != "") {
-                        specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+                    if (isBRMergedIntoTiDB()) {
+                        println "fast checkout tidb repo"
+                        fast_checkout_tidb()
+                        // This could happen after BR merged into TiDB.
+                        build_br_cmd = "make build_for_br_integration_test && make server"
+                    } else {
+                        println "checkout br repo"
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
                     }
-
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
 
                     sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
@@ -620,10 +656,6 @@ catchError {
                             little_slow_case_names = little_slow_case_names - (little_slow_case_names - test_case_names)
                     }
                 }
-
-                
-                // Stash testing binaries.
-                // stash includes: "go/src/github.com/pingcap/br/**", name: "br", useDefaultExcludes: false
             }
         }
     }
