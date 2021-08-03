@@ -582,24 +582,23 @@ catchError {
                             """
                             }
                         }
+                        if(!fileExists("go/src/github.com/pingcap/br/Makefile")) {
+                            dir("go/src/github.com/pingcap/br") {
+                                sh """
+                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                rm -rf /home/jenkins/agent/code-archive/tidb
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
+                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                                """
+                            }
+                        }
                     }
                     specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                     if (ghprbPullId != null && ghprbPullId != "") {
                         specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
                     }
 
-                    if(!fileExists("go/src/github.com/pingcap/br/Makefile")) {
-                       dir("go/src/github.com/pingcap/br") {
-                       sh """
-                       rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                       rm -rf /home/jenkins/agent/code-archive/tidb
-                       wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
-                       tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
-                       """
-                       }
-                    }
-
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', shallow: true, branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
 
                     sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
