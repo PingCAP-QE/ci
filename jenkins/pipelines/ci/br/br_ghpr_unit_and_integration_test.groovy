@@ -381,9 +381,12 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 for (case_name in case_names) {
                     timeout(120) {
                         test_path = "tests"
+                        cd_cmd = ""
                         if (isBRMergedIntoTiDB()) {
-                        // in tidb repo
+                            // in tidb repo
                             test_path = "br/tests"
+                            // enter br directory to run test
+                            cd_cmd = "cd br"
                         }
                         try {
                             sh label: "Running ${case_name}", script: """
@@ -399,7 +402,10 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                             export GOPATH=\$GOPATH:${ws}/go
                             export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
-                            TEST_NAME=${case_name} ${test_path}/run.sh
+
+                            ${cd_cmd}
+
+                            TEST_NAME=${case_name} tests/run.sh
 
                             # Must move coverage files to the current directory
                             ls /tmp/backup_restore_test
