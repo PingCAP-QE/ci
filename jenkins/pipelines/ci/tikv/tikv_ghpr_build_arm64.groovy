@@ -13,15 +13,16 @@ if (params.containsKey("release_test")) {
 def slackcolor = 'good'
 def githash
 
+// # default comment binary download url on pull request
+needComment = true
+
 // job param: notcomment default to True
 // /release : not comment binary download url
 // /release comment=true : comment binary download url
 def m1 = ghprbCommentBody =~ /\/run-build-arm64[\s]comment\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
     needComment = "${m1[0][1]}"
-    if ( needComment == "true" || needComment == "True" ) {
-        notcomment = false
-    }
+    println "needComment=${needComment}"
 }
 m1 = null
 
@@ -40,8 +41,11 @@ def release_one_arm64(repo,hash) {
             string(name: "PRODUCT", value: repo),
             string(name: "GIT_HASH", value: hash),
             string(name: "TARGET_BRANCH", value: ghprbTargetBranch),
+            string(name: "GIT_PR", value: ghprbPullId),
+
             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
     ]
+    echo("default build params: ${paramsBuild}")
     build job: "build-common",
             wait: true,
             parameters: paramsBuild
@@ -50,30 +54,32 @@ def release_one_arm64(repo,hash) {
 
 try{
 
-    stage("Check binary") {
-        binary_existed = sh(returnStatus: true,
-                script: """
+    node("${GO_BUILD_SLAVE}") {
+        stage("Check binary") {
+            binary_existed = sh(returnStatus: true,
+                    script: """
 		    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/${binary}; then exit 0; else exit 1; fi
 		    """)
-        if (binary_existed == 0) {
-            println "tikv: ${ghprbActualCommit} has beeb build before"
-            println "skip this build"
-        } else {
-            println "this commit need build"
+            if (binary_existed == 0) {
+                println "tikv: ${ghprbActualCommit} has beeb build before"
+                println "skip this build"
+            } else {
+                println "this commit need build"
+            }
+
         }
 
-    }
-
-    stage("Build") {
-        if (binary_existed == 0) {
-            println "skip build..."
-        } else {
-            release_one_arm64("tikv", ghprbActualCommit)
+        stage("Build") {
+            if (binary_existed == 0) {
+                println "skip build..."
+            } else {
+                release_one_arm64("tikv", ghprbActualCommit)
+            }
         }
-    }
 
-    stage("Print binary url") {
-        println binary
+        stage("Print binary url") {
+            println "${FILE_SERVER_URL}/download/${binary}"
+        }
     }
 
     stage("Comment on pr") {
@@ -81,14 +87,14 @@ try{
         // /release : not comment binary download url
         // /release comment=true : comment binary download url
 
-        if (!notcomment.toBoolean()) {
+        if ( needComment.toBoolean() ) {
             node("master") {
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                     sh """
                     rm -f comment-pr
                     curl -O http://fileserver.pingcap.net/download/comment-pr
                     chmod +x comment-pr
-                    ./comment-pr --token=$TOKEN --owner=tikv --repo=tikv --number=${ghprbPullId} --comment="download tikv binary at ${FILE_SERVER_URL}/download/${binary}"
+                    ./comment-pr --token=$TOKEN --owner=tikv --repo=tikv --number=${ghprbPullId} --comment="download tikv binary(linux arm64) at ${FILE_SERVER_URL}/download/${binary}"
                 """
                 }
             }
