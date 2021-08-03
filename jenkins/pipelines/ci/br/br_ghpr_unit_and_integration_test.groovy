@@ -333,6 +333,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 // we build tidb-server from local, then put it into br_integration_test.tar.gz
                 // so we can get it from br_integration_test.tar.gz
                 if (!isBRMergedIntoTiDB()) {
+                    echo "br in tidb"
                     scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
                             .append("mkdir tidb-source; ")
                     def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
@@ -342,6 +343,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                     scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
                             .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
+                } else {
+                    scripts_builder.append("\n\n\n")
                 }
 
                 // tiflash
@@ -377,7 +380,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
             dir("${ws}/go/src/github.com/pingcap/br") {
                 if (isBRMergedIntoTiDB()) {
                     // move tests outside for compatibility
-                    sh label: "Running ${case_name}", script: """
+                    sh label: "Move test outside", script: """
                     mv br/tests/* tests/
                     """
                 }
