@@ -371,7 +371,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                 def scripts = scripts_builder.toString()
                 echo scripts
-                sleep 1000
                 sh label: "Download and Go Version", script: scripts
             }
 
