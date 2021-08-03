@@ -559,7 +559,7 @@ catchError {
                 }
 
                 // Checkout and build testing binaries.
-                dir("go/src/github.com/pingcap/br") {
+                dir("${ws}/go/src/github.com/pingcap/br") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
                     }
@@ -577,20 +577,18 @@ catchError {
                             timeout(5) {
                             sh """
                             cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
-                            mkdir -p go/src/github.com/pingcap/br
-                            tar -xzf src-tidb.tar.gz -C go/src/github.com/pingcap/br --strip-components=1
+                            mkdir -p ${ws}/go/src/github.com/pingcap/br
+                            tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/br --strip-components=1
                             """
                             }
                         }
-                        if(!fileExists("go/src/github.com/pingcap/br/Makefile")) {
-                            dir("go/src/github.com/pingcap/br") {
-                                sh """
-                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                                rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
-                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
-                                """
-                            }
+                        if(!fileExists("${ws}/go/src/github.com/pingcap/br/Makefile")) {
+                            sh """
+                            rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                            rm -rf /home/jenkins/agent/code-archive/tidb
+                            wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
+                            tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                            """
                         }
                     }
                     specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
