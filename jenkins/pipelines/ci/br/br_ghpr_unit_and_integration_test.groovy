@@ -460,7 +460,7 @@ def fast_checkout_tidb() {
                 timeout(5) {
                     sh """
                         cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
-                        mkdir -p go/src/github.com/pingcap/tidb
+                        mkdir -p go/src/github.com/pingcap/br
                         tar -xzf src-tidb.tar.gz -C go/src/github.com/pingcap/br --strip-components=1
                     """
                 }
