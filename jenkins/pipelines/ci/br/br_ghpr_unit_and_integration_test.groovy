@@ -213,7 +213,7 @@ def get_commit_hash(prj, branch_or_hash) {
 def run_unit_test() {
     node("${GO_TEST_SLAVE}") {
         container("golang") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
             def ws = pwd()
             deleteDir()
 
@@ -255,7 +255,7 @@ def run_unit_test() {
 def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBranch, tiflashCommit) {
     node("${GO_TEST_SLAVE}") {
         container("golang") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
             def ws = pwd()
             deleteDir()
 
@@ -354,8 +354,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 scripts_builder.append("curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash; ")
                             .append("mv tiflash/* bin/; rmdir tiflash;) &\n")
 
-                sleep 1000
-
                 // Testing S3 ans GCS.
                 // go-ycsb are manual uploaded for test br
                 // minio and s3cmd for testing s3
@@ -373,6 +371,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                 def scripts = scripts_builder.toString()
                 echo scripts
+                sleep 1000
                 sh label: "Download and Go Version", script: scripts
             }
 
@@ -693,7 +692,7 @@ catchError {
         // Skip upload coverage when the job is initialed by TiDB PRs.
         node("${GO_TEST_SLAVE}") {
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
                 if (params.containsKey("triggered_by_upstream_pr_ci")) {
                     println "skip uploading coverage as it is triggered by upstream PRs"
                 } else {
