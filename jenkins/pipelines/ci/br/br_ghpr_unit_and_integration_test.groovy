@@ -404,8 +404,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                               ls /tmp/backup_restore_test
 
-                              sleep 1000
-
                               TEST_NAME=${case_name} tests/run.sh
 
                               # Must move coverage files to the current directory
