@@ -378,11 +378,15 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
             }
 
             dir("${ws}/go/src/github.com/pingcap/br") {
+                export_cmd = ""
                 if (isBRMergedIntoTiDB()) {
                     // move tests outside for compatibility
                     sh label: "Move test outside", script: """
                     mv br/tests/* tests/
                     """
+                    // lightning_examples test need mv file from examples pkg.
+                    // so we should overwrite the path.
+                    export_cmd = "export EXAMPLES_PATH=br/pkg/lightning/mydump/examples"
                 }
                 for (case_name in case_names) {
                       timeout(120) {
@@ -404,6 +408,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                               ls /tmp/backup_restore_test
 
+                              ${export_cmd}
                               TEST_NAME=${case_name} tests/run.sh
 
                               # Must move coverage files to the current directory
