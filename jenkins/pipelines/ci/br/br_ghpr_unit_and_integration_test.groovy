@@ -269,7 +269,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                 // br_integration_test
                 def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-                def get_tidb_from_local = false
                 def commit_id = "${ghprbActualCommit}"
                 switch (from) {
                     case "tikv":
@@ -491,6 +490,10 @@ catchError {
 
                 def paramstring = ""
                 params.each{ k, v -> paramstring += "\n\t${k}:${v}" }
+
+                println "params: ${paramstring}"
+                println "ghprbPullId: ${ghprbPullId}"
+
                 def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
                 def git_repo_url = "git@github.com:pingcap/br.git"
                 def build_br_cmd = "make build_for_integration_test"
@@ -626,8 +629,8 @@ catchError {
                                 // current gcs test need custom endpoint
                                 // but official client has a bug on custom endpoint
                                 // in origin BR repo: we use replace go.mod to fix this issue.
-                                // but after BR merged into TiDB, we cannot use replace due to plugin check.isBRMergedIntoTiDB
-                                // we should skip these tests until https://github.com/googleapis/google-cloud-go/pull/3509 merged.
+                                // but after BR merged into TiDB, we cannot use replace due to the plugin check.
+                                // so we should skip these tests until https://github.com/googleapis/google-cloud-go/pull/3509 merged.
                                 list_path = "br/tests | grep -v br_gcs | grep -v lightning_gcs"
                             }
                             def list = sh(script: "ls ${list_path} | grep -E 'br_|lightning_'", returnStdout:true).trim()
