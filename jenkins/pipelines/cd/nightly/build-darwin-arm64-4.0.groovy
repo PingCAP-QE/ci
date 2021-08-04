@@ -451,8 +451,9 @@ try {
         // }
 
         if(SKIP_TIFLASH == "false" && (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0")) {
-            node("mac-arm"){
+            node("mac-arm-tiflash"){
                 stage("build tiflash") {
+                    def ws = pwd() 
                     dir("tics") {
                         tiflash_result = "FAILURE"
                         def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
