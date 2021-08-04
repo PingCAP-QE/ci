@@ -618,7 +618,12 @@ catchError {
                         default:
                             list_path = "tests"
                             if (isBRMergedIntoTiDB()) {
-                                list_path = "br/tests"
+                                // current gcs test need custom endpoint
+                                // but official client has a bug on custom endpoint
+                                // in origin BR repo: we use replace go.mod to fix this issue.
+                                // but after BR merged into TiDB, we cannot use replace due to plugin check.isBRMergedIntoTiDB
+                                // we should skip these tests until https://github.com/googleapis/google-cloud-go/pull/3509 merged.
+                                list_path = "br/tests | grep -v br_gcs | grep -v lightning_gcs"
                             }
                             def list = sh(script: "ls ${list_path} | grep -E 'br_|lightning_'", returnStdout:true).trim()
                             for (name in list.split("\\n")) {
