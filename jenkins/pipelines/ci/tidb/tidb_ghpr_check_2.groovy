@@ -102,7 +102,8 @@ def test_suites = { suites,option ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${option} '${suites}'
+                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${option} '${suites}' | tee test.log || \\
+                        (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
                         """
                     }
@@ -216,8 +217,8 @@ try {
                         package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                         sed -i  's,go list ./...| grep -vE "cmd",go list ./...| grep -vE "cmd" | grep -vE "store/tikv\$\$",' ./Makefile
                         # export GOPROXY=http://goproxy.pingcap.net
-                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi
-
+                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi | tee test.log || \\
+                        (cat test.log | grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "^FAIL:"; false)
                         # if grep -q gogenerate "Makefile";then  make gogenerate ; fi
                         """
                     }
