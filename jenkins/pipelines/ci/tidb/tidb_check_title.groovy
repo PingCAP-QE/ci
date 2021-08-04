@@ -55,7 +55,7 @@ stage("summary") {
                     chmod +x comment-pr
                     # ./comment-pr --token=$TOKEN --owner=pingcap --repo=tidb --number=${ghprbPullId} --comment="Please format title"
                     ./comment-pr --token=$TOKEN --owner=pingcap --repo=tidb --number=${ghprbPullId} --comment="Please follow PR Title Format: \r\n - pkg [, pkg2, pkg3]: what's changed\r\n\r\nOr if the count of mainly changed packages are more than 3, use\r\n
- - *: what's changed\n\nAfter you have format title,You can comment `/run-check_title` to recheck it"
+ - *: what's changed\n\nAfter you have format title,You can comment \`/run-check_title\` to recheck it"
                 """
             }
         }
