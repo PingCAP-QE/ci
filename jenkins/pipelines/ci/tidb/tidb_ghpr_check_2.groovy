@@ -216,8 +216,8 @@ try {
                         package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                         sed -i  's,go list ./...| grep -vE "cmd",go list ./...| grep -vE "cmd" | grep -vE "store/tikv\$\$",' ./Makefile
                         # export GOPROXY=http://goproxy.pingcap.net
-                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi
-
+                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi > test.log || \\
+                        (cat test.log; cat test.log |grep "FAIL"; false)
                         # if grep -q gogenerate "Makefile";then  make gogenerate ; fi
                         """
                     }
