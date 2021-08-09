@@ -159,7 +159,7 @@ def build_upload = { product, hash, binary ->
                         if [ ${product} = "tidb-tools" ]; then
                             make clean;
                         fi;                    
-                        if [ ${RELEASE_TAG} \>= "v5.2.0" && ${product} == "br" ]; then
+                        if [ ${RELEASE_TAG} \\>= "v5.2.0" && ${product} == "br" ]; then
                             make build_tools
                         else
                             make build

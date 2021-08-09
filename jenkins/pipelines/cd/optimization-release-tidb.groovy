@@ -364,7 +364,7 @@ catchError {
                            cp ${ws}/centos7/bin/pd-tso-bench ./bin
                            cp ${ws}/centos7/bin/tidb-lightning ./bin
                            cp ${ws}/centos7/bin/tidb-lightning-ctl ./bin
-                           if [ ${RELEASE_TAG} \< "v5.2.0" ]; then
+                           if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
                               cp ${ws}/centos7/bin/tikv-importer ./bin
                            fi;
                            cp ${ws}/centos7/bin/br ./bin
@@ -406,7 +406,7 @@ catchError {
                            mkdir bin
                            cp ${ws}/arm/tidb-tools-v*-linux-arm64/bin/sync_diff_inspector ./bin
                            cp ${ws}/arm/pd-v*-linux-arm64/bin/pd-tso-bench ./bin
-                           if [ ${RELEASE_TAG} \< "v5.2.0" ]; then
+                           if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
                                cp ${ws}/arm/importer-v*-linux-arm64/bin/tikv-importer ./bin
                            fi;
                            cp ${ws}/arm/br-v*-linux-arm64/bin/br ./bin
@@ -600,7 +600,7 @@ catchError {
                         cp ../centos7/bin/tidb-lightning ./
                         cp ../centos7/bin/tidb-lightning-ctl ./
                         cp ../centos7/bin/br ./
-                        if [ ${RELEASE_TAG} \< "v5.2.0" ]; then 
+                        if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then 
                             cp ../centos7/bin/tikv-importer ./
                         fi;
                         cp /usr/local/go/lib/time/zoneinfo.zip ./
@@ -611,7 +611,7 @@ COPY tidb-lightning /tidb-lightning
 COPY tidb-lightning-ctl /tidb-lightning-ctl
 COPY br /br
 __EOF__
-                        if [ ${RELEASE_TAG} \< "v5.2.0" ]; then
+                        if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
                         cat > Dockerfile << __EOF__
 FROM pingcap/alpine-glibc
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
