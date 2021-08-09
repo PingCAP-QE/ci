@@ -426,7 +426,7 @@ try {
                         def filepath = "builds/pingcap/br/optimization/${RELEASE_TAG}/${BR_HASH}/centos7/br.tar.gz"
                         def filepath2 = "builds/pingcap/br/optimization/${BR_HASH}/centos7/br.tar.gz"
                         def repo = "git@github.com:pingcap/br.git"
-                        if (RELEASE_TAG >= "v5.2.0" && product == "br") {
+                        if (RELEASE_TAG >= "v5.2.0" ) {
                             repo = "git@github.com:pingcap/tidb.git"
                         }
 
