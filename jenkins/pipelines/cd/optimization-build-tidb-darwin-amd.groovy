@@ -167,7 +167,7 @@ def build_upload = { product, hash, binary ->
                     git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    if [ ${product} = "tidb-tools" ]; then
+                    if [[ ${product} = "tidb-tools" ]]; then
                         make clean;
                     fi;  
                     if [[ ${RELEASE_TAG} \\>= "v5.2.0" && ${product} == "br" ]]; then
