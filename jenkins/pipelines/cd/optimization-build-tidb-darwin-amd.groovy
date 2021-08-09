@@ -81,6 +81,7 @@ def build_upload = { product, hash, binary ->
             }
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
+                deleteDir()
                 try {
                     checkout changelog: false, poll: true,
                             scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
