@@ -86,11 +86,9 @@ node("build_go1130") {
                 update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
             }
 
-            if (RELEASE_TAG != "nightly") {
-                stage("TiUP build cdc on darwin/arm64") {
-                    update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "arm64"
-                }
-            }
+            stage("TiUP build cdc on darwin/arm64") {
+                update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "arm64"
+            }   
         }
     }
 }

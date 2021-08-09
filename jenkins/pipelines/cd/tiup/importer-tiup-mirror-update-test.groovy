@@ -118,10 +118,8 @@ try {
                     update "importer", RELEASE_TAG, "darwin", "amd64"
                 }
 
-                if (RELEASE_TAG != "nightly") {
-                    stage("tiup release tikv-importer darwin arm64") {
-                        update "importer", RELEASE_TAG, "darwin", "arm64"
-                    }
+                stage("tiup release tikv-importer darwin arm64") {
+                    update "importer", RELEASE_TAG, "darwin", "arm64"
                 }
             }
         }

@@ -130,10 +130,8 @@ node("build_go1130") {
                 update "tiflash", RELEASE_TAG, "darwin", "amd64"
             }
 
-            if (RELEASE_TAG != "nightly") {
-                stage("tiup release tiflash darwin arm64") {
-                    update "tiflash", RELEASE_TAG, "darwin", "arm64"
-                }
+            stage("tiup release tiflash darwin arm64") {
+                update "tiflash", RELEASE_TAG, "darwin", "arm64"
             }
 
             // upload "package"

@@ -111,6 +111,14 @@ try {
                         ]
             }
 
+            builds["Build binarys darwin/arm64"] = {
+                build job: "build-darwin-arm64-4.0",
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                        ]
+            }
+
             parallel builds
         }
 
