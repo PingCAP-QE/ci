@@ -269,6 +269,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                 // br_integration_test
                 def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                def get_tidb_from_local = false
                 def commit_id = "${ghprbActualCommit}"
                 switch (from) {
                     case "tikv":

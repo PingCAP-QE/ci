@@ -119,10 +119,8 @@ try {
                 update "br", RELEASE_TAG, "darwin", "amd64"
             }
 
-            if (RELEASE_TAG != "nightly") {
-                stage("tiup release tidb-lightning darwin arm64") {
-                    update "br", RELEASE_TAG, "darwin", "arm64"
-                }
+            stage("tiup release tidb-lightning darwin arm64") {
+                update "br", RELEASE_TAG, "darwin", "arm64"
             }
         }
     }

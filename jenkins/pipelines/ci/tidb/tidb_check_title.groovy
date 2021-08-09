@@ -54,8 +54,8 @@ stage("summary") {
                     curl -O http://fileserver.pingcap.net/download/comment-pr
                     chmod +x comment-pr
                     # ./comment-pr --token=$TOKEN --owner=pingcap --repo=tidb --number=${ghprbPullId} --comment="Please format title"
-                    ./comment-pr --token=$TOKEN --owner=pingcap --repo=tidb --number=${ghprbPullId} --comment="Please follow PR Title Format: \r\n - pkg [, pkg2, pkg3]: what's changed\r\n\r\nOr if the count of mainly changed packages are more than 3, use\r\n
- - *: what's changed"
+                    ./comment-pr --token=$TOKEN --owner=pingcap --repo=tidb --number=${ghprbPullId} --comment='Please follow PR Title Format: \r\n - pkg [, pkg2, pkg3]: what is changed\r\n\r\nOr if the count of mainly changed packages are more than 3, use\r\n
+ - *: what is changed\n\n\r\n After you have format title, you can leave a comment `/run-check_title` to recheck it'
                 """
             }
         }

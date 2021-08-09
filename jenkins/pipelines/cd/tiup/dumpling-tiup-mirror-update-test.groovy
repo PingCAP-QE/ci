@@ -114,10 +114,8 @@ node("build_go1130") {
                 update "dumpling", RELEASE_TAG, "darwin", "amd64"
             }
 
-            if (RELEASE_TAG != "nightly") {
-                stage("tiup release dumpling darwin arm64") {
-                    update "dumpling", RELEASE_TAG, "darwin", "arm64"
-                }
+            stage("tiup release dumpling darwin arm64") {
+                update "dumpling", RELEASE_TAG, "darwin", "arm64"
             }
         }
     }
