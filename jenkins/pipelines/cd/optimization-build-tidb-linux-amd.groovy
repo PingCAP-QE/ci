@@ -436,7 +436,7 @@ try {
                             git tag -f ${RELEASE_TAG} ${BR_HASH}
                             git branch -D refs/tags/${RELEASE_TAG} || true
                             git checkout -b refs/tags/${RELEASE_TAG}
-                            if [[ ${RELEASE_TAG} \\>= "v5.2.0" ]]; then
+                            if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ]; then
                                 make build_tools
                             else
                                 make build
