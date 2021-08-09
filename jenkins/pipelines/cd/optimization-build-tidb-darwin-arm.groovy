@@ -197,7 +197,11 @@ try {
             println "${ws}"
             sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
             if (TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 ||
-                    TIFLASH_HASH.length() < 40 || IMPORTER_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
+                    TIFLASH_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
+                println "build must be used with githash."
+                sh "exit 2"
+            }
+            if (IMPORTER_HASH.length() < 40 && RELEASE_TAG < "v5.2.0"){
                 println "build must be used with githash."
                 sh "exit 2"
             }
