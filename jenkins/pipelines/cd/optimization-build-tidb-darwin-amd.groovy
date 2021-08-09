@@ -159,7 +159,7 @@ def build_upload = { product, hash, binary ->
                     cp bin/* ${target}/bin
                     """
                 }
-                if (product in ["tidb-tools", "ticdc", "dumpling"]) {
+                if (product in ["tidb-tools","ticdc","br","dumpling"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
@@ -170,7 +170,7 @@ def build_upload = { product, hash, binary ->
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
                     fi;  
-                    if [ ${RELEASE_TAG} \\>= "v5.2.0" && ${product} == "br" ]; then
+                    if [[ ${RELEASE_TAG} \\>= "v5.2.0" && ${product} == "br" ]]; then
                         make build_tools
                     else
                         make build
