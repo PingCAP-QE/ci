@@ -366,7 +366,9 @@ try {
                 }
             }
         }
-
+        if (RELEASE_TAG >= "v5.2.0") {
+            builds.remove("Build importer")
+        }
         parallel builds
     }
     currentBuild.result = "SUCCESS"
