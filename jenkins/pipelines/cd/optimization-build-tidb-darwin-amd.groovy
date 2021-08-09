@@ -85,7 +85,7 @@ def build_upload = { product, hash, binary ->
                     checkout changelog: false, poll: true,
                             scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
                                   extensions: [[$class: 'CheckoutOption', timeout: 30],
-                                               [$class: 'CloneOption', timeout: 60],
+                                               [$class: 'CloneOption', timeout: 600],
                                                [$class: 'PruneStaleBranch'],
                                                [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
                                   userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
