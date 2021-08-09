@@ -421,14 +421,22 @@ try {
                         def target = "br"
                         def filepath = "builds/pingcap/br/optimization/${RELEASE_TAG}/${BR_HASH}/centos7/br.tar.gz"
                         def filepath2 = "builds/pingcap/br/optimization/${BR_HASH}/centos7/br.tar.gz"
+                        def repo = "git@github.com:pingcap/br.git"
+                        if (RELEASE_TAG >= "v5.2.0" && product == "br") {
+                            repo = "git@github.com:pingcap/tidb.git"
+                        }
 
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/br.git']]]
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: repo]]]
                         sh """
                             for a in \$(git tag --contains ${BR_HASH}); do echo \$a && git tag -d \$a;done
                             git tag -f ${RELEASE_TAG} ${BR_HASH}
                             git branch -D refs/tags/${RELEASE_TAG} || true
                             git checkout -b refs/tags/${RELEASE_TAG}
-                            make build
+                            if [ ${RELEASE_TAG} \>= "v5.2.0" ]; then
+                                make build_tools
+                            else
+                                make build
+                            fi;
                             tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
                             curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                             curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload

@@ -73,6 +73,9 @@ def build_upload = { product, hash, binary ->
                 return
             }
             def repo = "git@github.com:pingcap/${product}.git"
+            if (RELEASE_TAG >= "v5.2.0" && product == "br") {
+                repo = "git@github.com:pingcap/tidb.git"
+            }
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
                 try {
@@ -156,7 +159,11 @@ def build_upload = { product, hash, binary ->
                         if [ ${product} = "tidb-tools" ]; then
                             make clean;
                         fi;                    
-                        make build
+                        if [ ${RELEASE_TAG} \>= "v5.2.0" && ${product} == "br" ]; then
+                            make build_tools
+                        else
+                            make build
+                        fi;
                         rm -rf ${target}
                         mkdir -p ${target}/bin
                         cp bin/* ${target}/bin/
