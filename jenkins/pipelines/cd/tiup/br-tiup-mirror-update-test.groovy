@@ -98,7 +98,11 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.2.0") {
+                    br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                } else {
+                    br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                }
             }
 
             stage("tiup release br linux amd64") {
