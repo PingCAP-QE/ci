@@ -46,7 +46,11 @@ catchError {
                         tidb_sha1 = get_hash(TIDB_TAG, "tidb")
                         tikv_sha1 = get_hash(TIKV_TAG, "tikv")
                         pd_sha1 = get_hash(PD_TAG, "pd")
-                        tidb_br_sha1 = get_hash(BR_TAG, "br")
+                        if (RELEASE_TAG >= "v5.2.0") {
+                            tidb_br_sha1 = get_hash(BR_TAG, "tidb")
+                        } else {
+                            tidb_br_sha1 = get_hash(BR_TAG, "br")
+                        }
                         tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
                         tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")                 
                         importer_sha1 = get_hash(IMPORTER_TAG, "importer")
@@ -56,7 +60,11 @@ catchError {
                         tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                         tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
                         pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+                        if (RELEASE_TAG >= "v5.2.0") {
+                            tidb_br_sha1 = tidb_sha1 
+                        } else {
+                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+                        }
                         tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                         tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                         importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()

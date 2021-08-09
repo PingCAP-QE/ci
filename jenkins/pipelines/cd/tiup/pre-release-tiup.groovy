@@ -29,7 +29,11 @@ def get_sha() {
     pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-    binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    if (RELEASE_TAG >= "v5.2.0") {
+        binlog_sha1 = tidb_sha1
+    } else {
+        binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    }
     lightning_sha1 = br_sha1
     importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
