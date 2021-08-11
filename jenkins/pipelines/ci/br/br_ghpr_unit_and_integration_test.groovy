@@ -222,7 +222,15 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 def boolean isBRMergedIntoTiDB() {
-    return params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br"
+    if (params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br") {
+        return true
+    }
+    // if in release_test and release branch >= release-5.2
+    // we use br in tidb by default
+    if (params.containsKey("release_test")) || (isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix("release-5.2"))) {
+        return true
+    }
+    return false
 }
 
 def get_commit_hash(prj, branch_or_hash) {
