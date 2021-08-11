@@ -227,7 +227,7 @@ def boolean isBRMergedIntoTiDB() {
     }
     // if in release_test and release branch >= release-5.2
     // we use br in tidb by default
-    if (params.containsKey("release_test")) || (isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix("release-5.2"))) {
+    if (params.containsKey("release_test") || (isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix("release-5.2")))) {
         return true
     }
     return false
