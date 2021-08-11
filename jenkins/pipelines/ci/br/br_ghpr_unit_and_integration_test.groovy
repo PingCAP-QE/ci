@@ -289,6 +289,9 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
             // unstash 'br'
 
+            // move this function outside or we will get repeat scripts.builder
+            def br_not_in_tidb = !isBRMergedIntoTiDB()
+
             timeout(30) {
                 scripts_builder = new StringBuilder()
 
@@ -360,7 +363,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 // tidb
                 // we build tidb-server from local, then put it into br_integration_test.tar.gz
                 // so we can get it from br_integration_test.tar.gz
-                if (!isBRMergedIntoTiDB()) {
+                if (br_not_in_tidb) {
                     echo "br not in tidb"
                     scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
                             .append("mkdir tidb-source; ")
