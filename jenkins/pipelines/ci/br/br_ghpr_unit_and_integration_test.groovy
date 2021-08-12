@@ -295,7 +295,9 @@ def run_unit_test() {
                 """
             }
 
-            stash includes: "go/src/github.com/pingcap/br/cover/**", name: "unit_test", useDefaultExcludes: false
+            if (!br_in_tidb) {
+                stash includes: "go/src/github.com/pingcap/br/cover/**", name: "unit_test", useDefaultExcludes: false
+            }
         }
     }
 }
