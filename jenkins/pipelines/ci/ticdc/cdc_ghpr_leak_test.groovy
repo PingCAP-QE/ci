@@ -51,7 +51,10 @@ def run_with_pod(Closure body) {
     def label = "cdc_ghpr_leak_test"
     pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
     if (isNeedGo1160) {
+        println "Use go1.16.4"
         pod_go_docker_image = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+    } else {
+        println "Use go1.13.7"
     }
     podTemplate(label: label,
                 instanceCap: 5, 
