@@ -76,6 +76,9 @@ def build_upload = { product, hash, binary ->
                 return
             }
             def repo = "git@github.com:pingcap/${product}.git"
+            if (RELEASE_TAG >= "v5.2.0" && product == "br") {
+                repo = "git@github.com:pingcap/tidb.git"
+            }
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
                 try {
@@ -167,7 +170,11 @@ def build_upload = { product, hash, binary ->
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
                     fi;  
-                    make build
+                    if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ] && [ $product == "br" ]; then
+                        make build_tools
+                    else
+                        make build
+                    fi;
                     rm -rf ${target}
                     mkdir -p ${target}/bin
                     mv bin/* ${target}/bin/
@@ -190,7 +197,11 @@ try {
             println "${ws}"
             sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
             if (TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 ||
-                    TIFLASH_HASH.length() < 40 || IMPORTER_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
+                    TIFLASH_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
+                println "build must be used with githash."
+                sh "exit 2"
+            }
+            if (IMPORTER_HASH.length() < 40 && RELEASE_TAG < "v5.2.0"){
                 println "build must be used with githash."
                 sh "exit 2"
             }

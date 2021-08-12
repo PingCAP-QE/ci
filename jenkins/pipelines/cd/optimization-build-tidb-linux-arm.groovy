@@ -73,13 +73,17 @@ def build_upload = { product, hash, binary ->
                 return
             }
             def repo = "git@github.com:pingcap/${product}.git"
+            if (RELEASE_TAG >= "v5.2.0" && product == "br") {
+                repo = "git@github.com:pingcap/tidb.git"
+            }
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
+                deleteDir()
                 try {
                     checkout changelog: false, poll: true, scm: [$class                           : 'GitSCM', branches: [[name: "${hash}"]],
                                                                  doGenerateSubmoduleConfigurations: false,
                                                                  extensions                       : [[$class: 'CheckoutOption', timeout: 30],
-                                                                                                     [$class: 'CloneOption', timeout: 60],
+                                                                                                     [$class: 'CloneOption', timeout: 600],
                                                                                                      [$class: 'PruneStaleBranch'],
                                                                                                      [$class: 'CleanBeforeCheckout']],
                                                                  submoduleCfg                     : [],
@@ -156,7 +160,11 @@ def build_upload = { product, hash, binary ->
                         if [ ${product} = "tidb-tools" ]; then
                             make clean;
                         fi;                    
-                        make build
+                        if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ] && [ $product == "br" ]; then
+                            make build_tools
+                        else
+                            make build
+                        fi;
                         rm -rf ${target}
                         mkdir -p ${target}/bin
                         cp bin/* ${target}/bin/
@@ -178,9 +186,13 @@ try {
             deleteDir()
             // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             println "${ws}"
-            if (TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 || TIFLASH_HASH.length() < 40 || IMPORTER_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
+            if (TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 || TIFLASH_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
                 println "build must be used with githash."
                 sh "exit"
+            }
+            if (IMPORTER_HASH.length() < 40 && RELEASE_TAG < "v5.2.0"){
+                println "build must be used with githash."
+                sh "exit 2"
             }
         }
     }
@@ -397,7 +409,9 @@ try {
                 }
             }
         }
-
+        if (RELEASE_TAG >= "v5.2.0") {
+            builds.remove("Build importer")
+        }
         parallel builds
     }
     currentBuild.result = "SUCCESS"

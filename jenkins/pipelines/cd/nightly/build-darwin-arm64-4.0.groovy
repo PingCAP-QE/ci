@@ -69,6 +69,9 @@ try {
                 if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
                     BR_HASH = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
+                if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                    BR_HASH = TIDB_HASH
+                }
                 // importer default branch is release-5.0
                 if(RELEASE_TAG == "nightly") {
                     IMPORTER_HASH = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=release-5.0 -s=${FILE_SERVER_URL}").trim()
@@ -330,14 +333,21 @@ try {
                         filepath = "builds/pingcap/br/${RELEASE_TAG}/${BR_HASH}/${platform}/br.tar.gz"
                     }
 
+                    def gitRepo = "git@github.com:pingcap/br.git"
+                    def mergeToTidb = "false"
+                    if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                        gitRepo = "git@github.com:pingcap/tidb.git"
+                        mergeToTidb = "true"
+                    }
+
                     retry(20) {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
                         if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/br.git']]]
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: gitRepo]]]
                         } else {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/br.git']]]
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: gitRepo]]]
                         }
                     }
 
@@ -345,7 +355,11 @@ try {
                     export GOPATH=/Users/pingcap/gopkg
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     #GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn make build
-                    make build
+                    if [ ${mergeToTidb} = "true" ]; then
+                        make build_tools
+                    else
+                        make build
+                    fi;
                     rm -rf ${target}
                     mkdir -p ${target}/bin
                     cp bin/* ${target}/bin

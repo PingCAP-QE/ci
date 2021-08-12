@@ -111,7 +111,12 @@ try {
                     TIDB_VERSION = HOTFIX_TAG
                 }
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
-                lightning_sha1 = get_hash(ORIGIN_TAG,"br")
+                lightning_sha1 = ""
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                    lightning_sha1 = get_hash(ORIGIN_TAG,"tidb")
+                } else {
+                    lightning_sha1 = get_hash(ORIGIN_TAG,"br")
+                }
             }
             if (params.ARCH_X86) {
                 stage("tiup release tidb-lightning linux amd64") {
