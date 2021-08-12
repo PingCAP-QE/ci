@@ -253,7 +253,24 @@ def run_unit_test() {
             def ws = pwd()
             deleteDir()
 
-            make_cmd = "PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check test"
+            make_cmd = """
+            PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check test
+            rm -rf cover
+            mkdir cover
+
+            rm -rf /tmp/backup_restore_test
+            mkdir -p /tmp/backup_restore_test
+
+            export GOPATH=\$GOPATH:${ws}/go
+            export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
+            make tools testcover
+
+            # Must move coverage files to the current directory
+            ls /tmp/backup_restore_test
+            cp /tmp/backup_restore_test/cov.* cover/ || true
+            ls cover
+            """
+
             def br_in_tidb = isBRMergedIntoTiDB()
             if (br_in_tidb) {
                 make_cmd = "PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make br_unit_test"
@@ -275,17 +292,6 @@ def run_unit_test() {
 
                 rm -rf /tmp/backup_restore_test
                 mkdir -p /tmp/backup_restore_test
-                rm -rf cover
-                mkdir cover
-
-                export GOPATH=\$GOPATH:${ws}/go
-                export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
-                make tools testcover
-
-                # Must move coverage files to the current directory
-                ls /tmp/backup_restore_test
-                cp /tmp/backup_restore_test/cov.* cover/ || true
-                ls cover
                 """
             }
 
