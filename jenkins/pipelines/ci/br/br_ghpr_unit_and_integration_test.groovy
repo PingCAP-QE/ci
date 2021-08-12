@@ -576,16 +576,18 @@ catchError {
                         build_br_cmd = "make build_for_br_integration_test && make server"
 
                         // copy code from nfs cache
-                        if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                        if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
+                            println "copy src-tidb from nfs cache"
                             timeout(5) {
                             sh """
-                            cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
-                            mkdir -p ${ws}/go/src/github.com/pingcap/br
-                            tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/br --strip-components=1
+                            cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ${ws}/
+                            tar -xzf ${ws}/src-tidb.tar.gz -C ./ --strip-components=1
+                            ls -l ./
                             """
                             }
                         }
                         if(!fileExists("${ws}/go/src/github.com/pingcap/br/Makefile")) {
+                            println "copy src-tidb from nfs failed, try download it from file-server"
                             sh """
                             rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                             rm -rf /home/jenkins/agent/code-archive/tidb
@@ -599,7 +601,7 @@ catchError {
                         specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
                     }
 
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 10]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
 
                     sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
