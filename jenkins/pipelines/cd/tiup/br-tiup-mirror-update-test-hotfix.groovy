@@ -111,7 +111,7 @@ node("build_go1130") {
                 } else {
                     tag = HOTFIX_TAG
                 }
-                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.2.0") {
                     br_sha1 = get_hash(ORIGIN_TAG,"tidb")
                 } else {
                     br_sha1 = get_hash(ORIGIN_TAG,"br")
