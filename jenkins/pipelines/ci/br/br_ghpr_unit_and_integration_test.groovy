@@ -761,7 +761,7 @@ catchError {
         node("${GO_TEST_SLAVE}") {
             container("golang") {
                 println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
-                if (params.containsKey("triggered_by_upstream_pr_ci")) {
+                if (params.containsKey("triggered_by_upstream_pr_ci") || params.containsKey("release_test")) {
                     println "skip uploading coverage as it is triggered by upstream PRs"
                 } else {
                     def ws = pwd()
