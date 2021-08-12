@@ -34,7 +34,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = false
+isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
 
 if (!isNeedGo1160) {
@@ -47,18 +47,41 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
     }
 }
 
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-} else {
-    println "This build use go1.13"
+def run_with_pod(Closure body) {
+    def label = "cdc_ghpr_leak_test"
+    pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
+    if (isNeedGo1160) {
+        pod_go_docker_image = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+    }
+    podTemplate(label: label,
+                instanceCap: 5, 
+                containers: [containerTemplate(
+                                name: 'golang', alwaysPullImage: true,
+                                image: "${pod_go_docker_image}", ttyEnabled: true,
+                                resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                                resourceLimitCpu: '16000m', resourceLimitMemory: "30Gi",
+                                command: '/bin/sh -c', args: 'cat',
+                                envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
+                                        containerEnvVar(key: 'GOPATH', value: '/go')],
+                )],
+                volumes: [
+                    nfsVolume( mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false ),
+                    nfsVolume( mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false ),
+                ],
+    ) {
+        node(label) {
+            println("${NODE_NAME}")
+            println "current pod use CPU 4000m & Memory 8Gi"
+            body()
+        }
+    }
 }
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
 
 catchError {
-    node ("${GO_TEST_SLAVE}") {
+    run_with_pod() {
         stage('Prepare') {
             def ws = pwd()
             deleteDir()
@@ -109,7 +132,7 @@ catchError {
 
         catchError {
             stage("Leak Test") {
-                node("${GO_TEST_SLAVE}") {
+                run_with_pod() {
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
