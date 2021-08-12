@@ -253,6 +253,12 @@ def run_unit_test() {
             def ws = pwd()
             deleteDir()
 
+            make_cmd = "PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check test"
+            def br_in_tidb = isBRMergedIntoTiDB()
+            if (br_in_tidb) {
+                make_cmd = "PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make br_unit_test"
+            }
+
             // unstash 'br'
             timeout(30) {
                 sh label: "Go Version", script: """
@@ -265,7 +271,7 @@ def run_unit_test() {
 
                 curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz
 
-                PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check test
+                ${make_cmd}
 
                 rm -rf /tmp/backup_restore_test
                 mkdir -p /tmp/backup_restore_test
