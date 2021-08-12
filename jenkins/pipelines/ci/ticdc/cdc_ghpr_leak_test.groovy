@@ -62,13 +62,16 @@ def run_with_pod(Closure body) {
                                 resourceLimitCpu: '16000m', resourceLimitMemory: "30Gi",
                                 command: '/bin/sh -c', args: 'cat',
                                 envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
-                                        containerEnvVar(key: 'GOPATH', value: '/go')],
+                                        containerEnvVar(key: 'GOPATH', value: '/go'),
+                                        containerEnvVar(key: 'GOCACHE', value: '/nfs/cache/go-build')],
                 )],
                 volumes: [
                     nfsVolume( mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false ),
                     nfsVolume( mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false ),
+                    nfsVolume( mountPath: '/go/pkg', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false ),
                 ],
     ) {
         node(label) {
