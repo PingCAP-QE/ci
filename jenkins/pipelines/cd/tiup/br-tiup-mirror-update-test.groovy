@@ -98,7 +98,7 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.2.0") {
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
                     br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 } else {
                     br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
