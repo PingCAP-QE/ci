@@ -112,7 +112,7 @@ try {
                 }
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
                 lightning_sha1 = ""
-                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.2.0") {
                     lightning_sha1 = get_hash(ORIGIN_TAG,"tidb")
                 } else {
                     lightning_sha1 = get_hash(ORIGIN_TAG,"br")
