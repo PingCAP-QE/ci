@@ -13,6 +13,16 @@ def slackcolor = 'good'
 def githash
 
 def PLUGIN_BRANCH = ghprbTargetBranch
+
+// example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
+// remove suffix "-20210724", only use "release-4.0"
+if (PLUGIN_BRANCH.startsWith("release-") && PLUGIN_BRANCH.split("-").size() >= 3 ) {
+    def k = PLUGIN_BRANCH.indexOf("-", PLUGIN_BRANCH.indexOf("-") + 1)
+    PLUGIN_BRANCH = PLUGIN_BRANCH.substring(0, k)
+    println "tidb hotfix branch: ${ghprbTargetBranch}"
+    println "plugin branch use ${PLUGIN_BRANCH}"
+}
+
 // parse enterprise-plugin branch
 def m1 = ghprbCommentBody =~ /plugin\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
