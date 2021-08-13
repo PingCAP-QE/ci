@@ -47,8 +47,14 @@ boolean isMoreRecentOrEqual( String a, String b ) {
     } 
 }
 
+// branch
+// master | hz-poc
+// relase-4.0
+// release-4.0-20210812
+// release-5.1
+// release-5.3
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-') : it 
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
     }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
@@ -67,6 +73,7 @@ releaseBranchUseGo1160 = "release-5.1"
 if (!isNeedGo1160) {
     isNeedGo1160 = isBranchMatched(["master", "hz-poc"], ghprbTargetBranch)
 }
+
 if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
     isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
     if (isNeedGo1160) {
