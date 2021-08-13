@@ -27,7 +27,7 @@ boolean isMoreRecentOrEqual( String a, String b ) {
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-') : it 
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
     }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
