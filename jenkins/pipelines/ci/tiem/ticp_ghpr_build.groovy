@@ -19,11 +19,13 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
+repo_url = "git@github.com:pingcap-inc/tiem.git"
+
 node("${GO_BUILD_SLAVE}") {
   def ws = pwd()
   deleteDir()
 
-    dir("${ws}/go/src/github.com/pingcap/ticp") {
+    dir("${ws}/go/src/github.com/pingcap-inc/tiem") {
         stage("Prepare"){
             container("golang") {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
@@ -32,7 +34,7 @@ node("${GO_BUILD_SLAVE}") {
                     deleteDir()
                 }
                 try {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'main']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/ticp.git']]]
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'main']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: repo_url]]]
                 } catch (error) {
                     retry(2) {
                         echo "checkout failed, retry.."
@@ -40,7 +42,7 @@ node("${GO_BUILD_SLAVE}") {
                         if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'main']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/ticp.git']]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'main']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: repo_url]]]
                     }
                 }
 
@@ -51,7 +53,7 @@ node("${GO_BUILD_SLAVE}") {
 
     catchError {
         container("golang") {
-            dir("go/src/github.com/pingcap/ticp") {
+            dir("go/src/github.com/pingcap-inc/tiem") {
                 stage('Build') {
                     sh """
                         GOPATH=\$GOPATH:${ws}/go make build
@@ -59,19 +61,19 @@ node("${GO_BUILD_SLAVE}") {
                     """
                 }
                 stage("Upload") {
-                    def filepath = "builds/pingcap/ticp/pr/${ghprbActualCommit}/centos7/ticp.tar.gz"
-                    def refspath = "refs/pingcap/ticp/pr/${ghprbPullId}/sha1"
+                    def filepath = "builds/pingcap-inc/tiem/pr/${ghprbActualCommit}/centos7/tiem.tar.gz"
+                    def refspath = "refs/pingcap-inc/tiem/pr/${ghprbPullId}/sha1"
 
                     timeout(10) {
                         sh """
                         rm -rf .git
-                        tar --exclude=ticp.tar.gz -czvf ticp.tar.gz bin/*
-                        curl -F ${filepath}=@ticp.tar.gz ${FILE_SERVER_URL}/upload
+                        tar --exclude=tiem.tar.gz -czvf tiem.tar.gz bin/*
+                        curl -F ${filepath}=@tiem.tar.gz ${FILE_SERVER_URL}/upload
                         echo "pr/${ghprbActualCommit}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                         // cleanup
-                        sh "rm -rf sha1 ticp.tar.gz"
+                        sh "rm -rf sha1 tiem.tar.gz"
                     }
                 }
             }
@@ -94,4 +96,3 @@ node("${GO_BUILD_SLAVE}") {
         }
     }
 }
-
