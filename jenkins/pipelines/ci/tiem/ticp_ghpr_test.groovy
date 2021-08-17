@@ -27,7 +27,7 @@ node("${GO_TEST_SLAVE}") {
     dir("${ws}/go/src/github.com/pingcap-inc/tiem") {
         stage("Prepare"){
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                     deleteDir()
@@ -64,19 +64,15 @@ node("${GO_TEST_SLAVE}") {
                         """
                     } catch (err) {
                         echo err.getMessage()
-                    }
-                    currentBuild.result = "SUCCESS"
-                    try {
+                        currentBuild.result = "FAILURE"
+                    } finally {
                         sh """
                             CODECOV_TOKEN=${CODECOV_TOKEN} JenkinsCI=1 GOPATH=\$GOPATH:${ws}/go make coverage
                         """
-                    } catch (err) {
-                        echo err.getMessage()
                     }
-                    currentBuild.result = "SUCCESS"
                 }
             }
-        }   
+        }
     }
 
     stage('Summary') {
