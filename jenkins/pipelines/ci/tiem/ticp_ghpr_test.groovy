@@ -70,6 +70,7 @@ node("${GO_TEST_SLAVE}") {
                             CODECOV_TOKEN=${CODECOV_TOKEN} JenkinsCI=1 GOPATH=\$GOPATH:${ws}/go make coverage
                         """
                     }
+                    currentBuild.result = currentBuild.result == "FAILURE" ? "FAILURE" : "SUCCESS"
                 }
             }
         }
