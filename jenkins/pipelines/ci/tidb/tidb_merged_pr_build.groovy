@@ -13,6 +13,8 @@ def slackcolor = 'good'
 def githash
 
 def PLUGIN_BRANCH = ghprbTargetBranch
+def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
+
 
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
 // remove suffix "-20210724", only use "release-4.0"
