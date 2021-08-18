@@ -13,6 +13,8 @@ def slackcolor = 'good'
 def githash
 
 def PLUGIN_BRANCH = ghprbTargetBranch
+def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
+
 
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
 // remove suffix "-20210724", only use "release-4.0"
@@ -23,25 +25,7 @@ if (PLUGIN_BRANCH.startsWith("release-") && PLUGIN_BRANCH.split("-").size() >= 3
     println "plugin branch use ${PLUGIN_BRANCH}"
 }
 
-// parse enterprise-plugin branch
-def m1 = ghprbCommentBody =~ /plugin\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m1) {
-    PLUGIN_BRANCH = "${m1[0][1]}"
-}
-pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
-// transfer plugin branch from pr/28 to origin/pr/28/head
-if (PLUGIN_BRANCH.startsWith("pr/")) {
-    pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
-    PLUGIN_BRANCH = "origin/${PLUGIN_BRANCH}/head"
-}
-
-m1 = null
-println "ENTERPRISE_PLUGIN_BRANCH=${PLUGIN_BRANCH}"
-
 def specStr = "+refs/heads/*:refs/remotes/origin/*"
-if (ghprbPullId != null && ghprbPullId != "") {
-    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-}
 
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
@@ -110,7 +94,7 @@ try {
         //deleteDir()
 
         stage("debuf info"){
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
             println "work space path:\n${ws}"
         }
 
@@ -124,10 +108,10 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
-                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
-                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
                                 mkdir -p ${ws}/go/src/github.com/pingcap/tidb
                                 tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                             """
@@ -135,23 +119,8 @@ try {
                     }
                 }
                 dir("${ws}/go/src/github.com/pingcap/tidb") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
-                        echo "Clean dir then get tidb src code from fileserver"
-                        deleteDir()
-                    }
-                    if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
-                        dir("${ws}/go/src/github.com/pingcap/tidb") {
-                            sh """
-                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                                rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
-                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
-                            """
-                        }
-                    }
                     try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption',  timeout: 5]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                     }   catch (info) {
                             retry(2) {
                                 echo "checkout failed, retry.."
@@ -160,7 +129,7 @@ try {
                                     deleteDir()
                                 }
                                 // if checkout one pr failed, we fallback to fetch all thre pr data
-                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 5]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             }
                     }
                     container("golang") {
@@ -183,21 +152,11 @@ try {
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
-                                if (isBuildCheck){
-                                    sh """
-	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-	                                make
-	                                """
-                                }else{
-                                    sh """
-	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
-	                                make
-	                                touch tidb-server-check.done
-	                                """
-                                }
-
+                                sh """
+                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+                                make
+                                """
                                 waitUntil{
                                     (fileExists('importer.done') || fileExists('importer.fail')) && (fileExists('tidb-server-check.done') || fileExists('tidb-server-check.fail'))
                                 }
@@ -222,7 +181,6 @@ try {
                 }
 
                 stage("Upload") {
-
                     def filepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                     def donepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
                     def refspath = "refs/pingcap/tidb/pr/${ghprbPullId}/sha1"
@@ -246,24 +204,21 @@ try {
                             }
                         }
                     }
-//                    change  isBuildCheck to true , always run
-                    if(true){
-                        filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                        donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
 
-                        container("golang") {
-                            dir("go/src/github.com/pingcap/tidb") {
-                                timeout(10) {
-                                    sh """
-									curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-	                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload									
-	                                """
-                                }
+                    filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                    donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+
+                    container("golang") {
+                        dir("go/src/github.com/pingcap/tidb") {
+                            timeout(10) {
+                                sh """
+                                curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload									
+                                """
+                                // archiveArtifacts artifacts: 'tidb-server.tar.gz', fingerprint: true
                             }
                         }
-
                     }
-
                 }
             }
 
@@ -280,8 +235,10 @@ try {
                                 }
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin") {
-                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PLUGIN_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: pluginSpec, url: 'git@github.com:pingcap/enterprise-plugin.git']]]
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PLUGIN_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 5]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: pluginSpec, url: 'git@github.com:pingcap/enterprise-plugin.git']]]
                                 githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                                println "plugin branch: ${PLUGIN_BRANCH}"
+                                println "plugin commit id: ${githash}"
                             }
                             dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                                 sh """
@@ -301,6 +258,46 @@ try {
 
             }
             parallel builds
+        }
+
+        // load plugin test
+        // branch master and more recents branches after 2.1
+        if ((ghprbTargetBranch == "master") || (ghprbTargetBranch.startsWith("release") &&  ghprbTargetBranch != "release-2.0" && ghprbTargetBranch != "release-2.1")) {
+            stage("Loading Plugin test"){
+                println "current target branch: ${ghprbTargetBranch}, start load plugin tests"
+                dir("go/src/github.com/pingcap/tidb"){
+                    container("golang") {
+                        try{
+                            sh"""
+                            rm -rf /tmp/tidb
+                            rm -rf plugin-so
+                            mkdir -p plugin-so
+
+                            cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit/audit-1.so ./plugin-so/
+                            cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
+                            ${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server -plugin-dir=${ws}/go/src/github.com/pingcap/tidb/plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
+
+                            sleep 5
+                            for i in 1 2 3; do mysql -h 127.0.0.1 -P 4000 -u root -e "select tidb_version()"  && break || sleep 5; done
+                            """
+                        }catch (error){
+                            println "load plugin test 3 times failed, start tidb-server failed\n"
+                            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} -c golang bash"
+                            println "work space path:\n${ws}"
+                            sh"""
+                            cat /tmp/loading-plugin.log
+                            """
+                            throw error
+                        }finally{
+                            sh"""
+                            set +e
+                            killall -9 -r tidb-server
+                            set -e
+                            """
+                        }
+                    }
+                }
+            }
         }
     }
     currentBuild.result = "SUCCESS"
@@ -329,28 +326,34 @@ catch (Exception e) {
         echo "${e}"
     }
 }
-stage("upload status"){
-    node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
-    }
-}
 
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Build Result: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
 
-    if (duration >= 3 && ghprbTargetBranch == "master" && currentBuild.result == "SUCCESS") {
-        slackSend channel: '#jenkins-ci-3-minutes', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+if (params.containsKey("triggered_by_upstream_ci")) {
+    stage("update commit status") {
+        node("master") {
+            if (currentBuild.result == "ABORTED") {
+                PARAM_DESCRIPTION = 'Jenkins job aborted'
+                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
+                PARAM_STATUS = 'error'
+            } else if (currentBuild.result == "FAILURE") {
+                PARAM_DESCRIPTION = 'Jenkins job failed'
+                PARAM_STATUS = 'failure'
+            } else if (currentBuild.result == "SUCCESS") {
+                PARAM_DESCRIPTION = 'Jenkins job success'
+                PARAM_STATUS = 'success'
+            } else {
+                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
+                PARAM_STATUS = 'error'
+            }
+            def default_params = [
+                    string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
+                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/plugin-test'),
+                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
+                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
+                    string(name: 'STATUS', value: PARAM_STATUS ),
+            ]
+            echo("default params: ${default_params}")
+            build(job: "tidb_update_commit_status", parameters: default_params, wait: true)
+        }
     }
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-    //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
 }
