@@ -243,7 +243,6 @@ try {
                                 curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
                                 curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                                 """
-                                // archiveArtifacts artifacts: 'tidb-server.tar.gz', fingerprint: true
                             }
                         }
                     }
@@ -259,7 +258,6 @@ try {
 									curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
 	                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload									
 	                                """
-                                    // archiveArtifacts artifacts: 'tidb-server.tar.gz', fingerprint: true
                                 }
                             }
                         }
@@ -303,36 +301,6 @@ try {
 
             }
             parallel builds
-        }
-
-        if ((ghprbTargetBranch == "master") || (ghprbTargetBranch.startsWith("release") &&  ghprbTargetBranch != "release-2.0" && ghprbTargetBranch != "release-2.1")) stage("Loading Plugin test"){
-            dir("go/src/github.com/pingcap/tidb"){
-                container("golang") {
-                    try{
-                        sh"""
-                    rm -rf /tmp/tidb
-                    mkdir -p plugin-so
-                    cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit/audit-1.so ./plugin-so/
-                    cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
-                    ${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server -plugin-dir=${ws}/go/src/github.com/pingcap/tidb/plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
-
-                    sleep 5
-                    mysql -h 127.0.0.1 -P 4000 -u root -e "select tidb_version()"
-                    """
-                    }catch (error){
-                        sh"""
-                    cat /tmp/loading-plugin.log
-                    """
-                        throw error
-                    }finally{
-                        sh"""
-                    set +e
-                    killall -9 -r tidb-server
-                    set -e
-                    """
-                    }
-                }
-            }
         }
     }
     currentBuild.result = "SUCCESS"
