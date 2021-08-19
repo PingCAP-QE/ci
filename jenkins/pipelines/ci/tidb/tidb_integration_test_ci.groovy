@@ -101,7 +101,7 @@ node("github-status-updater") {
                         },
 
                         // coverage
-                        tidb_ghpr_integration_br_test: {
+                        tidb_ghpr_coverage: {
                             build(job: "tidb_ghpr_coverage", parameters: default_params, wait: true)
                         },
                         // unit test
