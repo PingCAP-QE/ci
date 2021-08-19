@@ -73,8 +73,13 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/blackbox_exporter.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/node.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/kafka.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/grafana/lightning.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/grafana/br.json || true; \
+    if [ ${HOTFIX_TAG} \\> "v5.2.0" ] || [ ${HOTFIX_TAG} == "v5.2.0" ]; then \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/br/metrics/grafana/lightning.json || true; \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/br/metrics/grafana/br.json || true; \
+    else
+        wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/grafana/lightning.json || true; \
+        wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/grafana/br.json || true; \
+    fi
     cp ../metrics/grafana/* . || true; \
     else \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/scripts/tidb.json || true; \

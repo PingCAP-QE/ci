@@ -60,7 +60,11 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/tikv/tikv/${RELEASE_BRANCH}/metrics/alertmanager/tikv.accelerate.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${RELEASE_BRANCH}/metrics/alertmanager/binlog.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/ticdc/${RELEASE_BRANCH}/metrics/alertmanager/ticdc.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/alertmanager/lightning.rules.yml || true; \
+    if [ ${HOTFIX_TAG} \\> "v5.2.0" ] || [ ${HOTFIX_TAG} == "v5.2.0" ]; then \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/br/metrics/alertmanager/lightning.rules.yml || true; \
+    else
+        wget -qnc https://raw.githubusercontent.com/pingcap/br/${RELEASE_BRANCH}/metrics/alertmanager/lightning.rules.yml || true; \
+    fi
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/blacker.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/bypass.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/kafka.rules.yml || true; \
