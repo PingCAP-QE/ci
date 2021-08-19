@@ -51,12 +51,10 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
 } else {
     println "This build use go1.13"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 
 def specStr = "+refs/heads/*:refs/remotes/origin/*"
@@ -66,14 +64,10 @@ if (ghprbPullId != null && ghprbPullId != "") {
 
 def slackcolor = 'good'
 def githash
-env.TRAVIS_COVERAGE = 1
-env.CODECOV_TOKEN = '2114fff2-bd95-43eb-9483-a351f0184eae'
 
 try {
 
     def buildSlave = "${GO_BUILD_SLAVE}"
-    def testSlave = "${GO_TEST_SLAVE}"
-
 
     node(buildSlave) {
         def ws = pwd()
@@ -114,7 +108,7 @@ try {
                                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                     deleteDir()
                                 }
-                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 10]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                             }
                     }
                     container("golang") {
@@ -133,27 +127,23 @@ try {
         }
 
 
-        stage("1 Test & Coverage") {
-            if(ghprbTargetBranch == "master" ) {
-                def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
-                dir("go/src/github.com/pingcap/tidb") {
-                    container("golang") {
-                        withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
-                            timeout(30) {
-                                sh '''
-                                set +x
-                                export CODECOV_TOKEN=${CODECOV_TOKEN}
-                                export TRAVIS_COVERAG=1
-                                set -x 
-                                make gotest
-                                make upload-coverages
-                                '''
-                            }
+        stage("Test & Coverage") {
+            def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
+            dir("go/src/github.com/pingcap/tidb") {
+                container("golang") {
+                    withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
+                        timeout(30) {
+                            sh '''
+                            set +x
+                            export CODECOV_TOKEN=${CODECOV_TOKEN}
+                            export TRAVIS_COVERAG=1
+                            set -x 
+                            make gotest
+                            make upload-coverages
+                            '''
                         }
                     }
                 }
-            } else {
-                println "only test coverage on branch master"
             }
         }
     }
@@ -162,4 +152,34 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+}
+
+if (params.containsKey("triggered_by_upstream_ci")) {
+    stage("update commit status") {
+        node("master") {
+            if (currentBuild.result == "ABORTED") {
+                PARAM_DESCRIPTION = 'Jenkins job aborted'
+                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
+                PARAM_STATUS = 'error'
+            } else if (currentBuild.result == "FAILURE") {
+                PARAM_DESCRIPTION = 'Jenkins job failed'
+                PARAM_STATUS = 'failure'
+            } else if (currentBuild.result == "SUCCESS") {
+                PARAM_DESCRIPTION = 'Jenkins job success'
+                PARAM_STATUS = 'success'
+            } else {
+                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
+                PARAM_STATUS = 'error'
+            }
+            def default_params = [
+                    string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
+                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/code-coverage'),
+                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
+                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
+                    string(name: 'STATUS', value: PARAM_STATUS ),
+            ]
+            echo("default params: ${default_params}")
+            build(job: "tidb_update_commit_status", parameters: default_params, wait: true)
+        }
+    }
 }
