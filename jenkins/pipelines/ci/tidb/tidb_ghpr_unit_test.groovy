@@ -98,7 +98,7 @@ try {
                     }
                 }
             }
-
+            throw new RuntimeException("NotRunInPR")
             if (notRun == 0){
                 println "the ${ghprbActualCommit} has been tested"
                 throw new RuntimeException("hasBeenTested")
@@ -432,7 +432,7 @@ catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 }
 catch (Exception e) {
-    if (e.getMessage().equals("hasBeenTested")) {
+    if (e.getMessage().equals("NotRunInPR")) {
         currentBuild.result = "SUCCESS"
     } else {
         currentBuild.result = "FAILURE"
