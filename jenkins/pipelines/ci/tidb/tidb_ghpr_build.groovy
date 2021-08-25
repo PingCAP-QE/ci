@@ -13,6 +13,16 @@ def slackcolor = 'good'
 def githash
 
 def PLUGIN_BRANCH = ghprbTargetBranch
+
+// example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
+// remove suffix "-20210724", only use "release-4.0"
+if (PLUGIN_BRANCH.startsWith("release-") && PLUGIN_BRANCH.split("-").size() >= 3 ) {
+    def k = PLUGIN_BRANCH.indexOf("-", PLUGIN_BRANCH.indexOf("-") + 1)
+    PLUGIN_BRANCH = PLUGIN_BRANCH.substring(0, k)
+    println "tidb hotfix branch: ${ghprbTargetBranch}"
+    println "plugin branch use ${PLUGIN_BRANCH}"
+}
+
 // parse enterprise-plugin branch
 def m1 = ghprbCommentBody =~ /plugin\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
@@ -35,6 +45,28 @@ if (ghprbPullId != null && ghprbPullId != "") {
 
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+// branch
+// master | hz-poc
+// relase-4.0
+// release-4.0-20210812
+// release-5.1
+// release-5.3
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+    }
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -45,17 +77,35 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency"], ghprbTargetBranch)
+}
+
+if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
+    }
+}
+
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    GO_TEST_HEAVY_SLAVE = "test_go1160_memvolume"
 } else {
     println "This build use go1.13"
+    GO_TEST_HEAVY_SLAVE = "test_tikv_go1130_memvolume"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
 
 try {
-    node("${GO_BUILD_SLAVE}") {
+    node("${GO_TEST_HEAVY_SLAVE}") {
         def ws = pwd()
         //deleteDir()
 
@@ -193,7 +243,6 @@ try {
                                 curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
                                 curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                                 """
-                                // archiveArtifacts artifacts: 'tidb-server.tar.gz', fingerprint: true
                             }
                         }
                     }
@@ -209,7 +258,6 @@ try {
 									curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
 	                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload									
 	                                """
-                                    // archiveArtifacts artifacts: 'tidb-server.tar.gz', fingerprint: true
                                 }
                             }
                         }
@@ -253,36 +301,6 @@ try {
 
             }
             parallel builds
-        }
-
-        if ((ghprbTargetBranch == "master") || (ghprbTargetBranch.startsWith("release") &&  ghprbTargetBranch != "release-2.0" && ghprbTargetBranch != "release-2.1")) stage("Loading Plugin test"){
-            dir("go/src/github.com/pingcap/tidb"){
-                container("golang") {
-                    try{
-                        sh"""
-                    rm -rf /tmp/tidb
-                    mkdir -p plugin-so
-                    cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit/audit-1.so ./plugin-so/
-                    cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
-                    ${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server -plugin-dir=${ws}/go/src/github.com/pingcap/tidb/plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
-
-                    sleep 5
-                    mysql -h 127.0.0.1 -P 4000 -u root -e "select tidb_version()"
-                    """
-                    }catch (error){
-                        sh"""
-                    cat /tmp/loading-plugin.log
-                    """
-                        throw error
-                    }finally{
-                        sh"""
-                    set +e
-                    killall -9 -r tidb-server
-                    set -e
-                    """
-                    }
-                }
-            }
         }
     }
     currentBuild.result = "SUCCESS"

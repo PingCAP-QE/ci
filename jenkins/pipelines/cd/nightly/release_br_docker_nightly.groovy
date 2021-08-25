@@ -2,6 +2,26 @@ def BUILD_URL = 'git@github.com:pingcap/br.git'
 def slackcolor = 'good'
 def githash
 
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+def buildImage = "registry-mirror.pingcap.net/library/golang:1.13.8-alpine3.11"
+def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], BUILD_TAG)
+if (isNeedGo1160) {
+    println "This build use go1.16"
+    buildImage = "registry-mirror.pingcap.net/library/golang:1.16.4-alpine3.13"
+} else {
+    println "This build use go1.14"
+}
+println "build image =${buildImage}"
+
 env.DOCKER_HOST = "tcp://localhost:2375"
 env.DOCKER_REGISTRY = "docker.io"
 
@@ -44,7 +64,7 @@ try {
                 cd $wss
                 mkdir -p bin
                 cat - >"bin/Dockerfile" <<EOF
-FROM registry-mirror.pingcap.net/library/golang:1.13.8-alpine3.11 as builder
+FROM ${buildImage} as builder
 RUN apk add --no-cache gcc libc-dev make bash git
 WORKDIR /go/src/github.com/pingcap/br
 COPY . .

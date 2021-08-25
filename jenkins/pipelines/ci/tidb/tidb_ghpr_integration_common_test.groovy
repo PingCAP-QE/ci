@@ -51,6 +51,22 @@ def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActual
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 def testStartTimeMillis = System.currentTimeMillis()
 
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+    }
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -61,16 +77,31 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency"], ghprbTargetBranch)
+}
+if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
+    }
+}
+
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    GO_TEST_HEAVY_SLAVE = "test_go1160_memvolume"
 } else {
     println "This build use go1.13"
+    GO_TEST_HEAVY_SLAVE = "test_tikv_go1130_memvolume"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
 
 try {
     timestamps {
@@ -211,7 +242,7 @@ try {
             def tests = [:]
 
             def run = { test_dir, mytest, test_cmd ->
-                node(testSlave) {
+                node("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
@@ -311,7 +342,7 @@ try {
             }
 
             def run_split = { test_dir, mytest, test_cmd, chunk ->
-                node(testSlave) {
+                node("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
@@ -449,7 +480,7 @@ try {
             }
 
             tests["Integration Explain Test"] = {
-                node (testSlave) {
+                node ("${GO_TEST_HEAVY_SLAVE}") {
                     def ws = pwd()
                     deleteDir()
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"

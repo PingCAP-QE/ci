@@ -3,18 +3,27 @@ def desc = "TiDB Lightning is a tool used for fast full import of large amounts 
 
 def tiflash_sha1, tarball_name, dir_name
 
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def download = { name, version, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
 
-    if (arch == "arm64") {
+    if (arch == "arm64" && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -33,7 +42,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64") {
+    if (arch == "arm64" && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -95,28 +104,38 @@ try {
                 if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = ORIGIN_TAG
+                    tag = HOTFIX_TAG
                 }
 
                 if (TIDB_VERSION == "") {
                     TIDB_VERSION = HOTFIX_TAG
                 }
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
-                lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
+                lightning_sha1 = ""
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.2.0") {
+                    lightning_sha1 = get_hash(ORIGIN_TAG,"tidb")
+                } else {
+                    lightning_sha1 = get_hash(ORIGIN_TAG,"br")
+                }
             }
-            if (ARCH_X86) {
+            if (params.ARCH_X86) {
                 stage("tiup release tidb-lightning linux amd64") {
                     update "br", HOTFIX_TAG, "linux", "amd64"
                 }
             }
-            if (ARCH_ARM) {
+            if (params.ARCH_ARM) {
                 stage("tiup release tidb-lightning linux arm64") {
                     update "br", HOTFIX_TAG, "linux", "arm64"
                 }
             }
-            if (ARCH_MAC) {
+            if (params.ARCH_MAC) {
                 stage("tiup release tidb-lightning darwin amd64") {
                     update "br", HOTFIX_TAG, "darwin", "amd64"
+                }
+            }
+            if (params.ARCH_MAC_ARM) {
+                stage("tiup release tidb-lightning darwin arm64") {
+                    update "br", HOTFIX_TAG, "darwin", "arm64"
                 }
             }
         }

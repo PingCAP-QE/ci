@@ -1,0 +1,6 @@
+FROM pingcap/alpine-glibc
+RUN apk add --no-cache \
+    curl
+COPY tidb-server /tidb-server
+EXPOSE 4000
+ENTRYPOINT ["/tidb-server"]

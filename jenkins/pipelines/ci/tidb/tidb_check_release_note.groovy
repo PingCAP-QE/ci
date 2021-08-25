@@ -1,4 +1,19 @@
 
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+    }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -10,7 +25,19 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency"], ghprbTargetBranch)
+}
+if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
+    }
+}
+
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -31,16 +58,7 @@ catchError {
             //testSlave = GO_TEST_SLAVE
             //sh "echo $ghprbPullLongDescription"
             println "description $ghprbPullLongDescription"
-            sh """
-            mkdir -p $ghprbActualCommit
-            rm -rf $ghprbActualCommit/description.txt
-            cat <<"EOT" >> $ghprbActualCommit/description.txt
-$ghprbPullLongDescription
-EOT"""
-            //echo "$ghprbPullLongDescription" > a.out
-            //sh "echo \"$ghprbPullLongDescription\" > $ghprbActualCommit"
-            sh "egrep 'Release [n|N]ote.*\\\\r\\\\n[-|\\*][[:space:]]+[a-zA-Z0-9`]+' $ghprbActualCommit/description.txt || ( echo 'No release note, Please follow https://github.com/pingcap/community/blob/master/contributors/release-note-checker.md' && exit 1) "
-
+  
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
         }
         

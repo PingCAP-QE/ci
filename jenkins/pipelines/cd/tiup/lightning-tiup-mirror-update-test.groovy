@@ -6,15 +6,17 @@ def tiflash_sha1, tarball_name, dir_name
 def download = { name, version, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
 
-    if (arch == "arm64") {
+    if (arch == "arm64"  && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -33,7 +35,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64") {
+    if (arch == "arm64" && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -102,7 +104,12 @@ try {
                     TIDB_VERSION = RELEASE_TAG
                 }
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
-                lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                lightning_sha1 = ""
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                } else {
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                }
             }
 
             stage("tiup release tidb-lightning linux amd64") {
@@ -115,6 +122,10 @@ try {
 
             stage("tiup release tidb-lightning darwin amd64") {
                 update "br", RELEASE_TAG, "darwin", "amd64"
+            }
+
+            stage("tiup release tidb-lightning darwin arm64") {
+                update "br", RELEASE_TAG, "darwin", "arm64"
             }
         }
     }

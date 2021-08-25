@@ -14,6 +14,22 @@ def notRun = 1
 def slackcolor = 'good'
 def githash
 
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+    }
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -24,7 +40,18 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency"], ghprbTargetBranch)
+}
+if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
+    }
+}
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -75,18 +102,6 @@ try {
                 sh "whoami && go version"
             }
 
-            // ensure golangci-lint tool exist
-            dir("/home/jenkins/agent/git/tools") {
-                if (!fileExists("/home/jenkins/agent/git/tools/bin/golangci-lint")) {
-                    container("golang") {
-                        dir("/home/jenkins/agent/git/tools/") {
-                            sh """
-	                            curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b ./bin v1.21.0
-	                        """
-                        }
-                    }
-                }
-            }
             // update code
             dir("/home/jenkins/agent/code-archive") {
                 // delete to clean workspace in case of agent pod reused lead to conflict.
@@ -142,11 +157,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb") {
                     timeout(30) {
                         sh """
-                        mkdir -p tools/bin
-                        cp /home/jenkins/agent/git/tools/bin/golangci-lint tools/bin/
                         git checkout -f ${ghprbActualCommit}
-                        ls -al tools/bin || true
-                        # GOPROXY=http://goproxy.pingcap.net
                         """
                     }
                     try {

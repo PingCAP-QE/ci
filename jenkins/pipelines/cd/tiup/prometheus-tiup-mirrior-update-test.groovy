@@ -28,9 +28,15 @@ def checkoutTiCS(branch) {
 }
 
 def download = { version, os, arch ->
-    sh """
-    wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
-    """
+    if (os == "darwin" && arch == "arm64") {
+        sh """
+        curl -O ${FILE_SERVER_URL}/download/pingcap/prometheus-${version}.${os}-${arch}.tar.gz
+        """
+    }else {
+        sh """
+        wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
+        """
+    }
 }
 
 def unpack = { version, os, arch ->
@@ -54,6 +60,11 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/tikv/tikv/${tag}/metrics/alertmanager/tikv.accelerate.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/alertmanager/binlog.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/ticdc/${tag}/metrics/alertmanager/ticdc.rules.yml || true; \
+    if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/alertmanager/lightning.rules.yml || true; \
+    else
+        wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/alertmanager/lightning.rules.yml || true; \
+    fi
     wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/alertmanager/lightning.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/blacker.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/bypass.rules.yml || true; \
@@ -122,6 +133,11 @@ node("build_go1130") {
 
         stage("TiUP build prometheus on darwin/amd64") {
             update VERSION, "darwin", "amd64"
+        }
+
+        stage("TiUP build prometheus on darwin/arm64") {
+            // prometheus did not provide the binary we need so we upgrade it.
+            update "2.28.1", "darwin", "arm64"
         }
     }
 }

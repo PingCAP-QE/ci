@@ -28,9 +28,15 @@ def checkoutTiCS(branch) {
 }
 
 def download = { version, os, arch ->
-    sh """
-    wget -qnc https://download.pingcap.org/grafana-${version}.${os}-${arch}.tar.gz
-    """
+    if (os == "darwin" && arch == "arm64") {
+        sh """
+        curl -O ${FILE_SERVER_URL}/download/pingcap/grafana-${version}.${os}-${arch}.tar.gz
+        """
+    }else {
+        sh """
+        wget -qnc https://download.pingcap.org/grafana-${version}.${os}-${arch}.tar.gz
+        """
+    }
 }
 
 def unpack = { version, os, arch ->
@@ -66,8 +72,13 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/blackbox_exporter.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/node.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/kafka.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
+    if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/grafana/lightning.json || true; \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/grafana/br.json || true; \
+    else
+        wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
+        wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
+    fi
     cp ../metrics/grafana/* . || true; \
     else \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tidb.json || true; \
@@ -141,6 +152,11 @@ node("build_go1130") {
 
         stage("TiUP build grafana on darwin/amd64") {
             update VERSION, "darwin", "amd64"
+        }
+
+        stage("TiUP build grafana on darwin/arm64") {
+            // grafana did not provide the binary we need so we upgrade it.
+            update "7.5.10", "darwin", "arm64"
         }
     }
 }

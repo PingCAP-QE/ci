@@ -43,6 +43,22 @@ if (m2) {
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
 
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+    }
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -53,11 +69,22 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency"], ghprbTargetBranch)
+}
+if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
+    }
+}
 if (isNeedGo1160) {
     println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    GO_BUILD_SLAVE = "build_go1160_memvolume"
+    GO_TEST_SLAVE = "test_go1160_memvolume"
 } else {
     println "This build use go1.13"
 }
@@ -216,8 +243,8 @@ try {
                         package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                         sed -i  's,go list ./...| grep -vE "cmd",go list ./...| grep -vE "cmd" | grep -vE "store/tikv\$\$",' ./Makefile
                         # export GOPROXY=http://goproxy.pingcap.net
-                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi
-
+                        if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_2 ; fi > test.log || \\
+                        (cat test.log; cat test.log |grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "FAIL"; false)
                         # if grep -q gogenerate "Makefile";then  make gogenerate ; fi
                         """
                     }

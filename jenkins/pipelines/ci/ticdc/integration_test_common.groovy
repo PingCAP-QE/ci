@@ -1,11 +1,42 @@
-CONCURRENT_NUMBER = 8
+/**
+ * The total number of integration test groups.
+ */
+TOTAL_COUNT = 0
 
+/**
+ * Integration testing number of tests per group.
+ */
+GROUP_SIZE = 2
+
+/**
+ * Partition the array.
+ * @param array
+ * @param size
+ * @return Array partitions.
+ */
+static def partition(array, size) {
+    def partitions = []
+    int partitionCount = array.size() / size
+
+    partitionCount.times { partitionNumber ->
+        int start = partitionNumber * size
+        int end = start + size - 1
+        partitions << array[start..end]
+    }
+
+    if (array.size() % size) partitions << array[partitionCount * size..-1]
+    return partitions
+}
+
+/**
+ * Prepare the binary file for testing.
+ */
 def prepare_binaries() {
     stage('Prepare Binaries') {
         def prepares = [:]
 
         prepares["build binaries"] = {
-            node ("${GO_TEST_SLAVE}") {
+            node("${GO_TEST_SLAVE}") {
                 container("golang") {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     def ws = pwd()
@@ -23,9 +54,9 @@ def prepare_binaries() {
                         """
                     }
                     dir("go/src/github.com/pingcap/ticdc/tests") {
-                        def cases_name = sh (
-                            script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
-                            returnStdout: true
+                        def cases_name = sh(
+                                script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
+                                returnStdout: true
                         ).trim().split().join(" ")
                         sh "echo ${cases_name} > CASES"
                     }
@@ -33,16 +64,25 @@ def prepare_binaries() {
                 }
             }
         }
+
         parallel prepares
     }
 }
 
+/**
+ * Start running tests.
+ * @param sink_type Type of Sink, optional value: mysql/kafaka.
+ * @param node_label
+ */
 def tests(sink_type, node_label) {
     stage("Tests") {
         def test_cases = [:]
+        // Set to fail fast.
+        test_cases.failFast = true
 
+        // Start running unit tests.
         test_cases["unit test"] = {
-            node (node_label) {
+            node(node_label) {
                 container("golang") {
                     def ws = pwd()
                     deleteDir()
@@ -69,8 +109,9 @@ def tests(sink_type, node_label) {
             }
         }
 
+        // Start running integration tests.
         def run_integration_test = { step_name, case_names ->
-            node (node_label) {
+            node(node_label) {
                 container("golang") {
                     def ws = pwd()
                     deleteDir()
@@ -116,22 +157,21 @@ def tests(sink_type, node_label) {
         }
 
 
+        // Gets the name of each case.
         unstash 'cases_name'
-        def cases_name = sh (
-            script: 'cat go/src/github.com/pingcap/ticdc/tests/CASES',
-            returnStdout: true
+        def cases_name = sh(
+                script: 'cat go/src/github.com/pingcap/ticdc/tests/CASES',
+                returnStdout: true
         ).trim().split()
 
+        // Run integration tests in groups.
         def step_cases = []
-        def step_length = (int)(cases_name.size() / CONCURRENT_NUMBER + 0.5)
-        for(int i in 1..CONCURRENT_NUMBER) {
-            def end = i*step_length-1
-            if (i == CONCURRENT_NUMBER){
-                end = cases_name.size()-1
-            }
-            step_cases.add(cases_name[(i-1)*step_length..end])
+        def cases_namesList = partition(cases_name, GROUP_SIZE)
+        TOTAL_COUNT = cases_namesList.size()
+        cases_namesList.each { case_names ->
+            step_cases.add(case_names)
         }
-        step_cases.eachWithIndex{ case_names, index ->
+        step_cases.eachWithIndex { case_names, index ->
             def step_name = "step_${index}"
             test_cases["integration test ${step_name}"] = {
                 run_integration_test(step_name, case_names.join(" "))
@@ -142,7 +182,10 @@ def tests(sink_type, node_label) {
     }
 }
 
-def download_binaries(){
+/**
+ * Download the integration test-related binaries.
+ */
+def download_binaries() {
     def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", "master")
     def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", "master")
     def PD_BRANCH = params.getOrDefault("release_test__pd_commit", "master")
@@ -236,6 +279,9 @@ def download_binaries(){
     """
 }
 
+/**
+ * Collect and calculate test coverage.
+ */
 def coverage() {
     stage('Coverage') {
         node("${GO_TEST_SLAVE}") {
@@ -244,19 +290,15 @@ def coverage() {
             unstash 'ticdc'
             unstash 'unit_test'
 
-            // Err  java.io.NotSerializableException: groovy.lang.IntRange
-            // https://stackoverflow.com/questions/31654497/how-to-fix-notserializableexception-error-during-jenkins-workflow-build
-            // https://gist.github.com/oifland/ab56226d5f0375103141b5fbd7807398
-//            for(int i in 1..CONCURRENT_NUMBER) {
-//                unstash "integration_test_step_${i-1}"
-//            }
+            // unstash all integration tests.
             def step_names = []
-            for ( int i = 1; i < CONCURRENT_NUMBER; i++ ) {
+            for ( int i = 1; i < TOTAL_COUNT; i++ ) {
                 step_names.add("integration_test_step_${i}")
             }
             step_names.each { item ->
                 unstash item
             }
+
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true

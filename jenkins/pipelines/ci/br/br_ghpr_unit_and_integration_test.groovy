@@ -72,10 +72,6 @@ if (getTargetBranch(ghprbTargetBranch)!=""){
     ghprbTargetBranch = "master"
 }
 
-def refSpecs = "+refs/pull/*:refs/remotes/origin/pr/*"
-if (ghprbPullId == null || ghprbPullId == "") {
-    refSpecs = "+refs/heads/*:refs/remotes/origin/*"
-}
 
 def TIKV_BRANCH = ghprbTargetBranch
 def TIKV_IMPORTER_BRANCH = ghprbTargetBranch
@@ -176,6 +172,22 @@ if (getImporterBranch(ghprbCommentBody)!=""){
 }
 println "TIKV_IMPORTER_BRANCH=${TIKV_IMPORTER_BRANCH}"
 
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+    }
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -186,7 +198,19 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], ghprbTargetBranch)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc"], ghprbTargetBranch)
+}
+if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
+    }
+}
+
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -196,6 +220,18 @@ if (isNeedGo1160) {
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+
+def boolean isBRMergedIntoTiDB() {
+    if (params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br") {
+        return true
+    }
+    // if in release_test and release branch >= release-5.2
+    // we use br in tidb by default
+    if (params.containsKey("release_test") && (isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix("release-5.2")))) {
+        return true
+    }
+    return false
+}
 
 def get_commit_hash(prj, branch_or_hash) {
     if (branch_or_hash.length() == 40) {
@@ -213,38 +249,55 @@ def get_commit_hash(prj, branch_or_hash) {
 def run_unit_test() {
     node("${GO_TEST_SLAVE}") {
         container("golang") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
             def ws = pwd()
             deleteDir()
 
-            unstash 'br'
+            make_cmd = """
+            PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check test
+            rm -rf cover
+            mkdir cover
 
-            dir("go/src/github.com/pingcap/br") {
-                timeout(30) {
-                    sh label: "Go Version", script: """
-                    go version
-                    """
+            rm -rf /tmp/backup_restore_test
+            mkdir -p /tmp/backup_restore_test
 
-                    sh label: "Run unit tests", script: """
-                    PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check test
+            export GOPATH=\$GOPATH:${ws}/go
+            export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
+            make tools testcover
 
-                    rm -rf /tmp/backup_restore_test
-                    mkdir -p /tmp/backup_restore_test
-                    rm -rf cover
-                    mkdir cover
+            # Must move coverage files to the current directory
+            ls /tmp/backup_restore_test
+            cp /tmp/backup_restore_test/cov.* cover/ || true
+            ls cover
+            """
 
-                    export GOPATH=\$GOPATH:${ws}/go
-                    export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
-                    make tools testcover
-
-                    # Must move coverage files to the current directory
-                    ls /tmp/backup_restore_test
-                    cp /tmp/backup_restore_test/cov.* cover/ || true
-                    ls cover
-                    """
-                }
+            def br_in_tidb = isBRMergedIntoTiDB()
+            if (br_in_tidb) {
+                make_cmd = "PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make br_unit_test"
             }
-            stash includes: "go/src/github.com/pingcap/br/cover/**", name: "unit_test", useDefaultExcludes: false
+
+            // unstash 'br'
+            timeout(30) {
+                sh label: "Go Version", script: """
+                go version
+                """
+
+                sh label: "Run unit tests", script: """
+                mkdir -p ${ws}/go/src/github.com/pingcap/br/
+                cd ${ws}/go/src/github.com/pingcap/br
+
+                curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz
+
+                ${make_cmd}
+
+                rm -rf /tmp/backup_restore_test
+                mkdir -p /tmp/backup_restore_test
+                """
+            }
+
+            if (!br_in_tidb) {
+                stash includes: "go/src/github.com/pingcap/br/cover/**", name: "unit_test", useDefaultExcludes: false
+            }
         }
     }
 }
@@ -252,136 +305,189 @@ def run_unit_test() {
 def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBranch, tiflashCommit) {
     node("${GO_TEST_SLAVE}") {
         container("golang") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
             def ws = pwd()
             deleteDir()
 
-            unstash 'br'
+            // unstash 'br'
 
-            dir("go/src/github.com/pingcap/br") {
-                timeout(30) {
-                    sh "mkdir -p bin"
+            // move this function outside or we will get repeat scripts.builder
+            def br_not_in_tidb = !isBRMergedIntoTiDB()
 
-                    // cdc
-                    if (cdc != "") {
-                        def cdc_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/ticdc/${cdc}/sha1").trim()
-                        sh label: "Download TiCDC", script: """
-                        curl ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${cdc_sha1}/centos7/ticdc-linux-amd64.tar.gz | tar xz ticdc-linux-amd64/bin/cdc
-                        mv ticdc-linux-amd64/bin/* bin/
-                        rm -rf ticdc-linux-amd64/
-                        """
-                    }
+            timeout(30) {
+                scripts_builder = new StringBuilder()
 
-                    // tikv
-                    def tikv_sha1 = get_commit_hash("tikv", tikv)
-                    def tikv_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-                    if (params.containsKey("upstream_pr_ci_override_tikv_download_link")) {
-                        tikv_download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", tikv_download_url)
-                    }
-                    sh label: "Download TiKV", script: """
-                    curl ${tikv_download_url} | tar xz bin/tikv-server bin/tikv-ctl
-                    """
-                    // tikv-importer
-                    def tikv_importer_sha1 = get_commit_hash("importer", importer)
-                    sh label: "Download Importer", script: """
-                    curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/${tikv_importer_sha1}/centos7/importer.tar.gz | tar xz bin/tikv-importer
-                    """
-                    // pd & pd-ctl
-                    def pd_sha1 = get_commit_hash("pd", pd)
-                    def pd_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                    if (params.containsKey("upstream_pr_ci_override_pd_download_link")) {
-                        pd_download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", pd_download_url)
-                    }
-                    sh label: "Download PD", script: """
-                    mkdir pd-source
-                    curl ${pd_download_url} | tar -xz -C pd-source
-                    cp pd-source/bin/* bin/
-                    rm -rf pd-source
-                    """
-                    // tidb
-                    def tidb_sha1 = get_commit_hash("tidb", tidb)
-                    def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                scripts_builder.append("mkdir -p ${ws}/go/src/github.com/pingcap/br/bin\n")
+                scripts_builder.append("cd ${ws}/go/src/github.com/pingcap/br\n")
+
+                // br_integration_test
+                def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                def get_tidb_from_local = false
+                def commit_id = "${ghprbActualCommit}"
+                switch (from) {
+                    case "tikv":
+                        def download_url = "?/pr/tikv_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "tikv_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "tidb":
+                        def download_url = "?/pr/tidb_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "tidb_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "pd":
+                        def download_url = "?/pr/pd_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "pd_" + download_url.substring(index_begin, index_end)
+                        break;
+
+                }
+                scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
+
+                // cdc
+                if (cdc != "") {
+                    scripts_builder.append("(cdc_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/ticdc/${cdc}/sha1); ")
+                                .append("curl ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/\${cdc_sha1}/centos7/ticdc-linux-amd64.tar.gz | tar xz ticdc-linux-amd64/bin/cdc; ")
+                                .append("mv ticdc-linux-amd64/bin/* bin/; ")
+                                .append("rm -rf ticdc-linux-amd64/;) &\n")
+                }
+
+                // tikv
+                scripts_builder.append("(tikv_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${tikv}/sha1); ")
+                def tikv_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
+                if (params.containsKey("upstream_pr_ci_override_tikv_download_link")) {
+                    tikv_download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", tikv_download_url)
+                }
+
+                scripts_builder.append("curl ${tikv_download_url} | tar xz bin/tikv-server bin/tikv-ctl;) &\n")
+
+                // tikv-importer
+                scripts_builder.append("(tikv_importer_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/importer/${importer}/sha1); ")
+                            .append("curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/\${tikv_importer_sha1}/centos7/importer.tar.gz | tar xz bin/tikv-importer;) &\n")
+
+                // pd & pd-ctl
+                scripts_builder.append("(pd_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${pd}/sha1); ")
+                            .append("mkdir pd-source; ")
+                def pd_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+                if (params.containsKey("upstream_pr_ci_override_pd_download_link")) {
+                    pd_download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", pd_download_url)
+                }
+
+                scripts_builder.append("curl ${pd_download_url} | tar -xz -C pd-source; ")
+                            .append("cp pd-source/bin/* bin/; rm -rf pd-source;) &\n")
+
+                // tidb
+                // we build tidb-server from local, then put it into br_integration_test.tar.gz
+                // so we can get it from br_integration_test.tar.gz
+                if (br_not_in_tidb) {
+                    echo "br not in tidb"
+                    scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
+                            .append("mkdir tidb-source; ")
+                    def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
                     if (params.containsKey("upstream_pr_ci_override_tidb_download_link")) {
                         tidb_download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", tidb_download_url)
                     }
-                    sh label: "Download TiDB", script: """
-                    mkdir tidb-source
-                    curl ${tidb_download_url} | tar -xz -C tidb-source
-                    cp tidb-source/bin/tidb-server bin/
-                    rm -rf tidb-source
-                    """
 
-                    // tiflash
-                    if (tiflashCommit == "") {
-                        tiflashCommit = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1").trim()
-                    }
-                    sh label: "Download TiFlash", script: """
-                    curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash
-                    mv tiflash/* bin/
-                    rmdir tiflash
-                    """
+                    scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
+                            .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
+                }
+                scripts_builder.append("\n")
 
-                    // Testing S3 ans GCS.
-                    sh label: "Download S3 and GCS scaffold", script: """
-                    # go-ycsb are manual uploaded for test br
-                    curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o bin/go-ycsb && chmod 777 bin/go-ycsb
-                    # minio and s3cmd for testing s3
-                    curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio -o bin/minio && chmod 777 bin/minio
-                    curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc -o bin/mc && chmod 777 bin/mc
-                    # fake-gcs-server for testing gcs
-                    curl ${FILE_SERVER_URL}/download/builds/fake-gcs-server -o bin/fake-gcs-server && chmod 777 bin/fake-gcs-server
-                    # br v4.0.8 for testing gcs incompatible test
-                    curl ${FILE_SERVER_URL}/download/builds/brv4.0.8 -o bin/brv4.0.8 && chmod 777 bin/brv4.0.8
-                    """
+                // tiflash
+                if (tiflashCommit == "") {
+                    scripts_builder.append("(tiflashCommit=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1); ")
+                } else {
+                    scripts_builder.append("(tiflashCommit=${tiflashCommit}; ")
                 }
 
-                sh label: "Go Version", script: """
-                go version
-                """
+                scripts_builder.append("curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash; ")
+                            .append("mv tiflash/* bin/; rmdir tiflash;) &\n")
 
+                // Testing S3 ans GCS.
+                // go-ycsb are manual uploaded for test br
+                // minio and s3cmd for testing s3
+                // download kes server
+                // fake-gcs-server for testing gcs
+                // br v4.0.8 for testing gcs incompatible test
+                scripts_builder.append("curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o bin/go-ycsb && chmod 777 bin/go-ycsb\n")
+                            .append("curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio -o bin/minio && chmod 777 bin/minio\n")
+                            .append("curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc -o bin/mc && chmod 777 bin/mc\n")
+                            .append("curl ${FILE_SERVER_URL}/download/kes -o bin/kes && chmod 777 bin/kes\n")
+                            .append("curl ${FILE_SERVER_URL}/download/builds/fake-gcs-server -o bin/fake-gcs-server && chmod 777 bin/fake-gcs-server\n")
+                            .append("curl ${FILE_SERVER_URL}/download/builds/brv4.0.8 -o bin/brv4.0.8 && chmod 777 bin/brv4.0.8\n")
+                            .append("wait\n")
+                            .append("go version")
+
+                def scripts = scripts_builder.toString()
+                echo scripts
+                sh label: "Download and Go Version", script: scripts
+            }
+
+            dir("${ws}/go/src/github.com/pingcap/br") {
+                export_cmd = ""
+                if (isBRMergedIntoTiDB()) {
+                    // move tests outside for compatibility
+                    sh label: "Move test outside", script: """
+                    mv br/tests/* tests/
+                    """
+                    // lightning_examples test need mv file from examples pkg.
+                    // so we should overwrite the path.
+                    export_cmd = "export EXAMPLES_PATH=br/pkg/lightning/mydump/examples"
+                }
                 for (case_name in case_names) {
-                    timeout(120) {
-                        try {
-                            sh label: "Running ${case_name}", script: """
-                            rm -rf /tmp/backup_restore_test
-                            mkdir -p /tmp/backup_restore_test
-                            rm -rf cover
-                            mkdir cover
+                      timeout(120) {
+                          try {
+                              sh label: "Running ${case_name}", script: """
 
-                            if [[ ! -e tests/${case_name}/run.sh ]]; then
-                                echo ${case_name} not exists, skip.
-                                exit 0
-                            fi
+                              rm -rf /tmp/backup_restore_test
+                              mkdir -p /tmp/backup_restore_test
+                              rm -rf cover
+                              mkdir cover
 
-                            export GOPATH=\$GOPATH:${ws}/go
-                            export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
-                            TEST_NAME=${case_name} tests/run.sh
+                              if [[ ! -e tests/${case_name}/run.sh ]]; then
+                                  echo ${case_name} not exists, skip.
+                                  exit 0
+                              fi
 
-                            # Must move coverage files to the current directory
-                            ls /tmp/backup_restore_test
-                            cp /tmp/backup_restore_test/cov.* cover/ || true
-                            ls cover
-                            """
-                        } catch (Exception e) {
-                            sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"
-                            sh "tail -40000 '/tmp/backup_restore_test/tikv1.log' || true"
-                            sh "tail -40000 '/tmp/backup_restore_test/tikv2.log' || true"
-                            sh "tail -40000 '/tmp/backup_restore_test/tikv3.log' || true"
-                            sh "tail -40000 '/tmp/backup_restore_test/tikv4.log' || true"
-                            sh "tail -1000 '/tmp/backup_restore_test/tidb.log' || true"
-                            sh "tail -1000 '/tmp/backup_restore_test/tiflash-manager.log' || true"
-                            sh "tail -1000 '/tmp/backup_restore_test/tiflash-stdout.log' || true"
-                            sh "tail -1000 '/tmp/backup_restore_test/tiflash-stderr.log' || true"
-                            sh "tail -1000 '/tmp/backup_restore_test/tiflash-proxy.log' || true"
-                            sh "cat '/tmp/backup_restore_test/importer.log' || true"
-                            sh "find '/tmp/backup_restore_test/' -name \"lightning*log\" -exec echo \">>>>>>>>> {}\" \\; -exec cat {} \\; || true"
-                            sh "echo 'Test failed'"
-                            throw e;
-                        }
-                    }
-                    // stash "cover/**" as we are already in "go/src/github.com/pingcap/br/".
-                    stash includes: "cover/**", name: "integration_test_${case_name}", useDefaultExcludes: false, allowEmpty: true
-                }
+                              export GOPATH=\$GOPATH:${ws}/go
+                              export PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH
+
+                              ls /tmp/backup_restore_test
+
+                              ${export_cmd}
+                              TEST_NAME=${case_name} tests/run.sh
+
+                              # Must move coverage files to the current directory
+                              ls /tmp/backup_restore_test
+                              cp /tmp/backup_restore_test/cov.* cover/ || true
+                              ls cover
+                              """
+                          } catch (Exception e) {
+                              sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv1.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv2.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv3.log' || true"
+                              sh "tail -40000 '/tmp/backup_restore_test/tikv4.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tidb.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-manager.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-stdout.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-stderr.log' || true"
+                              sh "tail -1000 '/tmp/backup_restore_test/tiflash-proxy.log' || true"
+                              sh "cat '/tmp/backup_restore_test/importer.log' || true"
+                              sh "find '/tmp/backup_restore_test/' -name \"lightning*log\" -exec echo \">>>>>>>>> {}\" \\; -exec cat {} \\; || true"
+                              sh "echo 'Test failed'"
+                              throw e;
+                          }
+                      }
+                      // stash "cover/**" as we are already in "go/src/github.com/pingcap/br/".
+                      stash includes: "cover/**", name: "integration_test_${case_name}", useDefaultExcludes: false, allowEmpty: true
+                 }
             }
         }
     }
@@ -407,11 +513,25 @@ catchError {
  //       "br_tikv_outage2",  // 4m 40s
         "lightning_disk_quota"  // 3m 9s
     ]
+    // >= 1m 20s
     def slow_case_names = [
         "br_300_small_tables",  // 1m 47s
         "br_full_ddl",  // 1m 19s
+        "br_incompatible_tidb_config", // 1m 39s
         "br_log_restore",   // 2m 15s
         "lightning_checkpoint", // 2m 0s
+        "lightning_new_collation" // 1m 28s
+    ]
+    // > 50s
+    def little_slow_case_names = [
+        "br_table_filter",
+        "br_systables", // 1m 7s
+        "br_rawkv", // 1m 15s
+        "br_key_locked", // 1m 8s
+        "br_other", // 1m 10s
+        "br_history", // 1m 7s
+        "br_full", // 1m 14s
+        "br_full_index", // 1m 0s
     ]
 
     stage('Prepare') {
@@ -421,29 +541,95 @@ catchError {
                 def ws = pwd()
                 deleteDir()
 
+                def paramstring = ""
+                params.each{ k, v -> paramstring += "\n\t${k}:${v}" }
+
+                println "params: ${paramstring}"
+                println "ghprbPullId: ${ghprbPullId}"
+
+                def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+                def git_repo_url = "git@github.com:pingcap/br.git"
+                def build_br_cmd = "make build_for_integration_test"
+                def commit_id = "${ghprbActualCommit}"
+                switch (from) {
+                    case "tikv":
+                        def download_url = "?/pr/tikv_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "tikv_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "tidb":
+                        def download_url = "?/pr/tidb_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "tidb_" + download_url.substring(index_begin, index_end)
+                        break;
+                    case "pd":
+                        def download_url = "?/pr/pd_unkown_commit_id/?"
+                        download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", download_url)
+                        def index_begin = download_url.indexOf("pr/") + 3
+                        def index_end = download_url.indexOf("/", index_begin)
+                        commit_id = "pd_" + download_url.substring(index_begin, index_end)
+                        break;
+                }
+
                 // Checkout and build testing binaries.
-                dir("go/src/github.com/pingcap/br") {
+                dir("${ws}/go/src/github.com/pingcap/br") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
                     }
 
-                    def paramstring = ""
-                    params.each{ k, v -> paramstring += "\n\t${k}:${v}" }
-                    println "params: ${paramstring}"
-                    println "ghprbPullId: ${ghprbPullId}"
-                    println "refSpecs: ${refSpecs}"
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/br.git']]]
+                    def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
 
-                    sh label: "Build testing binaries", script: """
+                    // This happened after BR merged into TiDB.
+                    if (isBRMergedIntoTiDB()) {
+                        println "fast checkout tidb repo"
+                        git_repo_url = "git@github.com:pingcap/tidb.git"
+                        build_br_cmd = "make build_for_br_integration_test && make server"
+
+                        // copy code from nfs cache
+                        if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
+                            println "copy src-tidb from nfs cache"
+                            timeout(5) {
+                            sh """
+                            cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ${ws}/
+                            tar -xzf ${ws}/src-tidb.tar.gz -C ./ --strip-components=1
+                            ls -l ./
+                            """
+                            }
+                        }
+                        if(!fileExists("${ws}/go/src/github.com/pingcap/br/Makefile")) {
+                            println "copy src-tidb from nfs failed, try download it from file-server"
+                            sh """
+                            rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                            rm -rf /home/jenkins/agent/code-archive/tidb
+                            wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
+                            tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                            """
+                        }
+                    }
+                    specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                    if (ghprbPullId != null && ghprbPullId != "") {
+                        specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+                    }
+
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 10]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: git_repo_url]]]
+
+                    sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
                     git rev-parse HEAD
 
                     go version
-                    make build_for_integration_test
+
+                    ${build_br_cmd}
+
+                    tar czf br_integration_test.tar.gz * .[!.]*
+                    curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
                     """
 
                     // Collect test case names.
-                    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
                     switch (from) {
                         case "tikv":
                             test_case_names = [
@@ -457,6 +643,9 @@ catchError {
                                 "lightning_sqlmode",
                                 "lightning_tiflash",
                             ]
+                            very_slow_case_names = []
+                            slow_case_names = []
+                            little_slow_case_names = []
                             break;
                         case "tidb":
                             test_case_names = [
@@ -470,6 +659,9 @@ catchError {
                                 "lightning_sqlmode",
                                 "lightning_tiflash",
                             ]
+                            very_slow_case_names = []
+                            slow_case_names = []
+                            little_slow_case_names = []
                             break;
                         case "pd":
                             test_case_names = [
@@ -482,20 +674,30 @@ catchError {
                                 "lightning_sqlmode",
                                 "lightning_tiflash",
                             ]
+                            very_slow_case_names = []
+                            slow_case_names = []
+                            little_slow_case_names = []
                             break;
                         default:
-                            def list = sh(script: "ls tests | grep -E 'br_|lightning_'", returnStdout:true).trim()
+                            list_path = "tests"
+                            if (isBRMergedIntoTiDB()) {
+                                // current gcs test need custom endpoint
+                                // but official client has a bug on custom endpoint
+                                // in origin BR repo: we use replace go.mod to fix this issue.
+                                // but after BR merged into TiDB, we cannot use replace due to the plugin check.
+                                // so we should skip these tests until https://github.com/googleapis/google-cloud-go/pull/3509 merged.
+                                list_path = "br/tests | grep -v br_gcs | grep -v lightning_gcs"
+                            }
+                            def list = sh(script: "ls ${list_path} | grep -E 'br_|lightning_'", returnStdout:true).trim()
                             for (name in list.split("\\n")) {
                                 test_case_names << name
                             }
+                            // filter out the nonexistent tests
+                            very_slow_case_names = very_slow_case_names - (very_slow_case_names - test_case_names)
+                            slow_case_names = slow_case_names - (slow_case_names - test_case_names)
+                            little_slow_case_names = little_slow_case_names - (little_slow_case_names - test_case_names)
                     }
-                    // filter out the nonexistent tests
-                    very_slow_case_names = very_slow_case_names - (very_slow_case_names - test_case_names)
-                    slow_case_names = slow_case_names - (slow_case_names - test_case_names)
                 }
-
-                // Stash testing binaries.
-                stash includes: "go/src/github.com/pingcap/br/**", name: "br", useDefaultExcludes: false
             }
         }
     }
@@ -526,12 +728,21 @@ catchError {
                 test_cases["(slow) ${v[0][0]} ~ ${v[0][-1]}"] = v[1]
             }
         }
+        if (!little_slow_case_names.isEmpty()) {
+            make_parallel_jobs(
+                    little_slow_case_names, 3,
+                    TIDB_BRANCH, TIKV_BRANCH, PD_BRANCH, CDC_BRANCH, TIKV_IMPORTER_BRANCH, tiflashBranch, tiflashCommit
+            ).each { v ->
+                test_cases["(little slow) ${v[0][0]} ~ ${v[0][-1]}"] = v[1]
+            }
+        }
         
         // Add rest integration tests
         test_case_names -= slow_case_names
         test_case_names -= very_slow_case_names
+        test_case_names -= little_slow_case_names
         // TODO: limit parallel size
-        def batch_size = (25 + test_case_names.size()).intdiv(26)
+        def batch_size = (18 + test_case_names.size()).intdiv(19)
         println batch_size
         make_parallel_jobs(
                 test_case_names, batch_size,
@@ -549,18 +760,18 @@ catchError {
         // Skip upload coverage when the job is initialed by TiDB PRs.
         node("${GO_TEST_SLAVE}") {
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                if (params.containsKey("triggered_by_upstream_pr_ci")) {
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
+                if (params.containsKey("triggered_by_upstream_pr_ci") || params.containsKey("release_test")) {
                     println "skip uploading coverage as it is triggered by upstream PRs"
                 } else {
                     def ws = pwd()
                     deleteDir()
 
-                    unstash 'br'
+                    // unstash 'br'
                     // "unit_test" is stashed under home folder, unstash here
                     // to restores coverage files to "go/src/github.com/pingcap/br/cover"
                     unstash 'unit_test'
-                    dir("go/src/github.com/pingcap/br") {
+                    dir("${ws}/go/src/github.com/pingcap/br") {
                         // "integration_test_${case_name}" is stashed under
                         // ""go/src/github.com/pingcap/br"", unstash here
                         // to restores coverage files to "cover"

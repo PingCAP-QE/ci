@@ -1,0 +1,3 @@
+FROM pingcap/alpine-glibc
+COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
+COPY br /br

@@ -3,12 +3,21 @@ def desc = "Dumpling is a CLI tool that helps you dump MySQL/TiDB data"
 
 def dumpling_sha1, tarball_name, dir_name
 
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def download = { name, version, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
@@ -97,21 +106,26 @@ node("build_go1130") {
                     tag = HOTFIX_TAG
                 }
 
-                dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
+                dumpling_sha1 = get_hash(ORIGIN_TAG,"dumpling")
             }
-            if (ARCH_X86) {
+            if (params.ARCH_X86) {
                 stage("tiup release dumpling linux amd64") {
                     update "dumpling", HOTFIX_TAG, "linux", "amd64"
                 }
             }
-            if (ARCH_ARM) {
+            if (params.ARCH_ARM) {
                 stage("tiup release dumpling linux arm64") {
                     update "dumpling", HOTFIX_TAG, "linux", "arm64"
                 }
             }
-            if (ARCH_MAC) {
+            if (params.ARCH_MAC) {
                 stage("tiup release dumpling darwin amd64") {
                     update "dumpling", HOTFIX_TAG, "darwin", "amd64"
+                }
+            }
+            if (params.ARCH_MAC_ARM) {
+                stage("tiup release dumpling darwin arm64") {
+                    update "dumpling", HOTFIX_TAG, "darwin", "arm64"
                 }
             }
         }

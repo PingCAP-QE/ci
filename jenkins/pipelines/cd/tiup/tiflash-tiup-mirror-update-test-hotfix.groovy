@@ -2,18 +2,27 @@ def tiup_desc = ""
 
 def tiflash_sha1, tarball_name, dir_name
 
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def download = { name, version, os, arch ->
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin") {
+    } else if (os == "darwin" && arch == "amd64") {
         platform = "darwin"
-    } else {
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }  else {
         sh """
         exit 1
         """
     }
 
-    if (arch == "arm64") {
+    if (arch == "arm64" && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -37,7 +46,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64") {
+    if (arch == "arm64" && os != "darwin") {
         tarball_name = "${name}-${os}-${arch}.tar.gz"
     } else {
         tarball_name = "${name}.tar.gz"
@@ -108,25 +117,30 @@ node("build_go1130") {
                 if (HOTFIX_TAG == "nightly") {
                     tag = "master"
                 } else {
-                    tag = ORIGIN_TAG
+                    tag = HOTFIX_TAG
                 }
 
-                tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${ORIGIN_TAG} -s=${FILE_SERVER_URL}").trim()
+                tiflash_sha1 = get_hash(ORIGIN_TAG,"tics")
             }
 
-            if (ARCH_X86) {
+            if (params.ARCH_X86) {
                 stage("tiup release tiflash linux amd64") {
                     update "tiflash", HOTFIX_TAG, "linux", "amd64"
                 }
             }
-            if (ARCH_ARM && (HOTFIX_TAG >= "v4.0" || HOTFIX_TAG == "nightly")) {
+            if (params.ARCH_ARM && (HOTFIX_TAG >= "v4.0" || HOTFIX_TAG == "nightly")) {
                 stage("tiup release tiflash linux arm64") {
                     update "tiflash", HOTFIX_TAG, "linux", "arm64"
                 }
             }
-            if (ARCH_MAC) {
+            if (params.ARCH_MAC) {
                 stage("tiup release tiflash darwin amd64") {
                     update "tiflash", HOTFIX_TAG, "darwin", "amd64"
+                }
+            }
+            if (params.ARCH_MAC_ARM) {
+                stage("tiup release tiflash darwin arm64") {
+                    update "tiflash", HOTFIX_TAG, "darwin", "arm64"
                 }
             }
             // upload "package"
