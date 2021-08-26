@@ -12,7 +12,7 @@ catchError {
 
     podTemplate(name: label, label: label, instanceCap: 5,
                 containers: [
-                    containerTemplate(name: 'kaniko', image: 'hub.pingcap.net/zyguan/kaniko', ttyEnabled: true, command: 'cat'),
+                    containerTemplate(name: 'kaniko', image: 'hub.pingcap.net/jenkins/kaniko', ttyEnabled: true, command: 'cat'),
                 ]) {
         node(label) {
             dir("client-c") {
