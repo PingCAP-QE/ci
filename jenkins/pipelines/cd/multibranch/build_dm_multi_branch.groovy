@@ -166,7 +166,8 @@ try {
                         timeout(30) {
                             sh """
                             mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                            cp -f dm/dm-ansible/scripts/dm.json monitoring/dashboards/
+                            cp -f dm/dm-ansible/scripts/DM-Monitor-Standard.json monitoring/dashboards/
+                            cp -f dm/dm-ansible/scripts/DM-Monitor-Professional.json monitoring/dashboards/
                             mkdir -p monitoring/rules
                             cp -f dm/dm-ansible/conf/dm_worker.rules.yml monitoring/rules/
                             GOPATH=\$GOPATH:${ws}/go cd monitoring && go run dashboards/dashboard.go
