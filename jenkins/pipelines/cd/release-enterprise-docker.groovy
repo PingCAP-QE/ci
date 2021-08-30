@@ -14,6 +14,14 @@
 
 env.DOCKER_HOST = "tcp://localhost:2375"
 
+
+def buildImage = "registry-mirror.pingcap.net/library/golang:1.14-alpine"
+if if (RELEASE_TAG >= "v5.2.0") {
+    buildImage = "registry-mirror.pingcap.net/library/golang:1.16.4-alpine3.13"
+}
+
+echo "use ${buildImage} as build image"
+
 catchError {
     stage('Prepare') {
         node('delivery') {
@@ -253,7 +261,7 @@ __EOF__
                         cp /etc/dockerconfig.json /home/jenkins/.docker/config.json
                         mkdir -p bin
                         cat - >"bin/Dockerfile" <<EOF
-FROM golang:1.14-alpine as builder
+FROM ${buildImage} as builder
 RUN apk add --no-cache git make bash
 WORKDIR /go/src/github.com/pingcap/ticdc
 COPY . .
