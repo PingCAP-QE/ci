@@ -16,7 +16,7 @@ env.DOCKER_HOST = "tcp://localhost:2375"
 
 
 def buildImage = "registry-mirror.pingcap.net/library/golang:1.14-alpine"
-if if (RELEASE_TAG >= "v5.2.0") {
+if (RELEASE_TAG >= "v5.2.0") {
     buildImage = "registry-mirror.pingcap.net/library/golang:1.16.4-alpine3.13"
 }
 
