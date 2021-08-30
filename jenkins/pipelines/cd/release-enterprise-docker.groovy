@@ -30,8 +30,14 @@ catchError {
                     tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
-                    tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
-                    importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
+                    br_hash = ""
+                    importer_hash = ""
+                    if (RELEASE_TAG >= "v5.2.0") {
+                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+                    } else {
+                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+                        importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
+                    }
                     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
 
                     if(RELEASE_TAG >= "v4.0.0") {
@@ -66,8 +72,9 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${tidb_lightning_sha1}/centos7/tidb-lightning.tar.gz | tar xz"
-
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer.tar.gz | tar xz"
+                    if (RELEASE_TAG < "v5.2.0") {
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer.tar.gz | tar xz"
+                    }
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
 
@@ -155,9 +162,19 @@ catchError {
                     sh """
                     cp ../centos7/bin/tidb-lightning ./
                     cp ../centos7/bin/tidb-lightning-ctl ./
-                    cp ../centos7/bin/tikv-importer ./
+                    if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
+                        cp ../centos7/bin/tikv-importer ./
+                    fi;
                     cp ../centos7/bin/br ./
                     cp /usr/local/go/lib/time/zoneinfo.zip ./
+                    cat > Dockerfile << __EOF__
+FROM pingcap/alpine-glibc
+COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
+COPY tidb-lightning /tidb-lightning
+COPY tidb-lightning-ctl /tidb-lightning-ctl
+COPY br /br
+__EOF__
+                    if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
                     cat > Dockerfile << __EOF__
 FROM pingcap/alpine-glibc
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
@@ -166,6 +183,7 @@ COPY tidb-lightning-ctl /tidb-lightning-ctl
 COPY tikv-importer /tikv-importer
 COPY br /br
 __EOF__
+                    fi;
                     """
                 }
 

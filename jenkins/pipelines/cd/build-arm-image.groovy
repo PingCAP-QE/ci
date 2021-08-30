@@ -6,6 +6,9 @@ def build_arm_image = { tag, repo ->
             sh """
             docker image rm -f pingcap/${repo}:${tag}
             wget ${dockerUrl}
+            if [ ${tag} \\> "v5.2.0" ] || [ ${tag} == "v5.2.0" ] && [ ${repo} == "tidb-lightning" ]; then
+                sed -i "s/COPY tikv-importer \\/tikv-importer//g" ${repo}-arm64
+            fi;
             docker build  -t pingcap/${repo}-arm64:${tag} -f ${repo}-arm64 .
             docker push pingcap/${repo}-arm64:${tag}
             """
