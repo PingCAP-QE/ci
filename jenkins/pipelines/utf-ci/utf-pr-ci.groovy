@@ -84,7 +84,6 @@ def runUTFPy(args) {
 catchError {
     def args = params.EXTRA_ARGS
     args += " --annotation jenkins.trigger=$BUILD_URL"
-    args += " --annotation utf.daily_test=${new Date(currentBuild.startTimeInMillis).format("yyyy-MM-dd")}"
     parallel(
         'Run UTF Go': { runUTFGo(args) },
         'Run UTF Py': { runUTFPy(args) },
