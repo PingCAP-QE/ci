@@ -192,14 +192,11 @@ def download_binaries() {
     def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "master")
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
 
-    def mBranch = ghprbTargetBranch =~ /^release-4.0/
-    if (mBranch) {
-        TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", "release-4.0")
-        TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", "release-4.0")
-        PD_BRANCH = params.getOrDefault("release_test__pd_commit", "release-4.0")
-        TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "release-4.0")
-    }
-    mBranch = null
+    TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
+    TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", ghprbTargetBranch)
+    PD_BRANCH = params.getOrDefault("release_test__pd_commit", ghprbTargetBranch)
+    TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
+
     println "ghprbTargetBranch=${ghprbTargetBranch}"
     println "TIDB_BRANCH=${TIDB_BRANCH}"
     println "PD_BRANCH=${PD_BRANCH}"
@@ -292,7 +289,7 @@ def coverage() {
 
             // unstash all integration tests.
             def step_names = []
-            for ( int i = 1; i < TOTAL_COUNT; i++ ) {
+            for (int i = 1; i < TOTAL_COUNT; i++) {
                 step_names.add("integration_test_step_${i}")
             }
             step_names.each { item ->
