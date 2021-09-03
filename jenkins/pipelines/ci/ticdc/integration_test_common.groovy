@@ -186,16 +186,11 @@ def tests(sink_type, node_label) {
  * Download the integration test-related binaries.
  */
 def download_binaries() {
-    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", "master")
-    def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", "master")
-    def PD_BRANCH = params.getOrDefault("release_test__pd_commit", "master")
-    def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "master")
+    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
+    def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", ghprbTargetBranch)
+    def PD_BRANCH = params.getOrDefault("release_test__pd_commit", ghprbTargetBranch)
+    def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
-
-    TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
-    TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", ghprbTargetBranch)
-    PD_BRANCH = params.getOrDefault("release_test__pd_commit", ghprbTargetBranch)
-    TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
 
     println "ghprbTargetBranch=${ghprbTargetBranch}"
     println "TIDB_BRANCH=${TIDB_BRANCH}"
