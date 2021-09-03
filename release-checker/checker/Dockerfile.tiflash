@@ -1,0 +1,16 @@
+FROM centos:7
+
+RUN yum -y install python3 wget
+RUN python3 -m ensurepip
+RUN ln -sf python3 /usr/bin/python
+
+ADD pkg /release-checker/pkg
+ADD main.py /release-checker
+ADD requirements.txt /release-checker
+RUN chmod -R 777 /release-checker
+
+RUN pip3 install -r /release-checker/requirements.txt
+
+ENV LC_ALL=en_CA.UTF-8
+ENV LANG=en_CA.UTF-8
+ENV LANGUAGE=en_CA.UTF-8
