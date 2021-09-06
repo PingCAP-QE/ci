@@ -35,7 +35,7 @@ def main(image) {
 }
 
 def run(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 5, serviceAccount: 'utf-runner', containers: [
+    podTemplate(name: label, label: label, instanceCap: 5, containers: [
         containerTemplate(name: 'suite', image: image, alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) { node(label) { body() } }
 }
