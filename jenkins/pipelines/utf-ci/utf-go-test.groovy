@@ -35,7 +35,7 @@ def main(image, targetName) {
 }
 
 def run(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 5, containers: [
+    podTemplate(name: label, label: label, cloud: 'kubernetes-utf', instanceCap: 5, containers: [
         containerTemplate(name: 'suite', image: image, alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ], yamlMergeStrategy: merge(), yaml: """
 spec:
