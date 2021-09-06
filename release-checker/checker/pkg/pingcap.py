@@ -162,6 +162,8 @@ def download_tarball(arch: str, edition: str, version: str):
 
 
 def validates(version: str, hashes: Dict[str, str], arch: str, edition="community") -> int:
+    if version >= "v5.2.0" and Components.importer in COMP_TO_BINARY.keys():
+        COMP_TO_BINARY.pop(Components.importer)
 
     def do_valiate(cmd: str, comp: str) -> int:
         nerrs = 0  # can't modify variable in closure in Python
