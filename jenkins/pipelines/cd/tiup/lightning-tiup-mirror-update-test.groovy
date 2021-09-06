@@ -124,8 +124,10 @@ try {
                 update "br", RELEASE_TAG, "darwin", "amd64"
             }
 
-            stage("tiup release tidb-lightning darwin arm64") {
-                update "br", RELEASE_TAG, "darwin", "arm64"
+            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+                stage("tiup release tidb-lightning darwin arm64") {
+                    update "br", RELEASE_TAG, "darwin", "arm64"
+                }
             }
         }
     }
