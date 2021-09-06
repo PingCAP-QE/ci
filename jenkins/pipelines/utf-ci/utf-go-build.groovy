@@ -53,7 +53,7 @@ def main() {
 }
 
 def run(label, image, Closure main) {
-    podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 60, containers: [
+    podTemplate(name: label, label: label, cloud: 'kubernetes-utf', instanceCap: 5, idleMinutes: 60, containers: [
         containerTemplate(name: 'golang', image: image, alwaysPullImage: false, ttyEnabled: true, command: 'cat'),
     ]) { node(label) { dir("automated-tests") { main() } } }
 }
