@@ -61,5 +61,5 @@ def run(label, image, Closure main) {
 }
 
 catchError {
-    run('utf-py-build', 'hub.pingcap.net/mirrors/python:3.8') { main() }
+    run('utf-py-build', 'registry-mirror.pingcap.net/library/python:3.8') { main() }
 }
