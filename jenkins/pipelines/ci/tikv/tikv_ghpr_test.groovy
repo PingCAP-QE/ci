@@ -13,6 +13,17 @@ if (params.containsKey("release_test")) {
 def notRun = 1
 def chunk_count = 20
 
+
+// example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
+// remove suffix "-20210724", only use "release-4.0"
+if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").size() >= 3 ) {
+    println "tikv hotfix branch: ${ghprbTargetBranch}"
+    def k = ghprbTargetBranch.indexOf("-", ghprbTargetBranch.indexOf("-") + 1)
+    ghprbTargetBranch = ghprbTargetBranch.substring(0, k)
+    println "ci image use  ${ghprbTargetBranch}"
+}
+
+
 try {
 stage("PreCheck") {
     if (!params.force) {
