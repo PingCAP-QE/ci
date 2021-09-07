@@ -124,12 +124,6 @@ try {
     echo "${e}"
 }
 
-stage("upload status"){
-    node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
-    }
-}
-
 stage('Summary') {
     echo "Send slack here ..."
     def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
