@@ -610,7 +610,7 @@ catchError {
                             """
                         }
                     }
-                    specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                    specStr = "+refs/heads/*:refs/remotes/origin/*"
                     if (ghprbPullId != null && ghprbPullId != "") {
                         specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
                     }
