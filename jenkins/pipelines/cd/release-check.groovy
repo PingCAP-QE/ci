@@ -17,7 +17,7 @@ def task = "release-check"
 def check_image = { comps, edition, registry ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/guoyu/release-checker:test',alwaysPull: true, envVars: [
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master',alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
     ]) {
@@ -46,10 +46,10 @@ def check_pingcap = { arch, edition ->
             }
         }
     } else {
-        def imageName = "hub.pingcap.net/guoyu/release-checker:tiflash"
+        def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         def label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,alwaysPull: true,
+                containerTemplate(name: 'main', image: imageName,alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -75,10 +75,10 @@ def check_tiup = { comps, label ->
             }
         }
     } else {
-        def imageName = "hub.pingcap.net/guoyu/release-checker:tiflash"
+        def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,alwaysPull: true,
+                containerTemplate(name: 'main', image: imageName,alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -121,9 +121,9 @@ __EOF__
             stash includes: "${RELEASE_TAG}.json", name: "release.json"
             dir("qa") {
                 checkout scm: [$class           : 'GitSCM',
-                               branches         : [[name: "release-check-mod"]],
+                               branches         : [[name: "main"]],
                                extensions       : [[$class: 'LocalBranch']],
-                               userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'https://github.com/dianqihanwangzi/ci.git']]]
+                               userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'https://github.com/PingCAP-QE/ci.git']]]
 
             }
             sh "cp ${RELEASE_TAG}.json qa/release-checker/checker"
