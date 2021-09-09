@@ -17,14 +17,14 @@ def task = "release-check"
 def check_image = { comps, edition, registry ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/lilinghai/release-checker:master2',alwaysPull: true, envVars: [
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master',alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
     ]) {
         node(task) {
             container("docker") {
                 unstash 'qa'
-                dir("qa/tools/release-checker/checker") {
+                dir("qa/release-checker/checker") {
                     comps.each {
                         sh """
                         python3 main.py image -c $it --registry ${registry} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}
@@ -41,21 +41,21 @@ def check_pingcap = { arch, edition ->
         node("arm") {
             deleteDir()
             unstash 'qa'
-            dir("qa/tools/release-checker/checker") {
+            dir("qa/release-checker/checker") {
                 sh "python3 main.py pingcap --arch ${arch} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}"
             }
         }
     } else {
-        def imageName = "hub.pingcap.net/lilinghai/release-checker:tiflash"
+        def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         def label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,alwaysPull: true,
+                containerTemplate(name: 'main', image: imageName,alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
                 container("main") {
                     unstash 'qa'
-                    dir("qa/tools/release-checker/checker") {
+                    dir("qa/release-checker/checker") {
                         sh "python3 main.py pingcap --arch ${arch} ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition}"
                     }
                 }
@@ -68,23 +68,23 @@ def check_tiup = { comps, label ->
     if (label == "mac" || label == "arm") {
         node(label) {
             unstash 'qa'
-            dir("qa/tools/release-checker/checker") {
+            dir("qa/release-checker/checker") {
                 comps.each {
                     sh "python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}"
                 }
             }
         }
     } else {
-        def imageName = "hub.pingcap.net/lilinghai/release-checker:tiflash"
+        def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,alwaysPull: true,
+                containerTemplate(name: 'main', image: imageName,alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
                 container("main") {
                     unstash 'qa'
-                    dir("qa/tools/release-checker/checker") {
+                    dir("qa/release-checker/checker") {
                         comps.each {
                             sh """
                             python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
@@ -121,12 +121,12 @@ __EOF__
             stash includes: "${RELEASE_TAG}.json", name: "release.json"
             dir("qa") {
                 checkout scm: [$class           : 'GitSCM',
-                               branches         : [[name: "release-checker"]],
+                               branches         : [[name: "main"]],
                                extensions       : [[$class: 'LocalBranch']],
-                               userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'git@github.com:pingcap/qa.git']]]
+                               userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'https://github.com/PingCAP-QE/ci.git']]]
 
             }
-            sh "cp ${RELEASE_TAG}.json qa/tools/release-checker/checker"
+            sh "cp ${RELEASE_TAG}.json qa/release-checker/checker"
             stash includes: "qa/**", name: "qa"
         }
     }
