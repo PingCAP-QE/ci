@@ -171,7 +171,7 @@ catchError {
                                 ],
                                 args: "${MYSQL_ARGS}",
                         ),
-                        // hub.pingcap.net/jenkins/mysql:5.7, hub.pingcap.net/zhangxuecheng/mysql:8.0.21
+                        // hub.pingcap.net/jenkins/mysql:5.7, registry-mirror.pingcap.net/library/mysql:8.0.21
                         containerTemplate(
                                 name: 'mysql1',
                                 image: 'hub.pingcap.net/jenkins/mysql:5.7',
