@@ -49,7 +49,7 @@ if (isNeedGo1160) {
     println 'This build use go1.16'
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/pingcap/centos7_golang-1.16:latest'
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
 } else {
     println 'This build use go1.13'
     POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached'
@@ -216,7 +216,7 @@ def run_tls_source_it_test(String case_name) {
                     // mysql 8
                     containerTemplate(
                             name: 'mysql2', alwaysPullImage: false,
-                            image: 'hub.pingcap.net/zhangxuecheng/mysql:8.0.21',ttyEnabled: true,
+                            image: 'hub.pingcap.net/jenkins/mysql:8.0.21',ttyEnabled: true,
                             resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                             envVars: [
                                     envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
@@ -319,7 +319,7 @@ def run_single_it_test(String case_name) {
                     // mysql 8.0.21
                     containerTemplate(
                             name: 'mysql2', alwaysPullImage: false,
-                            image: 'hub.pingcap.net/zhangxuecheng/mysql:8.0.21',ttyEnabled: true,
+                            image: 'hub.pingcap.net/jenkins/mysql:8.0.21',ttyEnabled: true,
                             resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                             envVars: [
                                     envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
