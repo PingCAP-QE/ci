@@ -735,7 +735,9 @@ __EOF__
             builds["Push tiflash Docker"] = {
                 build job: 'release_tiflash_by_tag',
                         wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        parameters: [
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
+                        ]
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
@@ -749,7 +751,10 @@ __EOF__
             builds["Push monitor initializer"] = {
                 build job: 'release-monitor',
                         wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        parameters: [
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+                        ]
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
@@ -795,7 +800,8 @@ __EOF__
                             [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]          
             }
 
