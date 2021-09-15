@@ -136,7 +136,7 @@ try {
                             sh '''
                             set +x
                             export CODECOV_TOKEN=${CODECOV_TOKEN}
-                            export TRAVIS_COVERAG=1
+                            export TRAVIS_COVERAGE=1
                             set -x 
                             make gotest
                             make upload-coverage
