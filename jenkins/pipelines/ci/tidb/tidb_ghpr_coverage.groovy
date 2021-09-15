@@ -139,7 +139,7 @@ try {
                             export TRAVIS_COVERAG=1
                             set -x 
                             make gotest
-                            make upload-coverages
+                            make upload-coverage
                             '''
                         }
                     }
