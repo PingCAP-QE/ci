@@ -60,11 +60,14 @@ if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
 } else {
     println "This build use go1.13"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
 
 catchError {
     withEnv(['CODECOV_TOKEN=c6ac8b7a-7113-4b3f-8e98-9314a486e41e',
@@ -122,7 +125,37 @@ catchError {
             def common = load script_path
             catchError {
                 common.prepare_binaries()
-                common.tests("mysql", "${GO_TEST_SLAVE}")
+
+                def label = "cdc-integration-test-${UUID.randomUUID().toString()}"
+                podTemplate(label: label,
+                        idleMinutes: 0,
+                        cloud: "kubernetes-backup",
+                        namespace: "jenkins-ci2",
+                        containers: [
+                                containerTemplate(
+                                        name: 'golang', alwaysPullImage: true,
+                                        image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                                        resourceLimitCpu: '30000m', resourceLimitMemory: "20Gi",
+                                        command: '/bin/sh -c', args: 'cat',
+                                        envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
+                                                  containerEnvVar(key: 'GOPATH', value: '/go')],
+                                ),
+                        ],
+                        volumes: [
+                                nfsVolume( mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false ),
+                                nfsVolume( mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
+                                        serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false ),
+                                nfsVolume( mountPath: '/go/pkg', serverAddress: '172.16.5.22',
+                                        serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false ),
+                                emptyDirVolume(mountPath: '/tmp', memory: true),
+                                emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                        ],
+                ) {
+                    common.tests("mysql", label)
+                }
+
                 common.coverage()
                 currentBuild.result = "SUCCESS"
             }
