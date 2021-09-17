@@ -158,7 +158,7 @@ catchError {
                         namespace: "jenkins-ci2",
                         containers: [
                                 containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
-                                        resourceRequestCpu: '4000m', resourceRequestMemory: '12Gi',
+                                        resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
                                         resourceLimitCpu: '10000m', resourceLimitMemory: "20Gi",
                                         ttyEnabled: true, command: 'cat'),
                                 containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
