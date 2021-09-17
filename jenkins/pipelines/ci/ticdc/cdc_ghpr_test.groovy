@@ -137,8 +137,8 @@ catchError {
         }
 
         catchError {
-            run_with_pod() {
-                node("${GO_TEST_SLAVE}") {
+            stage("Unit Test") {
+                run_with_pod() {
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
