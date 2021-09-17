@@ -48,11 +48,12 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
 }
 
 def run_with_pod(Closure body) {
-    def label = "cdc_ghpr_unit_test"
+    def label = "cdc_ghpr_unit_test_1.13"
     pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
     if (isNeedGo1160) {
         println "Use go1.16.4"
         pod_go_docker_image = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+        label = "cdc_ghpr_unit_test_1.16"
     } else {
         println "Use go1.13.7"
     }
