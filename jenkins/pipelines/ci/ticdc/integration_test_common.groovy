@@ -172,7 +172,7 @@ def tests(sink_type, node_label) {
             step_cases.add(case_names)
         }
         step_cases.eachWithIndex { case_names, index ->
-            def step_name = "${index} ${case_names.join(" ")}"
+            def step_name = case_names.join(" ")
             test_cases["${step_name}"] = {
                 run_integration_test(step_name, case_names.join(" "))
             }
