@@ -152,10 +152,14 @@ catchError {
                 common.prepare_binaries()
 
                 def label = "cdc-kafka-integration-${UUID.randomUUID().toString()}"
-                podTemplate(label: label, idleMinutes: 0,
+                podTemplate(label: label,
+                        idleMinutes: 0,
+                        cloud: "kubernetes-backup",
+                        namespace: "jenkins-ci2",
                         containers: [
                                 containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
-                                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                                        resourceRequestCpu: '4000m', resourceRequestMemory: '12Gi',
+                                        resourceLimitCpu: '10000m', resourceLimitMemory: "20Gi",
                                         ttyEnabled: true, command: 'cat'),
                                 containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
