@@ -1,6 +1,6 @@
 echo "Job start..."
 
-def ciRepeUrl = "https://github.com/PingCAP-QE/ci.git"
+def ciRepeUrl = "https://github.com/hi-rustin/ci.git"
 def ciRepoBranch = "main"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
