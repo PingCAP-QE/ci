@@ -6,7 +6,7 @@ TOTAL_COUNT = 0
 /**
  * Integration testing number of tests per group.
  */
-GROUP_SIZE = 2
+GROUP_SIZE = 3
 
 /**
  * Partition the array.
