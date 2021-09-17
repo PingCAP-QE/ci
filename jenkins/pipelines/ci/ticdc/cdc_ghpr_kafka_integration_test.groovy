@@ -18,20 +18,20 @@ if (ghprbPullId == null || ghprbPullId == "") {
 }
 
 @NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
+boolean isMoreRecentOrEqual(String a, String b) {
     if (a == b) {
         return true
     }
 
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
+    [a, b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+        Integer result = [u, v].transpose().findResult { x, y -> x <=> y ?: null } ?: u.size() <=> v.size()
+        return (result == 1)
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
+    it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
+}
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -70,8 +70,8 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 catchError {
     withEnv(['CODECOV_TOKEN=c6ac8b7a-7113-4b3f-8e98-9314a486e41e',
-             'COVERALLS_TOKEN=HTRawMvXi9p5n4OyBvQygxd5iWjNUKd1o']){
-        node ("${GO_TEST_SLAVE}") {
+             'COVERALLS_TOKEN=HTRawMvXi9p5n4OyBvQygxd5iWjNUKd1o']) {
+        node("${GO_TEST_SLAVE}") {
             stage('Prepare') {
                 def ws = pwd()
                 deleteDir()
@@ -154,14 +154,11 @@ catchError {
                 def label = "cdc-kafka-integration-${UUID.randomUUID().toString()}"
                 podTemplate(label: label,
                         idleMinutes: 0,
-                        cloud: "kubernetes-backup",
-                        namespace: "jenkins-ci2",
                         containers: [
-                                containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
-                                        resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                        resourceLimitCpu: '10000m', resourceLimitMemory: "20Gi",
+                                containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
+                                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true, command: 'cat'),
-                                containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
+                                containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true),
                                 containerTemplate(
@@ -186,7 +183,7 @@ catchError {
                                                 envVar(key: 'KAFKA_ZOOKEEPER_CONNECT', value: 'localhost:2181'),
                                         ]
                                 )],
-                        volumes:[
+                        volumes: [
                                 emptyDirVolume(mountPath: '/tmp', memory: true),
                                 emptyDirVolume(mountPath: '/home/jenkins', memory: true)
                         ]
