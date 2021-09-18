@@ -126,17 +126,14 @@ catchError {
             catchError {
                 common.prepare_binaries()
 
-                def label = "cdc-integration-test-${UUID.randomUUID().toString()}"
+                def label = "cdc-integration-test"
                 podTemplate(label: label,
                         idleMinutes: 0,
-                        cloud: "kubernetes-backup",
-                        namespace: "jenkins-ci2",
                         containers: [
                                 containerTemplate(
                                         name: 'golang', alwaysPullImage: true,
                                         image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                        resourceLimitCpu: '10000m', resourceLimitMemory: "20Gi",
                                         command: '/bin/sh -c', args: 'cat',
                                         envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
                                                   containerEnvVar(key: 'GOPATH', value: '/go')],
