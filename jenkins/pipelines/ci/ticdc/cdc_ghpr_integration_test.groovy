@@ -1,4 +1,5 @@
 echo "release test: ${params.containsKey("release_test")}"
+
 if (params.containsKey("release_test")) {
     ghprbActualCommit = params.release_test__cdc_commit
     ghprbTargetBranch = params.release_test__release_branch
@@ -9,7 +10,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = "release-test"
 }
 
-def ciRepeUrl = "https://github.com/PingCAP-QE/ci.git"
+def ciRepoUrl = "https://github.com/PingCAP-QE/ci.git"
 def ciRepoBranch = "main"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
@@ -18,20 +19,20 @@ if (ghprbPullId == null || ghprbPullId == "") {
 }
 
 @NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
+boolean isMoreRecentOrEqual(String a, String b) {
     if (a == b) {
         return true
     }
 
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
+    [a, b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+        Integer result = [u, v].transpose().findResult { x, y -> x <=> y ?: null } ?: u.size() <=> v.size()
+        return (result == 1)
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
+    it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
+}
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -103,7 +104,7 @@ catchError {
                         deleteDir()
                     }
                     try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepeUrl}"]]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
                     } catch (info) {
                         retry(2) {
                             echo "checkout failed, retry.."
@@ -112,7 +113,7 @@ catchError {
                                 echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
                                 deleteDir()
                             }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepeUrl}"]]]
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
                         }
                     }
 
@@ -140,12 +141,12 @@ catchError {
                                 ),
                         ],
                         volumes: [
-                                nfsVolume( mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false ),
-                                nfsVolume( mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
-                                        serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false ),
-                                nfsVolume( mountPath: '/go/pkg', serverAddress: '172.16.5.22',
-                                        serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false ),
+                                nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                                nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
+                                        serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
+                                nfsVolume(mountPath: '/go/pkg', serverAddress: '172.16.5.22',
+                                        serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false),
                                 emptyDirVolume(mountPath: '/tmp', memory: true),
                                 emptyDirVolume(mountPath: '/home/jenkins', memory: true)
                         ],
