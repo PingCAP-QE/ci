@@ -60,7 +60,7 @@ def fallback() {
                 nodeSelector: 'role_type=slave',
                 containers: [
                         containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-                        containerTemplate(name: 'docker', image: 'hub.pingcap.net/zyguan/docker:build-essential',
+                        containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential',
                                 alwaysPullImage: true, envVars: [
                                 envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                         ], ttyEnabled: true, command: 'cat'),
@@ -68,7 +68,9 @@ def fallback() {
                                 alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                                 resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                                 resourceLimitCpu: '10000m', resourceLimitMemory: '30Gi'),
-                ]) {
+                ],
+
+        ) {
 
             node(label) {
 
