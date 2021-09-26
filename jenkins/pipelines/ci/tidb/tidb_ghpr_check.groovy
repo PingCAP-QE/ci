@@ -178,9 +178,8 @@ try {
                             parallel builds
                         } else {
                             sh """
-                                make checklist
                                 make check
-                                make test
+                                make test_part_1
                             """
                         }
                     } catch (err) {
