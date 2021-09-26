@@ -179,7 +179,7 @@ try {
                         } else {
                             sh """
                                 make check
-                                make test_part_1
+                                make test
                             """
                         }
                     } catch (err) {
