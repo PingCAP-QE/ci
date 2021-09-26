@@ -177,7 +177,11 @@ try {
                             }
                             parallel builds
                         } else {
-                            sh "make dev"
+                            sh """
+                                make checklist
+                                make check
+                                make test
+                            """
                         }
                     } catch (err) {
                         throw err
