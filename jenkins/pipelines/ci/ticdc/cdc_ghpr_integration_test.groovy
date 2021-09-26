@@ -128,6 +128,11 @@ catchError {
                 common.prepare_binaries()
 
                 def label = "cdc-integration-test"
+                if (isNeedGo1160) {
+                    label = "cdc-integration-test-go1160-build-${BUILD_NUMBER}"
+                } else {
+                    label = "cdc-integration-test-go1130-build-${BUILD_NUMBER}"
+                }
                 podTemplate(label: label,
                         idleMinutes: 0,
                         containers: [
