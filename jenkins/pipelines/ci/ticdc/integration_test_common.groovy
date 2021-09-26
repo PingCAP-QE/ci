@@ -92,6 +92,7 @@ def tests(sink_type, node_label) {
 
                     dir("go/src/github.com/pingcap/ticdc") {
                         sh """
+                            go version
                             rm -rf /tmp/tidb_cdc_test
                             mkdir -p /tmp/tidb_cdc_test
                             GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
