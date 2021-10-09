@@ -121,6 +121,9 @@ node("build_go1130") {
                 checkoutTiCS(RELEASE_BRANCH)
             }
         }
+        if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
+            VERSION = "2.27.1"
+        }
         if (params.ARCH_X86) {
             stage("TiUP build prometheus on linux/amd64") {
                 update VERSION, "linux", "amd64"
