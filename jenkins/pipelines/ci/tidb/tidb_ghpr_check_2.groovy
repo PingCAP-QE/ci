@@ -263,18 +263,6 @@ try {
         }
         parallel tests
 
-
-        stage("Check go mod replace is removed") {
-            dir("go/src/github.com/pingcap/tidb") {
-                container("golang") {
-                    timeout(10) {
-                        sh """
-                        if [ \"${ghprbTargetBranch}\" == \"master\" ] || [ \"${ghprbTargetBranch}\" == \"release-3.0\" ] || [ \"${ghprbTargetBranch}\" == \"release-3.1\"  ] ;then ./tools/check/check_parser_replace.sh ;fi
-                        """
-                    }
-                }
-            }
-        }
         currentBuild.result = "SUCCESS"
         node(buildSlave){
             container("golang"){
