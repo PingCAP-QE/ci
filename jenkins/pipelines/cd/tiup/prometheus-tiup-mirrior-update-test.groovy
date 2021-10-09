@@ -122,6 +122,9 @@ node("build_go1130") {
                 checkoutTiCS(tag)
             }
         }
+        if (RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
+            VERSION = "2.27.1"
+        }
 
         stage("TiUP build prometheus on linux/amd64") {
             update VERSION, "linux", "amd64"
