@@ -98,11 +98,14 @@ try {
                         export GOPATH=${ws}/go
                         # export GOPROXY=http://goproxy.pingcap.net
                         go list ./...
-                        go list ./... > packages.list
+                        go list ./... | grep -v -E  "github.com/tikv/pd/server/api|github.com/tikv/pd/tests/client|github.com/tikv/pd/tests/server/tso|github.com/tikv/pd/server/schedule" > packages.list
                         cat packages.list
-                        split packages.list -n r/5 packages_unit_ -a 1 --numeric-suffixes=1
-                        echo 1
+                        split packages.list -n r/6 packages_unit_ -a 1 --numeric-suffixes=1
                         cat packages_unit_1
+                        echo "github.com/tikv/pd/server/api" >> packages_unit_8
+                        echo "github.com/tikv/pd/tests/client" >> packages_unit_9
+                        echo "github.com/tikv/pd/tests/server/tso" >> packages_unit_9
+                        echo "github.com/tikv/pd/server/schedule" >> packages_unit_7
                         """
 
                         if (ghprbTargetBranch == "release-3.0" || ghprbTargetBranch == "release-3.1") {
@@ -180,6 +183,21 @@ try {
             run_unit_test(5)
         }
 
+        tests["Unit Test Chunk #6"] = {
+            run_unit_test(6)
+        }
+
+        tests["Unit Test Chunk #7"] = {
+            run_unit_test(7)
+        }
+
+        tests["Integrate Test Chunk #1"] = {
+            run_unit_test(8)
+        }
+
+        tests["Integrate Test Chunk #2"] = {
+            run_unit_test(9)
+        }
         parallel tests
     }
 
