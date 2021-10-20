@@ -140,59 +140,6 @@ def build_dm_bin() {
     }
 }
 
-def run_single_unit_test(String case_name) {
-    def label = 'dm-unit-test'
-    podTemplate(label: label,
-            nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
-            containers: [
-                    containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
-                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
-                            command: 'cat'),
-                    containerTemplate(
-                            name: 'mysql', alwaysPullImage: false,
-                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
-                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
-                            envVars: [
-                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
-                            ],
-                            args: "${MYSQL_ARGS}")
-            ]
-    ) {
-        node(label) {
-            println "${NODE_NAME}"
-            println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
-            container('golang') {
-                ws = pwd()
-                deleteDir()
-                unstash 'dm-with-bin'
-                dir('go/src/github.com/pingcap/dm') {
-                    sh """
-                                rm -rf /tmp/dm_test
-                                mkdir -p /tmp/dm_test
-                                export MYSQL_HOST=${MYSQL_HOST}
-                                export MYSQL_PORT=${MYSQL_PORT}
-                                export MYSQL_PSWD=${MYSQL_PSWD}
-                                export GOPATH=\$GOPATH:${ws}/go
-                                # wait for mysql
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                make unit_test_${case_name}
-                                rm -rf cov_dir
-                                mkdir -p cov_dir
-                                ls /tmp/dm_test
-                                cp /tmp/dm_test/cov*out cov_dir
-                                """
-                }
-                // stash this test coverage file
-                stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "unit-cov-${case_name}"
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
-            }
-        }
-    }
-}
-
 
 def run_tls_source_it_test(String case_name) {
     def label = 'dm-integration-test'
@@ -382,11 +329,6 @@ def run_make_coverage() {
         println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
         ws = pwd()
         deleteDir()
-        unstash 'dm-with-bin'
-        unstash 'unit-cov-relay'
-        unstash 'unit-cov-syncer'
-        unstash 'unit-cov-pkg_binlog'
-        unstash 'unit-cov-others'
         try {
             unstash 'integration-cov-all_mode'
             unstash 'integration-cov-dmctl_advance dmctl_basic dmctl_command'
@@ -476,41 +418,6 @@ pipeline {
         stage('Parallel Run Tests') {
             failFast true
             parallel {
-                // Unit Test
-                stage('UT-relay') {
-                    steps {
-                        script {
-                            run_single_unit_test('relay')
-                        }
-                    }
-                }
-
-                stage('UT-syncer') {
-                    steps {
-                        script {
-                            run_single_unit_test('syncer')
-                        }
-                    }
-                }
-
-                stage('UT-pkg_binlog') {
-                    steps {
-                        script {
-                            run_single_unit_test('pkg_binlog')
-                        }
-                    }
-                }
-
-                stage('UT-others') {
-                    steps {
-                        script {
-                            run_single_unit_test('others')
-                        }
-                    }
-                }
-                // END Unit Test
-
-                // Integration Test
                 stage('IT-all_mode') {
                     steps {
                         script {
@@ -799,7 +706,6 @@ pipeline {
                         }
                     }
                 }
-            // END Integration Test
             }
         }
 
