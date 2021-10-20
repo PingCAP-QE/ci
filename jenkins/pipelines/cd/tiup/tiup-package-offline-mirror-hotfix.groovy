@@ -113,6 +113,7 @@ def package_enterprise = { arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_TAG}/${tiflash_hash}/centos7/tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
         tar -xzf tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
         rm -rf tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
+        rm -rf tiflash
         mv tiflash-${TIFLASH_TAG}-linux-${arch} tiflash
         tar -czf tiflash-${VERSION}-linux-${arch}.tar.gz tiflash
         tiup mirror publish tiflash ${VERSION} tiflash-${VERSION}-linux-${arch}.tar.gz tiflash/tiflash --arch ${arch} --os linux --desc="The TiFlash Columnar Storage Engine"
