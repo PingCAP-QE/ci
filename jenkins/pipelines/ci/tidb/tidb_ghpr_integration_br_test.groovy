@@ -43,7 +43,13 @@ catchError {
                 ]
 
                 // these three branch don't have br integrated.
-                targetBranch = trimPrefix(ghprbTargetBranch)
+                targetBranch = ghprbTargetBranch
+                if(ghprbTargetBranch.startsWith("release-")) {
+                	// remove date from branch name
+                	// before: release-5.1-20210909
+                	// after: release-5.1
+                	targetBranch = "release-" + trimPrefix(ghprbTargetBranch)
+                }
                 if (targetBranch == "release-4.0" || targetBranch == "release-5.0" || targetBranch == "release-5.1") {
                     default_params.triggered_by_upstream_pr_ci = "tidb"
                     // We tests BR on the same branch as TiDB's.
