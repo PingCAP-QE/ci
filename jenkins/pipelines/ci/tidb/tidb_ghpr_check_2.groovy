@@ -96,7 +96,7 @@ def testSlave = "${GO_TEST_SLAVE}"
 
 def sessionTestSuitesString = "testPessimisticSuite"
 
-def test_suites = { suites,option ->
+def test_suites = { option ->
     node(testSlave) {
         deleteDir()
         unstash 'tidb'
@@ -129,7 +129,7 @@ def test_suites = { suites,option ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${option} '${suites}'
+                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 10m -vet=off ${option}
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 10m -vet=off
                         """
                     }
@@ -255,10 +255,10 @@ try {
 
         if (ghprbTargetBranch == "master"){
             tests["test session with real tikv suites ${sessionTestSuitesString}"] = {
-                test_suites(sessionTestSuitesString, "-check.f")
+                test_suites("-run '^TestT$' -check.f 'testPessimisticSuite'")
             }
             tests["test session with real tikv exclude suites ${sessionTestSuitesString}"] = {
-                test_suites(sessionTestSuitesString, "-check.exclude")
+                test_suites("-check.exclude 'testPessimisticSuite'")
             }
         }
         parallel tests
