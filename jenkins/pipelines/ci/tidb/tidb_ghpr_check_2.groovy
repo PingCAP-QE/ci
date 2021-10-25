@@ -255,7 +255,7 @@ try {
 
         if (ghprbTargetBranch == "master"){
             tests["test session with real tikv suites ${sessionTestSuitesString}"] = {
-                test_suites("-run '^TestT$' -check.f 'testPessimisticSuite'")
+                test_suites("-run '^TestT\$' -check.f 'testPessimisticSuite'")
             }
             tests["test session with real tikv exclude suites ${sessionTestSuitesString}"] = {
                 test_suites("-check.exclude 'testPessimisticSuite'")
