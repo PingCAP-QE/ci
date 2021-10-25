@@ -187,17 +187,31 @@ def update_ctl = { version, os, arch ->
         """
     }
 
+    lightning_tarball_name = ""
+    lightning_ctl_bin_dir = ""
+    if (arch == "arm64"  && os != "darwin") {
+        lightning_tarball_name = "br-${os}-${arch}.tar.gz"
+        lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
+    } else {
+        lightning_tarball_name = "br.tar.gz"
+        lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
+    }
+
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
         if (RELEASE_TAG != "nightly") {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         } else {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         }
         sh """
+        tar -zxf ${lightning_tarball_name}
+        cp ${lightning_ctl_bin_dir} ctls/
         tar xf ticdc-${os}-${arch}.tar.gz
         cp ticdc-${os}-${arch}/bin/cdc ctls/
         """
@@ -244,6 +258,12 @@ node("build_go1130") {
                 tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
                     ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                }
+                lightning_sha1 = ""
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                } else {
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
             }
 
