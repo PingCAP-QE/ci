@@ -226,12 +226,12 @@ def update_ctl = { version, os, arch ->
         if (HOTFIX_TAG != "nightly") {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${HOTFIX_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         } else {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/${HOTFIX_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         }
         sh """
@@ -285,7 +285,7 @@ node("build_go1130") {
                     ticdc_sha1 = get_hash(CDC_TAG, "ticdc")
                 }
                 lightning_sha1 = ""
-                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.2.0") {
                     lightning_sha1 = get_hash(BR_TAG,"tidb")
                 } else {
                     lightning_sha1 = get_hash(BR_TAG,"br")
