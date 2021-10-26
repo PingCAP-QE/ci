@@ -1,7 +1,5 @@
 def TIDB_BRANCH = "master"
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
-def COVERALLS_TOKEN = "vVHBaHMBGrGmI8pxQnddo1xkvbQD6CaZs"
-def CODECOV_TOKEN="a692ca33-c819-42cc-b2ff-dd3825259467"
 
 def PRE_COMMIT = "tags/v2.0.0-rc"
 def MYSQL_ARGS = "--log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password"
