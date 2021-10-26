@@ -262,7 +262,7 @@ def download_binaries() {
         curl -L http://fileserver.pingcap.net/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
         curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/sync_diff_inspector.tar.gz | tar xz -C ./third_bin
-        curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o jq
+        curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
         rm -rf tmp
