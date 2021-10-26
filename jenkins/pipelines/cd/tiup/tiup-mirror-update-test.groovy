@@ -206,7 +206,7 @@ def update_ctl = { version, os, arch ->
         } else {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/master/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         }
         sh """
