@@ -175,9 +175,7 @@ catchError {
                         unstash "binaries"
                         dir("go/src/github.com/pingcap/ticdc") {
                             try {
-                                // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                                 sh """
-                                export PATH=bin:$PATH
                                 rm -rf /tmp/dm_test
                                 mkdir -p /tmp/dm_test
                                 mkdir -p bin
@@ -188,7 +186,9 @@ catchError {
                                 export MYSQL_PORT1=3306
                                 export MYSQL_HOST2=127.0.0.1
                                 export MYSQL_PORT2=3307
-                                GOPATH=\$GOPATH:${ws}/go make dm_compatibility_test CASE=${TEST_CASE}
+                                export PATH=/usr/local/go/bin:$PATH
+                                export GOPATH=\$GOPATH:${ws}/go
+                                make dm_compatibility_test CASE=${TEST_CASE}
                                 rm -rf cov_dir
                                 mkdir -p cov_dir
                                 ls /tmp/dm_test
