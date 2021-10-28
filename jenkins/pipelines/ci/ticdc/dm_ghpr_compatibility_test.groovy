@@ -70,7 +70,6 @@ catchError {
             container("golang") {
                 def ws = pwd()
                 deleteDir()
-                // dm
                 dir("/home/jenkins/agent/git/ticdc") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
@@ -172,7 +171,7 @@ catchError {
                     timeout(30) {
                         def ws = pwd()
                         deleteDir()
-                        unstash "dm"
+                        unstash "ticdc"
                         unstash "binaries"
                         dir("go/src/github.com/pingcap/ticdc") {
                             try {
