@@ -32,17 +32,11 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(['master'], ghprbTargetBranch)
-isNeedGo1160 = true // For debug temporarily.
-if (isNeedGo1160) {
-    println 'This build use go1.16'
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-} else {
-    println 'This build use go1.13'
-    POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached'
-}
+println 'This build use go1.16'
+GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+GO_TEST_SLAVE = GO1160_TEST_SLAVE
+POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
