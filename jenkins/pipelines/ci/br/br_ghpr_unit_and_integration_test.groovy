@@ -820,23 +820,22 @@ stage('Summary') {
             slackSend channel: '#jenkins-ci-migration', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
         }
 
-        def feishumsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\\n" +
+        def feishuMsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\\n" +
             "${ghprbPullLink}" + "\\n" +
             "${ghprbPullDescription}" + "\\n" +
             "BRIE Integration Test Result: `${currentBuild.result}`" + "\\n" +
             "Elapsed Time: `${duration} mins` " + "\\n" +
             "${env.RUN_DISPLAY_URL}"
         node {
-            withCredentials([string(credentialsId: 'codecov-token-br', variable: 'CODECOV_TOKEN')]) {
+            withCredentials([string(credentialsId: 'br-integration-test-feishu-webhook', variable: 'BR_WEBHOOK_TOKEN')]) {
             sh """
-                curl -X POST -H 'Content-Type: application/json' \
+                curl -X POST ${BR_WEBHOOK_TOKEN} -H 'Content-Type: application/json' \
                 -d '{
                     "msg_type": "text",
                     "content": {
-                        "text": "${feishumsg}"
+                        "text": "${feishuMsg}"
                     }
                 }' \
-                https://open.feishu.cn/open-apis/bot/v2/hook/453dfe19-2236-4c0b-a088-209e66927bf8
             """
             }
         }
