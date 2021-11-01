@@ -12,6 +12,10 @@ if (params.containsKey("release_test")) {
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 
+string trimPrefix = {
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
+    }
+
 catchError {
     node("${GO_TEST_SLAVE}") {
         // After BR merged into TiDB, every PR should trigger this test.
@@ -39,10 +43,17 @@ catchError {
                 ]
 
                 // these three branch don't have br integrated.
-                if (ghprbTargetBranch == "release-4.0" || ghprbTargetBranch == "release-5.0" || ghprbTargetBranch == "release-5.1") {
+                targetBranch = ghprbTargetBranch
+                if(ghprbTargetBranch.startsWith("release-")) {
+                	// remove date from branch name
+                	// before: release-5.1-20210909
+                	// after: release-5.1
+                	targetBranch = "release-" + trimPrefix(ghprbTargetBranch)
+                }
+                if (targetBranch == "release-4.0" || targetBranch == "release-5.0" || targetBranch == "release-5.1") {
                     default_params.triggered_by_upstream_pr_ci = "tidb"
                     // We tests BR on the same branch as TiDB's.
-                    default_params.upstream_pr_ci_ghpr_actual_commit = "${ghprbTargetBranch}"
+                    default_params.upstream_pr_ci_ghpr_actual_commit = "${targetBranch}"
                 }
                 // Trigger BRIE test without waiting its finish.
                 build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
