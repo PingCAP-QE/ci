@@ -142,7 +142,7 @@ catchError {
                                 name: 'mysql',
                                 image: 'hub.pingcap.net/jenkins/mysql:5.7',
                                 ttyEnabled: true,
-                                alwaysPullImage: true,
+                                alwaysPullImage: false,
                                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                 envVars: [
                                         envVar(key: 'MYSQL_ROOT_PASSWORD', value: '123456'),
