@@ -12,6 +12,7 @@
 * @RELEASE_TAG
 * @FORCE_REBUILD
 * @RELEASE_BRANCH
+* @NGMonitoring_HASH
 * @TIKV_PRID
 */
 GO_BIN_PATH="/usr/local/go/bin"
@@ -253,7 +254,7 @@ try {
         }
         if (RELEASE_TAG >= "v5.3.0") {
             builds["Build NGMonitoring"] = {
-                build_upload("ng-monitoring", DUMPLING_HASH, "ng-monitoring")
+                build_upload("ng-monitoring", NGMonitoring_HASH, "ng-monitoring")
             }
         }
         

@@ -12,6 +12,7 @@
 * @RELEASE_TAG
 * @PRE_RELEASE
 * @FORCE_REBUILD
+* @NGMonitoring_HASH
 * @TIKV_PRID
 */
 def boolean tagNeedUpgradeGoVersion(String tag) {
