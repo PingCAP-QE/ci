@@ -819,5 +819,25 @@ stage('Summary') {
             slackmsg = ":scream_cat: " + slackmsg
             slackSend channel: '#jenkins-ci-migration', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
         }
+
+        def feishuMsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\\n" +
+            "${ghprbPullLink}" + "\\n" +
+            "${ghprbPullDescription}" + "\\n" +
+            "BRIE Integration Test Result: `${currentBuild.result}`" + "\\n" +
+            "Elapsed Time: `${duration} mins` " + "\\n" +
+            "${env.RUN_DISPLAY_URL}"
+        node {
+            withCredentials([string(credentialsId: 'br-integration-test-feishu-webhook', variable: 'BR_WEBHOOK_TOKEN')]) {
+            sh """
+                curl -X POST ${BR_WEBHOOK_TOKEN} -H 'Content-Type: application/json' \
+                -d '{
+                    "msg_type": "text",
+                    "content": {
+                        "text": "${feishuMsg}"
+                    }
+                }' \
+            """
+            }
+        }
     }
 }
