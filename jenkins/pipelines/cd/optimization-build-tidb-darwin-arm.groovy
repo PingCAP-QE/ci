@@ -181,6 +181,21 @@ def build_upload = { product, hash, binary ->
                     mv bin/* ${target}/bin/
                     """
                 }
+                 if (product in ["ng-monitoring"]) {
+                    sh """
+                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
+                    git tag -f ${RELEASE_TAG} ${hash}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    make
+                    rm -rf ${target}
+                    mkdir -p ${target}/bin
+                    mv bin/* ${target}/bin/
+                    """
+                }
+
                 sh """
                     tar czvf ${target}.tar.gz ${target}
                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
@@ -235,6 +250,11 @@ try {
         }
         builds["Build dumpling"] = {
             build_upload("dumpling", DUMPLING_HASH, "dumpling")
+        }
+        if (RELEASE_TAG >= "v5.3.0") {
+            builds["Build NGMonitoring"] = {
+                build_upload("ng-monitoring", DUMPLING_HASH, "ng-monitoring")
+            }
         }
         
 

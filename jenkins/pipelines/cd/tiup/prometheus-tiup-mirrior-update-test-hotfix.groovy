@@ -27,6 +27,9 @@ def checkoutTiCS(branch) {
     // checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/heads/*:refs/remotes/origin/*", url: 'git@github.com:pingcap/tics.git']]]
 }
 
+def name="ng-monitoring"
+def ng-monitoring_sha1, tarball_name
+
 def download = { version, os, arch ->
     if (os == "darwin" && arch == "arm64") {
         sh """
@@ -37,12 +40,41 @@ def download = { version, os, arch ->
         wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
         """
     }
+    if (os == "linux") {
+        platform = "centos7"
+    } else if (os == "darwin" && arch == "amd64") {
+        platform = "darwin"
+    } else if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }
+
+    if (arch == "arm64" && os != "darwin") {
+        tarball_name = "${name}-${os}-${arch}.tar.gz"
+    } else {
+        tarball_name = "${name}.tar.gz"
+    }
+
+    if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
+        sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng-monitoring_sha1}/${platform}/${tarball_name}
+        """
+    } else if (HOTFIX_TAG == "nightly") {
+        sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng-monitoring_sha1}/${platform}/${tarball_name}
+        """
+    }
 }
+
 
 def unpack = { version, os, arch ->
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
+    if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
+        sh """
+            tar -zxf ng-monitoring-${os}-${arch}.tar.gz
+        """
+    }
 }
 
 def pack = { version, os, arch ->
@@ -121,6 +153,12 @@ node("build_go1130") {
                 checkoutTiCS(RELEASE_BRANCH)
             }
         }
+
+        ng-monitoring_sha1 = ""
+        if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
+            ng-monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+        }
+
         if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
             VERSION = "2.27.1"
         }
