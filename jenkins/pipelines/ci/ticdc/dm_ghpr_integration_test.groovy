@@ -6,6 +6,11 @@
     * CODECOV_TOKEN (set default in jenkins admin)
 */
 
+def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+if (ghprbPullId == null || ghprbPullId == "") {
+    specStr = "+refs/heads/*:refs/remotes/origin/*"
+}
+
 // prepare all vars
 MYSQL_ARGS = '--ssl=ON --log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password'
 MYSQL_HOST = '127.0.0.1'
@@ -48,7 +53,7 @@ def checkout_and_stash_dm_code() {
 
             dir('/home/jenkins/agent/git/ticdc') {
                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) { deleteDir() }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/ticdc.git']]]
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
             }
 
             dir('go/src/github.com/pingcap/ticdc') {
