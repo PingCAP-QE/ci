@@ -200,12 +200,12 @@ def download_binaries() {
     println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
 
     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-    def upstream_commit_id = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", params.upstream_pr_ci_br_commit)
+    def upstream_commit_id = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", "master")
 
     switch (from) {
         case "tikv":
             TIKV_BRANCH = upstream_commit_id
-            println "TIKV_BRANCH=${TIKV_BRANCH}"
+            println "TIKV_BRANCH upstream=${TIKV_BRANCH}"
             break;
     }
 
