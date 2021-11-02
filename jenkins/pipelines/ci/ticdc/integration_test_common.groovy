@@ -193,25 +193,6 @@ def download_binaries() {
     def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
 
-    println "ghprbTargetBranch=${ghprbTargetBranch}"
-    println "TIDB_BRANCH=${TIDB_BRANCH}"
-    println "TIKV_BRANCH=${TIKV_BRANCH}"
-    println "PD_BRANCH=${PD_BRANCH}"
-    println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-
-    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-    def upstream_commit_id = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", "master")
-
-    println "from=${from}"
-    println "upstream_commit_id=${upstream_commit_id}"
-
-    switch (from) {
-        case "tikv":
-            TIKV_BRANCH = upstream_commit_id
-            println "TIKV_BRANCH upstream=${TIKV_BRANCH}"
-            break;
-    }
-
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
     if (m1) {
@@ -252,6 +233,19 @@ def download_binaries() {
     if (TIFLASH_COMMIT == null) {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
+
+    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+    def upstream_commit_sha = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", "master")
+
+    println "triggered_by_upstream_pr_ci=${from}"
+    println "upstream_pr_ci_ghpr_actual_commit=${upstream_commit_sha}"
+
+    switch (from) {
+        case "tikv":
+            tikv_sha1 = upstream_commit_sha
+            break;
+    }
+
     sh """
         mkdir -p third_bin
         mkdir -p tmp
