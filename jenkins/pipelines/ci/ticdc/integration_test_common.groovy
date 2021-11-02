@@ -195,9 +195,19 @@ def download_binaries() {
 
     println "ghprbTargetBranch=${ghprbTargetBranch}"
     println "TIDB_BRANCH=${TIDB_BRANCH}"
+    println "TIKV_BRANCH=${TIKV_BRANCH}"
     println "PD_BRANCH=${PD_BRANCH}"
     println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
 
+    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
+    def upstream_commit_id = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", params.upstream_pr_ci_br_commit)
+
+    switch (from) {
+        case "tikv":
+            TIKV_BRANCH = upstream_commit_id
+            println "TIKV_BRANCH=${TIKV_BRANCH}"
+            break;
+    }
 
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -230,15 +240,6 @@ def download_binaries() {
     }
     m4 = null
     println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-
-    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-    def upstream_commit_id = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", params.upstream_pr_ci_br_commit)
-
-    switch (from) {
-        case "tikv":
-            TIKV_BRANCH = upstream_commit_id
-            break;
-    }
 
     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
     def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
