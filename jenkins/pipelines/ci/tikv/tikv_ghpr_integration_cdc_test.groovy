@@ -32,8 +32,7 @@ catchError {
                             booleanParam(name: 'force', value: true),
                             string(name: 'triggered_by_upstream_pr_ci', value: "tikv"),
                             string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
-                            // We tests TiCDC on the same branch as TiDB's.
-                            string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbTargetBranch}"),
+                            string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbActualCommit}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_id', value: "${ghprbPullId}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_title', value: "${ghprbPullTitle}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_link', value: "${ghprbPullLink}"),
