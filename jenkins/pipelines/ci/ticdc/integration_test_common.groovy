@@ -202,6 +202,9 @@ def download_binaries() {
     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
     def upstream_commit_id = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", "master")
 
+    println "from=${from}"
+    println "upstream_commit_id=${upstream_commit_id}"
+
     switch (from) {
         case "tikv":
             TIKV_BRANCH = upstream_commit_id
