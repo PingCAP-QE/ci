@@ -14,7 +14,7 @@ if (params.containsKey("triggered_by_upstream_pr_ci")) {
     // Triggered by upstream (TiDB/TiKV/PD) PR.
     // It contains keys:
     //     booleanParam(name: 'force', value: true),
-    //     string(name: 'upstream_pr_ci', value: "tidb"),
+    //     string(name: 'upstream_pr_ci', value: "tikv"),
     //     string(name: 'upstream_pr_ci_ghpr_target_branch', ghprbTargetBranch),
     //     string(name: 'upstream_pr_ci_ghpr_actual_commit', ghprbActualCommit),
     //     string(name: 'upstream_pr_ci_ghpr_pull_id', ghprbPullId),
@@ -26,7 +26,7 @@ if (params.containsKey("triggered_by_upstream_pr_ci")) {
     //     string(name: 'upstream_pr_ci_override_pd_download_link', pd_url),
     echo "upstream pr test: ${params.containsKey("triggered_by_upstream_pr_ci")}"
     ghprbTargetBranch = params.getOrDefault("upstream_pr_ci_ghpr_target_branch", params.upstream_pr_ci_release_branch)
-    ghprbActualCommit = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", params.upstream_pr_ci_br_commit)
+    ghprbActualCommit = params.getOrDefault("upstream_pr_ci_ghpr_target_branch", params.upstream_pr_ci_release_branch)
     ghprbCommentBody = ""
     ghprbPullId = params.getOrDefault("upstream_pr_ci_ghpr_pull_id", "")
     ghprbPullTitle = params.getOrDefault("upstream_pr_ci_ghpr_pull_title", "")
