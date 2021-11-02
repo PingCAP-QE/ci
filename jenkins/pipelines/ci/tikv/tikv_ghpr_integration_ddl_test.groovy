@@ -188,7 +188,7 @@ try {
                                 fi
                                 
                                 TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
-                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -check.f='${ddltest}' 2>&1
+                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
                                 """
                             }
                         } catch (err) {
@@ -213,27 +213,27 @@ try {
         }
 
         tests["Integration DDL Insert Test"] = {
-            run("ddl_test", "ddl_insert_test", "TestDDLSuite.TestSimple.*Insert")
+            run("ddl_test", "ddl_insert_test", "^TestSimple.*Insert\$")
         }
 
         tests["Integration DDL Update Test"] = {
-            run("ddl_test", "ddl_update_test", "TestDDLSuite.TestSimple.*Update")
+            run("ddl_test", "ddl_update_test", "^TestSimple.*Update\$")
         }
 
         tests["Integration DDL Delete Test"] = {
-            run("ddl_test", "ddl_delete_test", "TestDDLSuite.TestSimple.*Delete")
+            run("ddl_test", "ddl_delete_test", "^TestSimple.*Delete\$")
         }
 
         tests["Integration DDL Other Test"] = {
-            run("ddl_test", "ddl_other_test", "TestDDLSuite.TestSimp(le\$|leMixed|leInc)")
+            run("ddl_test", "ddl_other_test", "^TestSimp(le\$|leMixed\$|leInc\$)")
         }
 
         tests["Integration DDL Column Test"] = {
-            run("ddl_test", "ddl_column_index_test", "TestDDLSuite.TestColumn")
+            run("ddl_test", "ddl_column_index_test", "^TestColumn\$")
         }
 
         tests["Integration DDL Index Test"] = {
-            run("ddl_test", "ddl_column_index_test", "TestDDLSuite.TestIndex")
+            run("ddl_test", "ddl_column_index_test", "^TestIndex\$")
         }
 
         parallel tests
