@@ -10,6 +10,30 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = "release-test"
 }
 
+if (params.containsKey("triggered_by_upstream_pr_ci")) {
+    // Triggered by upstream (TiDB/TiKV/PD) PR.
+    // It contains keys:
+    //     booleanParam(name: 'force', value: true),
+    //     string(name: 'upstream_pr_ci', value: "tikv"),
+    //     string(name: 'upstream_pr_ci_ghpr_target_branch', ghprbTargetBranch),
+    //     string(name: 'upstream_pr_ci_ghpr_actual_commit', ghprbActualCommit),
+    //     string(name: 'upstream_pr_ci_ghpr_pull_id', ghprbPullId),
+    //     string(name: 'upstream_pr_ci_ghpr_pull_title', ghprbPullTitle),
+    //     string(name: 'upstream_pr_ci_ghpr_pull_link', ghprbPullLink),
+    //     string(name: 'upstream_pr_ci_ghpr_pull_description', ghprbPullDescription),
+    //     string(name: 'upstream_pr_ci_override_tidb_download_link', tidb_url),
+    //     string(name: 'upstream_pr_ci_override_tikv_download_link', tikv_url),
+    //     string(name: 'upstream_pr_ci_override_pd_download_link', pd_url),
+    echo "upstream pr test: ${params.containsKey("triggered_by_upstream_pr_ci")}"
+    ghprbTargetBranch = params.upstream_pr_ci_ghpr_target_branch
+    ghprbActualCommit = params.upstream_pr_ci_ghpr_actual_commit
+    ghprbCommentBody = ""
+    ghprbPullId = params.getOrDefault("upstream_pr_ci_ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("upstream_pr_ci_ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("upstream_pr_ci_ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("upstream_pr_ci_ghpr_pull_description", "")
+}
+
 def ciRepoUrl = "https://github.com/PingCAP-QE/ci.git"
 def ciRepoBranch = "main"
 
@@ -158,8 +182,10 @@ catchError {
                 ) {
                     common.tests("mysql", label)
                 }
-
-                common.coverage()
+                // If it is triggered upstream, there is no need to collect test coverage.
+                if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+                    common.coverage()
+                }
                 currentBuild.result = "SUCCESS"
             }
 
