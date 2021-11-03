@@ -68,6 +68,9 @@ try {
                 if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
                     BR_HASH = TIDB_HASH
                 }
+                if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
+                    DUMPLING_HASH = TIDB_HASH
+                }
             } else if(TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 || TIFLASH_HASH.length() < 40 || LIGHTNING_HASH.length() < 40 || IMPORTER_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
                 println "PRE_RELEASE must be used with githash."
                 sh """
@@ -356,15 +359,26 @@ try {
                     def target = "dumpling-${RELEASE_TAG}-${os}-${arch}"
                     def filepath = "builds/pingcap/dumpling/${DUMPLING_HASH}/centos7/dumpling-${os}-${arch}.tar.gz"
 
+                    def gitRepo = "git@github.com:pingcap/dumpling.git"
+                    def mergeToTidb = "false"
+                    if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
+                        gitRepo = "git@github.com:pingcap/tidb.git"
+                        mergeToTidb = "true"
+                    }
+
                     if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/dumpling.git']]]
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: repo]]]
                     } else {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/dumpling.git']]]
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: repo]]]
                     }
 
                     sh """
                     export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
-                    make build
+                    if [ ${mergeToTidb} = "true" ]; then
+                        make build_dumpling
+                    else
+                        make build
+                    fi;
                     rm -rf ${target}
                     mkdir -p ${target}/bin
                     cp bin/* ${target}/bin

@@ -392,7 +392,6 @@ try {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                     }
-                    def target = "br"
                     def repo = "git@github.com:pingcap/dumpling.git"
                     if (RELEASE_TAG >= "v5.3.0" ) {
                         repo = "git@github.com:pingcap/tidb.git"
