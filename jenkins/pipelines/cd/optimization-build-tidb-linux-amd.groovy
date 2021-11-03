@@ -397,9 +397,6 @@ try {
                         repo = "git@github.com:pingcap/tidb.git"
                     }
                     
-                    if (RELEASE_TAG >= "v5.3.0" && product == "dumpling") {
-                        repo = "git@github.com:pingcap/tidb.git"
-                    }
 
                     dir("go/src/github.com/pingcap/dumpling") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
