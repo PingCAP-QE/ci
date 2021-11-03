@@ -663,14 +663,14 @@ pipeline {
                     }
                 }
 
-
-                stage('IT-others-2') {
-                    steps {
-                        script {
-                            run_single_it_test('others_2')
-                        }
-                    }
-                }
+                // remove this comment after https://github.com/pingcap/ticdc/pull/3228 was merge
+                // stage('IT-others-2') {
+                //     steps {
+                //         script {
+                //             run_single_it_test('others_2')
+                //         }
+                //     }
+                // }
             }
         }
 
