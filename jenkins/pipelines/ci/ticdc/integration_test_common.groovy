@@ -243,7 +243,7 @@ def download_binaries() {
     switch (from) {
         case "tikv":
             def tikv_download_link = params.upstream_pr_ci_override_tikv_download_link
-            println "upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
+            println "Use the upstream download link, upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
             tikv_url = tikv_download_link
             break;
     }
