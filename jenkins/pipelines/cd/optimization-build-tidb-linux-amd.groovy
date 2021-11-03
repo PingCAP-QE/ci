@@ -389,21 +389,32 @@ try {
                     return
                 }
                 container("golang") {
-                    def ws = pwd()
-                    deleteDir()
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                    }
+                    def target = "br"
+                    def repo = "git@github.com:pingcap/br.git"
+                    if (RELEASE_TAG >= "v5.2.0" ) {
+                        repo = "git@github.com:pingcap/tidb.git"
+                    }
+
                     dir("go/src/github.com/pingcap/dumpling") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
                         def filepath = "builds/pingcap/dumpling/optimization/${DUMPLING_HASH}/centos7/dumpling.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/dumpling.git']]]                            
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: repo]]]                            
                         sh """
                             for a in \$(git tag --contains ${DUMPLING_HASH}); do echo \$a && git tag -d \$a;done
                             git tag -f ${RELEASE_TAG} ${DUMPLING_HASH}
                             git branch -D refs/tags/${RELEASE_TAG} || true
                             git checkout -b refs/tags/${RELEASE_TAG}
-                            make build
-                            tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz *
+                            if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
+                                make build_dumpling
+                            else
+                                make build
+                            fi;
+                            tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz ./bin
                             curl -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }

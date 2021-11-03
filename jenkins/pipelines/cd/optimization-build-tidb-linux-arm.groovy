@@ -150,7 +150,7 @@ def build_upload = { product, hash, binary ->
                         cp bin/* ${target}/bin
                     """
                 }
-                if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
+                if (product in ["tidb-tools", "ticdc", "br"]) {
                     sh """
                         export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
                         for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
@@ -162,6 +162,24 @@ def build_upload = { product, hash, binary ->
                         fi;                    
                         if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ] && [ $product == "br" ]; then
                             make build_tools
+                        else
+                            make build
+                        fi;
+                        rm -rf ${target}
+                        mkdir -p ${target}/bin
+                        cp bin/* ${target}/bin/
+                    """
+                }
+                if (product in ["dumpling"]) {
+                    sh """
+                        export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
+                        for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
+                        git tag -f ${RELEASE_TAG} ${hash}
+                        git branch -D refs/tags/${RELEASE_TAG} || true
+                        git checkout -b refs/tags/${RELEASE_TAG}
+                                        
+                        if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ] ; then
+                            make build_dumpling
                         else
                             make build
                         fi;
