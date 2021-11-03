@@ -233,15 +233,16 @@ def download_binaries() {
     if (TIFLASH_COMMIT == null) {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
-
-    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-    println "triggered_by_upstream_pr_ci=${from}"
-
+    def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
     def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+    def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+    def tiflash_url = "${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
 
+    // If it is triggered upstream, the upstream link is used.
+    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "")
     switch (from) {
         case "tikv":
-            def tikv_download_link = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", "")
+            def tikv_download_link = params.upstream_pr_ci_override_tikv_download_link
             println "upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
             tikv_url = tikv_download_link
             break;
@@ -252,10 +253,10 @@ def download_binaries() {
         mkdir -p tmp
         mkdir -p bin
 
-        tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+        tidb_url="${tidb_url}"
         tikv_url="${tikv_url}"
-        pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-        tiflash_url="${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+        pd_url="${pd_url}"
+        tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
         curl \${tidb_url} | tar xz -C ./tmp bin/tidb-server

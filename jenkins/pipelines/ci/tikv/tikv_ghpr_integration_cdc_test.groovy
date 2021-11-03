@@ -12,13 +12,17 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def BUILD_NUMBER = "${env.BUILD_NUMBER}"
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
 
 catchError {
     node("${GO_TEST_SLAVE}") {
-        stage('Trigger TiCDC Test') {
-            if (ghprbTargetBranch == "master" || ghprbTargetBranch == "release-4.0" || ghprbTargetBranch == "release-5.0" || ghprbTargetBranch == "release-5.1") {
+        stage('Trigger TiCDC Integration Test') {
+            if (ghprbTargetBranch == "master" ||
+                    ghprbTargetBranch == "release-4.0" ||
+                    ghprbTargetBranch == "release-5.0" ||
+                    ghprbTargetBranch == "release-5.1" ||
+                    ghprbTargetBranch == "release-5.2" ||
+                    ghprbTargetBranch == "release-5.3") {
                 container("golang") {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     // Wait build finish.
@@ -32,6 +36,7 @@ catchError {
                             booleanParam(name: 'force', value: true),
                             string(name: 'triggered_by_upstream_pr_ci', value: "tikv"),
                             string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
+                            // We use the target branch here because it will be used to download the corresponding branch code for TiCDC.
                             string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbTargetBranch}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_id', value: "${ghprbPullId}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_title', value: "${ghprbPullTitle}"),
@@ -53,7 +58,7 @@ catchError {
 
 stage('Summary') {
     def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
+    def slack_msg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
             "${ghprbPullLink}" + "\n" +
             "${ghprbPullDescription}" + "\n" +
             "Trigger Integration TiCDC Test Result: `${currentBuild.result}`" + "\n" +
@@ -61,7 +66,7 @@ stage('Summary') {
             "${env.RUN_DISPLAY_URL}"
 
     if (currentBuild.result != "SUCCESS" && currentBuild.result != "ABORTED") {
-        slackSend channel: '#jenkins-ci-migration', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+        slackSend channel: '#jenkins-ci-migration', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slack_msg}"
     }
 }
 
