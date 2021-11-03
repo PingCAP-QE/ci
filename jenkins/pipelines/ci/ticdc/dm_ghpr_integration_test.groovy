@@ -87,10 +87,15 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server'
                 sh 'rm -r tidb-server.tar.gz'
 
-                sh 'curl -L https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz'
-                sh 'mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/'
-                sh 'mv tidb-enterprise-tools-nightly-linux-amd64/bin/mydumper bin/'
-                sh 'rm -r tidb-enterprise-tools-nightly-linux-amd64 || true'
+                sh 'curl -L https://download.pingcap.org/tidb-toolkit-v5.2.2-linux-amd64.tar.gz | tar xz'
+                sh 'mv tidb-toolkit-v5.2.2-linux-amd64/bin/sync_diff_inspector bin/'
+                sh 'rm -r tidb-toolkit-v5.2.2-linux-amd64 || true'
+
+                // note: we need to use old version of sync_diff for now, after https://github.com/pingcap/ticdc/pull/3247 was merged
+                // we can continue use the nightly version of sync_diff
+                // sh 'curl -L https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz'
+                // sh 'mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/'
+                // sh 'rm -r tidb-enterprise-tools-nightly-linux-amd64 || true'
 
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                 sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
@@ -658,14 +663,14 @@ pipeline {
                     }
                 }
 
-
-                stage('IT-others-2') {
-                    steps {
-                        script {
-                            run_single_it_test('others_2')
-                        }
-                    }
-                }
+                // remove this comment after https://github.com/pingcap/ticdc/pull/3228 was merge
+                // stage('IT-others-2') {
+                //     steps {
+                //         script {
+                //             run_single_it_test('others_2')
+                //         }
+                //     }
+                // }
             }
         }
 
