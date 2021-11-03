@@ -25,8 +25,8 @@ if (params.containsKey("triggered_by_upstream_pr_ci")) {
     //     string(name: 'upstream_pr_ci_override_tikv_download_link', tikv_url),
     //     string(name: 'upstream_pr_ci_override_pd_download_link', pd_url),
     echo "upstream pr test: ${params.containsKey("triggered_by_upstream_pr_ci")}"
-    ghprbTargetBranch = params.getOrDefault("upstream_pr_ci_ghpr_target_branch", params.upstream_pr_ci_release_branch)
-    ghprbActualCommit = params.getOrDefault("upstream_pr_ci_ghpr_target_branch", params.upstream_pr_ci_release_branch)
+    ghprbTargetBranch = params.getOrDefault("upstream_pr_ci_ghpr_target_branch", "")
+    ghprbActualCommit = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", "")
     ghprbCommentBody = ""
     ghprbPullId = params.getOrDefault("upstream_pr_ci_ghpr_pull_id", "")
     ghprbPullTitle = params.getOrDefault("upstream_pr_ci_ghpr_pull_title", "")

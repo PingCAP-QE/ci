@@ -235,14 +235,15 @@ def download_binaries() {
     }
 
     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
-    def upstream_commit_sha = params.getOrDefault("upstream_pr_ci_ghpr_actual_commit", "master")
-
     println "triggered_by_upstream_pr_ci=${from}"
-    println "upstream_pr_ci_ghpr_actual_commit=${upstream_commit_sha}"
+
+    def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
 
     switch (from) {
         case "tikv":
-            tikv_sha1 = upstream_commit_sha
+            def tikv_download_link = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", "")
+            println "upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
+            tikv_url = tikv_download_link
             break;
     }
 
@@ -252,7 +253,7 @@ def download_binaries() {
         mkdir -p bin
 
         tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+        tikv_url="${tikv_url}"
         pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
         tiflash_url="${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
