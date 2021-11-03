@@ -191,7 +191,7 @@ def build_upload = { product, hash, binary ->
                     export GOPATH=/Users/pingcap/gopkg
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     
-                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ] && [ $product == "dumpling" ]; then
+                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
                         make build_dumpling
                     else
                         make build
