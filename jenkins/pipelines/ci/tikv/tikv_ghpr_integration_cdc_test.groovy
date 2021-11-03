@@ -17,12 +17,7 @@ def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActual
 catchError {
     node("${GO_TEST_SLAVE}") {
         stage('Trigger TiCDC Integration Test') {
-            if (ghprbTargetBranch == "master" ||
-                    ghprbTargetBranch == "release-4.0" ||
-                    ghprbTargetBranch == "release-5.0" ||
-                    ghprbTargetBranch == "release-5.1" ||
-                    ghprbTargetBranch == "release-5.2" ||
-                    ghprbTargetBranch == "release-5.3") {
+            if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-")) {
                 container("golang") {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     // Wait build finish.
