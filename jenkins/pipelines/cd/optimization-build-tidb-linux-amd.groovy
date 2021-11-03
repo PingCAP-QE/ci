@@ -393,8 +393,8 @@ try {
                             deleteDir()
                     }
                     def target = "br"
-                    def repo = "git@github.com:pingcap/br.git"
-                    if (RELEASE_TAG >= "v5.2.0" ) {
+                    def repo = "git@github.com:pingcap/dumpling.git"
+                    if (RELEASE_TAG >= "v5.3.0" ) {
                         repo = "git@github.com:pingcap/tidb.git"
                     }
 
