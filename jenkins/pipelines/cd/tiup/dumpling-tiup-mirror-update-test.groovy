@@ -98,8 +98,11 @@ node("build_go1130") {
                 } else {
                     tag = RELEASE_TAG
                 }
-
-                dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0"){
+                    dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                } else {
+                    dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                }
             }
 
             stage("tiup release dumpling linux amd64") {
