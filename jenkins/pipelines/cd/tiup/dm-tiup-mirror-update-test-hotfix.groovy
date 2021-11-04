@@ -141,7 +141,7 @@ try{
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
                 dm_sha1 = get_hash(ORIGIN_TAG,"dm")
-                if (RELEASE_TAG.startsWith("v") && RELEASE_TAG >= "v5.3.0" ){
+                if (HOTFIX_TAG.startsWith("v") && HOTFIX_TAG >= "v5.3.0" ){
                     dm_sha1 = get_hash(ORIGIN_TAG,"ticdc")
                 }
             }
