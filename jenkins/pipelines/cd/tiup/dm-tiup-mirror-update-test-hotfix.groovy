@@ -1,5 +1,5 @@
 /*
-* @RELEASE_TAG
+* @HOTFIX_TAG
 * @TIUP_MIRRORS
 * @TIDB_VERSION
 */
@@ -10,6 +10,13 @@ def dm_worker_desc = "dm-worker component of Data Migration Platform"
 def dmctl_desc = "dmctl component of Data Migration Platform"
 
 def dm_sha1, tarball_name, dir_name
+
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
 
 def install_tiup = { bin_dir ->
     sh """
@@ -133,18 +140,18 @@ try{
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dm -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                dm_sha1 = get_hash(ORIGIN_TAG,"dm")
                 if (RELEASE_TAG.startsWith("v") && RELEASE_TAG >= "v5.3.0" ){
-                    dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    dm_sha1 = get_hash(ORIGIN_TAG,"ticdc")
                 }
             }
 
             stage("tiup release dm linux amd64") {
-                update "dm", RELEASE_TAG, "linux", "amd64"
+                update "dm", HOTFIX_TAG, "linux", "amd64"
             }
 
             stage("tiup release dm linux arm64") {
-                update "dm", RELEASE_TAG, "linux", "arm64"
+                update "dm", HOTFIX_TAG, "linux", "arm64"
             }
         }
     }
