@@ -296,7 +296,7 @@ EOF
 
 stage('Test') {
     def run_test = { chunk_suffix ->
-        node("${GO_TEST_SLAVE}") {
+        node("test_tikv_go1130_memvolume") {
             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                 container("golang") {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
