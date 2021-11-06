@@ -134,9 +134,9 @@ catchError {
 
 
                 // binlogctl
-                sh "curl http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz | tar xz"
+                sh "curl http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz"
+                sh "mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/"
                 sh "curl https://download.pingcap.org/tidb-tools-test-linux-amd64.tar.gz | tar xz"
-                sh "mv tidb-tools-test-linux-amd64/bin/sync_diff_inspector bin/"
                 //sh "mv tidb-enterprise-tools-latest-linux-amd64/bin/sync_diff_inspector bin/"
                 sh "mv tidb-enterprise-tools-latest-linux-amd64/bin/mydumper bin/"
                 sh "rm -r tidb-enterprise-tools-latest-linux-amd64 || true"
