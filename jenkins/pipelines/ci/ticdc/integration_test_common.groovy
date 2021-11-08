@@ -193,12 +193,6 @@ def download_binaries() {
     def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
 
-    println "ghprbTargetBranch=${ghprbTargetBranch}"
-    println "TIDB_BRANCH=${TIDB_BRANCH}"
-    println "PD_BRANCH=${PD_BRANCH}"
-    println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-
-
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
     if (m1) {
@@ -239,15 +233,30 @@ def download_binaries() {
     if (TIFLASH_COMMIT == null) {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
+    def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+    def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+    def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+    def tiflash_url = "${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+
+    // If it is triggered upstream, the upstream link is used.
+    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "")
+    switch (from) {
+        case "tikv":
+            def tikv_download_link = params.upstream_pr_ci_override_tikv_download_link
+            println "Use the upstream download link, upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
+            tikv_url = tikv_download_link
+            break;
+    }
+
     sh """
         mkdir -p third_bin
         mkdir -p tmp
         mkdir -p bin
 
-        tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-        pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-        tiflash_url="${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+        tidb_url="${tidb_url}"
+        tikv_url="${tikv_url}"
+        pd_url="${pd_url}"
+        tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
         curl \${tidb_url} | tar xz -C ./tmp bin/tidb-server
@@ -261,7 +270,7 @@ def download_binaries() {
         curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
         curl -L http://fileserver.pingcap.net/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/sync_diff_inspector.tar.gz | tar xz -C ./third_bin
+        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/new_sync_diff_inspector.tar.gz | tar xz -C ./third_bin
         curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
@@ -271,6 +280,7 @@ def download_binaries() {
         rm -rf third_bin
     """
 }
+
 
 /**
  * Collect and calculate test coverage.
@@ -295,17 +305,21 @@ def coverage() {
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-
-                    timeout(30) {
-                        sh """
-                        rm -rf /tmp/tidb_cdc_test
-                        mkdir -p /tmp/tidb_cdc_test
-                        cp cov_dir/* /tmp/tidb_cdc_test
-                        set +x
-                        BUILD_NUMBER=${env.BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
-                        set -x
-                        """
+                    withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN'),
+                                    string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) { 
+                        timeout(30) {
+                            sh '''
+                            rm -rf /tmp/tidb_cdc_test
+                            mkdir -p /tmp/tidb_cdc_test
+                            cp cov_dir/* /tmp/tidb_cdc_test
+                            set +x
+                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
+                            set -x
+                            '''
+                        }
                     }
+
+                    
                 }
             }
         }

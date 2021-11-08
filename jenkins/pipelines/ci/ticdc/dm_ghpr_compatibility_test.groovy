@@ -1,19 +1,17 @@
 def TIDB_BRANCH = "master"
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
 
-def PRE_COMMIT = "tags/v2.0.0-rc"
+def PRE_COMMIT = "${ghprbTargetBranch}"
 def MYSQL_ARGS = "--log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password"
 def TEST_CASE = ""
 def BREAK_COMPATIBILITY = "false"
 
-println "comment body=${ghprbCommentBody}"
-
-// disable SSL for MySQL (especial for MySQL 8.0) in release-1.0
-if ("${ghprbTargetBranch}" == "release-1.0") {
-    // some previous versions can't be build with Goalng 1.13+
-    PRE_COMMIT = "tags/v1.0.4"
-    MYSQL_ARGS = "--ssl=OFF --log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password"
+def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+if (ghprbPullId == null || ghprbPullId == "") {
+    specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
+
+println "comment body=${ghprbCommentBody}"
 
 // if this PR breaks compatibility
 def m0 = ghprbCommentBody =~ /break_compatibility\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -61,16 +59,11 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-2.0"], ghprbTargetBranch)
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
-} else {
-    println "This build use go1.13"
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
-}
+println "This build use go1.16"
+GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+GO_TEST_SLAVE = GO1160_TEST_SLAVE
+POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
+
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
@@ -82,13 +75,12 @@ catchError {
             container("golang") {
                 def ws = pwd()
                 deleteDir()
-                // dm
-                dir("/home/jenkins/agent/git/dm") {
+                dir("/home/jenkins/agent/git/ticdc") {
                     if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
                     }
                     try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/dm.git']]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
                     } catch (error) {
                         retry(2) {
                             echo "checkout failed, retry.."
@@ -96,21 +88,14 @@ catchError {
                             if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                 deleteDir()
                             }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/dm.git']]]
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
                         }
                     }
                 }
 
-                dir("go/src/github.com/pingcap/dm") {
+                dir("go/src/github.com/pingcap/ticdc") {
                     sh """
-                        # export GOPROXY=https://goproxy.cn
-                        archive=dm-go-mod-cache_latest_\$(go version | awk '{ print \$3; }').tar.gz
-                        archive_url=${FILE_SERVER_URL}/download/builds/pingcap/dm/cache/\$archive
-                        if [ ! -f /tmp/\$archive ]; then
-                            curl -sL \$archive_url -o /tmp/\$archive
-                            tar --skip-old-files -xf /tmp/\$archive -C / || true
-                        fi
-                        cp -R /home/jenkins/agent/git/dm/. ./
+                        cp -R /home/jenkins/agent/git/ticdc/. ./
                         
                         echo "build binary with previous version"
                         git checkout -f ${PRE_COMMIT}
@@ -127,7 +112,7 @@ catchError {
                     """
                 }
 
-                stash includes: "go/src/github.com/pingcap/dm/**", name: "dm", useDefaultExcludes: false
+                stash includes: "go/src/github.com/pingcap/ticdc/**", name: "ticdc", useDefaultExcludes: false
 
                 def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
                 sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
@@ -157,14 +142,14 @@ catchError {
         podTemplate(label: label,
                 nodeSelector: 'role_type=slave',
                 containers: [
-                        containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                        containerTemplate(name: 'golang',alwaysPullImage: false, image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                 command: 'cat'),
                         containerTemplate(
                                 name: 'mysql',
                                 image: 'hub.pingcap.net/jenkins/mysql:5.7',
                                 ttyEnabled: true,
-                                alwaysPullImage: true,
+                                alwaysPullImage: false,
                                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                 envVars: [
                                         envVar(key: 'MYSQL_ROOT_PASSWORD', value: '123456'),
@@ -193,15 +178,11 @@ catchError {
                     timeout(30) {
                         def ws = pwd()
                         deleteDir()
-                        unstash "dm"
+                        unstash "ticdc"
                         unstash "binaries"
-                        dir("go/src/github.com/pingcap/dm") {
+                        dir("go/src/github.com/pingcap/ticdc") {
                             try {
-                                // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                                 sh """
-                                export PATH=bin:$PATH
-                                archive_url=${FILE_SERVER_URL}/download/builds/pingcap/dm/cache/dm-go-mod-cache_latest_\$(go version | awk '{ print \$3; }').tar.gz
-                                if [ ! -d /go/pkg/mod ]; then curl -sL \$archive_url | tar -zx -C / || true; fi 
                                 rm -rf /tmp/dm_test
                                 mkdir -p /tmp/dm_test
                                 mkdir -p bin
@@ -212,7 +193,9 @@ catchError {
                                 export MYSQL_PORT1=3306
                                 export MYSQL_HOST2=127.0.0.1
                                 export MYSQL_PORT2=3307
-                                GOPATH=\$GOPATH:${ws}/go make compatibility_test CASE=${TEST_CASE}
+                                export PATH=/usr/local/go/bin:$PATH
+                                export GOPATH=\$GOPATH:${ws}/go
+                                make dm_compatibility_test CASE=${TEST_CASE}
                                 rm -rf cov_dir
                                 mkdir -p cov_dir
                                 ls /tmp/dm_test
@@ -233,7 +216,7 @@ catchError {
                                 """
                             }
                         }
-                        stash includes: "go/src/github.com/pingcap/dm/cov_dir/**", name: "integration-cov-${TEST_CASE}"
+                        stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "integration-cov-${TEST_CASE}"
                     }
                 }
             }

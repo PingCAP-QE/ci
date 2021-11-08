@@ -1,0 +1,685 @@
+/*
+    Run dm unit/intergation test in Jenkins with String paramaters
+    * ghprbActualCommit (by bot)
+    * ghprbPullId (by bot)
+    * COVERALLS_TOKEN (set default in jenkins admin)
+    * CODECOV_TOKEN (set default in jenkins admin)
+*/
+
+specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+if (ghprbPullId == null || ghprbPullId == "") {
+    specStr = "+refs/heads/*:refs/remotes/origin/*"
+}
+
+// prepare all vars
+MYSQL_ARGS = '--ssl=ON --log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password'
+MYSQL_HOST = '127.0.0.1'
+MYSQL_PORT = 3306
+MYSQL2_PORT = 3307
+MYSQL_PSWD = 123456
+
+def print_all_vars() {
+    println '================= ALL TEST VARS ================='
+    println "[MYSQL_HOST]: ${MYSQL_HOST}"
+    println "[MYSQL_PORT]: ${MYSQL_PORT}"
+    println "[MYSQL2_PORT]: ${MYSQL2_PORT}"
+    println "[MYSQL_PSWD]: ${MYSQL_PSWD}"
+    println "[MYSQL_ARGS]: ${MYSQL_ARGS}"
+}
+
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
+println 'This build use go1.16'
+GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+GO_TEST_SLAVE = GO1160_TEST_SLAVE
+POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+
+println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
+println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
+
+def checkout_and_stash_dm_code() {
+    node("${GO_BUILD_SLAVE}") {
+        container('golang') {
+            deleteDir()
+
+            dir('/home/jenkins/agent/git/ticdc') {
+                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) { deleteDir() }
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
+            }
+
+            dir('go/src/github.com/pingcap/ticdc') {
+                sh """cp -R /home/jenkins/agent/git/ticdc/. ./
+                    git checkout -f ${ghprbActualCommit}
+                    """
+            }
+            stash includes: 'go/src/github.com/pingcap/ticdc/**', name: 'ticdc', useDefaultExcludes: false
+        }
+    }
+}
+
+def build_dm_bin() {
+    node("${GO_BUILD_SLAVE}") {
+        container('golang') {
+            deleteDir()
+            unstash 'ticdc'
+            ws = pwd()
+            dir('go/src/github.com/pingcap/ticdc') {
+                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+
+                // build it test bin
+                sh 'make dm_integration_test_build'
+
+                // tidb
+                tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/master/sha1").trim()
+                sh "curl -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                sh 'mkdir -p tidb-server'
+                sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
+                sh 'mv tidb-server/bin/tidb-server bin/'
+                sh 'rm -r tidb-server'
+                sh 'rm -r tidb-server.tar.gz'
+
+                sh 'curl -L https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz'
+                sh 'mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/'
+                sh 'rm -r tidb-enterprise-tools-nightly-linux-amd64 || true'
+
+                // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
+                sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
+                sh 'mv gh-ost bin/'
+            }
+            dir("${ws}") {
+                stash includes: 'go/src/github.com/pingcap/ticdc/**', name: 'ticdc-with-bin', useDefaultExcludes: false
+            }
+        }
+    }
+}
+
+
+def run_tls_source_it_test(String case_name) {
+    def label = 'dm-integration-test'
+    podTemplate(label: label,
+            nodeSelector: 'role_type=slave',
+            namespace: 'jenkins-tidb',
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: 'cat'),
+                    containerTemplate(
+                            name: 'mysql1', alwaysPullImage: false,
+                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
+                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                            envVars: [
+                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
+                            ],
+                            args: "${MYSQL_ARGS}"),
+                    // mysql 8
+                    containerTemplate(
+                            name: 'mysql2', alwaysPullImage: false,
+                            image: 'registry-mirror.pingcap.net/library/mysql:8.0.21',ttyEnabled: true,
+                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                            envVars: [
+                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
+                                    envVar(key: 'MYSQL_TCP_PORT', value: "${MYSQL2_PORT}")
+                            ],
+                            args: "${MYSQL_ARGS}")
+            ]
+    ) {
+        node(label) {
+            println "${NODE_NAME}"
+            println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
+            // stash  ssl certs to jenkins, i don't know why if filename == client-key.pem , the stash will fail
+            // so just hack the filename
+            container('mysql1') {
+                def ws = pwd()
+                deleteDir()
+                sh "set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done"
+                sh "cp -r /var/lib/mysql/*.pem ."
+                sh "ls"
+                sh "pwd"
+                sh "cat client-key.pem > client.key.pem"
+                sh "cat client.key.pem"
+                stash includes: 'ca.pem,client-cert.pem,client.key.pem', name: "mysql-certs", useDefaultExcludes: false
+            }
+
+            container('golang') {
+                def ws = pwd()
+                deleteDir()
+                unstash(name: 'mysql-certs')
+                sh "ls"
+                sh "mv client.key.pem client-key.pem"
+                sh "sudo mkdir -p /var/lib/mysql"
+                sh "sudo chmod 777 /var/lib/mysql"
+                sh "cp *.pem /var/lib/mysql/"
+                sh "ls /var/lib/mysql"
+
+                unstash 'ticdc-with-bin'
+                dir('go/src/github.com/pingcap/ticdc') {
+                    try {
+                        sh"""
+                                rm -rf /tmp/dm_test
+                                mkdir -p /tmp/dm_test
+                                export MYSQL_HOST1=${MYSQL_HOST}
+                                export MYSQL_PORT1=${MYSQL_PORT}
+                                export MYSQL_HOST2=${MYSQL_HOST}
+                                export MYSQL_PORT2=${MYSQL2_PORT}
+                                # wait for mysql container ready.
+                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                # run test
+                                export PATH=/usr/local/go/bin:$PATH
+                                export GOPATH=\$GOPATH:${ws}/go
+                                make dm_integration_test CASE="${case_name}"
+                                # upload coverage
+                                rm -rf cov_dir
+                                mkdir -p cov_dir
+                                ls /tmp/dm_test
+                                cp /tmp/dm_test/cov*out cov_dir
+                                """
+                    }catch (Exception e) {
+                        sh """
+                                    echo "${case_name} test faild print all log..."
+                                    for log in `ls /tmp/dm_test/*/*/log/*.log`; do
+                                        echo "____________________________________"
+                                        echo "\$log"
+                                        cat "\$log"
+                                        echo "____________________________________"
+                                    done
+                                    """
+                        throw e
+                    }
+                }
+                stash includes: 'go/src/github.com/pingcap/ticdc/cov_dir/**', name: "integration-cov-${case_name}"
+            }
+        }
+    }
+}
+
+
+def run_single_it_test(String case_name) {
+    def label = 'dm-integration-test'
+    podTemplate(label: label,
+            nodeSelector: 'role_type=slave',
+            namespace: 'jenkins-tidb',
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: 'cat'),
+                    containerTemplate(
+                            name: 'mysql1', alwaysPullImage: false,
+                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
+                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                            envVars: [
+                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
+                            ],
+                            args: "${MYSQL_ARGS}"),
+                    // mysql 8.0.21
+                    containerTemplate(
+                            name: 'mysql2', alwaysPullImage: false,
+                            image: 'registry-mirror.pingcap.net/library/mysql:8.0.21',ttyEnabled: true,
+                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                            envVars: [
+                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
+                                    envVar(key: 'MYSQL_TCP_PORT', value: "${MYSQL2_PORT}")
+                            ],
+                            args: "${MYSQL_ARGS}")
+            ]
+    ) {
+        node(label) {
+            println "${NODE_NAME}"
+            println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
+            container('golang') {
+                def ws = pwd()
+                deleteDir()
+                unstash 'ticdc-with-bin'
+                dir('go/src/github.com/pingcap/ticdc') {
+                    try {
+                        sh"""
+                                rm -rf /tmp/dm_test
+                                mkdir -p /tmp/dm_test
+                                export MYSQL_HOST1=${MYSQL_HOST}
+                                export MYSQL_PORT1=${MYSQL_PORT}
+                                export MYSQL_HOST2=${MYSQL_HOST}
+                                export MYSQL_PORT2=${MYSQL2_PORT}
+                                # wait for mysql container ready.
+                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                # run test
+                                export PATH=/usr/local/go/bin:$PATH
+                                export GOPATH=\$GOPATH:${ws}/go
+                                make dm_integration_test CASE="${case_name}"
+                                # upload coverage
+                                rm -rf cov_dir
+                                mkdir -p cov_dir
+                                ls /tmp/dm_test
+                                cp /tmp/dm_test/cov*out cov_dir
+                                """
+                    }catch (Exception e) {
+                        sh """
+                                    echo "${case_name} test faild print all log..."
+                                    for log in `ls /tmp/dm_test/*/*/log/*.log`; do
+                                        echo "____________________________________"
+                                        echo "\$log"
+                                        cat "\$log"
+                                        echo "____________________________________"
+                                    done
+                                    """
+                        throw e
+                    }
+                }
+                stash includes: 'go/src/github.com/pingcap/ticdc/cov_dir/**', name: "integration-cov-${case_name}"
+            }
+        }
+    }
+}
+
+def run_make_coverage() {
+    node("${GO_TEST_SLAVE}") {
+        println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+        ws = pwd()
+        deleteDir()
+        try {
+            unstash 'integration-cov-all_mode'
+            unstash 'integration-cov-dmctl_advance dmctl_basic dmctl_command'
+            unstash 'integration-cov-ha_cases'
+            unstash 'integration-cov-ha_cases_1'
+            unstash 'integration-cov-ha_cases_2'
+            unstash 'integration-cov-ha_cases2'
+            unstash 'integration-cov-ha_cases3'
+            unstash 'integration-cov-ha_cases3_1'
+            unstash 'integration-cov-ha_master'
+            unstash 'integration-cov-handle_error'
+            unstash 'integration-cov-handle_error_2'
+            unstash 'integration-cov-handle_error_3'
+            unstash 'integration-cov-import_goroutine_leak incremental_mode initial_unit'
+            unstash 'integration-cov-load_interrupt'
+            unstash 'integration-cov-many_tables'
+            unstash 'integration-cov-online_ddl'
+            unstash 'integration-cov-relay_interrupt'
+            unstash 'integration-cov-safe_mode sequence_safe_mode'
+            unstash 'integration-cov-shardddl1'
+            unstash 'integration-cov-shardddl1_1'
+            unstash 'integration-cov-shardddl2'
+            unstash 'integration-cov-shardddl2_1'
+            unstash 'integration-cov-shardddl3'
+            unstash 'integration-cov-shardddl3_1'
+            unstash 'integration-cov-shardddl4'
+            unstash 'integration-cov-shardddl4_1'
+            unstash 'integration-cov-sharding sequence_sharding'
+            unstash 'integration-cov-start_task'
+            unstash 'integration-cov-print_status http_apis'
+            unstash 'integration-cov-new_relay'
+            unstash 'integration-cov-import_v10x'
+            unstash 'integration-cov-tls'
+            unstash 'integration-cov-sharding2'
+            unstash 'integration-cov-ha'
+            unstash 'integration-cov-others'
+            unstash 'integration-cov-others_2'
+        } catch (Exception e) {
+            println e
+        }
+        dir('go/src/github.com/pingcap/ticdc') {
+            container('golang') {
+                timeout(30) {
+                    sh """
+                    rm -rf /tmp/dm_test
+                    mkdir -p /tmp/dm_test
+                    cp cov_dir/* /tmp/dm_test
+                    set +x
+                    BUILD_NUMBER=${BUILD_NUMBER} COVERALLS_TOKEN="${COVERALLS_TOKEN}" CODECOV_TOKEN="${CODECOV_TOKEN}" PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make dm_coverage || true
+                    set -x
+                    """
+                }
+            }
+        }
+    }
+}
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Check Code') {
+            steps {
+                print_all_vars()
+                script {
+                    try {
+                        checkout_and_stash_dm_code()
+                    }catch (info) {
+                        retry(count: 3) {
+                            echo 'checkout failed, retry..'
+                            sleep 1
+                            checkout_and_stash_dm_code()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Bin') {
+            options { retry(count: 3) }
+            steps {
+                build_dm_bin()
+            }
+        }
+
+        stage('Parallel Run Tests') {
+            failFast true
+            parallel {
+                stage('IT-all_mode') {
+                    steps {
+                        script {
+                            run_single_it_test('all_mode')
+                        }
+                    }
+                }
+
+                stage('IT-dmctl') {
+                    steps {
+                        script {
+                            run_single_it_test('dmctl_advance dmctl_basic dmctl_command')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases_1') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases_1')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases_2') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases_2')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases2') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases2')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases3') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases3')
+                        }
+                    }
+                }
+
+                stage('IT-ha_cases3_1') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_cases3_1')
+                        }
+                    }
+                }
+
+                stage('IT-ha_master') {
+                    steps {
+                        script {
+                            run_single_it_test('ha_master')
+                        }
+                    }
+                }
+
+                stage('IT-handle_error') {
+                    steps {
+                        script {
+                            run_single_it_test('handle_error')
+                        }
+                    }
+                }
+
+                stage('IT-handle_error_2') {
+                    steps {
+                        script {
+                            run_single_it_test('handle_error_2')
+                        }
+                    }
+                }
+
+                stage('IT-handle_error_3') {
+                    steps {
+                        script {
+                            run_single_it_test('handle_error_3')
+                        }
+                    }
+                }
+
+                stage('IT-i* group') {
+                    steps {
+                        script {
+                            run_single_it_test('import_goroutine_leak incremental_mode initial_unit')
+                        }
+                    }
+                }
+
+                stage('IT-load_interrupt') {
+                    steps {
+                        script {
+                            run_single_it_test('load_interrupt')
+                        }
+                    }
+                }
+
+                stage('IT-many_tables') {
+                    steps {
+                        script {
+                            run_single_it_test('many_tables')
+                        }
+                    }
+                }
+
+                stage('IT-online_ddl') {
+                    steps {
+                        script {
+                            run_single_it_test('online_ddl')
+                        }
+                    }
+                }
+
+                stage('IT-relay_interrupt') {
+                    steps {
+                        script {
+                            run_single_it_test('relay_interrupt')
+                        }
+                    }
+                }
+
+                stage('IT-safe_mode group') {
+                    steps {
+                        script {
+                            run_single_it_test('safe_mode sequence_safe_mode')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl1')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl1_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl1_1')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl2') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl2')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl2_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl2_1')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl3') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl3')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl3_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl3_1')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl4') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl4')
+                        }
+                    }
+                }
+
+                stage('IT-shardddl4_1') {
+                    steps {
+                        script {
+                            run_single_it_test('shardddl4_1')
+                        }
+                    }
+                }
+
+                stage('IT-sharding group') {
+                    steps {
+                        script {
+                            run_single_it_test('sharding sequence_sharding')
+                        }
+                    }
+                }
+
+                stage('IT-start_task') {
+                    steps {
+                        script {
+                            run_single_it_test('start_task')
+                        }
+                    }
+                }
+
+                stage('IT-status_and_apis') {
+                    steps {
+                        script {
+                            run_single_it_test('print_status http_apis')
+                        }
+                    }
+                }
+
+                stage('IT-new_relay') {
+                    steps {
+                        script {
+                            run_single_it_test('new_relay')
+                        }
+                    }
+                }
+
+                stage('IT-import_v10x') {
+                    steps {
+                        script {
+                            run_single_it_test('import_v10x')
+                        }
+                    }
+                }
+
+                stage('IT-tls') {
+                    steps {
+                        script {
+                            run_tls_source_it_test('tls')
+                        }
+                    }
+                }
+
+                stage('IT-sharding2') {
+                    steps {
+                        script {
+                            run_single_it_test('sharding2')
+                        }
+                    }
+                }
+
+                stage('IT-ha') {
+                    steps {
+                        script {
+                            run_single_it_test('ha')
+                        }
+                    }
+                }
+
+                stage('IT-others') {
+                    steps {
+                        script {
+                            run_single_it_test('others')
+                        }
+                    }
+                }
+
+                stage('IT-others-2') {
+                    steps {
+                        script {
+                            run_single_it_test('others_2')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Coverage') {
+            steps {
+                run_make_coverage()
+            }
+        }
+
+        stage('Print Summary') {
+            steps {
+                script {
+                    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+                    println "all test succeed time=${duration}"
+                }
+            }
+        }
+    }
+}

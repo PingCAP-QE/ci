@@ -80,6 +80,9 @@ def build_upload = { product, hash, binary ->
             if (RELEASE_TAG >= "v5.2.0" && product == "br") {
                 repo = "git@github.com:pingcap/tidb.git"
             }
+            if (RELEASE_TAG >= "v5.3.0" && product == "dumpling") {
+                repo = "git@github.com:pingcap/tidb.git"
+            }
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
                 deleteDir()
@@ -161,7 +164,7 @@ def build_upload = { product, hash, binary ->
                     cp bin/* ${target}/bin
                     """
                 }
-                if (product in ["tidb-tools", "ticdc", "br", "dumpling"]) {
+                if (product in ["tidb-tools", "ticdc", "br"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
@@ -182,7 +185,27 @@ def build_upload = { product, hash, binary ->
                     mv bin/* ${target}/bin/
                     """
                 }
-                 if (product in ["ng-monitoring"]) {
+
+                if (product in ["dumpling"]) {
+                    sh """
+                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
+                    git tag -f ${RELEASE_TAG} ${hash}
+                    git branch -D refs/tags/${RELEASE_TAG} || true
+                    git checkout -b refs/tags/${RELEASE_TAG}
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
+                    
+                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
+                        make build_dumpling
+                    else
+                        make build
+                    fi;
+                    rm -rf ${target}
+                    mkdir -p ${target}/bin
+                    mv bin/* ${target}/bin/
+                    """
+                }
+                if (product in ["ng-monitoring"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}

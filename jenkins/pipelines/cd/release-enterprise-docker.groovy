@@ -48,7 +48,10 @@ catchError {
                     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
 
                     if(RELEASE_TAG >= "v4.0.0") {
-                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
+                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo= -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
+                    }
+                    if(RELEASE_TAG >= "v5.3.0") {
+                        dumpling_sha1 = tidb_br_sha1
                     }
                     tidb_lightning_sha1 = tidb_br_sha1
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()

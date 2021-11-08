@@ -52,10 +52,16 @@ catchError {
                             tidb_br_sha1 = get_hash(BR_TAG, "br")
                             importer_sha1 = get_hash(IMPORTER_TAG, "importer")
                         }
+
+                        if (RELEASE_TAG >= "v5.3.0") {
+                            dumpling_sha1 = tidb_br_sha1
+                        } else {
+                            dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
+                        }
+
                         tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
                         tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")    
                         cdc_sha1 = get_hash(CDC_TAG, "ticdc")
-                        dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
                     } else {
                         tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                         tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -69,7 +75,12 @@ catchError {
                         tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                         tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                         cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
-                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
+
+                        if (RELEASE_TAG >= "v5.3.0") {
+                            dumpling_sha1 = tidb_sha1
+                        } else {
+                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
+                        }
 //                        考虑到 tikv 和 importer 的 bump version，release stage 只编译 tikv 和 importer
                         BUILD_TIKV_IMPORTER = "true"
                     }
