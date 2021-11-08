@@ -61,7 +61,11 @@ def download = { version, os, arch ->
         tarball_name = "${name}.tar.gz"
     }
 
+
     if (arch != "arm64") {
+        sh """
+        rm -rf ${tarball_name}
+        """
 
         if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
             sh """
@@ -81,7 +85,8 @@ def unpack = { version, os, arch ->
     """
     if (arch != "arm64"  && HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
         sh """
-            tar -zxf ng-monitoring-${os}-${arch}.tar.gz
+            rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
+            tar -zxf ng-monitoring.tar.gz
         """
     }
 }
@@ -93,8 +98,11 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
+    ls -lhrt prometheus
     if [ ${arch} == "amd64" ] && [ ${HOTFIX_TAG} \\> "v5.2.0" ] || [ ${HOTFIX_TAG} == "v5.2.0" ]; then \
-       cp ng-monitoring-${version}-${os}-${arch}/bin/* prometheus/prometheus
+       ls -lhrt
+       cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* prometheus
+       rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
     fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \

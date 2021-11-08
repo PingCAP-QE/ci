@@ -57,6 +57,10 @@ def download = { version, os, arch ->
 
     if (arch != "arm64") {
 
+        sh """
+        rm -rf ${tarball_name}
+        """
+
         if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0") {
             sh """
                 wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${ng_monitoring_sha1}/${platform}/${tarball_name}
@@ -75,7 +79,8 @@ def unpack = { version, os, arch ->
     """
     if (arch != "arm64"  && RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
         sh """
-            tar -zxf ng-monitoring-${os}-${arch}.tar.gz
+            rm -rf ng-monitoring-${RELEASE_TAG}-${os}-${arch}
+            tar -zxf ng-monitoring.tar.gz
         """
     }
 }
@@ -88,7 +93,8 @@ def pack = { version, os, arch ->
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
     if [ ${arch} == "amd64" ] && [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
-       cp ng-monitoring-${version}-${os}-${arch}/bin/* prometheus/prometheus
+       cp ng-monitoring-${RELEASE_TAG}-${os}-${arch}/bin/* prometheus
+       rm -rf ng-monitoring-${RELEASE_TAG}-${os}-${arch}
     fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
