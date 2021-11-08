@@ -441,7 +441,7 @@ try {
                             git tag -f ${RELEASE_TAG} ${NGMonitoring_HASH}
                             git branch -D refs/tags/${RELEASE_TAG} || true
                             git checkout -b refs/tags/${RELEASE_TAG}
-                            make build
+                            make
                             tar --exclude=ng-monitoring.tar.gz -czvf ng-monitoring.tar.gz *
                             curl -F ${filepath}=@ng-monitoring.tar.gz ${FILE_SERVER_URL}/upload
                         """
