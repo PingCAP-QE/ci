@@ -55,14 +55,17 @@ def download = { version, os, arch ->
         tarball_name = "${name}.tar.gz"
     }
 
-    if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
-        sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng-monitoring_sha1}/${platform}/${tarball_name}
-        """
-    } else if (HOTFIX_TAG == "nightly") {
-        sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng-monitoring_sha1}/${platform}/${tarball_name}
-        """
+    if (arch != "arm64") {
+
+        if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
+            sh """
+                wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng-monitoring_sha1}/${platform}/${tarball_name}
+            """
+        } else if (HOTFIX_TAG == "nightly") {
+            sh """
+                wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng-monitoring_sha1}/${platform}/${tarball_name}
+            """
+        }
     }
 }
 
@@ -70,7 +73,7 @@ def unpack = { version, os, arch ->
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
-     if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
+    if (arch != "arm64"  && HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
         sh """
             tar -zxf ng-monitoring-${os}-${arch}.tar.gz
         """
@@ -85,7 +88,7 @@ def pack = { version, os, arch ->
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
     if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
-       cp ng-monitoring-${os}-${arch}/* prometheus/prometheus
+       cp bin/* prometheus/prometheus
     fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \

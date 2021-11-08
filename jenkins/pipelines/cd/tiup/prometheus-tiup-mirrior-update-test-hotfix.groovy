@@ -65,12 +65,11 @@ def download = { version, os, arch ->
     }
 }
 
-
 def unpack = { version, os, arch ->
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
-    if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
+    if (arch != "arm64"  && HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
         sh """
             tar -zxf ng-monitoring-${os}-${arch}.tar.gz
         """
@@ -84,6 +83,9 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
+    if [ ${arch} == "amd64" ] && [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
+       cp bin/* prometheus/prometheus
+    fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/metrics/alertmanager/tidb.rules.yml || true; \
