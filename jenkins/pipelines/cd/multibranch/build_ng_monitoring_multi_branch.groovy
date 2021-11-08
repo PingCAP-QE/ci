@@ -151,7 +151,7 @@ try {
                         sh """
                         echo "${githash}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                        tar --exclude=ng-monitoring.tar.gz -czvf ng-monitoring-server.tar.gz *
+                        tar --exclude=ng-monitoring.tar.gz -czvf ng-monitoring-server.tar.gz bin
                         curl -F ${filepath}=@ng-monitoring-server.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
