@@ -54,14 +54,17 @@ def download = { version, os, arch ->
         tarball_name = "${name}.tar.gz"
     }
 
-    if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
-        sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
-        """
-    } else if (HOTFIX_TAG == "nightly") {
-        sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng_monitoring_sha1}/${platform}/${tarball_name}
-        """
+    if (arch != "arm64") {
+
+        if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
+            sh """
+                wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            """
+        } else if (HOTFIX_TAG == "nightly") {
+            sh """
+                wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            """
+        }
     }
 }
 
@@ -83,7 +86,7 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
-    if [ ${arch} == "amd64" ] && [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
+    if [ ${arch} == "amd64" ] && [ ${HOTFIX_TAG} \\> "v5.2.0" ] || [ ${HOTFIX_TAG} == "v5.2.0" ]; then \
        cp ng-monitoring-${version}-${os}-${arch}/bin/* prometheus/prometheus
     fi
     cd prometheus
@@ -157,8 +160,8 @@ node("build_go1130") {
         }
 
         ng_monitoring_sha1 = ""
-        if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
-            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+        if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {
+            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${HOTFIX_TAG} -s=${FILE_SERVER_URL}").trim()
         }
 
         if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {

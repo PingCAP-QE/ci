@@ -57,11 +57,11 @@ def download = { version, os, arch ->
 
     if (arch != "arm64") {
 
-        if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
+        if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0") {
             sh """
                 wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
             """
-        } else if (HOTFIX_TAG == "nightly") {
+        } else if (RELEASE_TAG == "nightly") {
             sh """
                 wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng_monitoring_sha1}/${platform}/${tarball_name}
             """
@@ -73,7 +73,7 @@ def unpack = { version, os, arch ->
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
-    if (arch != "arm64"  && HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
+    if (arch != "arm64"  && RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
         sh """
             tar -zxf ng-monitoring-${os}-${arch}.tar.gz
         """
