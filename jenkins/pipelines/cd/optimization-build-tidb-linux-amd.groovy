@@ -443,8 +443,6 @@ try {
                             git branch -D refs/tags/${RELEASE_TAG} || true
                             git checkout -b refs/tags/${RELEASE_TAG}
 
-                            export GOPATH=/Users/pingcap/gopkg
-                            export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                             make
                             rm -rf ${target}
                             mkdir -p ${target}/bin
