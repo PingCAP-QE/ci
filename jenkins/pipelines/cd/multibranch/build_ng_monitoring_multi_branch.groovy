@@ -146,7 +146,7 @@ try {
                 def refspath = "refs/pingcap/ng-monitoring/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/ng-monitoring/${githash}/centos7/ng-monitoring-server.tar.gz"
                 container("golang") {
-                    release_one("ng-monitoring","${githash}")
+                    // release_one("ng-monitoring","${githash}")
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
