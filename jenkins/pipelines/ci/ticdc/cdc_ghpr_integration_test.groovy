@@ -95,115 +95,112 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
 
 catchError {
-    withEnv(['CODECOV_TOKEN=c6ac8b7a-7113-4b3f-8e98-9314a486e41e',
-             'COVERALLS_TOKEN=HTRawMvXi9p5n4OyBvQygxd5iWjNUKd1o']) {
-        node("${GO_TEST_SLAVE}") {
-            stage('Prepare') {
-                def ws = pwd()
-                deleteDir()
+    node("${GO_TEST_SLAVE}") {
+        stage('Prepare') {
+            def ws = pwd()
+            deleteDir()
 
-                dir("${ws}/go/src/github.com/pingcap/ticdc") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ticdc"
-                        deleteDir()
-                    }
-                    try {
+            dir("${ws}/go/src/github.com/pingcap/ticdc") {
+                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ticdc"
+                    deleteDir()
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
+                } catch (info) {
+                    retry(2) {
+                        echo "checkout failed, retry.."
+                        sleep 5
+                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
-                    } catch (info) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 5
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
-                        }
                     }
-                    sh "git checkout -f ${ghprbActualCommit}"
                 }
+                sh "git checkout -f ${ghprbActualCommit}"
+            }
 
-                dir("${ws}/go/src/github.com/pingcap/ci") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                        deleteDir()
-                    }
-                    try {
+            dir("${ws}/go/src/github.com/pingcap/ci") {
+                if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                    deleteDir()
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
+                } catch (info) {
+                    retry(2) {
+                        echo "checkout failed, retry.."
+                        sleep 5
+                        if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                            deleteDir()
+                        }
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                    } catch (info) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 5
-                            if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                        }
                     }
-
                 }
 
-                stash includes: "go/src/github.com/pingcap/ticdc/**", name: "ticdc", useDefaultExcludes: false
             }
 
-            def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
-            def common = load script_path
-            catchError {
-                common.prepare_binaries()
+            stash includes: "go/src/github.com/pingcap/ticdc/**", name: "ticdc", useDefaultExcludes: false
+        }
 
-                def label = "cdc-integration-test"
-                if (isNeedGo1160) {
-                    label = "cdc-integration-test-go1160-build-${BUILD_NUMBER}"
-                } else {
-                    label = "cdc-integration-test-go1130-build-${BUILD_NUMBER}"
-                }
-                podTemplate(label: label,
-                        idleMinutes: 0,
-                        containers: [
-                                containerTemplate(
-                                        name: 'golang', alwaysPullImage: true,
-                                        image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
-                                        resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                        command: '/bin/sh -c', args: 'cat',
-                                        envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
-                                                  containerEnvVar(key: 'GOPATH', value: '/go')],
-                                ),
-                        ],
-                        volumes: [
-                                nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                                nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
-                                        serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
-                                nfsVolume(mountPath: '/go/pkg', serverAddress: '172.16.5.22',
-                                        serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false),
-                                emptyDirVolume(mountPath: '/tmp', memory: true),
-                                emptyDirVolume(mountPath: '/home/jenkins', memory: true)
-                        ],
-                ) {
-                    common.tests("mysql", label)
-                }
-                // If it is triggered upstream, there is no need to collect test coverage.
-                if (!params.containsKey("triggered_by_upstream_pr_ci")) {
-                    common.coverage()
-                }
-                currentBuild.result = "SUCCESS"
+        def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
+        def common = load script_path
+        catchError {
+            common.prepare_binaries()
+
+            def label = "cdc-integration-test"
+            if (isNeedGo1160) {
+                label = "cdc-integration-test-go1160-build-${BUILD_NUMBER}"
+            } else {
+                label = "cdc-integration-test-go1130-build-${BUILD_NUMBER}"
             }
+            podTemplate(label: label,
+                    idleMinutes: 0,
+                    containers: [
+                            containerTemplate(
+                                    name: 'golang', alwaysPullImage: true,
+                                    image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                                    resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
+                                    command: '/bin/sh -c', args: 'cat',
+                                    envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
+                                                containerEnvVar(key: 'GOPATH', value: '/go')],
+                            ),
+                    ],
+                    volumes: [
+                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                            nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
+                            nfsVolume(mountPath: '/go/pkg', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false),
+                            emptyDirVolume(mountPath: '/tmp', memory: true),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    ],
+            ) {
+                common.tests("mysql", label)
+            }
+            // If it is triggered upstream, there is no need to collect test coverage.
+            if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+                common.coverage()
+            }
+            currentBuild.result = "SUCCESS"
+        }
 
-            stage('Summary') {
-                def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-                def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-                        "${ghprbPullLink}" + "\n" +
-                        "${ghprbPullDescription}" + "\n" +
-                        "Integration Test Result: `${currentBuild.result}`" + "\n" +
-                        "Elapsed Time: `${duration} mins` " + "\n" +
-                        "${env.RUN_DISPLAY_URL}"
+        stage('Summary') {
+            def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+            def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
+                    "${ghprbPullLink}" + "\n" +
+                    "${ghprbPullDescription}" + "\n" +
+                    "Integration Test Result: `${currentBuild.result}`" + "\n" +
+                    "Elapsed Time: `${duration} mins` " + "\n" +
+                    "${env.RUN_DISPLAY_URL}"
 
-                if (currentBuild.result != "SUCCESS") {
-                    slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-                }
+            if (currentBuild.result != "SUCCESS") {
+                slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
             }
         }
-    }
+    }   
 }
 
 
