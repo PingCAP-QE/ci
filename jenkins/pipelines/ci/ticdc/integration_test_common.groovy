@@ -305,17 +305,21 @@ def coverage() {
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-
-                    timeout(30) {
-                        sh """
-                        rm -rf /tmp/tidb_cdc_test
-                        mkdir -p /tmp/tidb_cdc_test
-                        cp cov_dir/* /tmp/tidb_cdc_test
-                        set +x
-                        BUILD_NUMBER=${env.BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
-                        set -x
-                        """
+                    withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN'),
+                                    string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) { 
+                        timeout(30) {
+                            sh '''
+                            rm -rf /tmp/tidb_cdc_test
+                            mkdir -p /tmp/tidb_cdc_test
+                            cp cov_dir/* /tmp/tidb_cdc_test
+                            set +x
+                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
+                            set -x
+                            '''
+                        }
                     }
+
+                    
                 }
             }
         }
