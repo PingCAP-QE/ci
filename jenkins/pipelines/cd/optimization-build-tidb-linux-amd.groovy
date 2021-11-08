@@ -429,6 +429,7 @@ try {
                 }
                 container("golang") {
                     def ws = pwd()
+                    def target = "ng-monitoring-${RELEASE_TAG}-linux-amd64"
                     deleteDir()
                     dir("go/src/github.com/pingcap/ng-monitoring") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -441,9 +442,16 @@ try {
                             git tag -f ${RELEASE_TAG} ${NGMonitoring_HASH}
                             git branch -D refs/tags/${RELEASE_TAG} || true
                             git checkout -b refs/tags/${RELEASE_TAG}
+
+                            export GOPATH=/Users/pingcap/gopkg
+                            export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                             make
-                            tar --exclude=ng-monitoring.tar.gz -czvf ng-monitoring.tar.gz *
-                            curl -F ${filepath}=@ng-monitoring.tar.gz ${FILE_SERVER_URL}/upload
+                            rm -rf ${target}
+                            mkdir -p ${target}/bin
+                            mv bin/* ${target}/bin/
+
+                            tar czvf ${target}.tar.gz ${target}
+                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
