@@ -667,6 +667,9 @@ try {
         if (RELEASE_TAG >= "v5.2.0") {
             builds.remove("Build importer")
         }
+        if (RELEASE_TAG < "v5.3.0") {
+            builds.remove("Build ng monitoring")
+        }
         parallel builds
     }
     currentBuild.result = "SUCCESS"
