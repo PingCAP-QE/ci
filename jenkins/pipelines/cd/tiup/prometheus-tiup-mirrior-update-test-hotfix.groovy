@@ -158,6 +158,7 @@ node("build_go1130") {
                 checkoutTiCS(RELEASE_BRANCH)
             }
         }
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
         ng_monitoring_sha1 = ""
         if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {

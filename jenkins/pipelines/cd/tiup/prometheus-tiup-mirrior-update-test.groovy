@@ -163,6 +163,7 @@ node("build_go1130") {
                 checkoutTiCS(tag)
             }
         }
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
         ng_monitoring_sha1 = ""
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
             ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
