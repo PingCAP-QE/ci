@@ -30,6 +30,13 @@ def checkoutTiCS(branch) {
 def name="ng-monitoring"
 def ng_monitoring_sha1, tarball_name
 
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def download = { version, os, arch ->
     if (os == "darwin" && arch == "arm64") {
         sh """
@@ -162,7 +169,7 @@ node("build_go1130") {
 
         ng_monitoring_sha1 = ""
         if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {
-            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${HOTFIX_TAG} -s=${FILE_SERVER_URL}").trim()
+            ng_monitoring_sha1 = get_hash(ORIGIN_TAG,"ng-monitoring")
         }
 
         if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
