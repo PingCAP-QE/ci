@@ -84,6 +84,9 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
+    if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
+       cp ng-monitoring-${os}-${arch}/* prometheus/prometheus
+    fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/alertmanager/tidb.rules.yml || true; \
@@ -98,7 +101,6 @@ def pack = { version, os, arch ->
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/alertmanager/lightning.rules.yml || true; \
     fi
 
-    if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
 
 
     wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/alertmanager/lightning.rules.yml || true; \
