@@ -124,7 +124,7 @@ def tests(sink_type, node_label) {
                         download_binaries()
                         try {
                             sh """
-                                sudo pip install s3cmd
+                                s3cmd --version
                                 rm -rf /tmp/tidb_cdc_test
                                 mkdir -p /tmp/tidb_cdc_test
                                 echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
