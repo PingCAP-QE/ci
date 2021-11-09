@@ -93,7 +93,7 @@ def pack = { version, os, arch ->
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
     if [ ${arch} == "amd64" ] && [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
-       cp ng-monitoring-${RELEASE_TAG}-${os}-${arch}/bin/* prometheus
+       cp ng-monitoring-${RELEASE_TAG}-${os}-${arch}/bin/* ./
        rm -rf ng-monitoring-${RELEASE_TAG}-${os}-${arch}
     fi
     cd prometheus
