@@ -137,7 +137,8 @@ try {
                             set +x
                             export CODECOV_TOKEN=${CODECOV_TOKEN}
                             export TRAVIS_COVERAGE=1
-                            set -x 
+                            set -x
+                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                             make gotest
                             make upload-coverage
                             '''
