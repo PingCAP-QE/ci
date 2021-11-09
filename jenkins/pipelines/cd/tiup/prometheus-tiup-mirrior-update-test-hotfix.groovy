@@ -101,7 +101,7 @@ def pack = { version, os, arch ->
     ls -lhrt prometheus
     if [ ${arch} == "amd64" ] && [ ${HOTFIX_TAG} \\> "v5.2.0" ] || [ ${HOTFIX_TAG} == "v5.2.0" ]; then \
        ls -lhrt
-       cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* prometheus
+       cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* ./
        rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
     fi
     cd prometheus
