@@ -138,7 +138,10 @@ def pack = { version, os, arch ->
 
     cd ..
 
-    tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${HOTFIX_TAG}"
+    # tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${HOTFIX_TAG}"
+    rm -rf package
+    mkdir -p package
+    tar czvf package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz prometheus ng-monitoring-server
     tiup mirror publish prometheus ${TIDB_VERSION} package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz "prometheus/prometheus" --arch ${arch} --os ${os} --desc="The Prometheus monitoring system and time series database"
     rm -rf prometheus
     """
