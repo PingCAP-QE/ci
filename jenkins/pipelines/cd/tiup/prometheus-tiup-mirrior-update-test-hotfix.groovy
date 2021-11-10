@@ -51,6 +51,10 @@ def download = { version, os, arch ->
         platform = "centos7"
     }
 
+    if (os == "darwin") {
+        platform = "darwin"
+    }
+
     tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
