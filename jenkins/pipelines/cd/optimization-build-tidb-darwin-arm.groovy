@@ -278,12 +278,11 @@ try {
         builds["Build dumpling"] = {
             build_upload("dumpling", DUMPLING_HASH, "dumpling")
         }
-        // disable ng monitoring arm
-        // if (RELEASE_TAG >= "v5.3.0") {
-        //     builds["Build NGMonitoring"] = {
-        //         build_upload("ng-monitoring", NGMonitoring_HASH, "ng-monitoring")
-        //     }
-        // }
+        if (RELEASE_TAG >= "v5.3.0") {
+            builds["Build NGMonitoring"] = {
+                build_upload("ng-monitoring", NGMonitoring_HASH, "ng-monitoring")
+            }
+        }
         
 
         if (SKIP_TIFLASH == "false") {
