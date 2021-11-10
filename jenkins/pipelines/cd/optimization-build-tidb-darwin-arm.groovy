@@ -132,6 +132,9 @@ def build_upload = { product, hash, binary ->
                 if (product == "dumpling") {
                     filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
+                if (product == "ng-monitoring") {
+                    filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+                }
                 if (product == "tidb-ctl") {
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
