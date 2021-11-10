@@ -49,18 +49,9 @@ def download = { version, os, arch ->
     }
     if (os == "linux") {
         platform = "centos7"
-    } else if (os == "darwin" && arch == "amd64") {
-        platform = "darwin"
-    } else if (os == "darwin" && arch == "arm64") {
-        platform = "darwin-arm64"
     }
 
-    if (arch == "arm64" && os != "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
-
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
     rm -rf ${tarball_name}
@@ -84,7 +75,7 @@ def unpack = { version, os, arch ->
     if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
         sh """
             rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
-            tar -zxf ng-monitoring.tar.gz
+            tar -zxf ${tarball_name}
         """
     }
 }

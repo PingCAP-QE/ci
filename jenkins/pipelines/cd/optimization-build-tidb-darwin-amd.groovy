@@ -57,6 +57,9 @@ def checkIfFileCacheExists(product, hash, binary) {
     if (product == "dumpling") {
         filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
+    if (product == "ng-monitoring") {
+        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    }
     if (product == "tiflash") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     }

@@ -435,7 +435,7 @@ try {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        def filepath = "builds/pingcap/ng-monitoring/optimization/${NGMonitoring_HASH}/centos7/ng-monitoring.tar.gz"
+                        def filepath = "builds/pingcap/ng-monitoring/optimization/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${NGMonitoring_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ng-monitoring.git']]]                            
                         sh """
                             for a in \$(git tag --contains ${NGMonitoring_HASH}); do echo \$a && git tag -d \$a;done
