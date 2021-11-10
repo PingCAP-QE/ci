@@ -171,37 +171,6 @@ try {
             }
         }
 
-        stage("Build tidb-lightning") {
-            dir("go/src/github.com/pingcap/tidb-lightning") {
-
-                def target = "tidb-lightning-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-lightning/${LIGHTNING_HASH}/centos7/tidb-lightning-${os}-${arch}.tar.gz"
-
-                retry(20) {
-                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        deleteDir()
-                    }
-                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
-                    } else {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-lightning.git']]]
-                    }
-                }
-
-                sh """
-                export PATH=/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:${GO_BIN_PATH}
-                make clean
-                go version
-                make
-                rm -rf ${target}
-                mkdir -p ${target}/bin
-                cp bin/* ${target}/bin
-                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                """
-            }
-        }
-
         stage("Build tidb-tools") {
             dir("go/src/github.com/pingcap/tidb-tools") {
 
@@ -415,40 +384,6 @@ try {
                 mkdir -p ${target}/bin
                 cp bin/* ${target}/bin
                 tar czvf ${target}.tar.gz ${target}
-                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                """
-            }
-        }
-
-        stage("Build Importer") {
-            dir("go/src/github.com/pingcap/importer") {
-
-                def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
-
-                retry(20) {
-                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        deleteDir()
-                    }
-
-                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-                    } else {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/importer.git']]]
-                    }
-                }
-
-                sh """
-                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                    echo using gcc 8
-                    source /opt/rh/devtoolset-8/enable
-                fi
-                ROCKSDB_SYS_SSE=0 make release
-                rm -rf ${target}
-                mkdir -p ${target}/bin
-                cp target/release/tikv-importer ${target}/bin
-                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                 """
             }
