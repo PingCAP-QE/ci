@@ -68,7 +68,7 @@ def download = { version, os, arch ->
 
     if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization//${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     } else if (HOTFIX_TAG == "nightly") {
         sh """
@@ -96,7 +96,7 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
-    if [ ${HOTFIX_TAG} \\> "v5.3.0" ]; then \
+    if [ ${HOTFIX_TAG} \\>= "v5.3.0" ]; then \
        cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* ./
        rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
     fi
