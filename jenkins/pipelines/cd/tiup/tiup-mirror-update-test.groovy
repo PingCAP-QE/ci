@@ -275,7 +275,7 @@ node("build_go1130") {
                         // tar xf tidb-server.tar.gz
                         // """
                         // tidb_version = sh(returnStdout: true, script: "./bin/tidb-server -V | awk 'NR==1{print \$NF}' | sed -r 's/(^[^-]*).*/\\1/'").trim()
-                        tidb_version = "v5.0.0"
+                        tidb_version = "v5.4.0"
                         time = sh(returnStdout: true, script: "date '+%Y%m%d'").trim()
                         tidb_version = "${tidb_version}-nightly-${time}"
                     }
