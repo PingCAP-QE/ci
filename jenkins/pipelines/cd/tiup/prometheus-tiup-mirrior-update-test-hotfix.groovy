@@ -96,7 +96,7 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
-    if [ ${HOTFIX_TAG} \\>= "v5.3.0" ]; then \
+    if [ ${HOTFIX_TAG} \\> "v5.3.0" ] || [ ${HOTFIX_TAG} == "v5.3.0" ]; then \
        cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* ./
        rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
     fi
