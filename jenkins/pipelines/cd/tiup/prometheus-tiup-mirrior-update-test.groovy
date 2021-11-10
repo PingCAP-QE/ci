@@ -49,6 +49,10 @@ def download = { version, os, arch ->
         platform = "darwin"
     }
 
+    if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }
+
     tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
