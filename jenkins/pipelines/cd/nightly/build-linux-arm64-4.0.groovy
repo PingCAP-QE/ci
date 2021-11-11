@@ -395,7 +395,7 @@ try {
                 dir("go/src/github.com/pingcap/ng-monitoring") {
 
                     def target = "ng-monitoring-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/ng-monitoring/${NGMonitoring_HASH}/darwin/ng-monitoring-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/ng-monitoring/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
 
                     retry(20) {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
