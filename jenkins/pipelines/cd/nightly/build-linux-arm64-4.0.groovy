@@ -78,7 +78,7 @@ try {
                 """
             }
             TIDB_CTL_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
-            NGMonitoring_HASH = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=nightly -s=${FILE_SERVER_URL}").trim()
+            NGMonitoring_HASH = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
         }
 
         stage("Build tidb-ctl") {
