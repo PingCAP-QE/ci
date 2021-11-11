@@ -175,7 +175,11 @@ node("build_go1130") {
 
         ng_monitoring_sha1 = ""
         if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {
-            ng_monitoring_sha1 = get_hash(RELEASE_BRANCH,"ng-monitoring")
+            if (HOTFIX_TAG == "nightly"){
+                ng_monitoring_sha1 = get_hash("main","ng-monitoring")
+            } else {
+                ng_monitoring_sha1 = get_hash(RELEASE_BRANCH,"ng-monitoring")
+            }
         }
 
         if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
