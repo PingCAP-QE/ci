@@ -1,0 +1,4 @@
+FROM centos:centos7.9.2009
+COPY tidb-server /tidb-server
+EXPOSE 4000
+ENTRYPOINT ["/tidb-server"]
