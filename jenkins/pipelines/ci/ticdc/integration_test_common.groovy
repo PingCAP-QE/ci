@@ -264,7 +264,7 @@ def download_binaries() {
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
-        curl \${tidb_url} | tar xz -C ./tmp bin/tidb-server
+        curl \${tidb_url} | tar xz -C ./tmp ./bin/tidb-server
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
         curl \${minio_url} | tar xz -C ./tmp/bin minio
