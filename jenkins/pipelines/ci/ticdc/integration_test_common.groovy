@@ -251,6 +251,8 @@ def download_binaries() {
             def tidb_download_link = params.upstream_pr_ci_override_tidb_download_link
             println "Use the upstream download link, upstream_pr_ci_override_tidb_download_link=${tidb_download_link}"
             tidb_url = tidb_download_link
+            // Because the tidb archive is packaged differently on pr than on the branch build,
+            // we have to use a different unzip path.
             tidb_archive_path = "./bin/tidb-server"
             break;
     }
