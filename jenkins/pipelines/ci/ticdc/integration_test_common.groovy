@@ -234,6 +234,7 @@ def download_binaries() {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
     def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+    def tidb_archive_path = "bin/tidb-server"
     def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
     def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
     def tiflash_url = "${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
@@ -246,6 +247,14 @@ def download_binaries() {
             println "Use the upstream download link, upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
             tikv_url = tikv_download_link
             break;
+        case "tidb":
+            def tidb_download_link = params.upstream_pr_ci_override_tidb_download_link
+            println "Use the upstream download link, upstream_pr_ci_override_tidb_download_link=${tidb_download_link}"
+            tidb_url = tidb_download_link
+            // Because the tidb archive is packaged differently on pr than on the branch build,
+            // we have to use a different unzip path.
+            tidb_archive_path = "./bin/tidb-server"
+            break;
     }
 
     sh """
@@ -254,12 +263,13 @@ def download_binaries() {
         mkdir -p bin
 
         tidb_url="${tidb_url}"
+        tidb_archive_path="${tidb_archive_path}"
         tikv_url="${tikv_url}"
         pd_url="${pd_url}"
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
-        curl \${tidb_url} | tar xz -C ./tmp bin/tidb-server
+        curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
         curl \${minio_url} | tar xz -C ./tmp/bin minio
@@ -306,7 +316,7 @@ def coverage() {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
                     withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN'),
-                                    string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) { 
+                                     string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
                         timeout(30) {
                             sh '''
                             rm -rf /tmp/tidb_cdc_test
@@ -319,7 +329,7 @@ def coverage() {
                         }
                     }
 
-                    
+
                 }
             }
         }
