@@ -107,6 +107,9 @@ node("build_go1130") {
                 }
 
                 dumpling_sha1 = get_hash(ORIGIN_TAG,"dumpling")
+                if (HOTFIX_TAG >= "v5.3.0") {
+                    dumpling_sha1 = get_hash(ORIGIN_TAG,"tidb")
+                }
             }
             if (params.ARCH_X86) {
                 stage("tiup release dumpling linux amd64") {

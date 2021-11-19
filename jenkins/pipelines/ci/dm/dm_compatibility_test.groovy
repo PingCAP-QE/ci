@@ -1,7 +1,5 @@
 def TIDB_BRANCH = "master"
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
-def COVERALLS_TOKEN = "vVHBaHMBGrGmI8pxQnddo1xkvbQD6CaZs"
-def CODECOV_TOKEN="a692ca33-c819-42cc-b2ff-dd3825259467"
 
 def PRE_COMMIT = "tags/v2.0.0-rc"
 def MYSQL_ARGS = "--log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON --server-id=1 --default-authentication-plugin=mysql_native_password"
@@ -68,7 +66,7 @@ if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
     GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
 } else {
     println "This build use go1.13"
     POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
@@ -137,11 +135,13 @@ catchError {
 
                 // binlogctl
                 sh "curl http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz | tar xz"
-                sh "curl https://download.pingcap.org/tidb-tools-test-linux-amd64.tar.gz | tar xz"
-                sh "mv tidb-tools-test-linux-amd64/bin/sync_diff_inspector bin/"
+                sh "curl http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz"
+                sh "mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/"
+                //sh "curl https://download.pingcap.org/tidb-tools-test-linux-amd64.tar.gz | tar xz"
                 //sh "mv tidb-enterprise-tools-latest-linux-amd64/bin/sync_diff_inspector bin/"
                 sh "mv tidb-enterprise-tools-latest-linux-amd64/bin/mydumper bin/"
                 sh "rm -r tidb-enterprise-tools-latest-linux-amd64 || true"
+                sh "rm -r tidb-enterprise-tools-nightly-linux-amd64 || true"
 
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                 sh "curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz"
@@ -171,7 +171,7 @@ catchError {
                                 ],
                                 args: "${MYSQL_ARGS}",
                         ),
-                        // hub.pingcap.net/jenkins/mysql:5.7, hub.pingcap.net/zhangxuecheng/mysql:8.0.21
+                        // hub.pingcap.net/jenkins/mysql:5.7, registry-mirror.pingcap.net/library/mysql:8.0.21
                         containerTemplate(
                                 name: 'mysql1',
                                 image: 'hub.pingcap.net/jenkins/mysql:5.7',

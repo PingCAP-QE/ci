@@ -67,6 +67,7 @@ try {
                     sh """
                     mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                     make clean
+                    git checkout .
                     go version
                     GOPATH=${ws}/go TIDB_EDITION=Enterprise make
                     tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *

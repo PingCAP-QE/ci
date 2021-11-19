@@ -177,24 +177,15 @@ try {
                             }
                             parallel builds
                         } else {
-                            sh "make dev"
+                            sh """
+                                make check
+                                make test
+                            """
                         }
                     } catch (err) {
                         throw err
                     } finally {
                         sh "cat cmd/explaintest/explain-test.out || true"
-                    }
-                }
-            }
-        }
-
-        stage("Check go mod replace is removed") {
-            container("golang") {
-                dir("go/src/github.com/pingcap/tidb") {
-                    timeout(10) {
-                        sh """
-                        if [ \"${ghprbTargetBranch}\" == \"master\" ] ;then ./tools/check/check_parser_replace.sh ;fi
-                        """
                     }
                 }
             }

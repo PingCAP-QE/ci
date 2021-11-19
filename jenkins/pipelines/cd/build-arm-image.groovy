@@ -6,6 +6,9 @@ def build_arm_image = { tag, repo ->
             sh """
             docker image rm -f pingcap/${repo}:${tag}
             wget ${dockerUrl}
+            if [ ${tag} \\> "v5.2.0" ] || [ ${tag} == "v5.2.0" ] && [ ${repo} == "tidb-lightning" ]; then
+                sed -i "s/COPY tikv-importer \\/tikv-importer//g" ${repo}-arm64
+            fi;
             docker build  -t pingcap/${repo}-arm64:${tag} -f ${repo}-arm64 .
             docker push pingcap/${repo}-arm64:${tag}
             """
@@ -16,7 +19,7 @@ node("arm_image") {
    dir("go/src/github.com/pingcap/monitoring") {
        stage("prepare monitor") {
            deleteDir()
-           checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/monitoring.git']]]
+           checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: RELEASE_BRANCH]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/monitoring.git']]]
            sh """
               go build -o pull-monitoring  cmd/monitoring.go
               go build -o ./reload/build/linux/reload  ./reload/main.go

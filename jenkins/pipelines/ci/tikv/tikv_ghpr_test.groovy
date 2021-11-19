@@ -13,6 +13,17 @@ if (params.containsKey("release_test")) {
 def notRun = 1
 def chunk_count = 20
 
+
+// example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
+// remove suffix "-20210724", only use "release-4.0"
+if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").size() >= 3 ) {
+    println "tikv hotfix branch: ${ghprbTargetBranch}"
+    def k = ghprbTargetBranch.indexOf("-", ghprbTargetBranch.indexOf("-") + 1)
+    ghprbTargetBranch = ghprbTargetBranch.substring(0, k)
+    println "ci image use  ${ghprbTargetBranch}"
+}
+
+
 try {
 stage("PreCheck") {
     if (!params.force) {
@@ -285,7 +296,7 @@ EOF
 
 stage('Test') {
     def run_test = { chunk_suffix ->
-        node("${GO_TEST_SLAVE}") {
+        node("test_tikv_go1130_memvolume") {
             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                 container("golang") {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -365,13 +376,6 @@ stage('Post-test') {
     } else {
         currentBuild.result = "FAILURE"
         echo "${e}"
-    }
-}
-
-stage("upload status") {
-    node("master") {
-        println currentBuild.result
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
 

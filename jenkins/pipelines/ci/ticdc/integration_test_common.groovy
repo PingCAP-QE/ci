@@ -92,6 +92,7 @@ def tests(sink_type, node_label) {
 
                     dir("go/src/github.com/pingcap/ticdc") {
                         sh """
+                            go version
                             rm -rf /tmp/tidb_cdc_test
                             mkdir -p /tmp/tidb_cdc_test
                             GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
@@ -123,7 +124,7 @@ def tests(sink_type, node_label) {
                         download_binaries()
                         try {
                             sh """
-                                sudo pip install s3cmd
+                                s3cmd --version
                                 rm -rf /tmp/tidb_cdc_test
                                 mkdir -p /tmp/tidb_cdc_test
                                 echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
@@ -186,25 +187,11 @@ def tests(sink_type, node_label) {
  * Download the integration test-related binaries.
  */
 def download_binaries() {
-    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", "master")
-    def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", "master")
-    def PD_BRANCH = params.getOrDefault("release_test__pd_commit", "master")
-    def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "master")
+    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
+    def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", ghprbTargetBranch)
+    def PD_BRANCH = params.getOrDefault("release_test__pd_commit", ghprbTargetBranch)
+    def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
-
-    def mBranch = ghprbTargetBranch =~ /^release-4.0/
-    if (mBranch) {
-        TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", "release-4.0")
-        TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", "release-4.0")
-        PD_BRANCH = params.getOrDefault("release_test__pd_commit", "release-4.0")
-        TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", "release-4.0")
-    }
-    mBranch = null
-    println "ghprbTargetBranch=${ghprbTargetBranch}"
-    println "TIDB_BRANCH=${TIDB_BRANCH}"
-    println "PD_BRANCH=${PD_BRANCH}"
-    println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-
 
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -246,18 +233,43 @@ def download_binaries() {
     if (TIFLASH_COMMIT == null) {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
+    def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+    def tidb_archive_path = "bin/tidb-server"
+    def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+    def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+    def tiflash_url = "${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+
+    // If it is triggered upstream, the upstream link is used.
+    def from = params.getOrDefault("triggered_by_upstream_pr_ci", "")
+    switch (from) {
+        case "tikv":
+            def tikv_download_link = params.upstream_pr_ci_override_tikv_download_link
+            println "Use the upstream download link, upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
+            tikv_url = tikv_download_link
+            break;
+        case "tidb":
+            def tidb_download_link = params.upstream_pr_ci_override_tidb_download_link
+            println "Use the upstream download link, upstream_pr_ci_override_tidb_download_link=${tidb_download_link}"
+            tidb_url = tidb_download_link
+            // Because the tidb archive is packaged differently on pr than on the branch build,
+            // we have to use a different unzip path.
+            tidb_archive_path = "./bin/tidb-server"
+            break;
+    }
+
     sh """
         mkdir -p third_bin
         mkdir -p tmp
         mkdir -p bin
 
-        tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-        pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-        tiflash_url="${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+        tidb_url="${tidb_url}"
+        tidb_archive_path="${tidb_archive_path}"
+        tikv_url="${tikv_url}"
+        pd_url="${pd_url}"
+        tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
-        curl \${tidb_url} | tar xz -C ./tmp bin/tidb-server
+        curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
         curl \${minio_url} | tar xz -C ./tmp/bin minio
@@ -268,8 +280,8 @@ def download_binaries() {
         curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
         curl -L http://fileserver.pingcap.net/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/sync_diff_inspector.tar.gz | tar xz -C ./third_bin
-        curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o jq
+        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/new_sync_diff_inspector.tar.gz | tar xz -C ./third_bin
+        curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
         rm -rf tmp
@@ -278,6 +290,7 @@ def download_binaries() {
         rm -rf third_bin
     """
 }
+
 
 /**
  * Collect and calculate test coverage.
@@ -292,7 +305,7 @@ def coverage() {
 
             // unstash all integration tests.
             def step_names = []
-            for ( int i = 1; i < TOTAL_COUNT; i++ ) {
+            for (int i = 1; i < TOTAL_COUNT; i++) {
                 step_names.add("integration_test_step_${i}")
             }
             step_names.each { item ->
@@ -302,17 +315,21 @@ def coverage() {
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-
-                    timeout(30) {
-                        sh """
-                        rm -rf /tmp/tidb_cdc_test
-                        mkdir -p /tmp/tidb_cdc_test
-                        cp cov_dir/* /tmp/tidb_cdc_test
-                        set +x
-                        BUILD_NUMBER=${env.BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
-                        set -x
-                        """
+                    withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN'),
+                                     string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
+                        timeout(30) {
+                            sh '''
+                            rm -rf /tmp/tidb_cdc_test
+                            mkdir -p /tmp/tidb_cdc_test
+                            cp cov_dir/* /tmp/tidb_cdc_test
+                            set +x
+                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
+                            set -x
+                            '''
+                        }
                     }
+
+
                 }
             }
         }

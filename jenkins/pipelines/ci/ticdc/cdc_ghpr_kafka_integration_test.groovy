@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = "release-test"
 }
 
-def ciRepeUrl = "https://github.com/PingCAP-QE/ci.git"
+def ciRepoUrl = "https://github.com/PingCAP-QE/ci.git"
 def ciRepoBranch = "main"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
@@ -18,20 +18,20 @@ if (ghprbPullId == null || ghprbPullId == "") {
 }
 
 @NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
+boolean isMoreRecentOrEqual(String a, String b) {
     if (a == b) {
         return true
     }
 
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
+    [a, b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+        Integer result = [u, v].transpose().findResult { x, y -> x <=> y ?: null } ?: u.size() <=> v.size()
+        return (result == 1)
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
+    it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
+}
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -70,8 +70,8 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 catchError {
     withEnv(['CODECOV_TOKEN=c6ac8b7a-7113-4b3f-8e98-9314a486e41e',
-             'COVERALLS_TOKEN=HTRawMvXi9p5n4OyBvQygxd5iWjNUKd1o']){
-        node ("${GO_TEST_SLAVE}") {
+             'COVERALLS_TOKEN=HTRawMvXi9p5n4OyBvQygxd5iWjNUKd1o']) {
+        node("${GO_TEST_SLAVE}") {
             stage('Prepare') {
                 def ws = pwd()
                 deleteDir()
@@ -102,7 +102,7 @@ catchError {
                         deleteDir()
                     }
                     try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepeUrl}"]]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
                     } catch (info) {
                         retry(2) {
                             echo "checkout failed, retry.."
@@ -111,7 +111,7 @@ catchError {
                                 echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
                                 deleteDir()
                             }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepeUrl}"]]]
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
                         }
                     }
 
@@ -152,12 +152,13 @@ catchError {
                 common.prepare_binaries()
 
                 def label = "cdc-kafka-integration-${UUID.randomUUID().toString()}"
-                podTemplate(label: label, idleMinutes: 0,
+                podTemplate(label: label,
+                        idleMinutes: 0,
                         containers: [
-                                containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
+                                containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true, command: 'cat'),
-                                containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
+                                containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true),
                                 containerTemplate(
@@ -182,7 +183,7 @@ catchError {
                                                 envVar(key: 'KAFKA_ZOOKEEPER_CONNECT', value: 'localhost:2181'),
                                         ]
                                 )],
-                        volumes:[
+                        volumes: [
                                 emptyDirVolume(mountPath: '/tmp', memory: true),
                                 emptyDirVolume(mountPath: '/home/jenkins', memory: true)
                         ]

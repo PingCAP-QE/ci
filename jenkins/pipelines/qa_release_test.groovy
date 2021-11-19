@@ -186,6 +186,13 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                         if (release_info.release_branch >= "release-4.0") {
                             build(job: "tidb_and_tools_e2e_test", parameters: params)
                         }
+                    },
+                    Group9: { // TiKV
+                            build(job: "tikv_ghpr_integration_common_test", parameters: default_params)
+                            build(job: "tikv_ghpr_integration-copr-test", parameters: default_params)
+                            build(job: "tikv_ghpr_integration_compatibility_test", parameters: default_params)
+                            build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params)
+                            build(job: "tikv_ghpr_integration_br_test", parameters: default_params)
                     }
             )
         }

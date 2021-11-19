@@ -213,17 +213,30 @@ def update_ctl = { version, os, arch ->
         """
     }
 
+    lightning_tarball_name = ""
+    lightning_ctl_bin_dir = ""
+    if (arch == "arm64"  && os != "darwin") {
+        lightning_tarball_name = "br-${os}-${arch}.tar.gz"
+        lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
+    } else {
+        lightning_tarball_name = "br.tar.gz"
+        lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
+    }
     if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
         if (HOTFIX_TAG != "nightly") {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${HOTFIX_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         } else {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/master/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         }
         sh """
+        tar -zxf ${lightning_tarball_name}
+        cp ${lightning_ctl_bin_dir} ctls/
         tar xf ticdc-${os}-${arch}.tar.gz
         cp ticdc-${os}-${arch}/bin/cdc ctls/
         """
@@ -271,6 +284,12 @@ node("build_go1130") {
                 if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
                     ticdc_sha1 = get_hash(CDC_TAG, "ticdc")
                 }
+                lightning_sha1 = ""
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.2.0") {
+                    lightning_sha1 = get_hash(BR_TAG,"tidb")
+                } else {
+                    lightning_sha1 = get_hash(BR_TAG,"br")
+                }
             }
 
             if (HOTFIX_TAG == "nightly") {
@@ -281,7 +300,7 @@ node("build_go1130") {
                         // tar xf tidb-server.tar.gz
                         // """
                         // tidb_version = sh(returnStdout: true, script: "./bin/tidb-server -V | awk 'NR==1{print \$NF}' | sed -r 's/(^[^-]*).*/\\1/'").trim()
-                        tidb_version = "v5.0.0"
+                        tidb_version = "v5.4.0"
                         time = sh(returnStdout: true, script: "date '+%Y%m%d'").trim()
                         tidb_version = "${tidb_version}-nightly-${time}"
                     }

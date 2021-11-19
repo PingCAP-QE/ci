@@ -113,6 +113,7 @@ def package_enterprise = { arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_TAG}/${tiflash_hash}/centos7/tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
         tar -xzf tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
         rm -rf tiflash-${TIFLASH_TAG}-linux-arm64-enterprise.tar.gz
+        rm -rf tiflash
         mv tiflash-${TIFLASH_TAG}-linux-${arch} tiflash
         tar -czf tiflash-${VERSION}-linux-${arch}.tar.gz tiflash
         tiup mirror publish tiflash ${VERSION} tiflash-${VERSION}-linux-${arch}.tar.gz tiflash/tiflash --arch ${arch} --os linux --desc="The TiFlash Columnar Storage Engine"
@@ -137,8 +138,14 @@ def package_tools = { plat, arch ->
     binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
     pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
     tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
-    br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
-    importer_hash = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
+    br_hash = ""
+    importer_hash = ""
+    if (VERSION >= "v5.2.0") {
+        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+    } else {
+        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
+        importer_hash = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
+    }
 
     if(arch == "arm64") {
         sh """
@@ -147,13 +154,17 @@ def package_tools = { plat, arch ->
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server-linux-arm64.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools-linux-arm64.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${BR_TAG}/${br_hash}/centos7/br-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer-linux-arm64.tar.gz
+            if [ $VERSION \\< "v5.2.0" ]; then
+                wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer-linux-arm64.tar.gz
+            fi;
 
             tar xf tidb-binlog-linux-arm64.tar.gz
             tar xf pd-server-linux-arm64.tar.gz
             tar xf tidb-tools-linux-arm64.tar.gz
             tar xf br-linux-arm64.tar.gz
-            tar xf importer-linux-arm64.tar.gz
+            if [ $VERSION \\< "v5.2.0" ]; then
+                tar xf importer-linux-arm64.tar.gz
+            fi;
 
             cd tidb-binlog-*-linux-arm64/bin/
             cp arbiter reparo ../../${toolkit_dir}/bin/
@@ -166,8 +177,10 @@ def package_tools = { plat, arch ->
             cd ../../br-v*-linux-arm64/bin
             cp tidb-lightning tidb-lightning-ctl ../../${toolkit_dir}/bin/
 
-            cd ../../importer-v*-linux-arm64/bin
-            cp tikv-importer ../../${toolkit_dir}/bin/
+            if [ $VERSION \\< "v5.2.0" ]; then
+                cd ../../importer-v*-linux-arm64/bin
+                cp tikv-importer ../../${toolkit_dir}/bin/
+            fi;
 
             cd ../../
             tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
@@ -180,16 +193,23 @@ def package_tools = { plat, arch ->
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${BR_TAG}/${br_hash}/centos7/br.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer.tar.gz
+            if [ $VERSION \\< "v5.2.0" ]; then
+                wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer.tar.gz
+            fi;
 
             tar xf tidb-binlog.tar.gz
             tar xf pd-server.tar.gz
             tar xf tidb-tools.tar.gz
             tar xf br.tar.gz
-            tar xf importer.tar.gz
+            if [ $VERSION \\< "v5.2.0" ]; then
+                tar xf importer.tar.gz
+            fi;
 
             cd bin/
-            cp arbiter reparo pd-recover pd-tso-bench sync_diff_inspector tidb-lightning tidb-lightning-ctl tikv-importer ../${toolkit_dir}/bin/
+            cp arbiter reparo pd-recover pd-tso-bench sync_diff_inspector tidb-lightning tidb-lightning-ctl ../${toolkit_dir}/bin/
+            if [ $VERSION \\< "v5.2.0" ]; then
+                cp tikv-importer ../${toolkit_dir}/bin/
+            fi;
 
             cd ../
             tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}

@@ -122,6 +122,9 @@ node("build_go1130") {
                 checkoutTiCS(tag)
             }
         }
+        if (RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
+            VERSION = "2.27.1"
+        }
 
         stage("TiUP build prometheus on linux/amd64") {
             update VERSION, "linux", "amd64"
@@ -135,9 +138,11 @@ node("build_go1130") {
             update VERSION, "darwin", "amd64"
         }
 
-        stage("TiUP build prometheus on darwin/arm64") {
-            // prometheus did not provide the binary we need so we upgrade it.
-            update "2.28.1", "darwin", "arm64"
+        if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            stage("TiUP build prometheus on darwin/arm64") {
+                // prometheus did not provide the binary we need so we upgrade it.
+                update "2.28.1", "darwin", "arm64"
+            }
         }
     }
 }

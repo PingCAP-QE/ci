@@ -82,7 +82,7 @@ def tiflashBranch = TIKV_BRANCH
 def tiflashCommit = ""
 def CDC_BRANCH = ""
 
-if (ghprbTargetBranch == "master")  {
+if (ghprbTargetBranch =~ /^master$|^release-5\./) {
     TIKV_IMPORTER_BRANCH = "release-5.0"
 }
 
@@ -610,7 +610,7 @@ catchError {
                             """
                         }
                     }
-                    specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                    specStr = "+refs/heads/*:refs/remotes/origin/*"
                     if (ghprbPullId != null && ghprbPullId != "") {
                         specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
                     }
@@ -818,6 +818,26 @@ stage('Summary') {
         if (params.containsKey("triggered_by_upstream_pr_ci") && currentBuild.result != "ABORTED") {
             slackmsg = ":scream_cat: " + slackmsg
             slackSend channel: '#jenkins-ci-migration', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+        }
+
+        def feishuMsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\\n" +
+            "${ghprbPullLink}" + "\\n" +
+            "${ghprbPullDescription}" + "\\n" +
+            "BRIE Integration Test Result: `${currentBuild.result}`" + "\\n" +
+            "Elapsed Time: `${duration} mins` " + "\\n" +
+            "${env.RUN_DISPLAY_URL}"
+        node {
+            withCredentials([string(credentialsId: 'br-integration-test-feishu-webhook', variable: 'BR_WEBHOOK_TOKEN')]) {
+            sh """
+                curl -X POST ${BR_WEBHOOK_TOKEN} -H 'Content-Type: application/json' \
+                -d '{
+                    "msg_type": "text",
+                    "content": {
+                        "text": "${feishuMsg}"
+                    }
+                }' \
+            """
+            }
         }
     }
 }

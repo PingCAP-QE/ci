@@ -154,9 +154,11 @@ node("build_go1130") {
             update VERSION, "darwin", "amd64"
         }
 
-        stage("TiUP build grafana on darwin/arm64") {
-            // grafana did not provide the binary we need so we upgrade it.
-            update "7.5.10", "darwin", "arm64"
+        if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            stage("TiUP build grafana on darwin/arm64") {
+                // grafana did not provide the binary we need so we upgrade it.
+                update "7.5.10", "darwin", "arm64"
+            }
         }
     }
 }

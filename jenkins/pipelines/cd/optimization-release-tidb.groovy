@@ -52,10 +52,16 @@ catchError {
                             tidb_br_sha1 = get_hash(BR_TAG, "br")
                             importer_sha1 = get_hash(IMPORTER_TAG, "importer")
                         }
+
+                        if (RELEASE_TAG >= "v5.3.0") {
+                            dumpling_sha1 = tidb_br_sha1
+                        } else {
+                            dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
+                        }
+
                         tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
                         tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")    
                         cdc_sha1 = get_hash(CDC_TAG, "ticdc")
-                        dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
                     } else {
                         tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                         tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -69,7 +75,12 @@ catchError {
                         tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
                         tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                         cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
-                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
+
+                        if (RELEASE_TAG >= "v5.3.0") {
+                            dumpling_sha1 = tidb_sha1
+                        } else {
+                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
+                        }
 //                        考虑到 tikv 和 importer 的 bump version，release stage 只编译 tikv 和 importer
                         BUILD_TIKV_IMPORTER = "true"
                     }
@@ -133,28 +144,30 @@ catchError {
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                     ]
         }
-        builds["Build on darwin/arm64"] = {
-            build job: "optimization-build-tidb-darwin-arm",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                    ]
+        if (RELEASE_TAG >= "v5.1.0") {
+            builds["Build on darwin/arm64"] = {
+                build job: "optimization-build-tidb-darwin-arm",
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
+                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
+                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
+                                [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                        ]
+            }
         }
         def build_linux_amd = {
             build job: "optimization-build-tidb-linux-amd",
@@ -733,7 +746,9 @@ __EOF__
             builds["Push tiflash Docker"] = {
                 build job: 'release_tiflash_by_tag',
                         wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        parameters: [
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
+                        ]
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
@@ -747,7 +762,10 @@ __EOF__
             builds["Push monitor initializer"] = {
                 build job: 'release-monitor',
                         wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        parameters: [
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+                        ]
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
                     sh """
@@ -793,7 +811,8 @@ __EOF__
                             [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]          
             }
 
