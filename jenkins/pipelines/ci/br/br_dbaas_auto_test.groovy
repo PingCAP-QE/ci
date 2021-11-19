@@ -52,6 +52,7 @@ catchError {
                             echo 'begin to build'
                             go version
                             make dbaas
+                            make build_report
                             """
                         }
 
@@ -75,9 +76,13 @@ catchError {
                         }
                         
                         currentBuild.result = "SUCCESS"
-                        stage('Summary') {
-                        def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-                        println duration
+                        stage('Report') {
+                            def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+                            println duration
+                            println "Test Result Reported to Feishu"
+                                sh label: "Feishu Test Report", script: """
+                                make report
+                            """
                         }
                 }
                 
