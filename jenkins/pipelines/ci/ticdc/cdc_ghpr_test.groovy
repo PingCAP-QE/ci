@@ -146,14 +146,51 @@ catchError {
 
                         dir("go/src/github.com/pingcap/ticdc") {
                             sh """
+                                rm -rf /tmp/tidb_cdc_test
+                                mkdir -p /tmp/tidb_cdc_test
                                 GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
+                                rm -rf cov_dir
+                                mkdir -p cov_dir
+                                ls /tmp/tidb_cdc_test
+                                cp /tmp/tidb_cdc_test/cov*out cov_dir
+                            """
+                            sh """
+                                tail /tmp/tidb_cdc_test/cov*
                             """
                         }
+                        stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "unit_test", useDefaultExcludes: false
                     }
                 }
             }
 
             currentBuild.result = "SUCCESS"
+        }
+
+        stage('Coverage') {
+            node("${GO_TEST_SLAVE}") {
+                def ws = pwd()
+                deleteDir()
+                unstash 'ticdc'
+                unstash 'unit_test'
+
+                dir("go/src/github.com/pingcap/ticdc") {
+                    container("golang") {
+                        archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
+                        withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN')]) {
+                            timeout(30) {
+                                sh '''
+                            rm -rf /tmp/tidb_cdc_test
+                            mkdir -p /tmp/tidb_cdc_test
+                            cp cov_dir/* /tmp/tidb_cdc_test
+                            set +x
+                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make unit_test_coverage
+                            set -x
+                            '''
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         stage('Summary') {
