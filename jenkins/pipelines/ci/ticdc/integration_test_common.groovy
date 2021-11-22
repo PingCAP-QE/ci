@@ -284,8 +284,7 @@ def coverage() {
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-                    withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN'),
-                                     string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
                         timeout(30) {
                             sh '''
                             rm -rf /tmp/tidb_cdc_test
