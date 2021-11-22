@@ -80,36 +80,6 @@ def tests(sink_type, node_label) {
         // Set to fail fast.
         test_cases.failFast = true
 
-        // Start running unit tests.
-        test_cases["unit test"] = {
-            node(node_label) {
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    println "work space path:\n${ws}"
-                    unstash 'ticdc'
-
-                    dir("go/src/github.com/pingcap/ticdc") {
-                        sh """
-                            go version
-                            rm -rf /tmp/tidb_cdc_test
-                            mkdir -p /tmp/tidb_cdc_test
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
-                            rm -rf cov_dir
-                            mkdir -p cov_dir
-                            ls /tmp/tidb_cdc_test
-                            cp /tmp/tidb_cdc_test/cov*out cov_dir
-                        """
-                        sh """
-                        tail /tmp/tidb_cdc_test/cov*
-                        """
-                    }
-                    stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "unit_test", useDefaultExcludes: false
-                }
-            }
-        }
-
         // Start running integration tests.
         def run_integration_test = { step_name, case_names ->
             node(node_label) {
@@ -301,7 +271,6 @@ def coverage() {
             def ws = pwd()
             deleteDir()
             unstash 'ticdc'
-            unstash 'unit_test'
 
             // unstash all integration tests.
             def step_names = []
