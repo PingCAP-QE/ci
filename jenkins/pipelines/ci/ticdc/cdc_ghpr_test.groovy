@@ -183,7 +183,7 @@ catchError {
                             mkdir -p /tmp/tidb_cdc_test
                             cp cov_dir/* /tmp/tidb_cdc_test
                             set +x
-                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make integration_test_coverage
+                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make unit_test_coverage
                             set -x
                             '''
                             }
