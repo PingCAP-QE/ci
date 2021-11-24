@@ -51,9 +51,9 @@ catchError {
                 	targetBranch = "release-" + trimPrefix(ghprbTargetBranch)
                 }
                 if (targetBranch == "release-4.0" || targetBranch == "release-5.0" || targetBranch == "release-5.1") {
-                    default_params.triggered_by_upstream_pr_ci = "tidb"
+                    default_params[1] = string(name: 'triggered_by_upstream_pr_ci', value: "tidb")
                     // We tests BR on the same branch as TiDB's.
-                    default_params.upstream_pr_ci_ghpr_actual_commit = "${targetBranch}"
+                    default_params[3] = string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${targetBranch}")
                 }
                 // Trigger BRIE test without waiting its finish.
                 build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
