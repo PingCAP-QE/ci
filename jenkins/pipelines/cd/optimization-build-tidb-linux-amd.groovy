@@ -180,7 +180,7 @@ try {
                 dir("${ws}/go/src/github.com/pingcap/tidb") {
                     container("golang") {
                         def target = "tidb-server"
-                        def filepath = "builds/pingcap/tidb/optimization/${TIDB_HASH}/centos7/tidb-server.tar.gz"
+                        def filepath = "builds/pingcap/tidb/optimization/${RELEASE_TAG}/${TIDB_HASH}/centos7/tidb-server.tar.gz"
                         sh """
                             mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                             for a in \$(git tag --contains ${TIDB_HASH}); do echo \$a && git tag -d \$a;done
