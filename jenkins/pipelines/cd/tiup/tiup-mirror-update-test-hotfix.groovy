@@ -308,46 +308,6 @@ node("build_go1130") {
             } else {
                 tidb_version = HOTFIX_TAG
             }
-            if (params.ARCH_X86) {
-                stage("TiUP build tidb on linux/amd64") {
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
-                    update_ctl HOTFIX_TAG, "linux", "amd64"
-                }
-            }
-            if (params.ARCH_ARM) {
-                stage("TiUP build tidb on linux/arm64") {
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
-                    update_ctl HOTFIX_TAG, "linux", "arm64"
-                }
-            }
-            if (params.ARCH_MAC) {
-                stage("TiUP build tidb on darwin/amd64") {
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                    update_ctl HOTFIX_TAG, "darwin", "amd64"
-                }
-            }
-            if (params.ARCH_MAC_ARM) {
-                stage("TiUP build tidb on darwin/arm64") {
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "arm64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    // update_ctl HOTFIX_TAG, "darwin", "arm64"
-                }
-            }
 
             // stage("Upload") {
             //     upload "package"
@@ -477,6 +437,47 @@ node("build_go1130") {
 
             stage("TiUP build prometheus") {
                 build(job: "prometheus-tiup-mirrior-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
+            }
+
+            if (params.ARCH_X86) {
+                stage("TiUP build tidb on linux/amd64") {
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
+                    update_ctl HOTFIX_TAG, "linux", "amd64"
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                }
+            }
+            if (params.ARCH_ARM) {
+                stage("TiUP build tidb on linux/arm64") {
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+                    update_ctl HOTFIX_TAG, "linux", "arm64"
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                }
+            }
+            if (params.ARCH_MAC) {
+                stage("TiUP build tidb on darwin/amd64") {
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                    update_ctl HOTFIX_TAG, "darwin", "amd64"
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                }
+            }
+            if (params.ARCH_MAC_ARM) {
+                stage("TiUP build tidb on darwin/arm64") {
+                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
+                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
+                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                    // update_ctl HOTFIX_TAG, "darwin", "arm64"
+                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
+                }
             }
 
             // def params2 = [
