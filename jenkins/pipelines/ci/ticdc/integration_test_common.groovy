@@ -9,6 +9,14 @@ TOTAL_COUNT = 0
 GROUP_SIZE = 2
 
 /**
+ * the tidb archive is packaged differently on pr than on the branch build,
+ * pr build is ./bin/tidb-server
+ * branch build is bin/tidb-server
+ */
+TIDB_ARCHIVE_PATH_PR = "./bin/tidb-server"
+TIDB_ARCHIVE_PATH_BRANCH = "bin/tidb-server"
+
+/**
  * Partition the array.
  * @param array
  * @param size
@@ -165,8 +173,10 @@ def download_binaries() {
 
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
+    def tidb_archive_path = TIDB_ARCHIVE_PATH_BRANCH
     if (m1) {
         TIDB_BRANCH = "${m1[0][1]}"
+        tidb_archive_path = TIDB_ARCHIVE_PATH_PR
     }
     m1 = null
     println "TIDB_BRANCH=${TIDB_BRANCH}"
@@ -204,7 +214,6 @@ def download_binaries() {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
     def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
-    def tidb_archive_path = "bin/tidb-server"
     def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
     def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
     def tiflash_url = "${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
