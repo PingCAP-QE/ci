@@ -27,7 +27,7 @@ def get_hash = { hash_or_branch, repo ->
 
 env.DOCKER_HOST = "tcp://localhost:2375"
 
-
+ng_monitoring_sha1 = ""
 catchError {
     stage('Prepare') {
         node('delivery') {
@@ -78,6 +78,7 @@ catchError {
 
                         if (RELEASE_TAG >= "v5.3.0") {
                             dumpling_sha1 = tidb_sha1
+                            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                         } else {
                             dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
                         }
@@ -88,7 +89,6 @@ catchError {
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
-                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
             }
         }

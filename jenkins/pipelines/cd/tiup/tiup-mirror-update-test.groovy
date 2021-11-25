@@ -37,11 +37,11 @@ def download = { name, hash, os, arch ->
     }
     if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v4.0.0") {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${tarball_name}
     """
     } else {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${hash}/${platform}/${tarball_name}
     """
     }
 }
@@ -200,10 +200,11 @@ def update_ctl = { version, os, arch ->
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
         if (RELEASE_TAG != "nightly") {
             sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${RELEASE_TAG}/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
             wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         } else {
+            // seems there something not correct, will inspect later
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
             wget ${FILE_SERVER_URL}/download/builds/pingcap/br/master/${lightning_sha1}/${platform}/${lightning_tarball_name}
