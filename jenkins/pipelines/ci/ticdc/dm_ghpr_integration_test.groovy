@@ -110,12 +110,13 @@ def run_tls_source_it_test(String case_name) {
             namespace: 'jenkins-tidb',
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
+                            name: 'golang', alwaysPullImage: true,
                             image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '4Gi',
+                            resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
                             command: 'cat'),
                     containerTemplate(
-                            name: 'mysql1', alwaysPullImage: false,
+                            name: 'mysql1', alwaysPullImage: true,
                             image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
                             resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                             envVars: [
@@ -212,12 +213,13 @@ def run_single_it_test(String case_name) {
             namespace: 'jenkins-tidb',
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
+                            name: 'golang', alwaysPullImage: true,
                             image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '4Gi',
+                            resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
                             command: 'cat'),
                     containerTemplate(
-                            name: 'mysql1', alwaysPullImage: false,
+                            name: 'mysql1', alwaysPullImage: true,
                             image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
                             resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                             envVars: [

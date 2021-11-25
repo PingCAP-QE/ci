@@ -477,36 +477,6 @@ try {
             }
         }
 
-        stage("Build Importer") {
-            dir("go/src/github.com/pingcap/importer") {
-
-                def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/importer/${IMPORTER_HASH}/darwin/importer.tar.gz"
-
-                retry(20) {
-                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        deleteDir()
-                    }
-                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-                    } else {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:tikv/importer.git']]]
-                    }
-                }
-
-                sh """
-                export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-                ROCKSDB_SYS_SSE=0 make release
-                rm -rf ${target}
-                mkdir -p ${target}/bin
-                cp target/release/tikv-importer ${target}/bin
-                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                """
-            }
-        }
-
         if(SKIP_TIFLASH == "false" && (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0")) {
             node("mac-i5"){
                 stage("build tiflash") {

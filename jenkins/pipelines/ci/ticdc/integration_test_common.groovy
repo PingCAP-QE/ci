@@ -80,36 +80,6 @@ def tests(sink_type, node_label) {
         // Set to fail fast.
         test_cases.failFast = true
 
-        // Start running unit tests.
-        test_cases["unit test"] = {
-            node(node_label) {
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    println "work space path:\n${ws}"
-                    unstash 'ticdc'
-
-                    dir("go/src/github.com/pingcap/ticdc") {
-                        sh """
-                            go version
-                            rm -rf /tmp/tidb_cdc_test
-                            mkdir -p /tmp/tidb_cdc_test
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
-                            rm -rf cov_dir
-                            mkdir -p cov_dir
-                            ls /tmp/tidb_cdc_test
-                            cp /tmp/tidb_cdc_test/cov*out cov_dir
-                        """
-                        sh """
-                        tail /tmp/tidb_cdc_test/cov*
-                        """
-                    }
-                    stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "unit_test", useDefaultExcludes: false
-                }
-            }
-        }
-
         // Start running integration tests.
         def run_integration_test = { step_name, case_names ->
             node(node_label) {
@@ -124,7 +94,7 @@ def tests(sink_type, node_label) {
                         download_binaries()
                         try {
                             sh """
-                                sudo pip install s3cmd
+                                s3cmd --version
                                 rm -rf /tmp/tidb_cdc_test
                                 mkdir -p /tmp/tidb_cdc_test
                                 echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
@@ -234,6 +204,7 @@ def download_binaries() {
         tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
     def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+    def tidb_archive_path = "bin/tidb-server"
     def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
     def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
     def tiflash_url = "${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
@@ -246,6 +217,14 @@ def download_binaries() {
             println "Use the upstream download link, upstream_pr_ci_override_tikv_download_link=${tikv_download_link}"
             tikv_url = tikv_download_link
             break;
+        case "tidb":
+            def tidb_download_link = params.upstream_pr_ci_override_tidb_download_link
+            println "Use the upstream download link, upstream_pr_ci_override_tidb_download_link=${tidb_download_link}"
+            tidb_url = tidb_download_link
+            // Because the tidb archive is packaged differently on pr than on the branch build,
+            // we have to use a different unzip path.
+            tidb_archive_path = "./bin/tidb-server"
+            break;
     }
 
     sh """
@@ -254,12 +233,13 @@ def download_binaries() {
         mkdir -p bin
 
         tidb_url="${tidb_url}"
+        tidb_archive_path="${tidb_archive_path}"
         tikv_url="${tikv_url}"
         pd_url="${pd_url}"
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
-        curl \${tidb_url} | tar xz -C ./tmp bin/tidb-server
+        curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
         curl \${minio_url} | tar xz -C ./tmp/bin minio
@@ -291,7 +271,6 @@ def coverage() {
             def ws = pwd()
             deleteDir()
             unstash 'ticdc'
-            unstash 'unit_test'
 
             // unstash all integration tests.
             def step_names = []
@@ -305,21 +284,20 @@ def coverage() {
             dir("go/src/github.com/pingcap/ticdc") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-                    withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN'),
-                                    string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) { 
+                    withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
                         timeout(30) {
                             sh '''
                             rm -rf /tmp/tidb_cdc_test
                             mkdir -p /tmp/tidb_cdc_test
                             cp cov_dir/* /tmp/tidb_cdc_test
                             set +x
-                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make coverage
+                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make integration_test_coverage
                             set -x
                             '''
                         }
                     }
 
-                    
+
                 }
             }
         }

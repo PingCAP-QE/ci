@@ -82,7 +82,7 @@ def tiflashBranch = TIKV_BRANCH
 def tiflashCommit = ""
 def CDC_BRANCH = ""
 
-if (ghprbTargetBranch == "master")  {
+if (ghprbTargetBranch =~ /^master$|^release-5\./) {
     TIKV_IMPORTER_BRANCH = "release-5.0"
 }
 
