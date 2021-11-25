@@ -27,6 +27,16 @@ def checkoutTiCS(branch) {
     // checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/heads/*:refs/remotes/origin/*", url: 'git@github.com:pingcap/tics.git']]]
 }
 
+def name="ng-monitoring"
+def ng_monitoring_sha1, tarball_name
+
+def get_hash = { hash_or_branch, repo ->
+    if (hash_or_branch.length() == 40) {
+        return hash_or_branch
+    }
+    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+}
+
 def download = { version, os, arch ->
     if (os == "darwin" && arch == "arm64") {
         sh """
@@ -37,12 +47,45 @@ def download = { version, os, arch ->
         wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
         """
     }
+    if (os == "linux") {
+        platform = "centos7"
+    }
+
+    if (os == "darwin") {
+        platform = "darwin"
+    }
+
+    if (os == "darwin" && arch == "arm64") {
+        platform = "darwin-arm64"
+    }
+
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
+
+    sh """
+    rm -rf ${tarball_name}
+    """
+
+    if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
+        sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${ng_monitoring_sha1}/${platform}/${tarball_name}
+        """
+    } else if (HOTFIX_TAG == "nightly") {
+        sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+        """
+    }
 }
 
 def unpack = { version, os, arch ->
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
+    if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
+        sh """
+            rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
+            tar -zxf ${tarball_name}
+        """
+    }
 }
 
 def pack = { version, os, arch ->
@@ -52,6 +95,10 @@ def pack = { version, os, arch ->
     }
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
+    if [ ${HOTFIX_TAG} \\> "v5.3.0" ] || [ ${HOTFIX_TAG} == "v5.3.0" ]; then \
+       cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* ./
+       rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
+    fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/metrics/alertmanager/tidb.rules.yml || true; \
@@ -86,7 +133,10 @@ def pack = { version, os, arch ->
 
     cd ..
 
-    tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${HOTFIX_TAG}"
+    # tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${HOTFIX_TAG}"
+    rm -rf package
+    mkdir -p package
+    tar czvf package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz prometheus ng-monitoring-server
     tiup mirror publish prometheus ${TIDB_VERSION} package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz "prometheus/prometheus" --arch ${arch} --os ${os} --desc="The Prometheus monitoring system and time series database"
     rm -rf prometheus
     """
@@ -121,6 +171,17 @@ node("build_go1130") {
                 checkoutTiCS(RELEASE_BRANCH)
             }
         }
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+
+        ng_monitoring_sha1 = ""
+        if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {
+            if (HOTFIX_TAG == "nightly"){
+                ng_monitoring_sha1 = get_hash("main","ng-monitoring")
+            } else {
+                ng_monitoring_sha1 = get_hash(RELEASE_BRANCH,"ng-monitoring")
+            }
+        }
+
         if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
             VERSION = "2.27.1"
         }

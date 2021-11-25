@@ -89,6 +89,7 @@ catchError {
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
+                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
             }
         }
@@ -118,6 +119,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                            [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                     ]
         }
 
@@ -142,6 +144,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                            [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                     ]
         }
         if (RELEASE_TAG >= "v5.1.0") {
@@ -166,6 +169,7 @@ catchError {
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                                 [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
         }
@@ -190,6 +194,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                            [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                     ]
         }
         if (STAGE == "build") {

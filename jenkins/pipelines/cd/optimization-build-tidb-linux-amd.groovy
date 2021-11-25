@@ -12,6 +12,7 @@
 * @RELEASE_TAG
 * @PRE_RELEASE
 * @FORCE_REBUILD
+* @NGMonitoring_HASH
 * @TIKV_PRID
 */
 def boolean tagNeedUpgradeGoVersion(String tag) {
@@ -421,6 +422,39 @@ try {
                 }
             }
         }
+        builds["Build ng monitoring"] = {
+            node("${GO_BUILD_SLAVE}") {
+                if (ifFileCacheExists("ng-monitoring",NGMonitoring_HASH,"ng-monitoring")){
+                    return
+                }
+                container("golang") {
+                    def ws = pwd()
+                    def target = "ng-monitoring-${RELEASE_TAG}-linux-amd64"
+                    deleteDir()
+                    dir("go/src/github.com/pingcap/ng-monitoring") {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        def filepath = "builds/pingcap/ng-monitoring/optimization/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${NGMonitoring_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ng-monitoring.git']]]                            
+                        sh """
+                            for a in \$(git tag --contains ${NGMonitoring_HASH}); do echo \$a && git tag -d \$a;done
+                            git tag -f ${RELEASE_TAG} ${NGMonitoring_HASH}
+                            git branch -D refs/tags/${RELEASE_TAG} || true
+                            git checkout -b refs/tags/${RELEASE_TAG}
+
+                            make
+                            rm -rf ${target}
+                            mkdir -p ${target}/bin
+                            mv bin/* ${target}/bin/
+
+                            tar czvf ${target}.tar.gz ${target}
+                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                }
+            }
+        }
         builds["Build br"] = {
             node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("br",BR_HASH,"br")){
@@ -638,6 +672,9 @@ try {
         }
         if (RELEASE_TAG >= "v5.2.0") {
             builds.remove("Build importer")
+        }
+        if (RELEASE_TAG < "v5.3.0") {
+            builds.remove("Build ng monitoring")
         }
         parallel builds
     }

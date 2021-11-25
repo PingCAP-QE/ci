@@ -43,6 +43,7 @@ def get_sha() {
     lightning_sha1 = br_sha1
     tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
 
     if (TIKV_BUMPVERION_HASH.length() == 40) {
         return tikv_sha1 = TIKV_BUMPVERION_HASH
@@ -75,6 +76,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
@@ -100,6 +102,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
@@ -126,6 +129,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
@@ -152,6 +156,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],

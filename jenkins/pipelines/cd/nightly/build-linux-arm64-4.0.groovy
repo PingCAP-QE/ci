@@ -78,6 +78,7 @@ try {
                 """
             }
             TIDB_CTL_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
+            NGMonitoring_HASH = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
         }
 
         stage("Build tidb-ctl") {
@@ -348,6 +349,38 @@ try {
                     else
                         make build
                     fi;
+                    rm -rf ${target}
+                    mkdir -p ${target}/bin
+                    cp bin/* ${target}/bin
+                    tar -czvf ${target}.tar.gz ${target}
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    """
+                }
+            }
+        }
+        
+        if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3") {
+            stage("Build Ng Monitoring") {
+                dir("go/src/github.com/pingcap/ng-monitoring") {
+
+                    def target = "ng-monitoring-${RELEASE_TAG}-${os}-${arch}"
+                    def filepath = "builds/pingcap/ng-monitoring/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
+
+                    retry(20) {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${NGMonitoring_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ng-monitoring.git']]]
+                        } else {
+                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/ng-monitoring.git']]]
+                        }
+                    }
+
+                    sh """
+                    export GOPATH=/Users/pingcap/gopkg
+                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    make
                     rm -rf ${target}
                     mkdir -p ${target}/bin
                     cp bin/* ${target}/bin
