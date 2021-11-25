@@ -13,8 +13,8 @@ GROUP_SIZE = 2
  * pr build is ./bin/tidb-server
  * branch build is bin/tidb-server
  */
-TIDB_ARCHINE_PATH_PR = "./bin/tidb-server"
-TIDB_ARCHINE_PATH_BRANCH = "bin/tidb-server"
+TIDB_ARCHIVE_PATH_PR = "./bin/tidb-server"
+TIDB_ARCHIVE_PATH_BRANCH = "bin/tidb-server"
 
 /**
  * Partition the array.
@@ -173,10 +173,10 @@ def download_binaries() {
 
     // parse tidb branch
     def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
-    def tidb_archive_path = TIDB_ARCHINE_PATH_BRANCH
+    def tidb_archive_path = TIDB_ARCHIVE_PATH_BRANCH
     if (m1) {
         TIDB_BRANCH = "${m1[0][1]}"
-        tidb_archive_path = TIDB_ARCHINE_PATH_PR
+        tidb_archive_path = TIDB_ARCHIVE_PATH_PR
     }
     m1 = null
     println "TIDB_BRANCH=${TIDB_BRANCH}"
