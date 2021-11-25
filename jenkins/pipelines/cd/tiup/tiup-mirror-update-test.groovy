@@ -284,43 +284,6 @@ node("build_go1130") {
                 tidb_version = RELEASE_TAG
             }
 
-            stage("TiUP build tidb on linux/amd64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
-                update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "amd64"
-                update_ctl RELEASE_TAG, "linux", "amd64"
-            }
-
-            stage("TiUP build tidb on linux/arm64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
-                update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "arm64"
-                update_ctl RELEASE_TAG, "linux", "arm64"
-            }
-
-            stage("TiUP build tidb on darwin/amd64") {
-                update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
-                update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                update_ctl RELEASE_TAG, "darwin", "amd64"
-            }
-
-            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
-                stage("TiUP build tidb on darwin/arm64") {
-                    update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
-                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
-                    update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
-                    update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
-                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    // update_ctl RELEASE_TAG, "darwin", "arm64"
-                }
-            }
             // stage("Upload") {
             //     upload "package"
             // }
@@ -375,6 +338,44 @@ node("build_go1130") {
                     string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
             ]
+
+            stage("TiUP build tidb on linux/amd64") {
+                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
+                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
+                update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
+                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "amd64"
+                update_ctl RELEASE_TAG, "linux", "amd64"
+                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
+            }
+
+            stage("TiUP build tidb on linux/arm64") {
+                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
+                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
+                update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
+                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "arm64"
+                update_ctl RELEASE_TAG, "linux", "arm64"
+                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
+            }
+
+            stage("TiUP build tidb on darwin/amd64") {
+                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
+                update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
+                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                update_ctl RELEASE_TAG, "darwin", "amd64"
+                update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
+            }
+
+            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+                stage("TiUP build tidb on darwin/arm64") {
+                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                    update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
+                    update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
+                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                    // update_ctl RELEASE_TAG, "darwin", "arm64"
+                    update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
+                }
+            }
 
 
             // stage("TiUP build node_exporter") {
