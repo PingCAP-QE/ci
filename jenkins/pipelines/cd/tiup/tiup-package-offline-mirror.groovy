@@ -132,12 +132,12 @@ def package_tools = { plat, arch ->
     if(arch == "arm64") {
         sh """
             mkdir -p ${toolkit_dir}/bin/
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server-linux-arm64.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${VERSION}/${binlog_hash}/centos7/tidb-binlog-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-server-linux-arm64.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${VERSION}/${tools_hash}/centos7/tidb-tools-linux-arm64.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${VERSION}/${br_hash}/centos7/br-linux-arm64.tar.gz
             if [ $VERSION \\< "v5.2.0" ]; then
-                wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer-linux-arm64.tar.gz
+                wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${VERSION}/${importer_hash}/centos7/importer-linux-arm64.tar.gz
             fi;
 
             tar xf tidb-binlog-linux-arm64.tar.gz
@@ -171,12 +171,12 @@ def package_tools = { plat, arch ->
     } else if(arch == "amd64") {
         sh """
             mkdir -p ${toolkit_dir}/bin/
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${binlog_hash}/centos7/tidb-binlog.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_hash}/centos7/pd-server.tar.gz
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tools_hash}/centos7/tidb-tools.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${VERSION}/${binlog_hash}/centos7/tidb-binlog.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-server.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${VERSION}/${tools_hash}/centos7/tidb-tools.tar.gz
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${VERSION}/${br_hash}/centos7/br.tar.gz
             if [ $VERSION \\< "v5.2.0" ]; then
-                wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_hash}/centos7/importer.tar.gz
+                wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${VERSION}/${importer_hash}/centos7/importer.tar.gz
             fi;
 
             tar xf tidb-binlog.tar.gz

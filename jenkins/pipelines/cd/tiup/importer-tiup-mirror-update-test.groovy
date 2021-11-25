@@ -23,7 +23,7 @@ def download = { name, version, os, arch ->
     }
     if (RELEASE_TAG != "nightly" && RELEASE_TAG > "v4.0.0") {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${importer_sha1}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${importer_sha1}/${platform}/${tarball_name}
     """
     }else{
         sh """

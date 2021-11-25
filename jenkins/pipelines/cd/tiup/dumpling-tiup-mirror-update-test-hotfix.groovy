@@ -30,7 +30,7 @@ def download = { name, version, os, arch ->
     }
     if (HOTFIX_TAG != "nightly") {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${dumpling_sha1}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${dumpling_sha1}/${platform}/${tarball_name}
     """
     } else {
         sh """
