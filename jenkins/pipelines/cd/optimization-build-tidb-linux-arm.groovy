@@ -46,12 +46,12 @@ def ifFileCacheExists(product,hash,binary) {
     if(!fileExists("gethash.py")){
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
-    def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     if (product == "br") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
     }
     if (product == "tiflash") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
@@ -116,14 +116,14 @@ def build_upload = { product, hash, binary ->
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
-                def filepath = "builds/pingcap/${product}/optimization/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
+                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
                 if (product == "br") {
                     filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/centos7/${binary}-${os}-${arch}.tar.gz"
                 }
                 def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
                 if (product == "ticdc") {
                     target = "${product}-${os}-${arch}"
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/centos7/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/centos7/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "tidb-ctl") {
                     sh """
@@ -348,7 +348,7 @@ try {
                         deleteDir()
                     }
                     def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
 
                     def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                     if (TIKV_PRID != null && TIKV_PRID != "") {
@@ -400,7 +400,7 @@ try {
                         return
                     }
                     def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/importer/optimization/${RELEASE_TAG}/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
                     try {
                         checkout changelog: false, poll: true,
                                 scm: [$class      : 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false,

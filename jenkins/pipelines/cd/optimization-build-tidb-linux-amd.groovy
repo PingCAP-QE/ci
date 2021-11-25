@@ -48,12 +48,12 @@ def ifFileCacheExists(product,hash,binary) {
     if(!fileExists("gethash.py")){
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
-    def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     if (product == "br") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     }
     if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
     } 
     if (product == "tiflash") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
@@ -109,7 +109,7 @@ try {
                         git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/tidb-ctl.git", branch: "master"
                         githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                         def target = "tidb-ctl"
-                        def filepath = "builds/pingcap/tidb-ctl/optimization/${githash}/centos7/tidb-ctl.tar.gz"
+                        def filepath = "builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${githash}/centos7/tidb-ctl.tar.gz"
 
                         sh """
                             go version
@@ -277,7 +277,7 @@ try {
                         }
 
                         def target = "tidb-binlog"
-                        def filepath = "builds/pingcap/tidb-binlog/optimization/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
+                        def filepath = "builds/pingcap/tidb-binlog/optimization/${RELEASE_TAG}/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
                         sh """
                             for a in \$(git tag --contains ${BINLOG_HASH}); do echo \$a && git tag -d \$a;done
@@ -307,7 +307,7 @@ try {
                             deleteDir()
                         }
                         def target = "tidb-tools"
-                        def filepath = "builds/pingcap/tidb-tools/optimization/${TOOLS_HASH}/centos7/tidb-tools.tar.gz"
+                        def filepath = "builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${TOOLS_HASH}/centos7/tidb-tools.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TOOLS_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-tools.git']]]
                         sh """
                             for a in \$(git tag --contains ${TOOLS_HASH}); do echo \$a && git tag -d \$a;done
@@ -335,7 +335,7 @@ try {
                             deleteDir()
                         }
                         def target = "pd-server"
-                        def filepath = "builds/pingcap/pd/optimization/${PD_HASH}/centos7/pd-server.tar.gz"
+                        def filepath = "builds/pingcap/pd/optimization/${RELEASE_TAG}/${PD_HASH}/centos7/pd-server.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PD_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/pd.git']]]
 
                         sh """
@@ -367,7 +367,7 @@ try {
                             deleteDir()
                         }
                         def target = "ticdc-linux-amd64"
-                        def filepath = "builds/pingcap/ticdc/optimization/${CDC_HASH}/centos7/ticdc-linux-amd64.tar.gz"
+                        def filepath = "builds/pingcap/ticdc/optimization/${RELEASE_TAG}/${CDC_HASH}/centos7/ticdc-linux-amd64.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
                         sh """
                             for a in \$(git tag --contains ${CDC_HASH}); do echo \$a && git tag -d \$a;done
@@ -403,7 +403,7 @@ try {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        def filepath = "builds/pingcap/dumpling/optimization/${DUMPLING_HASH}/centos7/dumpling.tar.gz"
+                        def filepath = "builds/pingcap/dumpling/optimization/${RELEASE_TAG}/${DUMPLING_HASH}/centos7/dumpling.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: repo]]]                            
                         sh """
                             for a in \$(git tag --contains ${DUMPLING_HASH}); do echo \$a && git tag -d \$a;done
@@ -435,7 +435,7 @@ try {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        def filepath = "builds/pingcap/ng-monitoring/optimization/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
+                        def filepath = "builds/pingcap/ng-monitoring/optimization/${RELEASE_TAG}/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${NGMonitoring_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ng-monitoring.git']]]                            
                         sh """
                             for a in \$(git tag --contains ${NGMonitoring_HASH}); do echo \$a && git tag -d \$a;done
@@ -469,7 +469,6 @@ try {
                         }
                         def target = "br"
                         def filepath = "builds/pingcap/br/optimization/${RELEASE_TAG}/${BR_HASH}/centos7/br.tar.gz"
-                        def filepath2 = "builds/pingcap/br/optimization/${BR_HASH}/centos7/br.tar.gz"
                         def repo = "git@github.com:pingcap/br.git"
                         if (RELEASE_TAG >= "v5.2.0" ) {
                             repo = "git@github.com:pingcap/tidb.git"
@@ -488,7 +487,6 @@ try {
                             fi;
                             tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
                             curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                            curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
@@ -524,7 +522,7 @@ try {
                                 }
                                 def target = "tiflash"
                                 def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash.tar.gz"
-                                def filepath2 = "builds/pingcap/tiflash/optimization/${TIFLASH_HASH}/centos7/tiflash.tar.gz"
+
 
                                 try{
                                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
@@ -549,7 +547,6 @@ try {
                                     cd release-centos7/
                                     tar --exclude=${target}.tar.gz -czvf tiflash.tar.gz tiflash
                                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                                    curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                                 """
                                 // build tiflash docker image
                                 container("docker") {
@@ -582,47 +579,38 @@ try {
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     deleteDir()
                     dir("go/src/github.com/pingcap/tikv") {
-                        if (BUILD_TIKV_IMPORTER == "true") {
-                            dir("tikv_tmp") {
-                                deleteDir()
-                                sh """
-                                    curl -sL -o tikv-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${TIKV_HASH}/centos7/tikv-server.tar.gz
-                                    curl -F builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server.tar.gz=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload
-                                """
-                            }
-                        } else {
-                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            def target = "tikv-server"
-                            def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/centos7/tikv-server.tar.gz"
-
-                            def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-                            if (TIKV_PRID != null && TIKV_PRID != "") {
-                                specStr = "+refs/pull/${TIKV_PRID}/*:refs/remotes/origin/pr/${TIKV_PRID}/*"
-                            }
-                            def branch = TIKV_HASH
-                            if (RELEASE_BRANCH != null && RELEASE_BRANCH != "") {
-                                branch =RELEASE_BRANCH
-                            }
-
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
-                            sh """
-                                git checkout -f ${TIKV_HASH}
-                                for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
-                                git tag -f ${RELEASE_TAG} ${TIKV_HASH}
-                                git branch -D refs/tags/${RELEASE_TAG} || true
-                                git checkout -b refs/tags/${RELEASE_TAG}
-                                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                                if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                    echo using gcc 8
-                                    source /opt/rh/devtoolset-8/enable
-                                fi
-                                CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make dist_release
-                                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
-                                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                            """
+                    
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
                         }
+                        def target = "tikv-server"
+                        def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/centos7/tikv-server.tar.gz"
+
+                        def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+                        if (TIKV_PRID != null && TIKV_PRID != "") {
+                            specStr = "+refs/pull/${TIKV_PRID}/*:refs/remotes/origin/pr/${TIKV_PRID}/*"
+                        }
+                        def branch = TIKV_HASH
+                        if (RELEASE_BRANCH != null && RELEASE_BRANCH != "") {
+                            branch =RELEASE_BRANCH
+                        }
+
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
+                        sh """
+                            git checkout -f ${TIKV_HASH}
+                            for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
+                            git tag -f ${RELEASE_TAG} ${TIKV_HASH}
+                            git branch -D refs/tags/${RELEASE_TAG} || true
+                            git checkout -b refs/tags/${RELEASE_TAG}
+                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
+                                echo using gcc 8
+                                source /opt/rh/devtoolset-8/enable
+                            fi
+                            CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make dist_release
+                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
+                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        """
                     }
                 }
             }
@@ -636,36 +624,28 @@ try {
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     deleteDir()
                     dir("go/src/github.com/pingcap/importer") {
-                        if (BUILD_TIKV_IMPORTER == "true") {
-                            dir("importer_tmp") {
-                                deleteDir()
-                                sh """
-                                    curl -sL -o importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/${IMPORTER_HASH}/centos7/importer.tar.gz
-                                    curl -F builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz=@importer.tar.gz ${FILE_SERVER_URL}/upload
-                                """
-                            }
-                        } else {
-                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            def target = "importer"
-                            def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz"
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-                            sh """
-                                for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-                                git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-                                git branch -D refs/tags/${RELEASE_TAG} || true
-                                git checkout -b refs/tags/${RELEASE_TAG}
-                                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                                if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                    echo using gcc 8
-                                    source /opt/rh/devtoolset-8/enable
-                                fi
-                                make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
-                                tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
-                                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                            """
+                
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
                         }
+                        def target = "importer"
+                        def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/centos7/importer.tar.gz"
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
+                        sh """
+                            for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
+                            git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
+                            git branch -D refs/tags/${RELEASE_TAG} || true
+                            git checkout -b refs/tags/${RELEASE_TAG}
+                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
+                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
+                                echo using gcc 8
+                                source /opt/rh/devtoolset-8/enable
+                            fi
+                            make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
+                            tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
+                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                        
                     }
                 }
             }

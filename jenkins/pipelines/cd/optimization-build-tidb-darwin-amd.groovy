@@ -47,18 +47,18 @@ def checkIfFileCacheExists(product, hash, binary) {
     if (!fileExists("gethash.py")) {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
-    def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     if (product == "br") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     }
     if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "ng-monitoring") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "tiflash") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
@@ -120,20 +120,20 @@ def build_upload = { product, hash, binary ->
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
-                def filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${binary}.tar.gz"
+                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
                 if (product == "br") {
                     filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
                 }
                 def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
                 if (product == "ticdc") {
                     target = "${product}-${os}-${arch}"
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "dumpling") {
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "ng-monitoring") {
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
                 }
                 if (product == "tidb-ctl") {
                     sh """
@@ -341,7 +341,7 @@ try {
                             return
                         }
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                        def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/darwin/tikv-server.tar.gz"
+                        def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
                         def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                         if (TIKV_PRID != null && TIKV_PRID != "") {
@@ -391,7 +391,7 @@ try {
                             return
                         }
                         def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                        def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/darwin/importer.tar.gz"
+                        def filepath = "builds/pingcap/importer/optimization/${RELEASE_TAG}/${IMPORTER_HASH}/darwin/importer.tar.gz"
                         retry(20) {
                             if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                 deleteDir()

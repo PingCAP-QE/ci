@@ -24,7 +24,7 @@ def get_hash = { hash_or_branch, repo ->
     return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
 }
 
-def BUILD_TIKV_IMPORTER = "false"
+
 env.DOCKER_HOST = "tcp://localhost:2375"
 
 
@@ -82,7 +82,6 @@ catchError {
                             dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
                         }
 //                        考虑到 tikv 和 importer 的 bump version，release stage 只编译 tikv 和 importer
-                        BUILD_TIKV_IMPORTER = "true"
                     }
                     // lightning 从 4.0.12 开始和 br 的 hash 一样
                     tidb_lightning_sha1 = tidb_br_sha1
@@ -115,7 +114,6 @@ catchError {
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -140,7 +138,6 @@ catchError {
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -165,7 +162,6 @@ catchError {
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                                 [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -190,7 +186,6 @@ catchError {
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: BUILD_TIKV_IMPORTER],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -220,35 +215,35 @@ catchError {
             """
             stage('download') {
                 dir('centos7') {
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${RELEASE_TAG}/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${RELEASE_TAG}/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${RELEASE_TAG}/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
                     if (RELEASE_TAG < "v5.2.0") {
-                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer.tar.gz | tar xz"
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${RELEASE_TAG}/${importer_sha1}/centos7/importer.tar.gz | tar xz"
                     }
                     
 
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${RELEASE_TAG}/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${RELEASE_TAG}/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${RELEASE_TAG}/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
                 }
 
                 dir('arm') {
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${tidb_sha1}/centos7/tidb-server-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${tikv_sha1}/centos7/tikv-server-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${pd_sha1}/centos7/pd-server-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${RELEASE_TAG}/${tidb_sha1}/centos7/tidb-server-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${RELEASE_TAG}/${tikv_sha1}/centos7/tikv-server-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${RELEASE_TAG}/${pd_sha1}/centos7/pd-server-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-arm64.tar.gz | tar xz"
                     if (RELEASE_TAG < "v5.2.0") {
-                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${importer_sha1}/centos7/importer-linux-arm64.tar.gz | tar xz"
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${RELEASE_TAG}/${importer_sha1}/centos7/importer-linux-arm64.tar.gz | tar xz"
                     } 
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${tidb_tools_sha1}/centos7/tidb-tools-linux-arm64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${tidb_tools_sha1}/centos7/tidb-tools-linux-arm64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${RELEASE_TAG}/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br-linux-arm64.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${dumpling_sha1}/centos7/dumpling-linux-arm64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${RELEASE_TAG}/${dumpling_sha1}/centos7/dumpling-linux-arm64.tar.gz | tar xz"
                     // sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash-linux-arm64.tar.gz | tar xz"
                 }
