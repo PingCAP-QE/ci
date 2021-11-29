@@ -1,0 +1,5 @@
+FROM pingcap/alpine-glibc:alpine-3.14
+COPY pd-server /pd-server
+COPY pd-ctl /pd-ctl
+EXPOSE 2379 2380
+ENTRYPOINT ["/pd-server"]
