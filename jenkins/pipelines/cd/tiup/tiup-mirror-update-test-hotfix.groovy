@@ -60,7 +60,7 @@ def download = { name, hash, os, arch ->
     }
     if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v4.0.0") {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${hash}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${hash}/${platform}/${tarball_name}
     """
     } else {
         sh """
@@ -225,7 +225,7 @@ def update_ctl = { version, os, arch ->
     if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
         if (HOTFIX_TAG != "nightly") {
             sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${HOTFIX_TAG}/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
             wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${HOTFIX_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         } else {

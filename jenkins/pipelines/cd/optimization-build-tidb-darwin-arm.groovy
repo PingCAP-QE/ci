@@ -47,18 +47,18 @@ def checkIfFileCacheExists(product, hash, binary) {
     if (!fileExists("gethash.py")) {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
-    def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     if (product == "br") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
     }
     if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "ng-monitoring") {
-        filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     }
     if (product == "tiflash") {
         filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
@@ -120,20 +120,20 @@ def build_upload = { product, hash, binary ->
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
-                def filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}.tar.gz"
+                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
                 if (product == "br") {
                     filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
                 }
                 def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
                 if (product == "ticdc") {
                     target = "${product}-${os}-${arch}"
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "dumpling") {
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "ng-monitoring") {
-                    filepath = "builds/pingcap/${product}/optimization/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
                 }
                 if (product == "tidb-ctl") {
                     sh """
@@ -350,7 +350,7 @@ try {
                         }
                         deleteDir()
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                        def filepath = "builds/pingcap/tikv/optimization/${TIKV_HASH}/${platform}/tikv-server.tar.gz"
+                        def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/${platform}/tikv-server.tar.gz"
 
                         def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
                         if (TIKV_PRID != null && TIKV_PRID != "") {
@@ -393,46 +393,6 @@ try {
             }
         }
 
-        // builds["Build importer"] = {
-        //     stage("Build importer") {
-        //         node("mac-arm") {
-        //             dir("go/src/github.com/pingcap/importer") {
-        //                 if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
-        //                     return
-        //                 }
-        //                 deleteDir()
-        //                 def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-        //                 def filepath = "builds/pingcap/importer/optimization/${IMPORTER_HASH}/${platform}/importer.tar.gz"
-        //                 retry(20) {
-        //                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-        //                         deleteDir()
-        //                     }
-        //                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-        //                 }
-                        
-        //                 sh """
-        //                 for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-        //                 git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-        //                 git branch -D refs/tags/${RELEASE_TAG} || true
-        //                 git checkout -b refs/tags/${RELEASE_TAG}
-        //                 """
-                        
-        //                 sh """
-        //                 export PROTOC=/usr/local/bin/protoc
-        //                 export GOPATH=/Users/pingcap/gopkg
-        //                 export PATH=/opt/homebrew/bin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-        //                 ROCKSDB_SYS_SSE=0 make release
-        //                 rm -rf ${target}
-        //                 mkdir -p ${target}/bin
-        //                 cp target/release/tikv-importer ${target}/bin
-        //                 tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-        //                 curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-        //                 """
-        //             }
-        //         }
-        //     }
-        // }
-
         parallel builds
     }
     currentBuild.result = "SUCCESS"
@@ -444,8 +404,4 @@ try {
 
 stage('Summary') {
     echo "Send slack here ..."
-    //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    // if (currentBuild.result != "SUCCESS") {
-    //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    // }
 }

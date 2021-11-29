@@ -67,11 +67,11 @@ def download = { version, os, arch ->
 
     if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     } else if (HOTFIX_TAG == "nightly") {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     }
 }
@@ -136,7 +136,12 @@ def pack = { version, os, arch ->
     # tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${HOTFIX_TAG}"
     rm -rf package
     mkdir -p package
-    tar czvf package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz prometheus ng-monitoring-server
+    if [ ${HOTFIX_TAG} \\> "v5.3.0" ] || [ ${HOTFIX_TAG} == "v5.3.0" ] || [ ${HOTFIX_TAG} == "nightly" ] ; then \
+       tar czvf package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz prometheus ng-monitoring-server
+    else
+        tar czvf package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz prometheus
+    fi
+
     tiup mirror publish prometheus ${TIDB_VERSION} package/prometheus-${HOTFIX_TAG}-${os}-${arch}.tar.gz "prometheus/prometheus" --arch ${arch} --os ${os} --desc="The Prometheus monitoring system and time series database"
     rm -rf prometheus
     """

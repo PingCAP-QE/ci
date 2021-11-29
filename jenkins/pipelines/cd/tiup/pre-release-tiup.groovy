@@ -21,6 +21,7 @@ importer_sha1=""
 tools_sha1=""
 cdc_sha1=""
 dumpling_sha1=""
+ng_monitoring_sha1=""
 
 def get_sha() {
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
@@ -36,6 +37,7 @@ def get_sha() {
     }
     if (RELEASE_TAG >= "v5.3.0") {
         dumpling_sha1 = tidb_sha1
+        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     } else {
         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     }
@@ -43,7 +45,6 @@ def get_sha() {
     lightning_sha1 = br_sha1
     tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
 
     if (TIKV_BUMPVERION_HASH.length() == 40) {
         return tikv_sha1 = TIKV_BUMPVERION_HASH
@@ -79,7 +80,6 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -105,7 +105,6 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -132,7 +131,6 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
@@ -159,7 +157,6 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
-                            [$class: 'BooleanParameterValue', name: 'BUILD_TIKV_IMPORTER', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
