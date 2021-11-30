@@ -61,14 +61,14 @@ def prepare_binaries() {
                             curl -F test/cdc/ci/ticdc_bin_${env.BUILD_NUMBER}.tar.gz=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
                         """
                     }
-                    dir("go/src/github.com/pingcap/ticdc/tests") {
+                    dir("go/src/github.com/pingcap/ticdc/tests/integration_tests") {
                         def cases_name = sh(
                                 script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
                                 returnStdout: true
                         ).trim().split().join(" ")
                         sh "echo ${cases_name} > CASES"
                     }
-                    stash includes: "go/src/github.com/pingcap/ticdc/tests/CASES", name: "cases_name", useDefaultExcludes: false
+                    stash includes: "go/src/github.com/pingcap/ticdc/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
                 }
             }
         }
@@ -139,7 +139,7 @@ def tests(sink_type, node_label) {
         // Gets the name of each case.
         unstash 'cases_name'
         def cases_name = sh(
-                script: 'cat go/src/github.com/pingcap/ticdc/tests/CASES',
+                script: 'cat go/src/github.com/pingcap/ticdc/tests/integration_tests/CASES',
                 returnStdout: true
         ).trim().split()
 
