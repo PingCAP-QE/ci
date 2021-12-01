@@ -41,7 +41,7 @@ def githash
 def os = "darwin"
 def arch = "arm64"
 def platform = "${os}-${arch}"
-def tag
+def tag = "master"
 def taskStartTimeInMillis = System.currentTimeMillis()
 def tiflash_result = "NOT TRIGGERED"
 
@@ -109,7 +109,7 @@ try {
                 }
 
                 def target = "tidb-ctl-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-ctl/${TIDB_CTL_HASH}/${platform}/tidb-ctl.tar.gz"
+                def filepath = "builds/pingcap/tidb-ctl/${tag}/${TIDB_CTL_HASH}/${platform}/tidb-ctl.tar.gz"
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
@@ -130,7 +130,7 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
 
                 def target = "tidb-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb/${TIDB_HASH}/${platform}/tidb-server.tar.gz"
+                def filepath = "builds/pingcap/tidb/${tag}/${TIDB_HASH}/${platform}/tidb-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -165,7 +165,7 @@ try {
             dir("go/src/github.com/pingcap/tidb-binlog") {
 
                 def target = "tidb-binlog-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-binlog/${BINLOG_HASH}/${platform}/tidb-binlog.tar.gz"
+                def filepath = "builds/pingcap/tidb-binlog/${tag}/${BINLOG_HASH}/${platform}/tidb-binlog.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -200,7 +200,7 @@ try {
             dir("go/src/github.com/pingcap/tidb-tools") {
 
                 def target = "tidb-tools-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-lightning/${TOOLS_HASH}/${platform}/tidb-tools.tar.gz"
+                def filepath = "builds/pingcap/tidb-lightning/${tag}/${TOOLS_HASH}/${platform}/tidb-tools.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -232,7 +232,7 @@ try {
             dir("go/src/github.com/pingcap/pd") {
 
                 def target = "pd-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/pd/${PD_HASH}/${platform}/pd-server.tar.gz"
+                def filepath = "builds/pingcap/pd/${tag}/${PD_HASH}/${platform}/pd-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -267,7 +267,7 @@ try {
                 dir("go/src/github.com/pingcap/ticdc") {
 
                     def target = "ticdc-${os}-${arch}"
-                    def filepath = "builds/pingcap/ticdc/${CDC_HASH}/${platform}/ticdc-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/ticdc/${tag}/${CDC_HASH}/${platform}/ticdc-${os}-${arch}.tar.gz"
 
                     retry(20) {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -349,7 +349,7 @@ try {
                 dir("go/src/github.com/pingcap/dumpling") {
 
                     def target = "dumpling-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/dumpling/${DUMPLING_HASH}/${platform}/dumpling-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/dumpling/${tag}/${DUMPLING_HASH}/${platform}/dumpling-${os}-${arch}.tar.gz"
                     def gitRepo = "git@github.com:pingcap/dumpling.git"
                     def mergeToTidb = "false"
                     if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
@@ -390,7 +390,7 @@ try {
                 dir("go/src/github.com/pingcap/ng-monitoring") {
 
                     def target = "ng-monitoring-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/ng-monitoring/${NGMonitoring_HASH}/${platform}/ng-monitoring-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/ng-monitoring/${tag}/${NGMonitoring_HASH}/${platform}/ng-monitoring-${os}-${arch}.tar.gz"
 
                     retry(20) {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -421,7 +421,7 @@ try {
             dir("go/src/github.com/pingcap/tikv") {
 
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/${platform}/tikv-server.tar.gz"
+                def filepath = "builds/pingcap/tikv/${tag}/${TIKV_HASH}/${platform}/tikv-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {

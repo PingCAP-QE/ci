@@ -12,6 +12,8 @@
 * @RELEASE_TAG
 * @PRE_RELEASE
 */
+
+// Now this file only for master, I will delete some useless code @zhouqiang
 GO_BIN_PATH="/usr/local/go/bin"
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
@@ -40,7 +42,7 @@ def slackcolor = 'good'
 def githash
 def os = "darwin"
 def arch = "amd64"
-def tag
+def tag = "master"
 def taskStartTimeInMillis = System.currentTimeMillis()
 def tiflash_result = "NOT TRIGGERED"
 
@@ -53,47 +55,16 @@ try {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             println "${ws}"
             sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-            if(PRE_RELEASE == "false") {
-                TIDB_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                TIKV_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                PD_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                BINLOG_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                LIGHTNING_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb-lightning -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                TOOLS_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            TIDB_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            TIKV_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            PD_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            BINLOG_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            TOOLS_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            CDC_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            TIFLASH_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
 
-                if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-                    CDC_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                }
-
-                if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
-                    BR_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                }
-                if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
-                    BR_HASH = TIDB_HASH
-                }
-                // importer default branch is release-5.0
-                if(RELEASE_TAG == "nightly") {
-                    IMPORTER_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=importer -version=release-5.0 -s=${FILE_SERVER_URL}").trim()
-                }else{
-                    IMPORTER_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                }
-
-                if(SKIP_TIFLASH == "false" && (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0")) {
-                    TIFLASH_HASH = sh(returnStdout: true, script: "/usr/local/bin/python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                }
-
-                if(RELEASE_TAG >= "v4.0.2") {
-                    DUMPLING_HASH = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                }
-                if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
-                    DUMPLING_HASH = TIDB_HASH
-                }
-            } else if(TIDB_HASH.length() < 40 || TIKV_HASH.length() < 40 || PD_HASH.length() < 40 || BINLOG_HASH.length() < 40 || TIFLASH_HASH.length() < 40 || LIGHTNING_HASH.length() < 40 || IMPORTER_HASH.length() < 40 || TOOLS_HASH.length() < 40 || BR_HASH.length() < 40 || CDC_HASH.length() < 40) {
-                println "PRE_RELEASE must be used with githash."
-                sh """
-                    exit 2
-                """
-            }
+            BR_HASH = TIDB_HASH
+            DUMPLING_HASH = TIDB_HASH
             TIDB_CTL_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=nightly -s=${FILE_SERVER_URL}").trim()
             NGMonitoring_HASH = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
         }
@@ -108,7 +79,7 @@ try {
                 }
 
                 def target = "tidb-ctl-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-ctl/${TIDB_CTL_HASH}/darwin/tidb-ctl.tar.gz"
+                def filepath = "builds/pingcap/tidb-ctl/${tag}/${TIDB_CTL_HASH}/darwin/tidb-ctl.tar.gz"
 
                 sh """
                 export GOPATH=/Users/pingcap/gopkg
@@ -129,7 +100,7 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
 
                 def target = "tidb-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb/${TIDB_HASH}/darwin/tidb-server.tar.gz"
+                def filepath = "builds/pingcap/tidb/${tag}/${TIDB_HASH}/darwin/tidb-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -164,7 +135,7 @@ try {
             dir("go/src/github.com/pingcap/tidb-binlog") {
 
                 def target = "tidb-binlog-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-binlog/${BINLOG_HASH}/darwin/tidb-binlog.tar.gz"
+                def filepath = "builds/pingcap/tidb-binlog/${tag}/${BINLOG_HASH}/darwin/tidb-binlog.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -194,43 +165,11 @@ try {
             }
         }
 
-        stage("Build tidb-lightning") {
-            dir("go/src/github.com/pingcap/tidb-lightning") {
-
-                def target = "tidb-lightning-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-lightning/${LIGHTNING_HASH}/darwin/tidb-lightning.tar.gz"
-
-                retry(20) {
-                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        deleteDir()
-                    }
-                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${LIGHTNING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-lightning.git']]]
-                    } else {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/tidb-lightning.git']]]
-                    }
-                }
-
-                sh """
-                export GOPATH=/Users/pingcap/gopkg
-                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                make clean
-                go version
-                make
-                rm -rf ${target}
-                mkdir -p ${target}/bin
-                cp bin/* ${target}/bin
-                tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                """
-            }
-        }
-
         stage("Build tidb-tools") {
             dir("go/src/github.com/pingcap/tidb-tools") {
 
                 def target = "tidb-tools-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tidb-lightning/${TOOLS_HASH}/darwin/tidb-tools.tar.gz"
+                def filepath = "builds/pingcap/tidb-lightning/${tag}/${TOOLS_HASH}/darwin/tidb-tools.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -262,7 +201,7 @@ try {
             dir("go/src/github.com/pingcap/pd") {
 
                 def target = "pd-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/pd/${PD_HASH}/darwin/pd-server.tar.gz"
+                def filepath = "builds/pingcap/pd/${tag}/${PD_HASH}/darwin/pd-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -292,38 +231,38 @@ try {
             }
         }
 
-        if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-            stage("Build cdc") {
-                dir("go/src/github.com/pingcap/ticdc") {
 
-                    def target = "ticdc-${os}-${arch}"
-                    def filepath = "builds/pingcap/ticdc/${CDC_HASH}/darwin/ticdc-${os}-${arch}.tar.gz"
+        stage("Build cdc") {
+            dir("go/src/github.com/pingcap/ticdc") {
 
-                    retry(20) {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
-                        } else {
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/ticdc.git']]]
-                        }
+                def target = "ticdc-${os}-${arch}"
+                def filepath = "builds/pingcap/ticdc/${tag}/${CDC_HASH}/darwin/ticdc-${os}-${arch}.tar.gz"
+
+                retry(20) {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
                     }
-
-                    sh """
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    go version
-                    mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                    GOPATH=\$GOPATH:${ws}/go make build
-                    mkdir -p ${target}/bin
-                    mv bin/cdc ${target}/bin/
-                    tar -czvf ${target}.tar.gz ${target}
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    """
+                    if(PRE_RELEASE == "true" || RELEASE_TAG == "nightly") {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
+                    } else {
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${RELEASE_TAG}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true, timeout: 60]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}", url: 'git@github.com:pingcap/ticdc.git']]]
+                    }
                 }
+
+                sh """
+                export GOPATH=/Users/pingcap/gopkg
+                export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                go version
+                mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
+                GOPATH=\$GOPATH:${ws}/go make build
+                mkdir -p ${target}/bin
+                mv bin/cdc ${target}/bin/
+                tar -czvf ${target}.tar.gz ${target}
+                curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                """
             }
         }
+
 
         if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
             stage("Build br") {
@@ -378,7 +317,7 @@ try {
                 dir("go/src/github.com/pingcap/dumpling") {
 
                     def target = "dumpling-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/dumpling/${DUMPLING_HASH}/darwin/dumpling-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/dumpling/${tag}/${DUMPLING_HASH}/darwin/dumpling-${os}-${arch}.tar.gz"
                     def gitRepo = "git@github.com:pingcap/dumpling.git"
                     def mergeToTidb = "false"
                     if(RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
@@ -419,7 +358,7 @@ try {
                 dir("go/src/github.com/pingcap/ng-monitoring") {
 
                     def target = "ng-monitoring-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/ng-monitoring/${NGMonitoring_HASH}/darwin/ng-monitoring-${os}-${arch}.tar.gz"
+                    def filepath = "builds/pingcap/ng-monitoring/${tag}/${NGMonitoring_HASH}/darwin/ng-monitoring-${os}-${arch}.tar.gz"
 
                     retry(20) {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
@@ -450,7 +389,7 @@ try {
             dir("go/src/github.com/pingcap/tikv") {
 
                 def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                def filepath = "builds/pingcap/tikv/${TIKV_HASH}/darwin/tikv-server.tar.gz"
+                def filepath = "builds/pingcap/tikv/${tag}/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
                 retry(20) {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
