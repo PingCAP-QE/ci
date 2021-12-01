@@ -20,7 +20,7 @@ def download = { name, hash, os, arch ->
     """
     } else {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
     """
     }
 }
