@@ -34,7 +34,7 @@ def download = { name, version, os, arch ->
     """
     } else {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${dumpling_sha1}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${tag}/${name}/${dumpling_sha1}/${platform}/${tarball_name}
     """
     }
 
