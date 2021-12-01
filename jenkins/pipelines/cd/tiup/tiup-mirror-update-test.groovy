@@ -194,7 +194,7 @@ def update_ctl = { version, os, arch ->
         lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
     } else {
         lightning_tarball_name = "br.tar.gz"
-        lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
+        lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
     }
 
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
@@ -349,6 +349,8 @@ node("build_go1130") {
                 update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
             }
 
+            deleteDir()
+
             stage("TiUP build tidb on linux/arm64") {
                 update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
                 update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
@@ -358,6 +360,8 @@ node("build_go1130") {
                 update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
             }
 
+            deleteDir()
+
             stage("TiUP build tidb on darwin/amd64") {
                 update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
                 update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
@@ -366,6 +370,8 @@ node("build_go1130") {
                 update_ctl RELEASE_TAG, "darwin", "amd64"
                 update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
             }
+
+            deleteDir()
 
             if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
                 stage("TiUP build tidb on darwin/arm64") {
