@@ -295,6 +295,7 @@ try {
                             if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
                             }
+                            deleteDir()
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                             def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
                             retry(20) {
