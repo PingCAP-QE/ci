@@ -86,7 +86,7 @@ catchError {
                     }
                     // lightning 从 4.0.12 开始和 br 的 hash 一样
                     tidb_lightning_sha1 = tidb_br_sha1
-                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
+                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
                 }
