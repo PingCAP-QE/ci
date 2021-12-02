@@ -13,6 +13,8 @@ if (params.containsKey("release_test")) {
 def notRun = 1
 def chunk_count = 20
 
+def pod_image_param = ghprbTargetBranch
+
 
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
 // remove suffix "-20210724", only use "release-4.0"
@@ -20,8 +22,13 @@ if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").siz
     println "tikv hotfix branch: ${ghprbTargetBranch}"
     def k = ghprbTargetBranch.indexOf("-", ghprbTargetBranch.indexOf("-") + 1)
     ghprbTargetBranch = ghprbTargetBranch.substring(0, k)
-    println "ci image use  ${ghprbTargetBranch}"
+    pod_image_param = ghprbTargetBranch
 }
+
+if (!ghprbTargetBranch.startsWith("release-")) {
+    pod_image_param = "master"
+}
+println "ci image use  hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
 
 
 try {
@@ -50,7 +57,7 @@ stage("Prepare") {
         nodeSelector: 'role_type=slave', instanceCap: 3,
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
-            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${ghprbTargetBranch}:latest",
+            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
                 alwaysPullImage: true, privileged: true,
                 resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                 ttyEnabled: true, command: 'cat'),
@@ -119,7 +126,7 @@ stage("Prepare") {
         nodeSelector: 'role_type=slave', instanceCap: 7,
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
-            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${ghprbTargetBranch}:latest",
+            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
                 alwaysPullImage: true, privileged: true,
                 resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                 ttyEnabled: true, command: 'cat'),
