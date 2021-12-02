@@ -140,7 +140,11 @@ def pack = { version, os, arch ->
     #tiup package "prometheus" --hide --arch ${arch} --os "${os}" --desc "The Prometheus monitoring system and time series database." --entry "prometheus/prometheus" --name prometheus --release "${RELEASE_TAG}"
     rm -rf package
     mkdir -p package
-    tar czvf package/prometheus-${RELEASE_TAG}-${os}-${arch}.tar.gz prometheus ng-monitoring-server
+    if [ ${RELEASE_TAG} \\> "v5.3.0" ] || [ ${RELEASE_TAG} == "v5.3.0" ] || [ ${RELEASE_TAG} == "nightly" ] ; then \
+        tar czvf package/prometheus-${RELEASE_TAG}-${os}-${arch}.tar.gz prometheus ng-monitoring-server
+    else
+        tar czvf package/prometheus-${RELEASE_TAG}-${os}-${arch}.tar.gz prometheus
+    fi
     tiup mirror publish prometheus ${TIDB_VERSION} package/prometheus-${RELEASE_TAG}-${os}-${arch}.tar.gz "prometheus/prometheus" --arch ${arch} --os ${os} --desc="The Prometheus monitoring system and time series database"
     rm -rf prometheus
     """
