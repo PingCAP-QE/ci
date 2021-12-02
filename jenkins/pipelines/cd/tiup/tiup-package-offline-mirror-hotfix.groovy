@@ -137,7 +137,7 @@ def package_tools = { plat, arch ->
 
     binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
     pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
+    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
     br_hash = ""
     importer_hash = ""
     if (VERSION >= "v5.2.0") {
