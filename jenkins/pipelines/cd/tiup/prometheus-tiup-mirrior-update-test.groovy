@@ -58,6 +58,11 @@ def download = { version, os, arch ->
     sh """
     rm -rf ${tarball_name}
     """
+    
+    def tag = RELEASE_TAG
+    if (tag == "nightly") {
+        tag = "master"
+    }
 
     if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0") {
         sh """
