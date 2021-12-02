@@ -58,7 +58,7 @@ def download = { version, os, arch ->
     sh """
     rm -rf ${tarball_name}
     """
-    
+
     def tag = RELEASE_TAG
     if (tag == "nightly") {
         tag = "master"
@@ -70,7 +70,7 @@ def download = { version, os, arch ->
         """
     } else if (RELEASE_TAG == "nightly") {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/main/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     }
 }
