@@ -197,6 +197,11 @@ def update_ctl = { version, os, arch ->
         lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
     }
 
+    if (arch == "amd64" && os == "linux") {
+        lightning_tarball_name = "br.tar.gz"
+        lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
+    }
+
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
         if (RELEASE_TAG != "nightly") {
             sh """
