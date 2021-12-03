@@ -9,6 +9,8 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
+
+
 @NonCPS
 boolean isMoreRecentOrEqual( String a, String b ) {
     if (a == b) {
@@ -131,16 +133,22 @@ try {
             def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
+                    sh "make gotest"
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(30) {
-                            sh '''
-                            set +x
-                            export CODECOV_TOKEN=${CODECOV_TOKEN}
-                            export TRAVIS_COVERAGE=1
-                            set -x 
-                            make gotest
-                            make upload-coverage
-                            '''
+                            if (ghprbPullId != null && ghprbPullId != "") {
+                                sh """
+                                curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                                chmod +x codecov
+                                ./codecov -f coverage.txt -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
+                                """
+                            } else {
+                                sh """
+                                curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                                chmod +x codecov
+                                ./codecov -f coverage.txt -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                                """
+                            }
                         }
                     }
                 }
