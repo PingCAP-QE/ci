@@ -229,7 +229,7 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/optimization/${RELEASE_TAG}/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/centos7/tiflash.tar.gz | tar xz"
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${RELEASE_TAG}/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
+                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz"
                 }
 
                 dir('arm') {
