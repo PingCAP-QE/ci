@@ -104,7 +104,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             nodeSelector: 'role_type=slave',
-            idleMinutes: 60,
+            idleMinutes: 30,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
