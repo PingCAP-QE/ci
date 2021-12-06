@@ -96,7 +96,7 @@ println "use image=${pod_go_docker_image}"
 def sessionTestSuitesString = "testPessimisticSuite"
 
 def run_with_pod(Closure body) {
-    def label = "jenkins-check-2-" + UUID.randomUUID().toString()
+    def label = "jenkins-check-2-${BUILD_NUMBER}"
     def cloud = "kubernetes"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
