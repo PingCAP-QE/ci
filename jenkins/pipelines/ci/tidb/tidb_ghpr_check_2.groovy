@@ -71,6 +71,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
 
 def isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
+pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
 
 if (!isNeedGo1160) {
     isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency", "br-stream"], ghprbTargetBranch)
@@ -83,24 +84,64 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
 }
 if (isNeedGo1160) {
     println "This build use go1.16"
-    GO_BUILD_SLAVE = "build_go1160_memvolume"
-    GO_TEST_SLAVE = "test_go1160_memvolume"
+    pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
 } else {
     println "This build use go1.13"
 }
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+println "use image=${pod_go_docker_image}"
 
-def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_SLAVE}"
+// def buildSlave = "${GO_BUILD_SLAVE}"
+// def testSlave = "${GO_TEST_SLAVE}"
 
 def sessionTestSuitesString = "testPessimisticSuite"
 
+def run_with_pod(Closure body) {
+    def label = "jenkins-check-2-" + UUID.randomUUID().toString()
+    def cloud = "kubernetes"
+    def namespace = "jenkins-tidb"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            nodeSelector: 'role_type=slave',
+            idleMinutes: 60,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            privileged: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            resourceLimitCpu: '30000m', resourceLimitMemory: "100Gi",
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
+                                      containerEnvVar(key: 'GOCACHE', value: '/nfs/cache/go-build'),
+                                      containerEnvVar(key: 'GOPATH', value: '/go')],
+                    ),
+                    containerTemplate(
+                            name: 'jnlp', image: "${jnlp_docker_image}", alwaysPullImage: false,
+                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
+                    ),
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
+                    nfsVolume(mountPath: '/go/pkg', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false),
+            ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
 def test_suites = { suites,option ->
-    node(testSlave) {
+    run_with_pod {
         deleteDir()
         unstash 'tidb'
-        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
         container("golang") {
             timeout(720) {
                 ws = pwd()
@@ -172,15 +213,10 @@ try {
         }
     }
 
-    node(buildSlave) {
+    run_with_pod {
         def ws = pwd()
-        stage("debuf info"){
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-            println "work space path:\n${ws}"
-        }
 
         stage("Checkout") {
-
             // update code
             dir("/home/jenkins/agent/code-archive") {
                 // delete to clean workspace in case of agent pod reused lead to conflict.
@@ -264,13 +300,12 @@ try {
         parallel tests
 
         currentBuild.result = "SUCCESS"
-        node(buildSlave){
-            container("golang"){
-                sh """
-		    echo "done" > done
-		    curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
-            }
+    
+        container("golang"){
+            sh """
+        echo "done" > done
+        curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+        """
         }
     }
 }
@@ -345,5 +380,4 @@ stage('Summary') {
             "Build Result: `${currentBuild.result}`" + "\n" +
             "Elapsed Time: `${duration} mins` " + "\n" +
             "${env.RUN_DISPLAY_URL}"
-
 }
