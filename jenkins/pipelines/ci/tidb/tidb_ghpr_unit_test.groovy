@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
@@ -72,11 +72,12 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            idleMinutes: 10,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
-                            resourceRequestCpu: '10000m', resourceRequestMemory: '16Gi',
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
                                     containerEnvVar(key: 'GOPATH', value: '/go')], 
@@ -100,7 +101,7 @@ def run_with_pod(Closure body) {
     }
 }
 
-run_ut_with_flag(flag) {
+def run_ut_with_flag(flag) {
     run_with_pod {
         def ws = pwd()
 
@@ -171,7 +172,7 @@ run_ut_with_flag(flag) {
 try {
     parallel (
         "tidb": {
-            run_ut_with_flag("tidb")
+            run_ut_with_flag("gotest")
         },
         "br": {
             run_ut_with_flag("br_unit_test")
@@ -182,29 +183,31 @@ try {
     )
 
     run_with_pod {
-        container("golang") {
-            unstash "tidb_coverage"
-            unstash "br_coverage"
-            unstash "dumpling_coverage"
+        stage("codecov upload") {
+            container("golang") {
+                unstash "gotest_coverage"
+                unstash "br_unit_test_coverage"
+                unstash "dumpling_unit_test_coverage"
 
-            withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
-                timeout(3) {
-                    if (ghprbPullId != null && ghprbPullId != "") {
-                        sh """
-                        curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                        chmod +x codecov
-                        ./codecov -f "tidb.coverage" -f "br_unit_test.coverage" -f "dumpling_unit_test.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
-                        """
-                    } else {
-                        sh """
-                        curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                        chmod +x codecov
-                        ./codecov -f "tidb.coverage" -f "br_unit_test.coverage" -f "dumpling_unit_test.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                        """
+                withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
+                    timeout(3) {
+                        if (ghprbPullId != null && ghprbPullId != "") {
+                            sh """
+                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                            chmod +x codecov
+                            ./codecov -f "gotest.coverage" -f "br_unit_test.coverage" -f "dumpling_unit_test.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
+                            """
+                        } else {
+                            sh """
+                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                            chmod +x codecov
+                            ./codecov -f "gotest.coverage" -f "br_unit_test.coverage" -f "dumpling_unit_test.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                            """
+                        }
                     }
                 }
+                    
             }
-                 
         }
     }
 
