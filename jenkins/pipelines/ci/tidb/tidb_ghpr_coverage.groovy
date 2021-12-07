@@ -133,12 +133,14 @@ try {
             def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
-                    sh "make gotest"
-                    mv coverage.txt tidb.coverage
-                    sh "make br_unit_test"
+                    sh """
+                    make br_unit_test
                     mv coverage.txt br.coverage
-                    sh "make dumpling_unit_test"
+                    make dumpling_unit_test
                     mv coverage.txt dumpling.coverage
+                    make gotest
+                    mv coverage.txt tidb.coverage
+                    """
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(30) {
                             if (ghprbPullId != null && ghprbPullId != "") {
