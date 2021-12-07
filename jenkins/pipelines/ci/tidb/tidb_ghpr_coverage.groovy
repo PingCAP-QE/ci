@@ -133,20 +133,27 @@ try {
             def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
-                    sh "make gotest"
+                    sh """
+                    make br_unit_test
+                    mv coverage.txt br.coverage
+                    make dumpling_unit_test
+                    mv coverage.txt dumpling.coverage
+                    make gotest
+                    mv coverage.txt tidb.coverage
+                    """
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(30) {
                             if (ghprbPullId != null && ghprbPullId != "") {
                                 sh """
                                 curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                                 chmod +x codecov
-                                ./codecov -f coverage.txt -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
+                                ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
                                 """
                             } else {
                                 sh """
                                 curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                                 chmod +x codecov
-                                ./codecov -f coverage.txt -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                                ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                 """
                             }
                         }
