@@ -134,19 +134,24 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     sh "make gotest"
+                    mv coverage.txt tidb.coverage
+                    sh "make br_unit_test"
+                    mv coverage.txt br.coverage
+                    sh "make dumpling_unit_test"
+                    mv coverage.txt dumpling.coverage
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(30) {
                             if (ghprbPullId != null && ghprbPullId != "") {
                                 sh """
                                 curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                                 chmod +x codecov
-                                ./codecov -f coverage.txt -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
+                                ./codecov -f '.coverage' -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
                                 """
                             } else {
                                 sh """
                                 curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                                 chmod +x codecov
-                                ./codecov -f coverage.txt -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                                ./codecov -f '.coverage' -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                 """
                             }
                         }
