@@ -93,6 +93,7 @@ if (isNeedGo1160) {
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+all_task_result = []
 
 try {
     stage("Pre-check"){
@@ -185,40 +186,38 @@ try {
         }
 
         stage('Integration Push Down Test') {
-            def pd_bin = "${ws}/pd/bin/pd-server"
-            def tikv_bin = "${ws}/tikv/bin/tikv-server"
-            def tidb_src_dir = "${ws}/tidb"
-            dir('copr-test') {
-                container('golang') {
-                    try{
-                        timeout(30){
-                            sh """
-                            pd_bin=${pd_bin} tikv_bin=${tikv_bin} tidb_src_dir=${tidb_src_dir} make push-down-test
-                            """
+            try {
+                def pd_bin = "${ws}/pd/bin/pd-server"
+                def tikv_bin = "${ws}/tikv/bin/tikv-server"
+                def tidb_src_dir = "${ws}/tidb"
+                dir('copr-test') {
+                    container('golang') {
+                        try{
+                            timeout(30){
+                                sh """
+                                pd_bin=${pd_bin} tikv_bin=${tikv_bin} tidb_src_dir=${tidb_src_dir} make push-down-test
+                                """
+                            }
+                        }catch (Exception e) {
+                            def build_dir = "push-down-test/build"
+                            sh "cat ${build_dir}/tidb_no_push_down.log || true"
+                            sh "cat ${build_dir}/tidb_with_push_down.log || true"
+                            sh "cat ${build_dir}/tikv_with_push_down.log || true"
+                            sh "echo Test failed. Check out logs above."
+                            throw e;
                         }
-                    }catch (Exception e) {
-                        def build_dir = "push-down-test/build"
-                        sh "cat ${build_dir}/tidb_no_push_down.log || true"
-                        sh "cat ${build_dir}/tidb_with_push_down.log || true"
-                        sh "cat ${build_dir}/tikv_with_push_down.log || true"
-                        sh "echo Test failed. Check out logs above."
-                        throw e;
-                    }
 
+                    }
                 }
+
+                all_task_result << ["name": "Integration Push Down Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "Integration Push Down Test", "status": "failed", "error": err.message]
+                throw err
             }
         }
-
     }
     currentBuild.result = "SUCCESS"
-    node("${GO_BUILD_SLAVE}"){
-        container("golang"){
-            sh """
-		    echo "done" > done
-		    curl -F ci_check/tidb_ghpr_integration_copr_test/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
-        }
-    }
 }
 catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     println e
@@ -245,8 +244,15 @@ catch (Exception e) {
         echo "${e}"
     }
 }
-
 finally {
+    stage("task summary") {
+        if (all_task_result) {
+            def json = groovy.json.JsonOutput.toJson(all_task_result)
+            println "all_results: ${json}"
+            currentBuild.description = "${json}"
+        }
+    }
+
     echo "Send slack here ..."
     def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
     def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
@@ -263,12 +269,6 @@ finally {
     if (currentBuild.result != "SUCCESS") {
         slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
         slackSend channel: '#push-down-expr-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-}
-
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 
