@@ -104,6 +104,7 @@ println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
 
 def buildSlave = "${GO_BUILD_SLAVE}"
 def testSlave = "${GO_TEST_HEAVY_SLAVE}"
+all_task_result = []
 
 try {
     stage("Pre-check"){
@@ -276,41 +277,69 @@ try {
         }
 
         tests["Integration DDL Insert Test"] = {
-            run("ddl_test", "ddl_insert_test", "^TestSimple.*Insert\$")
+            try {
+                run("ddl_test", "ddl_insert_test", "^TestSimple.*Insert\$")
+                all_task_result << ["name": "DDL Insert Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "DDL Insert Test", "status": "failed", "error": err.message]
+                throw err
+            } 
         }
 
         tests["Integration DDL Update Test"] = {
-            run("ddl_test", "ddl_update_test", "^TestSimple.*Update\$")
+            try {
+                run("ddl_test", "ddl_update_test", "^TestSimple.*Update\$")
+                all_task_result << ["name": "DDL Update Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "DDL Update Test", "status": "failed", "error": err.message]
+                throw err
+            }  
         }
 
         tests["Integration DDL Delete Test"] = {
-            run("ddl_test", "ddl_delete_test", "^TestSimple.*Delete\$")
+            try {
+                run("ddl_test", "ddl_delete_test", "^TestSimple.*Delete\$")
+                all_task_result << ["name": "DDL Delete Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "DDL Delete Test", "status": "failed", "error": err.message]
+                throw err
+            }
         }
 
         tests["Integration DDL Other Test"] = {
-            run("ddl_test", "ddl_other_test", "^TestSimp(le\$|leMixed\$|leInc\$)")
+            try {
+                run("ddl_test", "ddl_other_test", "^TestSimp(le\$|leMixed\$|leInc\$)")
+                all_task_result << ["name": "DDL Other Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "DDL Other Test", "status": "failed", "error": err.message]
+                throw err
+            }
         }
 
         tests["Integration DDL Column Test"] = {
-            run("ddl_test", "ddl_column_index_test", "^TestColumn\$")
+            try {
+                run("ddl_test", "ddl_column_index_test", "^TestColumn\$")
+                all_task_result << ["name": "DDL Column Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "DDL Column Test", "status": "failed", "error": err.message]
+                throw err
+            }
         }
 
         tests["Integration DDL Index Test"] = {
-            run("ddl_test", "ddl_column_index_test", "^TestIndex\$")
+            try {
+                run("ddl_test", "ddl_column_index_test", "^TestIndex\$")
+                all_task_result << ["name": "DDL Index Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "DDL Index Test", "status": "failed", "error": err.message]
+                throw err
+            }
         }
 
         parallel tests
     }
 
     currentBuild.result = "SUCCESS"
-    node(buildSlave){
-        container("golang"){
-            sh """
-		    echo "done" > done
-		    curl -F ci_check/tidb_ghpr_integration_ddl_test/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
-        }
-    }
 }
 catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     println e
@@ -338,6 +367,14 @@ catch (Exception e) {
     }
 }
 finally {
+    stage("task summary") {
+        if (all_task_result) {
+            def json = groovy.json.JsonOutput.toJson(all_task_result)
+            println "all_results: ${json}"
+            currentBuild.description = "${json}"
+        }
+    }
+
     echo "Send slack here ..."
     def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
     def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
@@ -353,12 +390,6 @@ finally {
 
     if (currentBuild.result != "SUCCESS") {
         slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-}
-
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 
