@@ -9,7 +9,6 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-
 def TIKV_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_TEST_BRANCH = ghprbTargetBranch
@@ -108,6 +107,8 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
+all_task_result = []
+
 try {
     stage("Pre-check"){
         if (!params.force){
@@ -170,87 +171,94 @@ try {
     }
 
     stage('Integration Compatibility Test') {
-        node(testSlave) {
-            def ws = pwd()
-            deleteDir()
-            unstash 'compatible_test'
+        try {
+            node(testSlave) {
+                def ws = pwd()
+                deleteDir()
+                unstash 'compatible_test'
 
-            dir("go/src/github.com/pingcap/tidb-test/compatible_test") {
-                container("golang") {
-                    def tidb_old_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_OLD_BRANCH}/sha1"
-                    def tidb_old_sha1 = sh(returnStdout: true, script: "curl ${tidb_old_refs}").trim()
-                    sh """
-                    time curl ${tidb_old_refs}
-                    """
-                    def tidb_old_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_old_sha1}/centos7/tidb-server.tar.gz"
-
-                    def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                    def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                    tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-
-                    def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                    def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                    pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-
-                    timeout(10) {
+                dir("go/src/github.com/pingcap/tidb-test/compatible_test") {
+                    container("golang") {
+                        def tidb_old_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_OLD_BRANCH}/sha1"
+                        def tidb_old_sha1 = sh(returnStdout: true, script: "curl ${tidb_old_refs}").trim()
                         sh """
-                        while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
-                        curl ${tikv_url} | tar xz
-
-                        while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
-                        curl ${pd_url} | tar xz
-
-                        mkdir -p ./tidb-old-src
-                        echo ${tidb_old_url}
-                        echo ${tidb_old_refs}
-                        while ! curl --output /dev/null --silent --head --fail ${tidb_old_url}; do sleep 15; done
-                        curl ${tidb_old_url} | tar xz -C ./tidb-old-src
-
-                        mkdir -p ./tidb-src
-                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                        curl ${tidb_url} | tar xz -C ./tidb-src
-
-                        mv tidb-old-src/bin/tidb-server bin/tidb-server-old
-                        mv tidb-src/bin/tidb-server ./bin/tidb-server
+                        time curl ${tidb_old_refs}
                         """
-                    }
+                        def tidb_old_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_old_sha1}/centos7/tidb-server.tar.gz"
 
-                    timeout(10) {
-                        try {
-                            sh """
-                            set +e 
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            rm -rf /tmp/tidb
-                            set -e
+                        def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                        def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                        tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
 
-                            export log_level=debug
-                            TIKV_PATH=./bin/tikv-server \
-                            TIDB_PATH=./bin/tidb-server \
-                            PD_PATH=./bin/pd-server \
-                            UPGRADE_PART=tidb \
-                            NEW_BINARY=./bin/tidb-server \
-                            OLD_BINARY=./bin/tidb-server-old \
-                            ./test.sh 2>&1
-                            """
-                        } catch (err) {
-                            sh "cat tidb*.log"
-                            throw err
-                        } finally {
+                        def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                        def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                        pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+
+                        timeout(10) {
                             sh """
-                            set +e 
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            set -e
+                            while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
+                            curl ${tikv_url} | tar xz
+
+                            while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
+                            curl ${pd_url} | tar xz
+
+                            mkdir -p ./tidb-old-src
+                            echo ${tidb_old_url}
+                            echo ${tidb_old_refs}
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_old_url}; do sleep 15; done
+                            curl ${tidb_old_url} | tar xz -C ./tidb-old-src
+
+                            mkdir -p ./tidb-src
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                            curl ${tidb_url} | tar xz -C ./tidb-src
+
+                            mv tidb-old-src/bin/tidb-server bin/tidb-server-old
+                            mv tidb-src/bin/tidb-server ./bin/tidb-server
                             """
+                        }
+
+                        timeout(10) {
+                            try {
+                                sh """
+                                set +e 
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                rm -rf /tmp/tidb
+                                set -e
+
+                                export log_level=debug
+                                TIKV_PATH=./bin/tikv-server \
+                                TIDB_PATH=./bin/tidb-server \
+                                PD_PATH=./bin/pd-server \
+                                UPGRADE_PART=tidb \
+                                NEW_BINARY=./bin/tidb-server \
+                                OLD_BINARY=./bin/tidb-server-old \
+                                ./test.sh 2>&1
+                                """
+                            } catch (err) {
+                                sh "cat tidb*.log"
+                                throw err
+                            } finally {
+                                sh """
+                                set +e 
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                set -e
+                                """
+                            }
                         }
                     }
                 }
+                deleteDir()
             }
-            deleteDir()
-        }
+            all_task_result << ["name": "Integration Compatibility Test", "status": "success", "error": ""]
+        } catch (err) {
+            println "Randgen Test 2 failed"
+            all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
+            throw err
+        } 
     }
 
     currentBuild.result = "SUCCESS"
@@ -281,6 +289,12 @@ catch (Exception e) {
     }
 }
 finally {
+    stage("task summary") {
+        def json = groovy.json.JsonOutput.toJson(all_task_result)
+        println "all_results: ${json}"
+        currentBuild.description = "${json}"
+    }
+
     echo "Send slack here ..."
     def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
     def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
@@ -299,11 +313,6 @@ finally {
     }
 }
 
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
-    }
-}
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
