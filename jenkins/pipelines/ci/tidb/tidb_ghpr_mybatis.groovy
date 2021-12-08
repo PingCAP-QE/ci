@@ -98,82 +98,81 @@ if (isNeedGo1160) {
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+all_task_result = []
 
 try {
     stage('Mybatis Test') {
         node("test_java_memvolume") {
-            container("java") {
-                def ws = pwd()
-                deleteDir()
+            try {
+                container("java") {
+                    def ws = pwd()
+                    deleteDir()
 
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-                dir("go/src/github.com/pingcap/tidb") {
-                    def url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                    def done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
-                    timeout(10) {
-                        sh """
-                        set +e
-                        killall -9 -r tidb-server
-                        killall -9 -r tikv-server
-                        killall -9 -r pd-server
-                        rm -rf /tmp/tidb
-                        set -e
+                    dir("go/src/github.com/pingcap/tidb") {
+                        def url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                        def done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+                        timeout(10) {
+                            sh """
+                            set +e
+                            killall -9 -r tidb-server
+                            killall -9 -r tikv-server
+                            killall -9 -r pd-server
+                            rm -rf /tmp/tidb
+                            set -e
 
-                        while ! curl --output /dev/null --silent --head --fail ${done_url}; do sleep 1; done
-                        curl ${url} | tar xz
-                        rm -f bin/tidb-server
-                        rm -f bin/tidb-server-race
-                        cp bin/tidb-server-check bin/tidb-server
-                        cat > config.toml << __EOF__
+                            while ! curl --output /dev/null --silent --head --fail ${done_url}; do sleep 1; done
+                            curl ${url} | tar xz
+                            rm -f bin/tidb-server
+                            rm -f bin/tidb-server-race
+                            cp bin/tidb-server-check bin/tidb-server
+                            cat > config.toml << __EOF__
 [performance]
 join-concurrency = 1
 __EOF__
 
-                        bin/tidb-server -config config.toml > ${ws}/tidb_mybatis3_test.log 2>&1 &
-                        
-                        """
-                    }
-                    if (!ghprbTargetBranch.startsWith("release-2")) {
-                        retry(3) {
-                            sh """
-                                sleep 5
-                                wget ${FILE_SERVER_URL}/download/mysql && chmod +x mysql
-                                mysql -h 127.0.0.1 -P4000 -uroot -e 'set @@global.tidb_enable_window_function = 0'
+                            bin/tidb-server -config config.toml > ${ws}/tidb_mybatis3_test.log 2>&1 &
+                            
                             """
                         }
+                        if (!ghprbTargetBranch.startsWith("release-2")) {
+                            retry(3) {
+                                sh """
+                                    sleep 5
+                                    wget ${FILE_SERVER_URL}/download/mysql && chmod +x mysql
+                                    mysql -h 127.0.0.1 -P4000 -uroot -e 'set @@global.tidb_enable_window_function = 0'
+                                """
+                            }
+                        }
                     }
-                }
 
-                try {
-                    dir("mybatis3") {
-                        timeout(10) {
-                            sh """
-                            curl -L ${MYBATIS3_URL} -o travis-tidb.zip && unzip travis-tidb.zip && rm -rf travis-tidb.zip
-                            cp -R mybatis-3-travis-tidb/. ./ && rm -rf mybatis-3-travis-tidb
-                            mvn -B clean test
-                            """
+                    try {
+                        dir("mybatis3") {
+                            timeout(10) {
+                                sh """
+                                curl -L ${MYBATIS3_URL} -o travis-tidb.zip && unzip travis-tidb.zip && rm -rf travis-tidb.zip
+                                cp -R mybatis-3-travis-tidb/. ./ && rm -rf mybatis-3-travis-tidb
+                                mvn -B clean test
+                                """
+                            }
                         }
+                    } catch (err) {
+                        sh "cat ${ws}/tidb_mybatis3_test.log"
+                        throw err
+                    } finally {
+                        sh "killall -9 -r tidb-server || true"
                     }
-                } catch (err) {
-                    sh "cat ${ws}/tidb_mybatis3_test.log"
-                    throw err
-                } finally {
-                    sh "killall -9 -r tidb-server || true"
                 }
+                all_task_result << ["name": "Mybatis Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "Mybatis Test", "status": "failed", "error": err.message]
+                throw err
             }
         }
     }
 
     currentBuild.result = "SUCCESS"
-    node("${GO_BUILD_SLAVE}"){
-        container("golang"){
-            sh """
-		    echo "done" > done
-		    curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
-        }
-    }
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     println e
     // this ambiguous condition means a user probably aborted
@@ -198,13 +197,33 @@ catch (Exception e) {
         slackcolor = 'danger'
         echo "${e}"
     }
-}
+} finally {
+    stage("task summary") {
+        if (all_task_result) {
+            def json = groovy.json.JsonOutput.toJson(all_task_result)
+            println "all_results: ${json}"
+            currentBuild.description = "${json}"
+        }
+    }
 
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
+    echo "Send slack here ..."
+    echo "Send slack here ..."
+    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
+            "${ghprbPullLink}" + "\n" +
+            "${ghprbPullDescription}" + "\n" +
+            "Mybatis Test Result: `${currentBuild.result}`" + "\n" +
+            "Elapsed Time: `${duration} mins` " + "\n" +
+            "${env.RUN_DISPLAY_URL}"
+    if (duration >= 3 && ghprbTargetBranch == "master" && currentBuild.result == "SUCCESS") {
+        slackSend channel: '#jenkins-ci-3-minutes', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+    }
+
+    if (currentBuild.result != "SUCCESS") {
+        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     }
 }
+
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
@@ -233,24 +252,5 @@ if (params.containsKey("triggered_by_upstream_ci")) {
             echo("default params: ${default_params}")
             build(job: "tidb_update_commit_status", parameters: default_params, wait: true)
         }
-    }
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Mybatis Test Result: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-    if (duration >= 3 && ghprbTargetBranch == "master" && currentBuild.result == "SUCCESS") {
-        slackSend channel: '#jenkins-ci-3-minutes', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     }
 }
