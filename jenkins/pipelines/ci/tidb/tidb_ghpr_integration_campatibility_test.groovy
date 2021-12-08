@@ -255,7 +255,6 @@ try {
             }
             all_task_result << ["name": "Integration Compatibility Test", "status": "success", "error": ""]
         } catch (err) {
-            println "Randgen Test 2 failed"
             all_task_result << ["name": "Integration Compatibility Test", "status": "failed", "error": err.message]
             throw err
         } 
