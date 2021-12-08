@@ -79,6 +79,9 @@ def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActual
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
 
+
+all_task_result = []
+
 try {
     timestamps {
         stage("Pre-check"){
@@ -558,54 +561,138 @@ EOF
             }
 
             tests["TiDB Test"] = {
-                run("tidb_test")
+                try {
+                    run("tidb_test")
+                    all_task_result << ["name": "TiDB Test", "status": "success", "error": ""]
+                } catch (err) {
+                    println "TiDB Test failed"
+                    all_task_result << ["name": "TiDB Test", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
 
             tests["Randgen Test 1"] = {
-                run_split("randgen-test",1)
+                try {
+                    run_split("randgen-test",1)
+                    all_task_result << ["name": "Randgen Test 1", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Randgen Test 1 failed"
+                    all_task_result << ["name": "Randgen Test 1", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
             tests["Randgen Test 2"] = {
-                run_split("randgen-test",2)
+                try {
+                    run_split("randgen-test",2)
+                    all_task_result << ["name": "Randgen Test 2", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Randgen Test 2 failed"
+                    all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
             tests["Randgen Test 3"] = {
-                run_split("randgen-test",3)
+                try {
+                    run_split("randgen-test",3)
+                    all_task_result << ["name": "Randgen Test 3", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Randgen Test 3 failed"
+                    all_task_result << ["name": "Randgen Test 3", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
             tests["Analyze Test"] = {
-                run("analyze_test")
+                try {
+                    run("analyze_test")
+                    all_task_result << ["name": "Analyze Test", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Analyze Test failed"
+                    all_task_result << ["name": "Analyze Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Mysql Test"] = {
-                run("mysql_test", "mysql-test.out*")
+                try {
+                    run("mysql_test", "mysql-test.out*")
+                    all_task_result << ["name": "Mysql Test", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Mysql Test failed"
+                    all_task_result << ["name": "Mysql Test", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
             if ( ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-3") ) {
                 tests["Mysql Test Cache"] = {
-                    run_cache_log("mysql_test", "mysql-test.out*")
+                    try {
+                        run_cache_log("mysql_test", "mysql-test.out*")
+                        all_task_result << ["name": "Mysql Test Cache", "status": "success", "error": ""]
+                    } catch (err) {
+                        println "Mysql Test Cache failed"
+                        all_task_result << ["name": "Mysql Test Cache", "status": "failed", "error": err.message]
+                        throw err
+                    }
                 }
             }
 
             tests["JDBC Fast"] = {
-                run_jdbc("jdbc_test", "./test_fast.sh")
+                try {
+                    run_jdbc("JDBC Fast", "./test_fast.sh")
+                    all_task_result << ["name": "JDBC Fast", "status": "success", "error": ""]
+                } catch (err) {
+                    println "JDBC Fast failed"
+                    all_task_result << ["name": "JDBC Fast", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["JDBC Slow"] = {
-                run_jdbc("jdbc_test", "./test_slow.sh")
+                try {
+                    run_jdbc("jdbc_test", "./test_slow.sh")
+                    all_task_result << ["name": "JDBC Slow", "status": "success", "error": ""]
+                } catch (err) {
+                    println "JDBC Slow failed"
+                    all_task_result << ["name": "JDBC Slow", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Gorm Test"] = {
-                run("gorm_test")
+                try {
+                    run("gorm_test")
+                    all_task_result << ["name": "Gorm Test", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Gorm Test failed"
+                    all_task_result << ["name": "Gorm Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Go SQL Test"] = {
-                run("go-sql-test")
+                try {
+                    run("go-sql-test")
+                    all_task_result << ["name": "Go SQL Test", "status": "success", "error": ""]
+                } catch (err) {
+                    println "Go SQL Test failed"
+                    all_task_result << ["name": "Go SQL Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["DDL ETCD Test"] = {
-                run_vendor("ddl_etcd_test")
+                try {
+                    run_vendor("ddl_etcd_test")
+                    all_task_result << ["name": "DDL ETCD Test", "status": "success", "error": ""]
+                } catch (err) {
+                    println "DDL ETCD Test failed"
+                    all_task_result << ["name": "DDL ETCD Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             parallel tests
@@ -645,13 +732,14 @@ catch (Exception e) {
         slackcolor = 'danger'
         echo "${e}"
     }
-}
-
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
+} finally {
+    stage("task summary") {
+        def json = groovy.json.JsonOutput.toJson(all_task_result)
+        println "all_results: ${json}"
+        currentBuild.description = "${json}"
     }
 }
+
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
