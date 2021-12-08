@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+specStr = "+refs/heads/*:refs/remotes/origin/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
@@ -72,12 +72,12 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
-            idleMinutes: 10,
+            idleMinutes: 3,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '10000m', resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
                                     containerEnvVar(key: 'GOPATH', value: '/go')], 
@@ -101,7 +101,7 @@ def run_with_pod(Closure body) {
     }
 }
 
-def run_ut_with_flag(flag) {
+try {
     run_with_pod {
         def ws = pwd()
 
@@ -157,60 +157,45 @@ def run_ut_with_flag(flag) {
             def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
+                    // sh """
+                    // make br_unit_test
+                    // mv coverage.txt br.coverage
+                    // make dumpling_unit_test
+                    // mv coverage.txt dumpling.coverage
+                    // make gotest
+                    // mv coverage.txt tidb.coverage
+                    // """
                     sh """
-                    make ${flag}
-                    mv coverage.txt ${flag}.coverage
+                    wget https://raw.githubusercontent.com/purelind/test-ci/main/tidb-coverage/tidb.coverage
+                    wget https://raw.githubusercontent.com/purelind/test-ci/main/tidb-coverage/br.coverage
+                    wget https://raw.githubusercontent.com/purelind/test-ci/main/tidb-coverage/dumpling.coverage
                     """
-                    stash includes: "${flag}.coverage", name: "${flag}_coverage"
-                }
-            }
-        }
-    }
-}
-
-
-try {
-    parallel (
-        "tidb": {
-            run_ut_with_flag("gotest")
-        },
-        "br": {
-            run_ut_with_flag("br_unit_test")
-        },
-        "dumpling": {
-            run_ut_with_flag("dumpling_unit_test")
-        }
-    )
-
-    run_with_pod {
-        stage("codecov upload") {
-            container("golang") {
-                unstash "gotest_coverage"
-                unstash "br_unit_test_coverage"
-                unstash "dumpling_unit_test_coverage"
-
-                withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
-                    timeout(3) {
-                        if (ghprbPullId != null && ghprbPullId != "") {
-                            sh """
-                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                            chmod +x codecov
-                            ./codecov -f "gotest.coverage" -f "br_unit_test.coverage" -f "dumpling_unit_test.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
-                            """
-                        } else {
-                            sh """
-                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                            chmod +x codecov
-                            ./codecov -f "gotest.coverage" -f "br_unit_test.coverage" -f "dumpling_unit_test.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                            """
+                    withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
+                        timeout(5) {
+                            sh '''
+                            wget https://codecov.io/bash
+                            mv bash codecov.bash
+                            bash codecov.bash -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t "${CODECOV_TOKEN}"
+                            '''
+                            // if (ghprbPullId != null && ghprbPullId != "") {
+                            //     sh """
+                            //     curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                            //     chmod +x codecov
+                            //     ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
+                            //     """
+                            // } else {
+                            //     sh """
+                            //     curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                            //     chmod +x codecov
+                            //     ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                            //     """
+                            // }
                         }
                     }
                 }
-                    
             }
         }
     }
-
     currentBuild.result = "SUCCESS"
 }
 catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
