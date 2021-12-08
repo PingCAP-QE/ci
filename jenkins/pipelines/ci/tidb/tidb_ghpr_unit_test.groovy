@@ -77,7 +77,7 @@ def run_with_pod(Closure body) {
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
-                            resourceRequestCpu: '10000m', resourceRequestMemory: '16Gi',
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
                                     containerEnvVar(key: 'GOPATH', value: '/go')], 
@@ -157,39 +157,29 @@ try {
             def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
-                    // sh """
-                    // make br_unit_test
-                    // mv coverage.txt br.coverage
-                    // make dumpling_unit_test
-                    // mv coverage.txt dumpling.coverage
-                    // make gotest
-                    // mv coverage.txt tidb.coverage
-                    // """
                     sh """
-                    wget https://raw.githubusercontent.com/purelind/test-ci/main/tidb-coverage/tidb.coverage
-                    wget https://raw.githubusercontent.com/purelind/test-ci/main/tidb-coverage/br.coverage
-                    wget https://raw.githubusercontent.com/purelind/test-ci/main/tidb-coverage/dumpling.coverage
+                    make br_unit_test
+                    mv coverage.txt br.coverage
+                    make dumpling_unit_test
+                    mv coverage.txt dumpling.coverage
+                    make gotest
+                    mv coverage.txt tidb.coverage
                     """
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(5) {
-                            sh '''
-                            wget https://codecov.io/bash
-                            mv bash codecov.bash
-                            bash codecov.bash -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t "${CODECOV_TOKEN}"
-                            '''
-                            // if (ghprbPullId != null && ghprbPullId != "") {
-                            //     sh """
-                            //     curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                            //     chmod +x codecov
-                            //     ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
-                            //     """
-                            // } else {
-                            //     sh """
-                            //     curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                            //     chmod +x codecov
-                            //     ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                            //     """
-                            // }
+                            if (ghprbPullId != null && ghprbPullId != "") {
+                                sh """
+                                curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                                chmod +x codecov
+                                ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage"  -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                                """
+                            } else {
+                                sh """
+                                curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                                chmod +x codecov
+                                ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                                """
+                            }
                         }
                     }
                 }
