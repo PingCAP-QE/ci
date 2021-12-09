@@ -656,23 +656,6 @@ finally {
             currentBuild.description = "${json}"
         }
     }
-
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - testStartTimeMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Integration Common Test Result: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-
-    if (currentBuild.result == "SUCCESS" && duration >= 3 && ghprbTargetBranch == "master") {
-        slackSend channel: '#jenkins-ci-3-minutes', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-
-    if (currentBuild.result == "FAILURE") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
 }
 
 if (params.containsKey("triggered_by_upstream_ci")) {
