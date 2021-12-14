@@ -82,6 +82,11 @@ if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-")) {
     }
 }
 
+def isHotfix = false
+if ( env.BRANCH_NAME.startsWith("v") &&  env.BRANCH_NAME =~ ".*-202.*") {
+    isHotfix = true
+}
+
 
 def BUILD_URL = 'git@github.com:pingcap/tidb.git'
 
@@ -110,6 +115,14 @@ def release_one(repo,product,hash,arch,binary) {
     build job: "build-common",
             wait: true,
             parameters: paramsBuild
+}
+
+def release_tiup_patch(build_path, binary, patch_path) {
+    println "release tiup patch, ${build_path}, ${binary}, ${patch_path}"
+}
+
+def release_docker_image() {
+    println "release docker image"
 }
 
 try {
@@ -189,7 +202,20 @@ try {
                 def refspath = "refs/pingcap/tidb/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/tidb/${env.BRANCH_NAME}/${githash}/centos7/tidb-server.tar.gz"
                 def filepath2 = "builds/pingcap/tidb/${githash}/centos7/tidb-server.tar.gz"
+                def patch_path = "builds/pingcap/tidb/patch/${env.BRANCH_NAME}/${githash}/centos7/tidb-server.tar.gz"
                 container("golang") {
+                    timeout(10) {
+                        sh """
+                        tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
+                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        echo "${githash}" > sha1
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                    if (isHotfix) {
+                        release_tiup_patch(build_path, binary, patch_path)
+                    }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
                     release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
                     if (isNeedBuildBr) {
@@ -205,15 +231,6 @@ try {
                         release_one("tidb","dumpling","${githash}","amd64",DumplingAmdBinary)
                         DumplingArmBinary = "builds/pingcap/test/dumpling/${githash}/centos7/dumpling-linux-arm64.tar.gz"
                         release_one("tidb","dumpling","${githash}","arm64",DumplingArmBinary)
-                    }
-                    timeout(10) {
-                        sh """
-                        tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
-                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                        curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                        echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                        """
                     }
                 }
             }
