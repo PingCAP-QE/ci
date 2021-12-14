@@ -77,19 +77,14 @@ def run_with_pod(Closure body) {
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '16Gi',
+                            resourceRequestCpu: '6000m', resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
-                                    containerEnvVar(key: 'GOPATH', value: '/go')], 
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
                     )
             ],
             volumes: [
                             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                            nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
-                            nfsVolume(mountPath: '/go/pkg', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
