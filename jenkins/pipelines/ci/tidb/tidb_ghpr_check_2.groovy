@@ -143,7 +143,7 @@ def test_suites = { suites,option ->
         deleteDir()
         unstash 'tidb'
         container("golang") {
-            timeout(720) {
+            timeout(1320) {
                 ws = pwd()
                 def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
                 def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
