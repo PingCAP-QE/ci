@@ -1,3 +1,19 @@
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+    it.startsWith('release-') ? it.minus('release-') : it 
+}
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -8,7 +24,22 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], env.BRANCH_NAME)
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc"], env.BRANCH_NAME)
+}
+if (!isNeedGo1160 && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.1") {
+    isNeedGo1160 = true
+}
+if (!isNeedGo1160 && env.BRANCH_NAME.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchUseGo1160}"
+    }
+}
+
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -20,6 +51,38 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 
+def isNeedBuildBr = false
+def isNeedBuildDumpling = false
+releaseBranchBuildBr = "release-5.2"
+releaseBranchBuildDumpling = "release-5.3"
+if (!isNeedBuildBr) {
+    isNeedBuildBr = isBranchMatched(["master"], env.BRANCH_NAME)
+}
+if (!isNeedBuildDumpling) {
+    isNeedBuildDumpling = isBranchMatched(["master"], env.BRANCH_NAME)
+}
+if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.2") {
+    isNeedBuildBr = true
+}
+if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.3") {
+    isNeedBuildDumpling = true
+}
+
+if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("release-")) {
+    isNeedBuildBr = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchBuildBr))
+    if (isNeedGo1160) {
+        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchBuildBr}"
+    }
+}
+
+if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-")) {
+    isNeedBuildDumpling = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchBuildDumpling))
+    if (isNeedGo1160) {
+        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchBuildDumpling}"
+    }
+}
+
+
 def BUILD_URL = 'git@github.com:pingcap/tidb.git'
 
 def build_path = 'go/src/github.com/pingcap/tidb'
@@ -27,6 +90,27 @@ def slackcolor = 'good'
 def githash
 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
 def plugin_branch = branch
+
+def release_one(repo,product,hash,arch,binary) {
+    echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
+    def paramsBuild = [
+        string(name: "ARCH", value: arch),
+        string(name: "OS", value: "linux"),
+        string(name: "EDITION", value: "community"),
+        string(name: "OUTPUT_BINARY", value: binary),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: product),
+        string(name: "GIT_HASH", value: hash),
+        string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
+        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+    ]
+    if (env.TAG_NAME != null) {
+        paramsBuild.push(string(name: "RELEASE_TAG", value: env.TAG_NAME))
+    }
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
+}
 
 try {
     node("${GO_BUILD_SLAVE}") {
@@ -77,11 +161,15 @@ try {
                         sh """
                         mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                         GOPATH=${ws}/go WITH_RACE=1 make && mv bin/tidb-server bin/tidb-server-race
+                        git checkout .
                         GOPATH=${ws}/go WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
+                        git checkout .
                         GOPATH=${ws}/go make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
+                        git checkout .
                         GOPATH=${ws}/go make server_coverage || true
                         git checkout .
                         GOPATH=${ws}/go make
+                        git checkout .
 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
                             GOPATH=${ws}/go make ddltest
@@ -99,12 +187,30 @@ try {
         stage("Upload") {
             dir(build_path) {
                 def refspath = "refs/pingcap/tidb/${env.BRANCH_NAME}/sha1"
-                def filepath = "builds/pingcap/tidb/${githash}/centos7/tidb-server.tar.gz"
+                def filepath = "builds/pingcap/tidb/${env.BRANCH_NAME}/${githash}/centos7/tidb-server.tar.gz"
+                def filepath2 = "builds/pingcap/tidb/${githash}/centos7/tidb-server.tar.gz"
                 container("golang") {
+                    tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
+                    release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
+                    if (isNeedBuildBr) {
+                        brAmdBinary = "builds/pingcap/br/${env.BRANCH_NAME}/${githash}/centos7/br.tar.gz"
+                        release_one("tidb","br","${githash}","amd64",brAmdBinary)
+                        brArmBinary = "builds/pingcap/test/br/${githash}/centos7/br-linux-arm64.tar.gz"
+                        release_one("tidb","br","${githash}","arm64",brArmBinary)
+                    }
+                    if (isNeedBuildDumpling) {
+                        DumplingAmdBinary = "builds/pingcap/dumpling/${env.BRANCH_NAME}/${githash}/centos7/dumpling.tar.gz"
+                        release_one("tidb","dumpling","${githash}","amd64",DumplingAmdBinary)
+                        DumplingAmdBinary = "builds/pingcap/dumpling/${githash}/centos7/dumpling.tar.gz"
+                        release_one("tidb","dumpling","${githash}","amd64",DumplingAmdBinary)
+                        DumplingArmBinary = "builds/pingcap/test/dumpling/${githash}/centos7/dumpling-linux-arm64.tar.gz"
+                        release_one("tidb","dumpling","${githash}","arm64",DumplingArmBinary)
+                    }
                     timeout(10) {
                         sh """
                         tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
                         curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                         echo "${githash}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
