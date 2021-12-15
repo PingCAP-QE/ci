@@ -119,6 +119,15 @@ def release_one(repo,product,hash,arch,binary) {
 
 def release_tiup_patch(build_path, binary, patch_path) {
     println "release tiup patch, ${build_path}, ${binary}, ${patch_path}"
+    def paramsBuild = [
+        string(name: "INPUT_BINARYS", value: build_path),
+        string(name: "BINARY_NAME", value: binary),
+        string(name: "PRODUCT", value: "tidb"),
+        string(name: "PATCH_PATH", value: patch_path),
+    ]
+    build job: "patch-common",
+            wait: true,
+            parameters: paramsBuild
 }
 
 def release_docker_image() {
