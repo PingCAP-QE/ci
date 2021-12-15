@@ -82,7 +82,7 @@ def run_with_pod(Closure body) {
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
                     ),
                     containerTemplate(
-                            name: 'ruby', alwaysPullImage: false,
+                            name: 'ruby', alwaysPullImage: true,
                             image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest", ttyEnabled: true,
                             resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
                             command: '/bin/sh -c', args: 'cat', 
