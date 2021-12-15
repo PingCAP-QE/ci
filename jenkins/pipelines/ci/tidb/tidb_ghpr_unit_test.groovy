@@ -72,7 +72,7 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
-            idleMinutes: 0,
+            idleMinutes: 30,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -196,6 +196,8 @@ try {
                         timeout(5) {
                             if (ghprbPullId != null && ghprbPullId != "") { 
                             sh """
+                            ruby --version
+                            gem --version
                             wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
                             ruby comment-on-pr.rb "pingcap/tidb" "${ghprbPullId}"  "Code Coverage Details: https://codecov.io/github/pingcap/tidb/commit/${ghprbActualCommit}" true "Code Coverage Details:"
                             """
