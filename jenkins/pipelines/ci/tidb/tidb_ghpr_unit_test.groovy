@@ -195,7 +195,7 @@ try {
                     withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN')]) {
                         timeout(5) {
                             if (ghprbPullId != null && ghprbPullId != "") { 
-                            sh """
+                            sh """#!/bin/bash
                             ruby --version
                             gem --version
                             wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
