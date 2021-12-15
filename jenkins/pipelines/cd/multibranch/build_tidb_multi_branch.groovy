@@ -118,7 +118,8 @@ def release_one(repo,product,hash,arch,binary) {
 }
 
 def release_tiup_patch(build_path, binary, patch_path) {
-    println "release tiup patch, ${build_path}, ${binary}, ${patch_path}"
+    echo "binary ${FILE_SERVER_URL}/download/${build_path}"
+    echo "tiup patch ${FILE_SERVER_URL}/download/${patch_path}"
     def paramsBuild = [
         string(name: "INPUT_BINARYS", value: build_path),
         string(name: "BINARY_NAME", value: binary),
