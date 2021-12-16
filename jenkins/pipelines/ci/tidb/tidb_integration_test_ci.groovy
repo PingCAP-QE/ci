@@ -14,17 +14,12 @@ def extract_pull_id(MSG){
 }
 
 @NonCPS // has to be NonCPS or the build breaks on the call to .each
-def parseBuildResult(resultArrarInStr) {
-    if (resultArrarInStr == null || resultArrarInStr.isEmpty()) {
-        return ""
-    }
-    def jsonObj = readJSON text: resultArrarInStr
-
+def parseBuildResult(list) {
     def total_test = 0
     def failed_test = 0
     def success_test = 0
 
-    jsonObj.each { item ->
+    list.each { item ->
         echo "${item}"
         if (item.status == "SUCCESS") {
             success_test += 1
@@ -39,6 +34,7 @@ def parseBuildResult(resultArrarInStr) {
 
 
 // Debug Env
+// TODO need to remove those lines after debug
 REF = "refs/heads/master  d660e483c2cf3df13d891a38fa29bcae53c52a08"
 ref = "refs/heads/master"
 GEWT_COMMIT_MSG = "sessionctx: fix the value of analyze_version when upgrading 4.x to 5.… (#30743)"
@@ -229,7 +225,12 @@ node("github-status-updater") {
             for (result_map in triggered_job_result) {
                 def name = result_map["name"]
                 def type = result_map["type"]
-                def triggered_job_summary = parseBuildResult(result_map.result.getDescription())
+                def triggered_job_summary = ""
+                if (result_map.result.getDescription() != null && result_map.result.getDescription() != "") {
+                    println "description: ${result_map.result.getDescription()}"
+                    def jsonObj = readJSON text: result_map.result.getDescription()
+                    triggered_job_summary = parseBuildResult(jsonObj)
+                }
                 println "name: ${name}, type: ${type}, result: triggered_job_summary"
                 pipeline_result << [
                     name: result_map["name"],
