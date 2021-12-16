@@ -174,9 +174,9 @@ def tests(sink_type, node_label) {
         if (all_task_result) {
             def json = groovy.json.JsonOutput.toJson(all_task_result)
             def ci_pipeline_name = ""
-            if sink_type == "kafka" {
+            if (sink_type == "kafka") {
                 ci_pipeline_name = "cdc_ghpr_kafka_integration_test"
-            } else if sink_type == "mysql" {
+            } else if (sink_type == "mysql") {
                 ci_pipeline_name = "cdc_ghpr_integration_test"
             }
             writeJSON file: 'ciResult.json', json: json, pretty: 4
