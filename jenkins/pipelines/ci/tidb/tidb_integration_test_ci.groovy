@@ -123,86 +123,86 @@ node("github-status-updater") {
                             def result = build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true, propagate: false)
                             triggered_job_result << ["name": "tidb_ghpr_integration_br_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_integration_br_test failed")
                             }
                         },
                         tidb_ghpr_common_test: {
                             def result = build(job: "tidb_ghpr_common_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_common_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_common_test failed")
                             }
                         },
                         tidb_ghpr_integration_common_test: {
                             def result = build(job: "tidb_ghpr_integration_common_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_integration_common_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_integration_common_test failed")
                             }
                         },
                         tidb_ghpr_integration_campatibility_test: {
                             def result = build(job: "tidb_ghpr_integration_campatibility_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_integration_campatibility_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_integration_campatibility_test failed")
                             }
                         },
                         tidb_ghpr_integration_copr_test: {
                             def result = build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_integration_copr_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_integration_copr_test failed")
                             }
                         },
                         tidb_ghpr_integration_ddl_test: {
                             def result = build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_integration_ddl_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_integration_ddl_test failed")
                             }
                         },
                         tidb_ghpr_mybatis: {
                             def result = build(job: "tidb_ghpr_mybatis", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_mybatis", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_mybatis failed")
                             }
                         },
                         tidb_ghpr_sqllogic_test_1: {
                             def result = build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_sqllogic_test_1", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_sqllogic_test_1 failed")
                             }
                         },
                         tidb_ghpr_sqllogic_test_2: {
                             def result = build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_sqllogic_test_2", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_sqllogic_test_2 failed")
                             }
                         },
                         tidb_ghpr_tics_test: {
                             def result = build(job: "tidb_ghpr_tics_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_tics_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_tics_test failed")
                             }
                         },
                         tidb_ghpr_integration_cdc_test: {
                             def result = build(job: "tidb_ghpr_integration_cdc_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_integration_cdc_test", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_integration_cdc_test failed")
                             }
                         },
 
                         // coverage
                         tidb_ghpr_coverage: {
                             def result = build(job: "tidb_ghpr_coverage", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "", "type": "tidb-merge-ci-checker" , "result": result]
+                            triggered_job_result << ["name": "tidb_ghpr_coverage", "type": "tidb-merge-ci-checker" , "result": result]
                             if (result.getResult() != "SUCCESS") {
-                                throw new Exception("${taskName} failed")
+                                throw new Exception("tidb_ghpr_coverage failed")
                             }
                         },
                         // unit test
@@ -259,13 +259,14 @@ node("github-status-updater") {
                 duration: System.currentTimeMillis() - taskStartTimeInMillis,
                 trigger: "tidb-merge-ci",
             ]
+            def notify_lark = []
+            def notify_email = []
             if (env.GEWT_AUTHOR && env.GEWT_AUTHOR != "") {
-                def notify_lark = [GEWT_AUTHOR]
+                notify_lark = [GEWT_AUTHOR]
             }
             if (env.GEWT_AUTHOR_EMAIL && env.GEWT_AUTHOR_EMAIL != "") {
-                def notify_email = [GEWT_AUTHOR_EMAIL]
+                notify_email = [GEWT_AUTHOR_EMAIL]
             }
-            notify_lark = [GEWT_AUTHOR]
             pipeline_result << [
                 "name": "ci-notify",
                 "type": "ci-notify",
