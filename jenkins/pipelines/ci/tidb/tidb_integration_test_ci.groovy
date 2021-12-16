@@ -29,7 +29,7 @@ def parseBuildResult(list) {
     }
     total_test = success_test + failed_test
 
-    return "Total: ${total_test}, Success: ${success_test}, Failed: ${failed_test}"
+    return "Failed ${failed_test}, Total ${total_test}, Success ${success_test}"
 }
 
 
@@ -253,6 +253,7 @@ node("github-status-updater") {
                 buildNumber: BUILD_NUMBER,
                 commitID: TIDB_COMMIT_ID,
                 branch: TIDB_BRANCH,
+                prID: GEWT_PULL_ID.replaceAll("#", ""),
                 repo: "tidb",
                 org: "pingcap",
                 url: RUN_DISPLAY_URL,
@@ -279,10 +280,10 @@ node("github-status-updater") {
             sh 'cat ciResult.json'
             archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
 
-            // sh """
-            // wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
-            // python3 agent-mergeci.py ciResult.json
-            // """
+            sh """
+            wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
+            python3 agent-mergeci.py ciResult.json
+            """
             
         }
 
