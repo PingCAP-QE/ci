@@ -117,11 +117,11 @@ def release_one(repo,product,hash,arch,binary) {
             parameters: paramsBuild
 }
 
-def release_tiup_patch(build_path, binary, patch_path) {
-    echo "binary ${FILE_SERVER_URL}/download/${build_path}"
+def release_tiup_patch(filepath, binary, patch_path) {
+    echo "binary ${FILE_SERVER_URL}/download/${filepath}"
     echo "tiup patch ${FILE_SERVER_URL}/download/${patch_path}"
     def paramsBuild = [
-        string(name: "INPUT_BINARYS", value: build_path),
+        string(name: "INPUT_BINARYS", value: filepath),
         string(name: "BINARY_NAME", value: binary),
         string(name: "PRODUCT", value: "tidb"),
         string(name: "PATCH_PATH", value: patch_path),
@@ -131,13 +131,13 @@ def release_tiup_patch(build_path, binary, patch_path) {
             parameters: paramsBuild
 }
 
-def release_docker_image(build_path, tag) {
+def release_docker_image(filepath, tag) {
     def image = "pingcap/tidb:$tag"
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb"
     def paramsDocker = [
         string(name: "ARCH", value: "amd64"),
         string(name: "OS", value: "linux"),
-        string(name: "INPUT_BINARYS", value: build_path),
+        string(name: "INPUT_BINARYS", value: filepath),
         string(name: "REPO", value: "tidb"),
         string(name: "PRODUCT", value: "tidb"),
         string(name: "RELEASE_TAG", value: tag),
@@ -238,8 +238,8 @@ try {
                         """
                     }
                     if (isHotfix) {
-                        release_tiup_patch(build_path, "tidb-server", patch_path)
-                        release_docker_image(build_path,env.BRANCH_NAME)
+                        release_tiup_patch(filepath, "tidb-server", patch_path)
+                        release_docker_image(filepath,env.BRANCH_NAME)
                     }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
                     release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
