@@ -169,6 +169,7 @@ def tests(sink_type, node_label) {
         }
     } catch (err) {
         println "Error: ${err}"
+        throw err
     } finally {
         if (all_task_result) {
             def json = groovy.json.JsonOutput.toJson(all_task_result)
