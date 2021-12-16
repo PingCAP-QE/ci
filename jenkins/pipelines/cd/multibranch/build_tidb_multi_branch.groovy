@@ -342,13 +342,7 @@ try {
 
 
     }
-    
-    stage("Push tidb Docker") {
-        // if (env.BRANCH_NAME == "master"){
-            build job: 'build_image_hash', wait: false, parameters: [[$class: 'StringParameterValue', name: 'REPO', value: "tidb"], [$class: 'StringParameterValue', name: 'COMMIT_ID', value: githash], [$class: 'StringParameterValue', name: 'IMAGE_TAG', value: env.BRANCH_NAME]]
-            //build job: 'pr_trigger', wait: false, parameters: [[$class: 'StringParameterValue', name: 'BUILD_BRANCH', value: "master"]]
-        // }
-    }
+
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
