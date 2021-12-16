@@ -21,7 +21,7 @@ def parseBuildResult(list) {
 
     list.each { item ->
         echo "${item}"
-        if (item.status == "SUCCESS") {
+        if (item.status == "success") {
             success_test += 1
         } else {
             failed_test += 1
