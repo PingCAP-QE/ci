@@ -292,13 +292,22 @@ try {
                 container("golang") {
                     dir("go/src/github.com/pingcap/enterprise-plugin") {
 
-                        if (plugin_branch.startsWith("refs/tags/v3.0")){
-                            plugin_branch = "release-3.0"
+                        if (plugin_branch.startsWith("refs/tags/v5.0")){
+                            plugin_branch = "release-5.0"
                         }
 
-                        if (plugin_branch.startsWith("refs/tags/v3.1")){
-                            plugin_branch = "release-3.1"
+                        if (plugin_branch.startsWith("refs/tags/v5.1")){
+                            plugin_branch = "release-5.1"
                         }
+
+                        if (plugin_branch.startsWith("refs/tags/v5.2")){
+                            plugin_branch = "release-5.2"
+                        }
+
+                        if (plugin_branch.startsWith("refs/tags/v5.3")){
+                            plugin_branch = "release-5.3"
+                        }
+
 
                         if (plugin_branch.startsWith("refs/tags/v4.0")){
                             plugin_branch = "release-4.0"
@@ -348,12 +357,4 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-    if (currentBuild.result != "SUCCESS" && (branch == "master" || branch.startsWith("release") || branch.startsWith("refs/tags/v"))) {
-        slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
 }
