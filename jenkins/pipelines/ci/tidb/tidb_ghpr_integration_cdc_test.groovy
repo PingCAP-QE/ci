@@ -14,10 +14,8 @@ if (params.containsKey("release_test")) {
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 
-result = ""
-triggered_job_name = "cdc_ghpr_integration_test"
-node("${GO_TEST_SLAVE}") {
-    try {    
+catchError {
+    node("${GO_TEST_SLAVE}") {
         stage('Trigger TiCDC Integration Test') {
             if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-")) {
                 container("golang") {
@@ -43,33 +41,15 @@ node("${GO_TEST_SLAVE}") {
                     ]
 
                     // Trigger TiCDC test and waiting its finish.
-                    result = build(job: "${triggered_job_name}", parameters: default_params, wait: true, propagate: false)
-                    if (result.getResult() != "SUCCESS") {
-                        throw new Exception("triggered job: ${triggered_job_name} failed")
-                    }
+                    build(job: "cdc_ghpr_integration_test", parameters: default_params, wait: true)
                 }
             } else {
                 println "skip trigger TiCDC tests as this PR targets to ${ghprbTargetBranch}"
             }
             currentBuild.result = "SUCCESS"
         }
-    } catch(e) {
-        throw e
-    } finally {
-        def triggered_job_result_file_url = "${FILE_SERVER_URL}/download/cicd/ci-pipeline-artifacts/result-${triggered_job_name}_${result.getNumber().toString()}.json"
-        def file_existed = sh(returnStatus: true,
-                            script: """if curl --output /dev/null --silent --head --fail ${triggered_job_result_file_url}; then exit 0; else exit 1; fi""")
-        if (file_existed == 0) {
-            sh "curl -O ${triggered_job_result_file_url}"
-            def jsonObj = readJSON file: "result-${triggered_job_name}_${result.getNumber().toString()}.json"
-            def resultJsonString = groovy.json.JsonOutput.toJson(jsonObj)
-            currentBuild.description = resultJsonString
-        } else {
-            println "triggered job result file not exist"
-        }
     }
 }
-
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
