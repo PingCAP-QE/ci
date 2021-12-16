@@ -238,7 +238,7 @@ try {
                         """
                     }
                     if (isHotfix) {
-                        release_tiup_patch(build_path, binary, patch_path)
+                        release_tiup_patch(build_path, "tidb-server", patch_path)
                         release_docker_image(build_path,env.BRANCH_NAME)
                     }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
