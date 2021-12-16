@@ -157,9 +157,9 @@ def tests(sink_type, node_label) {
                 test_cases["integration test ${step_name}"] = {
                     try {
                         run_integration_test(step_name, case_names.join(" "))
-                        all_task_result << ["name": case_names, "status": "success", "error": ""]
+                        all_task_result << ["name": case_names.join(" "), "status": "success", "error": ""]
                     } catch (err) {
-                        all_task_result << ["name": case_names, "status": "failed", "error": err.message]
+                        all_task_result << ["name": case_names.join(" "), "status": "failed", "error": err.message]
                         throw err
                     }  
                 }
