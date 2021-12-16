@@ -16,11 +16,8 @@ string trimPrefix = {
         it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
     }
 
-result = ""
-triggered_job_name = "br_ghpr_unit_and_integration_test"
-
-node("${GO_TEST_SLAVE}") {
-    try {    
+catchError {
+    node("${GO_TEST_SLAVE}") {
         // After BR merged into TiDB, every PR should trigger this test.
         stage('Trigger BRIE Test') {
             container("golang") {
@@ -48,10 +45,10 @@ node("${GO_TEST_SLAVE}") {
                 // these three branch don't have br integrated.
                 targetBranch = ghprbTargetBranch
                 if(ghprbTargetBranch.startsWith("release-")) {
-                    // remove date from branch name
-                    // before: release-5.1-20210909
-                    // after: release-5.1
-                    targetBranch = "release-" + trimPrefix(ghprbTargetBranch)
+                	// remove date from branch name
+                	// before: release-5.1-20210909
+                	// after: release-5.1
+                	targetBranch = "release-" + trimPrefix(ghprbTargetBranch)
                 }
                 if (targetBranch == "release-4.0" || targetBranch == "release-5.0" || targetBranch == "release-5.1") {
                     default_params[1] = string(name: 'triggered_by_upstream_pr_ci', value: "tidb")
@@ -59,30 +56,12 @@ node("${GO_TEST_SLAVE}") {
                     default_params[3] = string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${targetBranch}")
                 }
                 // Trigger BRIE test without waiting its finish.
-                build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true, propagate: false)
-                if (result.getResult() != "SUCCESS") {
-                    throw new Exception("triggered job: ${triggered_job_name} failed")
-                }
+                build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
             }
             currentBuild.result = "SUCCESS"
         }
-    } catch(e) {
-        throw e
-    } finally {
-        def triggered_job_result_file_url = "${FILE_SERVER_URL}/download/cicd/ci-pipeline-artifacts/result-${triggered_job_name}_${result.getNumber().toString()}.json"
-        def file_existed = sh(returnStatus: true,
-                            script: """if curl --output /dev/null --silent --head --fail ${triggered_job_result_file_url}; then exit 0; else exit 1; fi""")
-        if (file_existed == 0) {
-            sh "curl -O ${triggered_job_result_file_url}"
-            def jsonObj = readJSON file: "result-${triggered_job_name}_${result.getNumber().toString()}.json"
-            def resultJsonString = groovy.json.JsonOutput.toJson(jsonObj)
-            currentBuild.description = resultJsonString
-        } else {
-            println "triggered job result file not exist"
-        }
-    } 
+    }
 }
-
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {

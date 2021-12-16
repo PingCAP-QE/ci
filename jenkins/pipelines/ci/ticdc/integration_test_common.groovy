@@ -83,109 +83,81 @@ def prepare_binaries() {
  * @param node_label
  */
 def tests(sink_type, node_label) {
-    def all_task_result = []
-    try {
-        stage("Tests") {
-            def test_cases = [:]
-            // Set to fail fast.
-            test_cases.failFast = true
+    stage("Tests") {
+        def test_cases = [:]
+        // Set to fail fast.
+        test_cases.failFast = true
 
-            // Start running integration tests.
-            def run_integration_test = { step_name, case_names ->
-                node(node_label) {
-                    container("golang") {
-                        def ws = pwd()
-                        deleteDir()
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                        println "work space path:\n${ws}"
-                        println "this step will run tests: ${case_names}"
-                        unstash 'ticdc'
-                        dir("go/src/github.com/pingcap/ticdc") {
-                            download_binaries()
-                            try {
-                                sh """
-                                    s3cmd --version
-                                    rm -rf /tmp/tidb_cdc_test
-                                    mkdir -p /tmp/tidb_cdc_test
-                                    echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
-                                    GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
-                                    rm -rf cov_dir
-                                    mkdir -p cov_dir
-                                    ls /tmp/tidb_cdc_test
-                                    cp /tmp/tidb_cdc_test/cov*out cov_dir || touch cov_dir/dummy_file_${step_name}
-                                """
-                                // cyclic tests do not run on kafka sink, so there is no cov* file.
-                                sh """
-                                tail /tmp/tidb_cdc_test/cov* || true
-                                """
-                            } catch (Exception e) {
-                                sh """
-                                    echo "archive all log"
-                                    for log in `ls /tmp/tidb_cdc_test/*/*.log`; do
-                                        dirname=`dirname \$log`
-                                        basename=`basename \$log`
-                                        mkdir -p "log\$dirname"
-                                        tar zcvf "log\${log}.tgz" -C "\$dirname" "\$basename"
-                                    done
-                                """
-                                archiveArtifacts artifacts: "log/tmp/tidb_cdc_test/**/*.tgz", caseSensitive: false
-                                throw e;
-                            }
+        // Start running integration tests.
+        def run_integration_test = { step_name, case_names ->
+            node(node_label) {
+                container("golang") {
+                    def ws = pwd()
+                    deleteDir()
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                    println "work space path:\n${ws}"
+                    println "this step will run tests: ${case_names}"
+                    unstash 'ticdc'
+                    dir("go/src/github.com/pingcap/ticdc") {
+                        download_binaries()
+                        try {
+                            sh """
+                                s3cmd --version
+                                rm -rf /tmp/tidb_cdc_test
+                                mkdir -p /tmp/tidb_cdc_test
+                                echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
+                                rm -rf cov_dir
+                                mkdir -p cov_dir
+                                ls /tmp/tidb_cdc_test
+                                cp /tmp/tidb_cdc_test/cov*out cov_dir || touch cov_dir/dummy_file_${step_name}
+                            """
+                            // cyclic tests do not run on kafka sink, so there is no cov* file.
+                            sh """
+                            tail /tmp/tidb_cdc_test/cov* || true
+                            """
+                        } catch (Exception e) {
+                            sh """
+                                echo "archive all log"
+                                for log in `ls /tmp/tidb_cdc_test/*/*.log`; do
+                                    dirname=`dirname \$log`
+                                    basename=`basename \$log`
+                                    mkdir -p "log\$dirname"
+                                    tar zcvf "log\${log}.tgz" -C "\$dirname" "\$basename"
+                                done
+                            """
+                            archiveArtifacts artifacts: "log/tmp/tidb_cdc_test/**/*.tgz", caseSensitive: false
+                            throw e;
                         }
-                        stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "integration_test_${step_name}", useDefaultExcludes: false
                     }
+                    stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "integration_test_${step_name}", useDefaultExcludes: false
                 }
             }
-
-
-            // Gets the name of each case.
-            unstash 'cases_name'
-            def cases_name = sh(
-                    script: 'cat go/src/github.com/pingcap/ticdc/tests/integration_tests/CASES',
-                    returnStdout: true
-            ).trim().split()
-
-            // Run integration tests in groups.
-            def step_cases = []
-            def cases_namesList = partition(cases_name, GROUP_SIZE)
-            TOTAL_COUNT = cases_namesList.size()
-            cases_namesList.each { case_names ->
-                step_cases.add(case_names)
-            }
-            step_cases.eachWithIndex { case_names, index ->
-                def step_name = "step_${index}"
-                test_cases["integration test ${step_name}"] = {
-                    try {
-                        run_integration_test(step_name, case_names.join(" "))
-                        all_task_result << ["name": case_names.join(" "), "status": "success", "error": ""]
-                    } catch (err) {
-                        all_task_result << ["name": case_names.join(" "), "status": "failed", "error": err.message]
-                        throw err
-                    }  
-                }
-            }
-
-            parallel test_cases
         }
-    } catch (err) {
-        println "Error: ${err}"
-        throw err
-    } finally {
-        if (all_task_result) {
-            def json = groovy.json.JsonOutput.toJson(all_task_result)
-            def ci_pipeline_name = ""
-            if (sink_type == "kafka") {
-                ci_pipeline_name = "cdc_ghpr_kafka_integration_test"
-            } else if (sink_type == "mysql") {
-                ci_pipeline_name = "cdc_ghpr_integration_test"
+
+
+        // Gets the name of each case.
+        unstash 'cases_name'
+        def cases_name = sh(
+                script: 'cat go/src/github.com/pingcap/ticdc/tests/integration_tests/CASES',
+                returnStdout: true
+        ).trim().split()
+
+        // Run integration tests in groups.
+        def step_cases = []
+        def cases_namesList = partition(cases_name, GROUP_SIZE)
+        TOTAL_COUNT = cases_namesList.size()
+        cases_namesList.each { case_names ->
+            step_cases.add(case_names)
+        }
+        step_cases.eachWithIndex { case_names, index ->
+            def step_name = "step_${index}"
+            test_cases["integration test ${step_name}"] = {
+                run_integration_test(step_name, case_names.join(" "))
             }
-            writeJSON file: 'ciResult.json', json: json, pretty: 4
-            sh "cat ciResult.json"
-            archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-            sh """
-            curl -F cicd/ci-pipeline-artifacts/result-${ci_pipeline_name}_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
-            """
-        }         
+        }
+
+        parallel test_cases
     }
 }
 
