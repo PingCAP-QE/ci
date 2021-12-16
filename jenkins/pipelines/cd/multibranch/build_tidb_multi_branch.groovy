@@ -131,8 +131,22 @@ def release_tiup_patch(build_path, binary, patch_path) {
             parameters: paramsBuild
 }
 
-def release_docker_image() {
-    println "release docker image"
+def release_docker_image(build_path, tag) {
+    def image = "pingcap/tidb:$tag"
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb"
+    def paramsDocker = [
+        string(name: "ARCH", value: "amd64"),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: build_path),
+        string(name: "REPO", value: "tidb"),
+        string(name: "PRODUCT", value: "tidb"),
+        string(name: "RELEASE_TAG", value: tag),
+        string(name: "DOCKERFILE", value: dockerfile),
+        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+    ]
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsDocker
 }
 
 try {
@@ -225,6 +239,7 @@ try {
                     }
                     if (isHotfix) {
                         release_tiup_patch(build_path, binary, patch_path)
+                        release_docker_image(build_path,env.BRANCH_NAME)
                     }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
                     release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
