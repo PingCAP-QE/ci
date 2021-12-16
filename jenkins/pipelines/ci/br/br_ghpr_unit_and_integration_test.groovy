@@ -57,6 +57,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
+
 // Remove tailing string.
 @NonCPS
 def getTargetBranch(body){
@@ -841,17 +842,19 @@ catch (Exception e) {
     }
 }
 finally {
-    stage("task summary") {
-        if (all_task_result) {
-            def json = groovy.json.JsonOutput.toJson(all_task_result)
-            writeJSON file: 'ciResult.json', json: json, pretty: 4
-            sh "cat ciResult.json"
-            archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-            sh """
-            curl -F cicd/ci-pipeline-artifacts/result-br_ghpr_unit_and_integration_test_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
-            """
+    node("lightweight_pod") {
+        stage("task summary") {
+            if (all_task_result) {
+                def json = groovy.json.JsonOutput.toJson(all_task_result)
+                writeJSON file: 'ciResult.json', json: json, pretty: 4
+                sh "cat ciResult.json"
+                archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
+                sh """
+                curl -F cicd/ci-pipeline-artifacts/result-br_ghpr_unit_and_integration_test_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
+                """
+            }
         }
-    }
+    } 
 }
 
 stage('Summary') {
@@ -878,17 +881,19 @@ stage('Summary') {
             "BRIE Integration Test Result: `${currentBuild.result}`" + "\\n" +
             "Elapsed Time: `${duration} mins` " + "\\n" +
             "${env.RUN_DISPLAY_URL}"
-        node {
-            withCredentials([string(credentialsId: 'br-integration-test-feishu-webhook', variable: 'BR_WEBHOOK_TOKEN')]) {
-            sh """
-                curl -X POST ${BR_WEBHOOK_TOKEN} -H 'Content-Type: application/json' \
-                -d '{
-                    "msg_type": "text",
-                    "content": {
-                        "text": "${feishuMsg}"
-                    }
-                }' \
-            """
+        node("lightweight_pod") {
+            container("golang") {
+                withCredentials([string(credentialsId: 'br-integration-test-feishu-webhook', variable: 'BR_WEBHOOK_TOKEN')]) {
+                    sh """
+                        curl -X POST ${BR_WEBHOOK_TOKEN} -H 'Content-Type: application/json' \
+                        -d '{
+                            "msg_type": "text",
+                            "content": {
+                                "text": "${feishuMsg}"
+                            }
+                        }' \
+                    """
+                }
             }
         }
     }
