@@ -3,7 +3,7 @@
 
 branch=$1
 
-repo_list="pingcap/tidb tikv/tikv tikv/pd pingcap/tics pingcap/br pingcap/tidb-binlog pingcap/tidb-tools pingcap/ticdc tikv/importer"
+repo_list="pingcap/tidb tikv/tikv tikv/pd pingcap/tics pingcap/br pingcap/tidb-binlog pingcap/tidb-tools pingcap/tiflow tikv/importer"
 
 for repo in $repo_list;do
 sha=$(curl -H "Authorization: token $TOKEN" https://api.github.com/repos/$repo/git/refs/heads/$branch | jq -r '.object.sha')
