@@ -75,8 +75,7 @@ node("${GO_TEST_SLAVE}") {
         if (file_existed == 0) {
             sh "curl -O ${triggered_job_result_file_url}"
             def jsonObj = readJSON file: "result-${triggered_job_name}_${result.getNumber().toString()}.json"
-            def resultJsonString = groovy.json.JsonOutput.toJson(jsonObj)
-            currentBuild.description = resultJsonString
+            currentBuild.description = "${jsonObj}"
         } else {
             println "triggered job result file not exist"
         }
