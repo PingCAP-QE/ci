@@ -59,7 +59,7 @@ node("${GO_TEST_SLAVE}") {
                     default_params[3] = string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${targetBranch}")
                 }
                 // Trigger BRIE test without waiting its finish.
-                build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true, propagate: false)
+                result = build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true, propagate: false)
                 if (result.getResult() != "SUCCESS") {
                     throw new Exception("triggered job: ${triggered_job_name} failed")
                 }
