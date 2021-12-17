@@ -35,14 +35,14 @@ def parseBuildResult(list) {
 
 // Debug Env
 // TODO need to remove those lines after debug
-REF = "refs/heads/master  d660e483c2cf3df13d891a38fa29bcae53c52a08"
-ref = "refs/heads/master"
-GEWT_COMMIT_MSG = "sessionctx: fix the value of analyze_version when upgrading 4.x to 5.… (#30743)"
-GEWT_AUTHOR = "purelind"
-GEWT_AUTHOR_EMAIL = "purelind@gmail.com"
-GEWT_PULL_ID = "#30743"
-TIDB_COMMIT_ID = "d660e483c2cf3df13d891a38fa29bcae53c52a08"
-TIDB_BRANCH = "master"
+// REF = "refs/heads/master  d660e483c2cf3df13d891a38fa29bcae53c52a08"
+// ref = "refs/heads/master"
+// GEWT_COMMIT_MSG = "sessionctx: fix the value of analyze_version when upgrading 4.x to 5.… (#30743)"
+// GEWT_AUTHOR = "purelind"
+// GEWT_AUTHOR_EMAIL = "purelind@gmail.com"
+// GEWT_PULL_ID = "#30743"
+// TIDB_COMMIT_ID = "d660e483c2cf3df13d891a38fa29bcae53c52a08"
+// TIDB_BRANCH = "master"
 
 
 
@@ -112,7 +112,7 @@ node("github-status-updater") {
             build(job: "tidb_merged_pr_build", parameters: default_params, wait: true, propagate: false)
         }
         stage("Trigger Test Job") {
-            container("golang") {
+            container("github-status-updater") {
                 parallel(
                         // integration test
                         tidb_ghpr_integration_br_test: {
@@ -221,67 +221,69 @@ node("github-status-updater") {
         println "catch_exception Exception"
         println e
     } finally {
-        stage("summary") {
-            for (result_map in triggered_job_result) {
-                def name = result_map["name"]
-                def type = result_map["type"]
-                def triggered_job_summary = ""
-                if (result_map.result.getDescription() != null && result_map.result.getDescription() != "") {
-                    println "description: ${result_map.result.getDescription()}"
-                    def jsonObj = readJSON text: result_map.result.getDescription()
-                    triggered_job_summary = parseBuildResult(jsonObj)
+        container("golang") { 
+            stage("summary") {
+                for (result_map in triggered_job_result) {
+                    def name = result_map["name"]
+                    def type = result_map["type"]
+                    def triggered_job_summary = ""
+                    if (result_map.result.getDescription() != null && result_map.result.getDescription() != "") {
+                        println "description: ${result_map.result.getDescription()}"
+                        def jsonObj = readJSON text: result_map.result.getDescription()
+                        triggered_job_summary = parseBuildResult(jsonObj)
+                    }
+                    println "name: ${name}, type: ${type}, result: triggered_job_summary"
+                    pipeline_result << [
+                        name: result_map["name"],
+                        type: result_map["type"],
+                        result: result_map["result"].getResult(),
+                        fullDisplayName: result_map.result.getFullDisplayName(), 
+                        buildNumber: result_map.result.getNumber().toString(),
+                        summary: triggered_job_summary,
+                        durationStr: result_map.result.getDurationString(),
+                        duration: result_map.result.getDuration(),
+                        startTime: result_map.result.getStartTimeInMillis(),
+                        url: "${CI_JENKINS_BASE_URL}/blue/organizations/jenkins/${result_map.result.getFullProjectName()}/detail/${result_map.result.getFullProjectName()}/${result_map.result.getNumber().toString()}/pipeline"    
+                    ]
                 }
-                println "name: ${name}, type: ${type}, result: triggered_job_summary"
+
                 pipeline_result << [
-                    name: result_map["name"],
-                    type: result_map["type"],
-                    result: result_map["result"].getResult(),
-                    fullDisplayName: result_map.result.getFullDisplayName(), 
-                    buildNumber: result_map.result.getNumber().toString(),
-                    summary: triggered_job_summary,
-                    durationStr: result_map.result.getDurationString(),
-                    duration: result_map.result.getDuration(),
-                    startTime: result_map.result.getStartTimeInMillis(),
-                    url: "${CI_JENKINS_BASE_URL}/blue/organizations/jenkins/${result_map.result.getFullProjectName()}/detail/${result_map.result.getFullProjectName()}/${result_map.result.getNumber().toString()}/pipeline"    
+                    name: "tidb-merge-ci",
+                    result: currentBuild.result,
+                    type: "mergeci-pipeline",
+                    buildNumber: BUILD_NUMBER,
+                    commitID: TIDB_COMMIT_ID,
+                    branch: TIDB_BRANCH,
+                    prID: GEWT_PULL_ID.replaceAll("#", ""),
+                    repo: "tidb",
+                    org: "pingcap",
+                    url: RUN_DISPLAY_URL,
+                    startTime: taskStartTimeInMillis, 
+                    duration: System.currentTimeMillis() - taskStartTimeInMillis,
+                    trigger: "tidb-merge-ci",
                 ]
+                println "PR ID : ${GEWT_PULL_ID.replaceAll("#", "")}"
+                def notify_lark = ["purelind", GEWT_AUTHOR]
+                // def notify_email = [GEWT_AUTHOR_EMAIL]
+                def notify_email = []
+                pipeline_result << [
+                    "name": "ci-notify",
+                    "type": "ci-notify",
+                    "lark": notify_lark,
+                    "email": notify_email,
+                ]
+                def json = groovy.json.JsonOutput.toJson(pipeline_result)
+                writeJSON file: 'ciResult.json', json: json, pretty: 4
+                sh 'cat ciResult.json'
+                archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
+
+                sh """
+                wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
+                python3 agent-mergeci.py ciResult.json
+                """
+                
             }
-
-            pipeline_result << [
-                name: "tidb-merge-ci",
-                result: currentBuild.result,
-                type: "mergeci-pipeline",
-                buildNumber: BUILD_NUMBER,
-                commitID: TIDB_COMMIT_ID,
-                branch: TIDB_BRANCH,
-                prID: GEWT_PULL_ID.replaceAll("#", ""),
-                repo: "tidb",
-                org: "pingcap",
-                url: RUN_DISPLAY_URL,
-                startTime: taskStartTimeInMillis, 
-                duration: System.currentTimeMillis() - taskStartTimeInMillis,
-                trigger: "tidb-merge-ci",
-            ]
-            println "PR ID : ${GEWT_PULL_ID.replaceAll("#", "")}"
-            def notify_lark = [GEWT_AUTHOR]
-            def notify_email = [GEWT_AUTHOR_EMAIL]
-            pipeline_result << [
-                "name": "ci-notify",
-                "type": "ci-notify",
-                "lark": notify_lark,
-                "email": notify_email,
-            ]
-            def json = groovy.json.JsonOutput.toJson(pipeline_result)
-            writeJSON file: 'ciResult.json', json: json, pretty: 4
-            sh 'cat ciResult.json'
-            archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-
-            sh """
-            wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
-            python3 agent-mergeci.py ciResult.json
-            """
-            
         }
-
 
         stage("alert") {
             container("python3") {
