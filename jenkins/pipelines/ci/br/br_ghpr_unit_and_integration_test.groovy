@@ -501,9 +501,9 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 }
             }
         }
-        all_task_result << ["name": case_names, "status": "success", "error": ""]
+        all_task_result << ["name": case_names.join(" "), "status": "success", "error": ""]
     } catch (err) {
-        all_task_result << ["name": case_names, "status": "failed", "error": err.message]
+        all_task_result << ["name": case_names.join(" "), "status": "failed", "error": err.message]
         throw err
     }   
 }
