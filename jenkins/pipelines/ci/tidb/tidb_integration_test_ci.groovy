@@ -29,7 +29,7 @@ def parseBuildResult(list) {
     }
     total_test = success_test + failed_test
 
-    return "Failed ${failed_test}, Total ${total_test}, Success ${success_test}"
+    return "failed ${failed_test}, total ${total_test}, success ${success_test}"
 }
 
 
