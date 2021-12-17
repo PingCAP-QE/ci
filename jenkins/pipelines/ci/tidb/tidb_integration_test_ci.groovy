@@ -261,14 +261,9 @@ node("github-status-updater") {
                 duration: System.currentTimeMillis() - taskStartTimeInMillis,
                 trigger: "tidb-merge-ci",
             ]
-            def notify_lark = []
-            def notify_email = []
-            if (env.GEWT_AUTHOR && env.GEWT_AUTHOR != "") {
-                notify_lark = [GEWT_AUTHOR]
-            }
-            if (env.GEWT_AUTHOR_EMAIL && env.GEWT_AUTHOR_EMAIL != "") {
-                notify_email = [GEWT_AUTHOR_EMAIL]
-            }
+            println "PR ID : ${GEWT_PULL_ID.replaceAll("#", "")}"
+            def notify_lark = [GEWT_AUTHOR]
+            def notify_email = [GEWT_AUTHOR_EMAIL]
             pipeline_result << [
                 "name": "ci-notify",
                 "type": "ci-notify",
