@@ -142,7 +142,7 @@ try {
 
         stage("Upload") {
             dir(build_path) {
-                def target = "tiflow-${os}-${arch}"
+                def target = "ticdc-${os}-${arch}"
                 def refspath = "refs/pingcap/tiflow/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/tiflow/${env.BRANCH_NAME}/${githash}/centos7/${target}.tar.gz"
                 def filepath2 = "builds/pingcap/tiflow/${githash}/centos7/${target}.tar.gz"

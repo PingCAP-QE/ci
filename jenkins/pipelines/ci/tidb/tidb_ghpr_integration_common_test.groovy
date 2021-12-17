@@ -103,6 +103,8 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
 
+all_task_result = []
+
 try {
     timestamps {
         stage("Pre-check"){
@@ -440,100 +442,166 @@ try {
             }
 
             tests["Integration Randgen Test 1"] = {
-                run_split("randgen-test", "randgentest", "./test.sh", 1)
+                try {
+                    run_split("randgen-test", "randgentest", "./test.sh", 1)
+                    all_task_result << ["name": "Randgen Test 1", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Randgen Test 1", "status": "failed", "error": err.message]
+                    throw err
+                }  
             }
 
             tests["Integration Randgen Test 2"] = {
-                run_split("randgen-test", "randgentest", "./test.sh", 2)
+                try {
+                    run_split("randgen-test", "randgentest", "./test.sh", 2)
+                    all_task_result << ["name": "Randgen Test 2", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
+                    throw err
+                }  
             }
 
             tests["Integration Randgen Test 3"] = {
-                run_split("randgen-test", "randgentest", "./test.sh", 3)
+                try {
+                    run_split("randgen-test", "randgentest", "./test.sh", 3)
+                    all_task_result << ["name": "Randgen Test 3", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Randgen Test 3", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
             tests["Integration Analyze Test"] = {
-                run("analyze_test", "analyzetest", "./test.sh")
+                try {
+                    run("analyze_test", "analyzetest", "./test.sh")
+                    all_task_result << ["name": "Analyze Test", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Analyze Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Integration TiDB Test 1"] = {
-                run("tidb_test", "tidbtest", "TEST_FILE=ql_1.t ./test.sh")
+                try {
+                    run("tidb_test", "tidbtest", "TEST_FILE=ql_1.t ./test.sh")
+                    all_task_result << ["name": "TiDB Test 1", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "TiDB Test 1", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Integration TiDB Test 2"] = {
-                run("tidb_test", "tidbtest", "TEST_FILE=ql_2.t ./test.sh")
+                try {
+                    run("tidb_test", "tidbtest", "TEST_FILE=ql_2.t ./test.sh")
+                    all_task_result << ["name": "TiDB Test 2", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "TiDB Test 2", "status": "failed", "error": err.message]
+                    throw err
+                } 
             }
 
             tests["Integration Go SQL Test"] = {
-                run("go-sql-test", "gosqltest", "./test.sh")
+                try {
+                    run("go-sql-test", "gosqltest", "./test.sh")
+                    all_task_result << ["name": "Go SQL Test", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Go SQL Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Integration GORM Test"] = {
-                run("gorm_test", "gormtest", "./test.sh")
+                try {
+                    run("gorm_test", "gormtest", "./test.sh")
+                    all_task_result << ["name": "GORM Test", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "GORM Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Integration MySQL Test"] = {
-                run("mysql_test", "mysqltest", "./test.sh")
+                try {
+                    run("mysql_test", "mysqltest", "./test.sh")
+                    all_task_result << ["name": "MySQL Test", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "MySQL Test", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Integration MySQL Test Cached"] = {
-                run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
+                try {
+                    run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
+                    all_task_result << ["name": "MySQL Test Cached", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "MySQL Test Cached", "status": "failed", "error": err.message]
+                    throw err
+                }
             }
 
             tests["Integration Explain Test"] = {
-                node ("${GO_TEST_HEAVY_SLAVE}") {
-                    def ws = pwd()
-                    deleteDir()
-                    // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    dir("go/src/github.com/pingcap/tidb") {
-                        container("golang") {
-                            try {
-                                timeout(10) {
-                                    retry(3){
-                                        deleteDir()
-                                        sh """
-	                                while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-	                                curl ${tidb_url} | tar xz
-	                                """
+                try {
+                    node ("${GO_TEST_HEAVY_SLAVE}") {
+                        def ws = pwd()
+                        deleteDir()
+                        // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        dir("go/src/github.com/pingcap/tidb") {
+                            container("golang") {
+                                try {
+                                    timeout(10) {
+                                        retry(3){
+                                            deleteDir()
+                                            sh """
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        curl ${tidb_url} | tar xz
+                                        """
+                                        }
+
                                     }
 
-                                }
-
-                                timeout(20) {
+                                    timeout(20) {
+                                        sh """
+                                    if [ ! -d cmd/explaintest ]; then
+                                        echo "no explaintest file found in 'cmd/explaintest'"
+                                        exit -1
+                                    fi
+                                    cp bin/tidb-server cmd/explaintest
+                                    cp bin/importer cmd/explaintest
+                                    cd cmd/explaintest
+                                    GO111MODULE=on go build -o explain_test
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                    """
+                                    }
+                                } catch (err) {
                                     sh """
-                                if [ ! -d cmd/explaintest ]; then
-                                    echo "no explaintest file found in 'cmd/explaintest'"
-                                    exit -1
-                                fi
-                                cp bin/tidb-server cmd/explaintest
-                                cp bin/importer cmd/explaintest
-                                cd cmd/explaintest
-                                GO111MODULE=on go build -o explain_test
+                                cat tidb*.log || true
+                                """
+                                    sh "cat explain-test.out || true"
+                                    throw err
+                                } finally {
+                                    sh """
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
                                 killall -9 -r pd-server
-                                rm -rf /tmp/tidb
                                 set -e
-                                ./run-tests.sh -s ./tidb-server -i ./importer -b n
                                 """
                                 }
-                            } catch (err) {
-                                sh """
-                            cat tidb*.log || true
-                            """
-                                sh "cat explain-test.out || true"
-                                throw err
-                            } finally {
-                                sh """
-                            set +e
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            set -e
-                            """
                             }
                         }
                     }
+                    all_task_result << ["name": "Explain Test", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Explain Test", "status": "failed", "error": err.message]
+                    throw err
                 }
             }
 
@@ -581,27 +649,12 @@ catch (Exception e) {
     }
 }
 finally {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - testStartTimeMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Integration Common Test Result: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-
-    if (currentBuild.result == "SUCCESS" && duration >= 3 && ghprbTargetBranch == "master") {
-        slackSend channel: '#jenkins-ci-3-minutes', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-
-    if (currentBuild.result == "FAILURE") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-}
-
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
+    stage("task summary") {
+        if (all_task_result) {
+            def json = groovy.json.JsonOutput.toJson(all_task_result)
+            println "all_results: ${json}"
+            currentBuild.description = "${json}"
+        }
     }
 }
 

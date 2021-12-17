@@ -47,51 +47,52 @@ def run(label, Closure body) {
         body()
     } }
 }
+all_task_result = []
 
-def fallback() {
-    catchError {
+try {
 
-        def label = "tidb-test-tics"
-        def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-        def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+    def label = "tidb-test-tics"
+    def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+    def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 
-        def TIKV_BRANCH = ghprbTargetBranch
-        def PD_BRANCH = ghprbTargetBranch
-        def TICS_BRANCH = ghprbTargetBranch
-        def TIDB_BRANCH = ghprbTargetBranch
+    def TIKV_BRANCH = ghprbTargetBranch
+    def PD_BRANCH = ghprbTargetBranch
+    def TICS_BRANCH = ghprbTargetBranch
+    def TIDB_BRANCH = ghprbTargetBranch
 
-        // parse tikv branch
-        def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
-        if (m1) {
-            TIKV_BRANCH = "${m1[0][1]}"
-        }
-        m1 = null
-        println "TIKV_BRANCH=${TIKV_BRANCH}"
+    // parse tikv branch
+    def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
+    if (m1) {
+        TIKV_BRANCH = "${m1[0][1]}"
+    }
+    m1 = null
+    println "TIKV_BRANCH=${TIKV_BRANCH}"
 
-        // parse pd branch
-        def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
-        if (m2) {
-            PD_BRANCH = "${m2[0][1]}"
-        }
-        m2 = null
-        println "PD_BRANCH=${PD_BRANCH}"
+    // parse pd branch
+    def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
+    if (m2) {
+        PD_BRANCH = "${m2[0][1]}"
+    }
+    m2 = null
+    println "PD_BRANCH=${PD_BRANCH}"
 
-        // parse tics branch
-        def m3 = ghprbCommentBody =~ /tics\s*=\s*([^\s\\]+)(\s|\\|$)/
-        if (m3) {
-            TICS_BRANCH = "${m3[0][1]}"
-        }
-        //debug
-		//TICS_BRANCH = "master"
-        println "TICS_BRANCH=${TICS_BRANCH}"
-        m3 = null
-        // run test logic on branch master / release-4.0 / release-5.x
-        if (TIDB_BRANCH !="master" && TIDB_BRANCH !="release-4.0" && !TIDB_BRANCH.startsWith("release-5.")){
-        	return
-        }
+    // parse tics branch
+    def m3 = ghprbCommentBody =~ /tics\s*=\s*([^\s\\]+)(\s|\\|$)/
+    if (m3) {
+        TICS_BRANCH = "${m3[0][1]}"
+    }
+    //debug
+    //TICS_BRANCH = "master"
+    println "TICS_BRANCH=${TICS_BRANCH}"
+    m3 = null
+    // run test logic on branch master / release-4.0 / release-5.x
+    if (TIDB_BRANCH !="master" && TIDB_BRANCH !="release-4.0" && !TIDB_BRANCH.startsWith("release-5.")){
+        return
+    }
 
-        parallel(
-            "TiCS Test": {
+    parallel(
+        "TiCS Test": {
+            try {
                 run(label) {
                     dir("tics") {
                         stage("Checkout") {
@@ -119,80 +120,80 @@ def fallback() {
                         stage("Test") {
                             timeout(time: 10, unit: 'MINUTES') {
                                 container("docker") {
-                                	def tikvTag= TIKV_BRANCH
-                                	def pdTag = PD_BRANCH
-                                	def ticsTag = TICS_BRANCH
+                                    def tikvTag= TIKV_BRANCH
+                                    def pdTag = PD_BRANCH
+                                    def ticsTag = TICS_BRANCH
                                     sh """
                                     while ! docker pull hub.pingcap.net/tiflash/tics:${TICS_BRANCH}; do sleep 60; done
                                     """
-									dir("tidbtmp") {
-										deleteDir()
-									    timeout(5) {
-				                             sh """
-                                             while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 5; done
-                                             curl ${tidb_url} | tar xz
-                                             """
-									    }
-									    sh """
-									    printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
+                                    dir("tidbtmp") {
+                                        deleteDir()
+                                        timeout(5) {
+                                                sh """
+                                                while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 5; done
+                                                curl ${tidb_url} | tar xz
+                                                """
+                                        }
+                                        sh """
+                                        printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
                                         RUN apk add --no-cache curl \n
                                         RUN curl -sL -o /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && chmod +x /usr/local/bin/dumb-init \n
                                         COPY bin/tidb-server /tidb-server \n
                                         WORKDIR / \n
                                         EXPOSE 4000 \n
                                         ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
-									    """
-									    sh "docker build -t hub.pingcap.net/qa/tidb:${TIDB_BRANCH} -f Dockerfile ."
-									}
-									if (TIKV_BRANCH.contains("pr")){
-										dir("tikvtmp"){
-										    deleteDir()
-										    timeout(5) {
-					                            sh """
-					                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
-					                            tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"										
-					                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
-					                            curl \${tikv_url} | tar xz
-					                            """ 										        
-										    }
-										    sh """
-										    printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
-	                                        COPY bin/tikv-ctl /tikv-ctl \n
-	                                        COPY bin/tikv-server /tikv-server \n
-	                                        EXPOSE 20160 20180 \n
-	                                        ENTRYPOINT ["/tikv-server"] \n' > Dockerfile
-										    """
-										    tikvTag = TIKV_BRANCH.replace("/","-")
-										    sh "docker build -t hub.pingcap.net/qa/tikv:${tikvTag} -f Dockerfile ."            					    
-										}									    
-									}
-									if (PD_BRANCH.contains("pr")){
-										dir("pdtmp"){
-										    deleteDir()
-										    timeout(5) {										    
-					                            sh """
-					                            pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
-					                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-					
-					                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
-					                            curl \${pd_url} | tar xz
-					                            """                    
-				                            }
-										    sh """
-										    printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
-	                                        COPY bin/pd-server /pd-server \n
-	                                        COPY bin/pd-ctl /pd-ctl \n
-	                                        COPY bin/pd-recover /pd-recover \n
-	                                        EXPOSE 2379 2380 \n
-	                                        ENTRYPOINT ["/pd-server"] \n' > Dockerfile
-										    """
-										    pdTag = PD_BRANCH.replace("/","-")
-										    sh "docker build -t hub.pingcap.net/qa/pd:${pdTag} -f Dockerfile ."				                                    									    
-										}									    
-									}
-									if (TICS_BRANCH.contains("pr")){									
-									    ticsTag=TICS_BRANCH.replace("/","-")									    									   
-									}
+                                        """
+                                        sh "docker build -t hub.pingcap.net/qa/tidb:${TIDB_BRANCH} -f Dockerfile ."
+                                    }
+                                    if (TIKV_BRANCH.contains("pr")){
+                                        dir("tikvtmp"){
+                                            deleteDir()
+                                            timeout(5) {
+                                                sh """
+                                                tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
+                                                tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"										
+                                                while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
+                                                curl \${tikv_url} | tar xz
+                                                """ 										        
+                                            }
+                                            sh """
+                                            printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
+                                            COPY bin/tikv-ctl /tikv-ctl \n
+                                            COPY bin/tikv-server /tikv-server \n
+                                            EXPOSE 20160 20180 \n
+                                            ENTRYPOINT ["/tikv-server"] \n' > Dockerfile
+                                            """
+                                            tikvTag = TIKV_BRANCH.replace("/","-")
+                                            sh "docker build -t hub.pingcap.net/qa/tikv:${tikvTag} -f Dockerfile ."            					    
+                                        }									    
+                                    }
+                                    if (PD_BRANCH.contains("pr")){
+                                        dir("pdtmp"){
+                                            deleteDir()
+                                            timeout(5) {										    
+                                                sh """
+                                                pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
+                                                pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+                    
+                                                while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
+                                                curl \${pd_url} | tar xz
+                                                """                    
+                                            }
+                                            sh """
+                                            printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
+                                            COPY bin/pd-server /pd-server \n
+                                            COPY bin/pd-ctl /pd-ctl \n
+                                            COPY bin/pd-recover /pd-recover \n
+                                            EXPOSE 2379 2380 \n
+                                            ENTRYPOINT ["/pd-server"] \n' > Dockerfile
+                                            """
+                                            pdTag = PD_BRANCH.replace("/","-")
+                                            sh "docker build -t hub.pingcap.net/qa/pd:${pdTag} -f Dockerfile ."				                                    									    
+                                        }									    
+                                    }
+                                    if (TICS_BRANCH.contains("pr")){									
+                                        ticsTag=TICS_BRANCH.replace("/","-")									    									   
+                                    }
 
                                     dir("tests/docker") {
                                         try {
@@ -210,63 +211,76 @@ def fallback() {
                         }
                     }
                 }
-            },
-        )
-
-        currentBuild.result = "SUCCESS"
-    }
-
-    stage("upload status"){
-        node("master") {
-            sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
-        }
-    }
-
-    if (params.containsKey("triggered_by_upstream_ci")) {
-        stage("update commit status") {
-            node("master") {
-                if (currentBuild.currentResult == "ABORTED") {
-                    PARAM_DESCRIPTION = 'Jenkins job aborted'
-                    // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
-                    PARAM_STATUS = 'error'
-                } else if (currentBuild.currentResult == "FAILURE") {
-                    PARAM_DESCRIPTION = 'Jenkins job failed'
-                    PARAM_STATUS = 'failure'
-                } else if (currentBuild.currentResult == "SUCCESS") {
-                    PARAM_DESCRIPTION = 'Jenkins job success'
-                    PARAM_STATUS = 'success'
-                } else {
-                    PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
-                    PARAM_STATUS = 'error'
-                }
-                def default_params = [
-                        string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
-                        string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/tics-test'),
-                        string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
-                        string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
-                        string(name: 'STATUS', value: PARAM_STATUS ),
-                ]
-                echo("default params: ${default_params}")
-                build(job: "tidb_update_commit_status", parameters: default_params, wait: true)
+                all_task_result << ["name": "TiCS Test", "status": "success", "error": ""]
+            } catch (err) {
+                all_task_result << ["name": "TiCS Test", "status": "failed", "error": err.message]
+                throw err
             }
+        },
+    )
+    currentBuild.result = "SUCCESS"
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    println e
+    // this ambiguous condition means a user probably aborted
+    currentBuild.result = "ABORTED"
+} catch (hudson.AbortException e) {
+    println e
+    // this ambiguous condition means during a shell step, user probably aborted
+    if (e.getMessage().contains('script returned exit code 143')) {
+        currentBuild.result = "ABORTED"
+    } else {
+        currentBuild.result = "FAILURE"
+    }
+} catch (InterruptedException e) {
+    println e
+    currentBuild.result = "ABORTED"
+}
+catch (Exception e) {
+    if (e.getMessage().equals("hasBeenTested")) {
+        currentBuild.result = "SUCCESS"
+    } else {
+        currentBuild.result = "FAILURE"
+        slackcolor = 'danger'
+        echo "${e}"
+    }
+} finally {
+    stage("task summary") {
+        if (all_task_result) {
+            def json = groovy.json.JsonOutput.toJson(all_task_result)
+            println "all_results: ${json}"
+            currentBuild.description = "${json}"
         }
     }
 
-    stage('Summary') {
-        echo "Send slack here ..."
-        def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-        def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-        "${ghprbPullLink}" + "\n" +
-        "${ghprbPullDescription}" + "\n" +
-        "Build Result: `${currentBuild.currentResult}`" + "\n" +
-        "Elapsed Time: `${duration} mins` " + "\n" +
-        "${env.RUN_DISPLAY_URL}"
-
-        if (currentBuild.currentResult != "SUCCESS") {
-            slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-        }
-	}
 }
 
 
-fallback()
+if (params.containsKey("triggered_by_upstream_ci")) {
+    stage("update commit status") {
+        node("master") {
+            if (currentBuild.currentResult == "ABORTED") {
+                PARAM_DESCRIPTION = 'Jenkins job aborted'
+                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
+                PARAM_STATUS = 'error'
+            } else if (currentBuild.currentResult == "FAILURE") {
+                PARAM_DESCRIPTION = 'Jenkins job failed'
+                PARAM_STATUS = 'failure'
+            } else if (currentBuild.currentResult == "SUCCESS") {
+                PARAM_DESCRIPTION = 'Jenkins job success'
+                PARAM_STATUS = 'success'
+            } else {
+                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
+                PARAM_STATUS = 'error'
+            }
+            def default_params = [
+                    string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
+                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/tics-test'),
+                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
+                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
+                    string(name: 'STATUS', value: PARAM_STATUS ),
+            ]
+            echo("default params: ${default_params}")
+            build(job: "tidb_update_commit_status", parameters: default_params, wait: true)
+        }
+    }
+}

@@ -80,7 +80,7 @@ catchError {
                         deleteDir()
                     }
                     try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
                     } catch (error) {
                         retry(2) {
                             echo "checkout failed, retry.."
@@ -88,12 +88,12 @@ catchError {
                             if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                 deleteDir()
                             }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
                         }
                     }
                 }
 
-                dir("go/src/github.com/pingcap/ticdc") {
+                dir("go/src/github.com/pingcap/tiflow") {
                     sh """
                         cp -R /home/jenkins/agent/git/ticdc/. ./
                         
@@ -112,7 +112,7 @@ catchError {
                     """
                 }
 
-                stash includes: "go/src/github.com/pingcap/ticdc/**", name: "ticdc", useDefaultExcludes: false
+                stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
 
                 def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
                 sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
@@ -180,7 +180,7 @@ catchError {
                         deleteDir()
                         unstash "ticdc"
                         unstash "binaries"
-                        dir("go/src/github.com/pingcap/ticdc") {
+                        dir("go/src/github.com/pingcap/tiflow") {
                             try {
                                 sh """
                                 rm -rf /tmp/dm_test
@@ -216,7 +216,7 @@ catchError {
                                 """
                             }
                         }
-                        stash includes: "go/src/github.com/pingcap/ticdc/cov_dir/**", name: "integration-cov-${TEST_CASE}"
+                        stash includes: "go/src/github.com/pingcap/tiflow/cov_dir/**", name: "integration-cov-${TEST_CASE}"
                     }
                 }
             }
