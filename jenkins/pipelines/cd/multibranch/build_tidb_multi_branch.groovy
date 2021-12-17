@@ -133,6 +133,8 @@ def release_tiup_patch(filepath, binary, patch_path) {
 
 def release_docker_image(filepath, tag) {
     def image = "pingcap/tidb:$tag"
+    echo "docker image ${image}"
+
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb"
     def paramsDocker = [
         string(name: "ARCH", value: "amd64"),
@@ -231,6 +233,7 @@ try {
                     timeout(10) {
                         sh """
                         tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
+                        bin/tidb-server -V
                         curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                         echo "${githash}" > sha1
