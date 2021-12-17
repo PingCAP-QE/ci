@@ -1,4 +1,4 @@
-def BUILD_URL = 'git@github.com:pingcap/ticdc.git'
+def BUILD_URL = 'git@github.com:pingcap/tiflow.git'
 def slackcolor = 'good'
 def githash
 
@@ -30,7 +30,7 @@ try {
       container('delivery') {
         sh "rm -rf ./*"
         stage("Checkout") {
-            dir("go/src/github.com/pingcap/ticdc") {
+            dir("go/src/github.com/pingcap/tiflow") {
                 // deleteDir()
                 git credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}", branch: "master"
                 sh "git checkout ${BUILD_TAG}"
@@ -38,7 +38,7 @@ try {
             }
         }
         stage("Build & Upload") {
-          dir("go/src/github.com/pingcap/ticdc") {
+          dir("go/src/github.com/pingcap/tiflow") {
             def wss = pwd()
             def DOCKER_TAG = "${BUILD_TAG}"
             if ( DOCKER_TAG == "master" ) {
@@ -65,13 +65,13 @@ try {
                 cat - >"bin/Dockerfile" <<EOF
 FROM ${buildImage} as builder
 RUN apk add --no-cache git make bash
-WORKDIR /go/src/github.com/pingcap/ticdc
+WORKDIR /go/src/github.com/pingcap/tiflow
 COPY . .
 RUN make
 
 FROM registry-mirror.pingcap.net/library/alpine:3.12
 RUN apk add --no-cache tzdata bash curl socat
-COPY --from=builder /go/src/github.com/pingcap/ticdc/bin/cdc /cdc
+COPY --from=builder /go/src/github.com/pingcap/tiflow/bin/cdc /cdc
 EXPOSE 8300
 CMD [ "/cdc" ]
 EOF

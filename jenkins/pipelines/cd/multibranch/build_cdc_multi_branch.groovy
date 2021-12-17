@@ -19,9 +19,9 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
-def BUILD_URL = 'git@github.com:pingcap/ticdc.git'
+def BUILD_URL = 'git@github.com:pingcap/tiflow.git'
 
-def build_path = 'go/src/github.com/pingcap/ticdc'
+def build_path = 'go/src/github.com/pingcap/tiflow'
 def slackcolor = 'good'
 def githash
 def ws
@@ -89,7 +89,7 @@ try {
         stage("Upload") {
             dir(build_path) {
                 def target = "ticdc-${os}-${arch}"
-                def refspath = "refs/pingcap/ticdc/${env.BRANCH_NAME}/sha1"
+                def refspath = "refs/pingcap/tiflow/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/ticdc/${githash}/centos7/${target}.tar.gz"
                 container("golang") {
                     timeout(10) {

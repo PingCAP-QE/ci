@@ -80,7 +80,7 @@ try {
                 curl -F refs/pingcap/tics/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${cdc_githash} > sha1
-                curl -F refs/pingcap/ticdc/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tiflow/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_ctl_githash} > sha1
                 curl -F refs/pingcap/tidb-ctl/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
