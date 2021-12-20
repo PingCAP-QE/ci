@@ -239,6 +239,12 @@ node("github-status-updater") {
                         // println "description: ${result_map.result.getDescription()}"
                         def jsonObj = readJSON text: result_map.result.getDescription()
                         triggered_job_summary = parseBuildResult(jsonObj)
+
+                        sh """
+                        wget ${FILE_SERVER_URL}/download/rd-index-agent/repo_tidb_integration_test_ci/tiinsight-agent-integration-test-ci.py
+                        python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} result_map.result.getDescription()
+                        """
+
                     }
                     // println "name: ${name}, type: ${type}, result: triggered_job_summary"
                     pipeline_result << [
