@@ -80,6 +80,9 @@ def build_upload = { product, hash, binary ->
             if (RELEASE_TAG >= "v5.3.0" && product == "dumpling") {
                 repo = "git@github.com:pingcap/tidb.git"
             }
+            if (product == "ticdc") {
+                repo = "git@github.com:pingcap/tiflow.git"
+            }
             def workspace = WORKSPACE
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
                 deleteDir()
