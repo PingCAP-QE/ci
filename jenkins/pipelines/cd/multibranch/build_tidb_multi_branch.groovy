@@ -82,6 +82,11 @@ if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-")) {
     }
 }
 
+def isHotfix = false
+if ( env.BRANCH_NAME.startsWith("v") &&  env.BRANCH_NAME =~ ".*-202.*") {
+    isHotfix = true
+}
+
 
 def BUILD_URL = 'git@github.com:pingcap/tidb.git'
 
@@ -110,6 +115,40 @@ def release_one(repo,product,hash,arch,binary) {
     build job: "build-common",
             wait: true,
             parameters: paramsBuild
+}
+
+def release_tiup_patch(filepath, binary, patch_path) {
+    echo "binary ${FILE_SERVER_URL}/download/${filepath}"
+    echo "tiup patch ${FILE_SERVER_URL}/download/${patch_path}"
+    def paramsBuild = [
+        string(name: "INPUT_BINARYS", value: filepath),
+        string(name: "BINARY_NAME", value: binary),
+        string(name: "PRODUCT", value: "tidb"),
+        string(name: "PATCH_PATH", value: patch_path),
+    ]
+    build job: "patch-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
+def release_docker_image(filepath, tag) {
+    def image = "pingcap/tidb:$tag"
+    echo "docker image ${image}"
+
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb"
+    def paramsDocker = [
+        string(name: "ARCH", value: "amd64"),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: filepath),
+        string(name: "REPO", value: "tidb"),
+        string(name: "PRODUCT", value: "tidb"),
+        string(name: "RELEASE_TAG", value: tag),
+        string(name: "DOCKERFILE", value: dockerfile),
+        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+    ]
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsDocker
 }
 
 try {
@@ -189,7 +228,22 @@ try {
                 def refspath = "refs/pingcap/tidb/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/tidb/${env.BRANCH_NAME}/${githash}/centos7/tidb-server.tar.gz"
                 def filepath2 = "builds/pingcap/tidb/${githash}/centos7/tidb-server.tar.gz"
+                def patch_path = "builds/pingcap/tidb/patch/${env.BRANCH_NAME}/${githash}/centos7/tidb-server.tar.gz"
                 container("golang") {
+                    timeout(10) {
+                        sh """
+                        tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
+                        bin/tidb-server -V
+                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        echo "${githash}" > sha1
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                    if (isHotfix) {
+                        release_tiup_patch(filepath, "tidb-server", patch_path)
+                        release_docker_image(filepath,env.BRANCH_NAME)
+                    }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
                     release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
                     if (isNeedBuildBr) {
@@ -205,15 +259,6 @@ try {
                         release_one("tidb","dumpling","${githash}","amd64",DumplingAmdBinary)
                         DumplingArmBinary = "builds/pingcap/test/dumpling/${githash}/centos7/dumpling-linux-arm64.tar.gz"
                         release_one("tidb","dumpling","${githash}","arm64",DumplingArmBinary)
-                    }
-                    timeout(10) {
-                        sh """
-                        tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
-                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                        curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                        echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                        """
                     }
                 }
             }
@@ -250,13 +295,22 @@ try {
                 container("golang") {
                     dir("go/src/github.com/pingcap/enterprise-plugin") {
 
-                        if (plugin_branch.startsWith("refs/tags/v3.0")){
-                            plugin_branch = "release-3.0"
+                        if (plugin_branch.startsWith("refs/tags/v5.0")){
+                            plugin_branch = "release-5.0"
                         }
 
-                        if (plugin_branch.startsWith("refs/tags/v3.1")){
-                            plugin_branch = "release-3.1"
+                        if (plugin_branch.startsWith("refs/tags/v5.1")){
+                            plugin_branch = "release-5.1"
                         }
+
+                        if (plugin_branch.startsWith("refs/tags/v5.2")){
+                            plugin_branch = "release-5.2"
+                        }
+
+                        if (plugin_branch.startsWith("refs/tags/v5.3")){
+                            plugin_branch = "release-5.3"
+                        }
+
 
                         if (plugin_branch.startsWith("refs/tags/v4.0")){
                             plugin_branch = "release-4.0"
@@ -300,24 +354,10 @@ try {
 
 
     }
-    
-    stage("Push tidb Docker") {
-        // if (env.BRANCH_NAME == "master"){
-            build job: 'build_image_hash', wait: false, parameters: [[$class: 'StringParameterValue', name: 'REPO', value: "tidb"], [$class: 'StringParameterValue', name: 'COMMIT_ID', value: githash], [$class: 'StringParameterValue', name: 'IMAGE_TAG', value: env.BRANCH_NAME]]
-            //build job: 'pr_trigger', wait: false, parameters: [[$class: 'StringParameterValue', name: 'BUILD_BRANCH', value: "master"]]
-        // }
-    }
+
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-    if (currentBuild.result != "SUCCESS" && (branch == "master" || branch.startsWith("release") || branch.startsWith("refs/tags/v"))) {
-        slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
 }

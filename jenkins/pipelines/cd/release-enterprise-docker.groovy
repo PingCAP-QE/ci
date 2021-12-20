@@ -241,7 +241,7 @@ __EOF__
             }
 
             builds["Push cdc Docker"] = {
-                dir("go/src/github.com/pingcap/ticdc") {
+                dir("go/src/github.com/pingcap/tiflow") {
                     // deleteDir()
                     checkout changelog: false,
                             poll: true,
@@ -252,7 +252,7 @@ __EOF__
                                   submoduleCfg: [],
                                   userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
                                                        refspec: "+refs/tags/${CDC_TAG}:refs/tags/${CDC_TAG}",
-                                                       url: 'git@github.com:pingcap/ticdc.git']]
+                                                       url: 'git@github.com:pingcap/tiflow.git']]
                             ]
 
                     def DOCKER_TAG = "${RELEASE_TAG}"
@@ -266,13 +266,13 @@ __EOF__
                         cat - >"bin/Dockerfile" <<EOF
 FROM ${buildImage} as builder
 RUN apk add --no-cache git make bash
-WORKDIR /go/src/github.com/pingcap/ticdc
+WORKDIR /go/src/github.com/pingcap/tiflow
 COPY . .
 RUN make
 
 FROM alpine:3.12
 RUN apk add --no-cache tzdata bash curl socat
-COPY --from=builder /go/src/github.com/pingcap/ticdc/bin/cdc /cdc
+COPY --from=builder /go/src/github.com/pingcap/tiflow/bin/cdc /cdc
 EXPOSE 8300
 CMD [ "/cdc" ]
 EOF

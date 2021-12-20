@@ -53,15 +53,15 @@ def checkout_and_stash_dm_code() {
 
             dir('/home/jenkins/agent/git/ticdc') {
                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) { deleteDir() }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/ticdc.git']]]
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
             }
 
-            dir('go/src/github.com/pingcap/ticdc') {
+            dir('go/src/github.com/pingcap/tiflow') {
                 sh """cp -R /home/jenkins/agent/git/ticdc/. ./
                     git checkout -f ${ghprbActualCommit}
                     """
             }
-            stash includes: 'go/src/github.com/pingcap/ticdc/**', name: 'ticdc', useDefaultExcludes: false
+            stash includes: 'go/src/github.com/pingcap/tiflow/**', name: 'ticdc', useDefaultExcludes: false
         }
     }
 }
@@ -72,7 +72,7 @@ def build_dm_bin() {
             deleteDir()
             unstash 'ticdc'
             ws = pwd()
-            dir('go/src/github.com/pingcap/ticdc') {
+            dir('go/src/github.com/pingcap/tiflow') {
                 println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
 
                 // build it test bin
@@ -96,7 +96,7 @@ def build_dm_bin() {
                 sh 'mv gh-ost bin/'
             }
             dir("${ws}") {
-                stash includes: 'go/src/github.com/pingcap/ticdc/**', name: 'ticdc-with-bin', useDefaultExcludes: false
+                stash includes: 'go/src/github.com/pingcap/tiflow/**', name: 'ticdc-with-bin', useDefaultExcludes: false
             }
         }
     }
@@ -164,7 +164,7 @@ def run_tls_source_it_test(String case_name) {
                 sh "ls /var/lib/mysql"
 
                 unstash 'ticdc-with-bin'
-                dir('go/src/github.com/pingcap/ticdc') {
+                dir('go/src/github.com/pingcap/tiflow') {
                     try {
                         sh"""
                                 rm -rf /tmp/dm_test
@@ -199,7 +199,7 @@ def run_tls_source_it_test(String case_name) {
                         throw e
                     }
                 }
-                stash includes: 'go/src/github.com/pingcap/ticdc/cov_dir/**', name: "integration-cov-${case_name}"
+                stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
             }
         }
     }
@@ -245,7 +245,7 @@ def run_single_it_test(String case_name) {
                 def ws = pwd()
                 deleteDir()
                 unstash 'ticdc-with-bin'
-                dir('go/src/github.com/pingcap/ticdc') {
+                dir('go/src/github.com/pingcap/tiflow') {
                     try {
                         sh"""
                                 rm -rf /tmp/dm_test
@@ -280,7 +280,7 @@ def run_single_it_test(String case_name) {
                         throw e
                     }
                 }
-                stash includes: 'go/src/github.com/pingcap/ticdc/cov_dir/**', name: "integration-cov-${case_name}"
+                stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
             }
         }
     }
@@ -331,7 +331,7 @@ def run_make_coverage() {
         } catch (Exception e) {
             println e
         }
-        dir('go/src/github.com/pingcap/ticdc') {
+        dir('go/src/github.com/pingcap/tiflow') {
             container('golang') {
                 timeout(30) {
                     sh """

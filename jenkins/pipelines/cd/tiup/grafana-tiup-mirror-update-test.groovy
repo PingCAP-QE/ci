@@ -67,7 +67,7 @@ def pack = { version, os, arch ->
     rm -rf tikv-*
 
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/grafana/binlog.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/ticdc/${tag}/metrics/grafana/ticdc.json || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflow/${tag}/metrics/grafana/ticdc.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/disk_performance.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/blackbox_exporter.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/node.json || true; \
