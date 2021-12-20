@@ -80,6 +80,12 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '6000m', resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
+                    ),
+                    containerTemplate(
+                            name: 'ruby', alwaysPullImage: true,
+                            image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest", ttyEnabled: true,
+                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
+                            command: '/bin/sh -c', args: 'cat', 
                     )
             ],
             volumes: [
@@ -185,9 +191,24 @@ try {
                         }
                     }
                 }
+                container("ruby") {
+                    withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN')]) {
+                        timeout(5) {
+                            if (ghprbPullId != null && ghprbPullId != "") { 
+                            sh """#!/bin/bash
+                            ruby --version
+                            gem --version
+                            wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
+                            ruby comment-on-pr.rb "pingcap/tidb" "${ghprbPullId}"  "Code Coverage Details: https://codecov.io/github/pingcap/tidb/commit/${ghprbActualCommit}" true "Code Coverage Details:"
+                            """
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+
     currentBuild.result = "SUCCESS"
 }
 catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {

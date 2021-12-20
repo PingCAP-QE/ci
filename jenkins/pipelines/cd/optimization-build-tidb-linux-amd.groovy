@@ -362,13 +362,13 @@ try {
                 container("golang") {
                     def ws = pwd()
                     deleteDir()
-                    dir("go/src/github.com/pingcap/ticdc") {
+                    dir("go/src/github.com/pingcap/tiflow") {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
                         def target = "ticdc-linux-amd64"
                         def filepath = "builds/pingcap/ticdc/optimization/${RELEASE_TAG}/${CDC_HASH}/centos7/ticdc-linux-amd64.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ticdc.git']]]
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tiflow.git']]]
                         sh """
                             for a in \$(git tag --contains ${CDC_HASH}); do echo \$a && git tag -d \$a;done
                             git tag -f ${RELEASE_TAG} ${CDC_HASH}

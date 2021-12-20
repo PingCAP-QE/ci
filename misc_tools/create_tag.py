@@ -62,7 +62,7 @@ repo_list = [
         version=''),
     repo_info(
         repo_name='ticdc',
-        repo_addr='pingcap/ticdc',
+        repo_addr='pingcap/tiflow',
         tag_githash='',
         version=''),
     repo_info(
@@ -96,6 +96,6 @@ def create_git_tag():
 
 if __name__ == '__main__':
     token = sys.argv[1]
-    g = Github(token) # personal token 
+    g = Github(token) # personal token
     get_repo_tags()
     create_git_tag()

@@ -1,3 +1,19 @@
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+    it.startsWith('release-') ? it.minus('release-') : it 
+}
+
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
     for (String item : branches) {
         if (targetBranch.startsWith(item)) {
@@ -8,7 +24,22 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = isBranchMatched(["master", "release-5.1"], env.BRANCH_NAME)
+
+def isNeedGo1160 = false
+releaseBranchUseGo1160 = "release-5.1"
+
+if (!isNeedGo1160) {
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc"], env.BRANCH_NAME)
+}
+if (!isNeedGo1160 && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.1") {
+    isNeedGo1160 = true
+}
+if (!isNeedGo1160 && env.BRANCH_NAME.startsWith("release-")) {
+    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchUseGo1160))
+    if (isNeedGo1160) {
+        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchUseGo1160}"
+    }
+}
 if (isNeedGo1160) {
     println "This build use go1.16"
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
@@ -19,9 +50,9 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
-def BUILD_URL = 'git@github.com:pingcap/ticdc.git'
+def BUILD_URL = 'git@github.com:pingcap/tiflow.git'
 
-def build_path = 'go/src/github.com/pingcap/ticdc'
+def build_path = 'go/src/github.com/pingcap/tiflow'
 def slackcolor = 'good'
 def githash
 def ws
@@ -29,6 +60,29 @@ def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_
 
 def os = "linux"
 def arch = "amd64"
+
+
+def release_one(repo,hash) {
+    def binary = "builds/pingcap/test/${env.BRANCH_NAME}/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
+    echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
+    def paramsBuild = [
+        string(name: "ARCH", value: "arm64"),
+        string(name: "OS", value: "linux"),
+        string(name: "EDITION", value: "community"),
+        string(name: "OUTPUT_BINARY", value: binary),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: "ticdc"),
+        string(name: "GIT_HASH", value: hash),
+        string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
+        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+    ]
+    if (env.TAG_NAME != null) {
+        paramsBuild.push(string(name: "RELEASE_TAG", value: env.TAG_NAME))
+    }
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
+}
 
 try {
     node("${GO_BUILD_SLAVE}") {
@@ -89,8 +143,9 @@ try {
         stage("Upload") {
             dir(build_path) {
                 def target = "ticdc-${os}-${arch}"
-                def refspath = "refs/pingcap/ticdc/${env.BRANCH_NAME}/sha1"
-                def filepath = "builds/pingcap/ticdc/${githash}/centos7/${target}.tar.gz"
+                def refspath = "refs/pingcap/tiflow/${env.BRANCH_NAME}/sha1"
+                def filepath = "builds/pingcap/tiflow/${env.BRANCH_NAME}/${githash}/centos7/${target}.tar.gz"
+                def filepath2 = "builds/pingcap/tiflow/${githash}/centos7/${target}.tar.gz"
                 container("golang") {
                     timeout(10) {
                         sh """
@@ -100,8 +155,10 @@ try {
                         mv bin/cdc ${target}/bin/
                         tar -czvf ${target}.tar.gz ${target}
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
+                    release_one("tiflow","${githash}")
                 }
             }
         }

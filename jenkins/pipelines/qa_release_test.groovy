@@ -57,7 +57,7 @@ catchError {
                         sh "inv upload --dst refs/pingcap/br/${release_info.br_commit}/sha1 --content ${release_info.br_commit}"
                     }
                     if (release_info.containsKey("ticdc_commit") && release_info.ticdc_commit != "") {
-                        sh "inv upload --dst refs/pingcap/ticdc/${release_info.ticdc_commit}/sha1 --content ${release_info.ticdc_commit}"
+                        sh "inv upload --dst refs/pingcap/tiflow/${release_info.ticdc_commit}/sha1 --content ${release_info.ticdc_commit}"
                     }
                     for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
                         sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
@@ -84,7 +84,7 @@ catchError {
                         sh "inv upload --dst refs/pingcap/br/${release_info.br_commit}/sha1 --content ${release_info.br_commit}"
                     }
                     if (release_info.containsKey("ticdc_commit") && release_info.ticdc_commit != "") {
-                        sh "inv upload --dst refs/pingcap/ticdc/${release_info.ticdc_commit}/sha1 --content ${release_info.ticdc_commit}"
+                        sh "inv upload --dst refs/pingcap/tiflow/${release_info.ticdc_commit}/sha1 --content ${release_info.ticdc_commit}"
                     }
                     for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
                         sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
