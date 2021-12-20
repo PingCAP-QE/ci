@@ -551,7 +551,8 @@ catchError {
                 dir('tidb_docker_build') {
                     sh """
                         cp ../centos7/bin/tidb-server ./
-                        wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tidb/Dockerfile
+                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64-updated-base-image/tidb
+                        mv tidb Dockerfile
                         """
                 }
 
@@ -572,7 +573,8 @@ catchError {
                     sh """
                         cp ../centos7/bin/tikv-server ./
                         cp ../centos7/bin/tikv-ctl ./
-                        wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tikv/Dockerfile
+                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64-updated-base-image/tikv
+                        mv tikv Dockerfile
                         """
                 }
 
@@ -592,7 +594,8 @@ catchError {
                     sh """
                         cp ../centos7/bin/pd-server ./
                         cp ../centos7/bin/pd-ctl ./
-                        wget ${FILE_SERVER_URL}/download/script/release-dockerfile/pd/Dockerfile
+                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64-updated-base-image/pd
+                        mv pd Dockerfile
                         """
                 }
 
@@ -618,7 +621,7 @@ catchError {
                         fi;
                         cp /usr/local/go/lib/time/zoneinfo.zip ./
                         cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
+FROM pingcap/alpine-glibc:alpine-3.14
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY tidb-lightning /tidb-lightning
 COPY tidb-lightning-ctl /tidb-lightning-ctl
@@ -626,7 +629,7 @@ COPY br /br
 __EOF__
                         if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
                         cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
+FROM pingcap/alpine-glibc:alpine-3.14
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY tidb-lightning /tidb-lightning
 COPY tidb-lightning-ctl /tidb-lightning-ctl
@@ -654,7 +657,7 @@ __EOF__
                         cp ../centos7/bin/br ./
                         cp /usr/local/go/lib/time/zoneinfo.zip ./
                         cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
+FROM pingcap/alpine-glibc:alpine-3.14
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY br /br
 __EOF__
@@ -678,7 +681,7 @@ __EOF__
                         cp ../centos7/bin/dumpling ./
                         cp /usr/local/go/lib/time/zoneinfo.zip ./
                         cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
+FROM pingcap/alpine-glibc:alpine-3.14
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY dumpling /dumpling
 __EOF__
@@ -705,7 +708,7 @@ __EOF__
                         cp ../centos7/bin/binlogctl ./
                         cp /usr/local/go/lib/time/zoneinfo.zip ./
                         cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
+FROM pingcap/alpine-glibc:alpine-3.14
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY pump /pump
 COPY drainer /drainer
