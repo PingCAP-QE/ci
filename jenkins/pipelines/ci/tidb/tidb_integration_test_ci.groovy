@@ -228,11 +228,11 @@ node("github-status-updater") {
                     def type = result_map["type"]
                     def triggered_job_summary = ""
                     if (result_map.result.getDescription() != null && result_map.result.getDescription() != "") {
-                        println "description: ${result_map.result.getDescription()}"
+                        // println "description: ${result_map.result.getDescription()}"
                         def jsonObj = readJSON text: result_map.result.getDescription()
                         triggered_job_summary = parseBuildResult(jsonObj)
                     }
-                    println "name: ${name}, type: ${type}, result: triggered_job_summary"
+                    // println "name: ${name}, type: ${type}, result: triggered_job_summary"
                     pipeline_result << [
                         name: result_map["name"],
                         type: result_map["type"],
