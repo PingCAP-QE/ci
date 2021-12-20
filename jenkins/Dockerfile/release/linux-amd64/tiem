@@ -1,4 +1,4 @@
-FROM pingcap/alpine-glibc
+FROM pingcap/alpine-glibc:alpine-3.14
 WORKDIR /usr/local/tiem
 RUN mkdir bin \
     && mkdir etc \
