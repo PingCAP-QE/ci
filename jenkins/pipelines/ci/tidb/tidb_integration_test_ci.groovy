@@ -285,11 +285,13 @@ node("github-status-updater") {
                 sh 'cat ciResult.json'
                 archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
 
-                sh """
-                wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
-                python3 agent-mergeci.py ciResult.json
-                """
-                
+                if (currentBuild.result != "SUCCESS") {
+                    sh """
+                    wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
+                    python3 agent-mergeci.py ciResult.json
+                    """
+                }
+
             }
         }
 
