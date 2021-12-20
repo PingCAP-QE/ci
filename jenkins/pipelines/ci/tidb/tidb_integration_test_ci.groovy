@@ -1,3 +1,7 @@
+
+// example commit msg
+// expression: fix wrong result type for greatest/least (#29408) (#29912)
+// close #29019
 @NonCPS 
 def extract_pull_id(MSG){
     def resp = []
@@ -10,7 +14,7 @@ def extract_pull_id(MSG){
     }
     m1 = null
     
-    return resp.join(",")
+    return resp
 }
 
 @NonCPS // has to be NonCPS or the build breaks on the call to .each
@@ -72,7 +76,11 @@ node("github-status-updater") {
             //     GEWT_PULL_ID = GEWT_PULL_ID.substring(1)
             // }
             // m1 = null
-            GEWT_PULL_ID = extract_pull_id(GEWT_COMMIT_MSG)
+            if (TIDB_BRANCH == "master") {
+                GEWT_PULL_ID = extract_pull_id(GEWT_COMMIT_MSG)[0].replaceAll("#", "")
+            } else {
+                GEWT_PULL_ID = extract_pull_id(GEWT_COMMIT_MSG)[1].replaceAll("#", "")
+            }
 
             echo "commit_msg=${GEWT_COMMIT_MSG}"
             echo "author=${GEWT_AUTHOR}"
