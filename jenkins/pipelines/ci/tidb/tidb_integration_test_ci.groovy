@@ -242,7 +242,7 @@ node("github-status-updater") {
 
                         sh """
                         wget ${FILE_SERVER_URL}/download/rd-index-agent/repo_tidb_integration_test_ci/tiinsight-agent-integration-test-ci.py
-                        python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} result_map.result.getDescription()
+                        python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} ${result_map.result.getDescription()}
                         """
 
                     }
