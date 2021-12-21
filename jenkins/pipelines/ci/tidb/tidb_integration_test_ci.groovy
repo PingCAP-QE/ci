@@ -242,7 +242,7 @@ node("github-status-updater") {
                         // println "description: ${result_map.result.getDescription()}"
                         def jsonObj = readJSON text: result_map.result.getDescription()
                         triggered_job_summary = parseBuildResult(jsonObj)
-
+                        writeJSON file: "${name}.json", json: result_map.result.getDescription(), pretty: 4
                         sh """
                         python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} ${name}.json
                         """
