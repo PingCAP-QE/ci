@@ -32,8 +32,14 @@ def parseBuildResult(list) {
         }
     }
     total_test = success_test + failed_test
+    def resp_str = ""
+    if (failed_test > 0) {
+        resp_str = "failed ${failed_test}, success ${success_test}, total ${total_test}"
+    } else {
+        resp_str = "all ${total_test} tests passed"
+    }
 
-    return "failed ${failed_test}, total ${total_test}, success ${success_test}"
+    return resp_str
 }
 
 
