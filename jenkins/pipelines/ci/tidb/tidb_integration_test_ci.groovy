@@ -231,6 +231,9 @@ node("github-status-updater") {
     } finally {
         container("golang") { 
             stage("summary") {
+                sh """
+                wget ${FILE_SERVER_URL}/download/rd-index-agent/repo_tidb_integration_test_ci/tiinsight-agent-integration-test-ci.py
+                """
                 for (result_map in triggered_job_result) {
                     def name = result_map["name"]
                     def type = result_map["type"]
@@ -240,6 +243,9 @@ node("github-status-updater") {
                         def jsonObj = readJSON text: result_map.result.getDescription()
                         triggered_job_summary = parseBuildResult(jsonObj)
                         writeJSON file: "${name}.json", json: result_map.result.getDescription(), pretty: 4
+                        sh """
+                        python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} ${name}.json
+                        """
                     }
                     // println "name: ${name}, type: ${type}, result: triggered_job_summary"
                     pipeline_result << [
