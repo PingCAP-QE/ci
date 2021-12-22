@@ -642,7 +642,7 @@ EOF
 
             tests["JDBC Fast"] = {
                 try {
-                    run_jdbc("JDBC Fast", "./test_fast.sh")
+                    run_jdbc("jdbc_test", "./test_fast.sh")
                     all_task_result << ["name": "JDBC Fast", "status": "success", "error": ""]
                 } catch (err) {
                     println "JDBC Fast failed"
