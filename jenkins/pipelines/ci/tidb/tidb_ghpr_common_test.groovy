@@ -51,7 +51,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = false
+isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
 
 if (!isNeedGo1160) {
@@ -72,6 +72,7 @@ if (isNeedGo1160) {
 }
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+POD_NAMESPACE = "jenkins-tidb"
 
 def buildSlave = "${GO_BUILD_SLAVE}"
 
@@ -80,13 +81,79 @@ def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbA
 def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
 
 
+
+def run_test_with_pod(Closure body) {
+    def label = "tidb-ghpr-common-test"
+    if (isNeedGo1160) {
+        label = "${label}-go1160-${BUILD_NUMBER}"
+    } else {
+        label = "${label}-go1130-${BUILD_NUMBER}"
+    }
+    def cloud = "kubernetes"
+    def namespace = POD_NAMESPACE
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    )
+            ],
+            volumes: [
+                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
+def run_test_with_java_pod(Closure body) {
+    def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = POD_NAMESPACE
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'java', alwaysPullImage: false,
+                            image: "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                    )
+            ],
+            volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
+
 all_task_result = []
 
 try {
     timestamps {
         stage("Pre-check"){
             if (!params.force){
-                node("${GO_BUILD_SLAVE}"){
+                node("lightweight_pod"){
                     container("golang"){
                         notRun = sh(returnStatus: true, script: """
 				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
@@ -105,17 +172,12 @@ try {
 
         stage('Prepare') {
 
-            node(buildSlave) {
+            run_test_with_pod {
                 def ws = pwd()
                 deleteDir()
-
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 println "work space path:\n${ws}"
 
                 container("golang") {
-
-                    // sh "go version"
-
                     dir("go/src/github.com/pingcap/tidb") {
                         timeout(10) {
                             retry(3){
@@ -160,9 +222,6 @@ try {
                         }
                     }
                 }
-
-                // stash includes: "go/src/github.com/pingcap/tidb-test/**", name: "tidb-test"
-
                 deleteDir()
             }
         }
@@ -171,12 +230,9 @@ try {
             def tests = [:]
 
             def run_with_log = { test_dir, log_path ->
-                node(testSlave) {
+                run_test_with_pod {
                     def ws = pwd()
                     deleteDir()
-                    // unstash 'tidb-test'
-
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     println "work space path:\n${ws}"
 
                     container("golang") {
@@ -247,12 +303,9 @@ try {
             }
 
             def run_split = { test_dir, chunk ->
-                node(testSlave) {
+                run_test_with_pod {
                     def ws = pwd()
                     deleteDir()
-                    // unstash 'tidb-test'
-
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     println "work space path:\n${ws}"
 
                     container("golang") {
@@ -318,17 +371,13 @@ try {
                             }
                         }
                     }
-                    //deleteDir()
                 }
             }
 
             def run_cache_log = { test_dir, log_path ->
-                node(testSlave) {
+                run_test_with_pod {
                     def ws = pwd()
                     deleteDir()
-                    // unstash 'tidb-test'
-
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     println "work space path:\n${ws}"
 
                     container("golang") {
@@ -396,12 +445,9 @@ try {
             }
 
             def run_vendor = { test_dir ->
-                node(testSlave) {
+                run_test_with_pod {
                     def ws = pwd()
                     deleteDir()
-                    // unstash 'tidb-test'
-
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     println "work space path:\n${ws}"
 
                     container("golang") {
@@ -478,12 +524,9 @@ try {
             }
 
             def run_jdbc = { test_dir, testsh ->
-                node("test_java") {
+                run_test_with_java_pod {
                     def ws = pwd()
                     deleteDir()
-                    // unstash 'tidb-test'
-
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     println "work space path:\n${ws}"
 
                     container("java") {
@@ -556,7 +599,6 @@ EOF
                             }
                         }
                     }
-                    //deleteDir()
                 }
             }
 
@@ -699,12 +741,12 @@ EOF
         }
 
         currentBuild.result = "SUCCESS"
-        node(buildSlave){
+        node("lightweight_pod"){
             container("golang"){
                 sh """
-		    echo "done" > done
-		    curl -F ci_check/tidb_ghpr_common_test/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
+                    echo "done" > done
+                    curl -F ci_check/tidb_ghpr_common_test/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+                """
             }
         }
     }
