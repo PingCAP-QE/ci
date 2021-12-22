@@ -182,69 +182,68 @@ def build_dm_bin() {
 
 def run_tls_source_it_test(String case_name) {
     run_test_with_pod {
-            // stash  ssl certs to jenkins, i don't know why if filename == client-key.pem , the stash will fail
-            // so just hack the filename
-            container('mysql1') {
-                def ws = pwd()
-                deleteDir()
-                sh "set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done"
-                sh "cp -r /var/lib/mysql/*.pem ."
-                sh "ls"
-                sh "pwd"
-                sh "cat client-key.pem > client.key.pem"
-                sh "cat client.key.pem"
-                stash includes: 'ca.pem,client-cert.pem,client.key.pem', name: "mysql-certs", useDefaultExcludes: false
-            }
+        // stash  ssl certs to jenkins, i don't know why if filename == client-key.pem , the stash will fail
+        // so just hack the filename
+        container('mysql1') {
+            def ws = pwd()
+            deleteDir()
+            sh "set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done"
+            sh "cp -r /var/lib/mysql/*.pem ."
+            sh "ls"
+            sh "pwd"
+            sh "cat client-key.pem > client.key.pem"
+            sh "cat client.key.pem"
+            stash includes: 'ca.pem,client-cert.pem,client.key.pem', name: "mysql-certs", useDefaultExcludes: false
+        }
 
-            container('golang') {
-                def ws = pwd()
-                deleteDir()
-                unstash(name: 'mysql-certs')
-                sh "ls"
-                sh "mv client.key.pem client-key.pem"
-                sh "sudo mkdir -p /var/lib/mysql"
-                sh "sudo chmod 777 /var/lib/mysql"
-                sh "cp *.pem /var/lib/mysql/"
-                sh "ls /var/lib/mysql"
+        container('golang') {
+            def ws = pwd()
+            deleteDir()
+            unstash(name: 'mysql-certs')
+            sh "ls"
+            sh "mv client.key.pem client-key.pem"
+            sh "sudo mkdir -p /var/lib/mysql"
+            sh "sudo chmod 777 /var/lib/mysql"
+            sh "cp *.pem /var/lib/mysql/"
+            sh "ls /var/lib/mysql"
 
-                unstash 'ticdc-with-bin'
-                dir('go/src/github.com/pingcap/tiflow') {
-                    try {
-                        sh"""
-                                rm -rf /tmp/dm_test
-                                mkdir -p /tmp/dm_test
-                                export MYSQL_HOST1=${MYSQL_HOST}
-                                export MYSQL_PORT1=${MYSQL_PORT}
-                                export MYSQL_HOST2=${MYSQL_HOST}
-                                export MYSQL_PORT2=${MYSQL2_PORT}
-                                # wait for mysql container ready.
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                # run test
-                                export PATH=/usr/local/go/bin:$PATH
-                                export GOPATH=\$GOPATH:${ws}/go
-                                make dm_integration_test CASE="${case_name}"
-                                # upload coverage
-                                rm -rf cov_dir
-                                mkdir -p cov_dir
-                                ls /tmp/dm_test
-                                cp /tmp/dm_test/cov*out cov_dir
+            unstash 'ticdc-with-bin'
+            dir('go/src/github.com/pingcap/tiflow') {
+                try {
+                    sh"""
+                            rm -rf /tmp/dm_test
+                            mkdir -p /tmp/dm_test
+                            export MYSQL_HOST1=${MYSQL_HOST}
+                            export MYSQL_PORT1=${MYSQL_PORT}
+                            export MYSQL_HOST2=${MYSQL_HOST}
+                            export MYSQL_PORT2=${MYSQL2_PORT}
+                            # wait for mysql container ready.
+                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                            # run test
+                            export PATH=/usr/local/go/bin:$PATH
+                            export GOPATH=\$GOPATH:${ws}/go
+                            make dm_integration_test CASE="${case_name}"
+                            # upload coverage
+                            rm -rf cov_dir
+                            mkdir -p cov_dir
+                            ls /tmp/dm_test
+                            cp /tmp/dm_test/cov*out cov_dir
+                            """
+                }catch (Exception e) {
+                    sh """
+                                echo "${case_name} test faild print all log..."
+                                for log in `ls /tmp/dm_test/*/*/log/*.log`; do
+                                    echo "____________________________________"
+                                    echo "\$log"
+                                    cat "\$log"
+                                    echo "____________________________________"
+                                done
                                 """
-                    }catch (Exception e) {
-                        sh """
-                                    echo "${case_name} test faild print all log..."
-                                    for log in `ls /tmp/dm_test/*/*/log/*.log`; do
-                                        echo "____________________________________"
-                                        echo "\$log"
-                                        cat "\$log"
-                                        echo "____________________________________"
-                                    done
-                                    """
-                        throw e
-                    }
+                    throw e
                 }
-                stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
             }
+            stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
         }
     }
 }
@@ -252,47 +251,46 @@ def run_tls_source_it_test(String case_name) {
 
 def run_single_it_test(String case_name) {
     run_test_with_pod {
-            container('golang') {
-                def ws = pwd()
-                deleteDir()
-                unstash 'ticdc-with-bin'
-                dir('go/src/github.com/pingcap/tiflow') {
-                    try {
-                        sh"""
-                                rm -rf /tmp/dm_test
-                                mkdir -p /tmp/dm_test
-                                export MYSQL_HOST1=${MYSQL_HOST}
-                                export MYSQL_PORT1=${MYSQL_PORT}
-                                export MYSQL_HOST2=${MYSQL_HOST}
-                                export MYSQL_PORT2=${MYSQL2_PORT}
-                                # wait for mysql container ready.
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                # run test
-                                export PATH=/usr/local/go/bin:$PATH
-                                export GOPATH=\$GOPATH:${ws}/go
-                                make dm_integration_test CASE="${case_name}"
-                                # upload coverage
-                                rm -rf cov_dir
-                                mkdir -p cov_dir
-                                ls /tmp/dm_test
-                                cp /tmp/dm_test/cov*out cov_dir
+        container('golang') {
+            def ws = pwd()
+            deleteDir()
+            unstash 'ticdc-with-bin'
+            dir('go/src/github.com/pingcap/tiflow') {
+                try {
+                    sh"""
+                            rm -rf /tmp/dm_test
+                            mkdir -p /tmp/dm_test
+                            export MYSQL_HOST1=${MYSQL_HOST}
+                            export MYSQL_PORT1=${MYSQL_PORT}
+                            export MYSQL_HOST2=${MYSQL_HOST}
+                            export MYSQL_PORT2=${MYSQL2_PORT}
+                            # wait for mysql container ready.
+                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                            # run test
+                            export PATH=/usr/local/go/bin:$PATH
+                            export GOPATH=\$GOPATH:${ws}/go
+                            make dm_integration_test CASE="${case_name}"
+                            # upload coverage
+                            rm -rf cov_dir
+                            mkdir -p cov_dir
+                            ls /tmp/dm_test
+                            cp /tmp/dm_test/cov*out cov_dir
+                            """
+                }catch (Exception e) {
+                    sh """
+                                echo "${case_name} test faild print all log..."
+                                for log in `ls /tmp/dm_test/*/*/log/*.log`; do
+                                    echo "____________________________________"
+                                    echo "\$log"
+                                    cat "\$log"
+                                    echo "____________________________________"
+                                done
                                 """
-                    }catch (Exception e) {
-                        sh """
-                                    echo "${case_name} test faild print all log..."
-                                    for log in `ls /tmp/dm_test/*/*/log/*.log`; do
-                                        echo "____________________________________"
-                                        echo "\$log"
-                                        cat "\$log"
-                                        echo "____________________________________"
-                                    done
-                                    """
-                        throw e
-                    }
+                    throw e
                 }
-                stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
             }
+            stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
         }
     }
 }
