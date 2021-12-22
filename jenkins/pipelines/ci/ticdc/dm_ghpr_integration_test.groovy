@@ -116,7 +116,7 @@ def run_build_with_pod(Closure body) {
                     ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} bash"
             body()
         }
     }
