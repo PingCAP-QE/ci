@@ -97,7 +97,7 @@ if (isNeedGo1160) {
     println "This build use go1.13"
     POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
 }
-
+POD_NAMESPACE = "jenkins-tidb"
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-integration-common-test"
@@ -107,10 +107,9 @@ def run_with_pod(Closure body) {
         label = "${label}-go1130-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes"
-    def namespace = POD_NAMESPACE
     podTemplate(label: label,
             cloud: cloud,
-            namespace: namespace,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -143,10 +142,9 @@ def run_with_memory_volume_pod(Closure body) {
         label = "${label}-go1130-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes"
-    def namespace = POD_NAMESPACE
     podTemplate(label: label,
             cloud: cloud,
-            namespace: namespace,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             containers: [
                     containerTemplate(
