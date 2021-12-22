@@ -76,7 +76,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = false
+isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
 
 if (!isNeedGo1160) {
@@ -89,27 +89,93 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
     }
 }
 
+all_task_result = []
+
+
 if (isNeedGo1160) {
     println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    GO_TEST_HEAVY_SLAVE = "test_go1160_memvolume"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
 } else {
     println "This build use go1.13"
-    GO_TEST_HEAVY_SLAVE = "test_tikv_go1130_memvolume"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
 }
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
-println "GO_TEST_HEAVY_SLAVE=${GO_TEST_HEAVY_SLAVE}"
+POD_NAMESPACE = "jenkins-tidb"
 
-def buildSlave = "${GO_BUILD_SLAVE}"
-def testSlave = "${GO_TEST_HEAVY_SLAVE}"
-all_task_result = []
+def run_with_pod(Closure body) {
+    def label = "tidb-ghpr-integration-ddl-test"
+    if (isNeedGo1160) {
+        label = "${label}-go1160-${BUILD_NUMBER}"
+    } else {
+        label = "${label}-go1130-${BUILD_NUMBER}"
+    }
+    def cloud = "kubernetes"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    )
+            ],
+            volumes: [
+                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
+def run_with_memory_volume_pod(Closure body) {
+    def label = "tidb-ghpr-integration-ddl-test-memory-volume"
+    if (isNeedGo1160) {
+        label = "${label}-go1160-${BUILD_NUMBER}"
+    } else {
+        label = "${label}-go1130-${BUILD_NUMBER}"
+    }
+    def cloud = "kubernetes"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    )
+            ],
+            volumes: [
+                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            println "this pod use memory volume"
+            body()
+        }
+    }
+}
 
 try {
     stage("Pre-check"){
         if (!params.force){
-            node("${GO_BUILD_SLAVE}"){
+            node("lightweight_pod"){
                 container("golang"){
                     notRun = sh(returnStatus: true, script: """
 				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
@@ -124,11 +190,9 @@ try {
         }
     }
 
-    node(buildSlave) {
-        stage("Checkout") {
-        }
+    run_with_pod {
         stage('Build') {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+
             def ws = pwd()
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
@@ -157,8 +221,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, ddltest ->
-            node(testSlave) {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            run_with_memory_volume_pod {
 
                 def ws = pwd()
                 deleteDir()
@@ -272,7 +335,6 @@ try {
                         }
                     }
                 }
-                //deleteDir()
             }
         }
 
