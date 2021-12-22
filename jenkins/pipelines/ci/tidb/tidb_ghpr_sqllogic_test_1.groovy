@@ -49,7 +49,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-def isNeedGo1160 = false
+isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
 
 if (!isNeedGo1160) {
@@ -64,22 +64,59 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
 
 if (isNeedGo1160) {
     println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
 } else {
     println "This build use go1.13"
+    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
 }
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+POD_NAMESPACE = "jenkins-tidb"
+
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+
+
+def run_with_pod(Closure body) {
+    def label = "tidb-ghpr-sqllogic-test"
+    if (isNeedGo1160) {
+        label = "${label}-go1160-${BUILD_NUMBER}"
+    } else {
+        label = "${label}-go1130-${BUILD_NUMBER}"
+    }
+    def cloud = "kubernetes"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    )
+            ],
+            volumes: [
+                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
 all_task_result = []
 
 try {
     stage("Pre-check") {
         if (!params.force) {
-            node("${GO_BUILD_SLAVE}") {
+            node("lightweight_pod") {
                 container("golang") {
                     notRun = sh(returnStatus: true, script: """
                 if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
@@ -94,13 +131,8 @@ try {
         }
     }
 
-    def buildSlave = "${GO_BUILD_SLAVE}"
-    def testSlave = "${GO_TEST_SLAVE}"
-
     stage('Prepare') {
-        node(buildSlave) {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
+        run_with_pod {
             def ws = pwd()
             deleteDir()
 
@@ -143,9 +175,7 @@ try {
 
     stage('SQL Logic Test') {
         def run = { sqllogictest, parallelism, enable_cache ->
-            node(testSlave) {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
+            run_with_pod {            
                 deleteDir()
                 unstash 'tidb-test'
 
@@ -186,9 +216,7 @@ try {
         }
 
         def run_two = { sqllogictest_1, parallelism_1, sqllogictest_2, parallelism_2, enable_cache ->
-            node(testSlave) {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
+            run_with_pod {
                 deleteDir()
                 unstash 'tidb-test'
 
