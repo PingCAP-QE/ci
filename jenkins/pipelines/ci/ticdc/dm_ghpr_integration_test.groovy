@@ -41,13 +41,90 @@ println 'This build use go1.16'
 GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 GO_TEST_SLAVE = GO1160_TEST_SLAVE
 POD_GO_DOCKER_IMAGE = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+POD_NAMESPACE = "jenkins-dm"
 
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
 
+
+def run_test_with_pod(Closure body) {
+    def label = "dm-integration-test-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(
+            label: label,
+            nodeSelector: 'role_type=slave',
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: true,
+                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                            resourceRequestCpu: '3000m', resourceRequestMemory: '4Gi',
+                            resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
+                            command: 'cat'),
+                    containerTemplate(
+                            name: 'mysql1', alwaysPullImage: true,
+                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
+                            resourceRequestCpu: '500m', resourceRequestMemory: '1Gi',
+                            envVars: [
+                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
+                            ],
+                            args: "${MYSQL_ARGS}"),
+                    // mysql 8
+                    containerTemplate(
+                            name: 'mysql2', alwaysPullImage: false,
+                            image: 'registry-mirror.pingcap.net/library/mysql:8.0.21',ttyEnabled: true,
+                            resourceRequestCpu: '500m', resourceRequestMemory: '1Gi',
+                            envVars: [
+                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
+                                    envVar(key: 'MYSQL_TCP_PORT', value: "${MYSQL2_PORT}")
+                            ],
+                            args: "${MYSQL_ARGS}")
+            ]
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+def run_build_with_pod(Closure body) {
+    def label = "dm-integration-test-build-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            
+                    )
+            ],
+            volumes: [
+                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+
 def checkout_and_stash_dm_code() {
-    node("${GO_BUILD_SLAVE}") {
+    run_build_with_pod {
         container('golang') {
             deleteDir()
 
@@ -67,7 +144,7 @@ def checkout_and_stash_dm_code() {
 }
 
 def build_dm_bin() {
-    node("${GO_BUILD_SLAVE}") {
+    run_build_with_pod {
         container('golang') {
             deleteDir()
             unstash 'ticdc'
@@ -104,40 +181,7 @@ def build_dm_bin() {
 
 
 def run_tls_source_it_test(String case_name) {
-    def label = 'dm-integration-test'
-    podTemplate(label: label,
-            nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
-            containers: [
-                    containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
-                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '4Gi',
-                            resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
-                            command: 'cat'),
-                    containerTemplate(
-                            name: 'mysql1', alwaysPullImage: true,
-                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
-                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
-                            envVars: [
-                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
-                            ],
-                            args: "${MYSQL_ARGS}"),
-                    // mysql 8
-                    containerTemplate(
-                            name: 'mysql2', alwaysPullImage: false,
-                            image: 'registry-mirror.pingcap.net/library/mysql:8.0.21',ttyEnabled: true,
-                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
-                            envVars: [
-                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
-                                    envVar(key: 'MYSQL_TCP_PORT', value: "${MYSQL2_PORT}")
-                            ],
-                            args: "${MYSQL_ARGS}")
-            ]
-    ) {
-        node(label) {
-            println "${NODE_NAME}"
-            println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
+    run_test_with_pod {
             // stash  ssl certs to jenkins, i don't know why if filename == client-key.pem , the stash will fail
             // so just hack the filename
             container('mysql1') {
@@ -207,40 +251,7 @@ def run_tls_source_it_test(String case_name) {
 
 
 def run_single_it_test(String case_name) {
-    def label = 'dm-integration-test'
-    podTemplate(label: label,
-            nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
-            containers: [
-                    containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
-                            image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '4Gi',
-                            resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
-                            command: 'cat'),
-                    containerTemplate(
-                            name: 'mysql1', alwaysPullImage: true,
-                            image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
-                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
-                            envVars: [
-                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
-                            ],
-                            args: "${MYSQL_ARGS}"),
-                    // mysql 8.0.21
-                    containerTemplate(
-                            name: 'mysql2', alwaysPullImage: false,
-                            image: 'registry-mirror.pingcap.net/library/mysql:8.0.21',ttyEnabled: true,
-                            resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
-                            envVars: [
-                                    envVar(key: 'MYSQL_ROOT_PASSWORD', value: "${MYSQL_PSWD}"),
-                                    envVar(key: 'MYSQL_TCP_PORT', value: "${MYSQL2_PORT}")
-                            ],
-                            args: "${MYSQL_ARGS}")
-            ]
-    ) {
-        node(label) {
-            println "${NODE_NAME}"
-            println "debug command: \nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} -c golang bash"
+    run_test_with_pod {
             container('golang') {
                 def ws = pwd()
                 deleteDir()
@@ -287,8 +298,7 @@ def run_single_it_test(String case_name) {
 }
 
 def run_make_coverage() {
-    node("${GO_TEST_SLAVE}") {
-        println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+    run_build_with_pod {
         ws = pwd()
         deleteDir()
         try {
