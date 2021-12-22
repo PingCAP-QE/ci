@@ -85,10 +85,9 @@ def run_test_with_pod(Closure body) {
         label = "${label}-go1130-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes"
-    def namespace = POD_NAMESPACE
     podTemplate(label: label,
             cloud: cloud,
-            namespace: namespace,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -116,10 +115,9 @@ def run_test_with_pod(Closure body) {
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
     def cloud = "kubernetes"
-    def namespace = POD_NAMESPACE
     podTemplate(label: label,
             cloud: cloud,
-            namespace: namespace,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             containers: [
                     containerTemplate(
