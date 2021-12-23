@@ -48,12 +48,12 @@ if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
 }
 
 def run_with_pod(Closure body) {
-    def label = "cdc_ghpr_unit_test_1.13"
+    def label = "cdc_ghpr_unit_test_1.13_${BUILD_NUMBER}"
     pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
     if (isNeedGo1160) {
         println "Use go1.16.4"
         pod_go_docker_image = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
-        label = "cdc_ghpr_unit_test_1.16"
+        label = "cdc_ghpr_unit_test_1.16_${BUILD_NUMBER}"
     } else {
         println "Use go1.13.7"
     }
@@ -65,17 +65,11 @@ def run_with_pod(Closure body) {
                     resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                     resourceLimitCpu: '16000m', resourceLimitMemory: "30Gi",
                     command: '/bin/sh -c', args: 'cat',
-                    envVars: [containerEnvVar(key: 'GOMODCACHE', value: '/nfs/cache/mod'),
-                              containerEnvVar(key: 'GOPATH', value: '/go'),
-                              containerEnvVar(key: 'GOCACHE', value: '/nfs/cache/go-build')],
+                    envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
             )],
             volumes: [
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
-                    nfsVolume(mountPath: '/go/pkg', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/gopath/pkg', readOnly: false),
             ],
     ) {
         node(label) {
