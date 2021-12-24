@@ -191,6 +191,7 @@ try {
                 container("golang") {
                     try {
                         sh """
+                        export log_level=warn
                         make gotest_in_verify_ci
                         mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         make br_unit_test_in_verify_ci
