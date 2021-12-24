@@ -138,6 +138,30 @@ def run_with_pod(Closure body) {
     }
 }
 
+def upload_test_result(reportDir) {
+    try {
+        id=UUID.randomUUID().toString()
+        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+        sh """
+        curl -F ${filepath}=@${reportDir} ${FILE_SERVER_URL}/upload
+        """
+        def downloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+        def all_results = [
+            jenkins_job_name: "${JOB_NAME}",
+            jenkins_url: "${env.RUN_DISPLAY_URL}",
+            repo: "${ghprbGhRepository}",
+            commit_id: ghprbActualCommit,
+            branch: ghprbTargetBranch,
+            junit_report_url: downloadPath
+        ]
+        def json = groovy.json.JsonOutput.toJson(all_results)
+        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.5.14:30792/report/", validResponseCodes: '200'
+    }catch (Exception e) {
+        // upload test case result to tipipeline, do not block ci
+        print "upload test result to tipipeline failed, continue."
+    }
+}
+
 def test_suites = { suites,option ->
     run_with_pod {
         deleteDir()
@@ -152,8 +176,8 @@ def test_suites = { suites,option ->
                 def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
                 def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
                 pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                try {
-                    dir("go/src/github.com/pingcap/tidb") {
+                dir("go/src/github.com/pingcap/tidb") {
+                    try {
                         sh"""
                         curl ${tikv_url} | tar xz
                         curl ${pd_url} | tar xz bin
@@ -170,30 +194,34 @@ def test_suites = { suites,option ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        GOPATH=${ws}/go go test -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off ${option} '${suites}'
+                        go get gotest.tools/gotestsum
+                        gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off ${option} '${suites}'
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 20m -vet=off
                         """
+                    }catch (Exception e){
+                        sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
+                        sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
+                        sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
+                        sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
+                        sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
+                        sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
+                        throw e
+                    }finally {
+                        junit testResults: "**/junit-report.xml"
+                        sh """
+                        set +e
+                        killall -9 -r -q tikv-server
+                        killall -9 -r -q pd-server
+                        set -e
+                        """
+                        upload_test_result("session/junit-report.xml")
                     }
-                }catch (Exception e){
-                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
-                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
-                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
-                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
-                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
-                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
-                    throw e
-                }finally {
-                    sh """
-                    set +e
-                    killall -9 -r -q tikv-server
-                    killall -9 -r -q pd-server
-                    set -e
-                    """
                 }
             }
         }
     }
 }
+
 
 try {
     stage("Pre-check"){
