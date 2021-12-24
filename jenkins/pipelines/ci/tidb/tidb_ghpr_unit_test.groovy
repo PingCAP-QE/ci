@@ -102,6 +102,30 @@ def run_with_pod(Closure body) {
     }
 }
 
+def upload_test_result(reportDir) {
+    try {
+        id=UUID.randomUUID().toString()
+        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+        sh """
+        curl -F ${filepath}=@${reportDir} ${FILE_SERVER_URL}/upload
+        """
+        def downloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+        def all_results = [
+            jenkins_job_name: "${JOB_NAME}",
+            jenkins_url: "${env.RUN_DISPLAY_URL}",
+            repo: "${ghprbGhRepository}",
+            commit_id: ghprbActualCommit,
+            branch: ghprbTargetBranch,
+            junit_report_url: downloadPath
+        ]
+        def json = groovy.json.JsonOutput.toJson(all_results)
+        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.5.14:30792/report/", validResponseCodes: '200'
+    }catch (Exception e) {
+        // upload test case result to tipipeline, do not block ci
+        print "upload test result to tipipeline failed, continue."
+    }
+}
+
 try {
 
     if (ghprbTargetBranch != "master") {
@@ -165,14 +189,23 @@ try {
             def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
-                    sh """
-                    make br_unit_test
-                    mv coverage.txt br.coverage
-                    make dumpling_unit_test
-                    mv coverage.txt dumpling.coverage
-                    make gotest
-                    mv coverage.txt tidb.coverage
-                    """
+                    try {
+                        sh """
+                        make gotest_in_verify_ci
+                        mv test_coverage/tidb_cov.unit_test.out tidb.coverage
+                        make br_unit_test_in_verify_ci
+                        mv test_coverage/br_cov.unit_test.out br.coverage
+                        make dumpling_unit_test_in_verify_ci
+                        mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                        """
+                    }catch (Exception e) {
+                        throw e
+                    } finally {
+                        junit testResults: "**/*-junit-report.xml"
+                        upload_test_result("test_coverage/tidb-junit-report.xml")
+                        upload_test_result("test_coverage/br-junit-report.xml")
+                        upload_test_result("test_coverage/dumpling-junit-report.xml")
+                    }
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(5) {
                             if (ghprbPullId != null && ghprbPullId != "") {
