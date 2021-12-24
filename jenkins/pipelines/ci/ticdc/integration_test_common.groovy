@@ -304,7 +304,7 @@ def download_binaries() {
  */
 def coverage() {
     stage('Coverage') {
-        node("${GO_TEST_SLAVE}") {
+        node("lightweight_pod") {
             def ws = pwd()
             deleteDir()
             unstash 'ticdc'
@@ -333,8 +333,6 @@ def coverage() {
                             '''
                         }
                     }
-
-
                 }
             }
         }
