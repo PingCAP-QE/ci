@@ -9,6 +9,10 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
+CI_RUN_PART_TEST_CASES = "alias alter_table alter_table_PK auto_increment bigint bool builtin charset comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table datetime_update daylight_saving_time ddl_i18n_utf8 decimal do drop echo exec_selection field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_dependenies_on_vcol gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete insert insert_select issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join json like math multi_update mysql_replace operator orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare qualified regexp replace select_qualified single_delete_update sqllogic str_quoted sub_query sub_query_more time timestamp_update tpcc transaction_isolation_func type type_binary type_uint union update update_stmt variable window_functions with_recursive with_recursive_bugs xd"
+
+
+
 def TIDB_TEST_BRANCH = ghprbTargetBranch
 // parse tidb_test branch
 def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -160,6 +164,7 @@ try {
             def log_path = "mysql-test.out*"
             deleteDir()
             println "work space path:\n${ws}"
+            println "run some mysql tests as below:\n ${CI_RUN_PART_TEST_CASES}"
 
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
@@ -184,7 +189,10 @@ try {
                     try {
                         timeout(10) {
                             sh """
+
+                            export CI_RUN_PART_TEST_CASES=\"${CI_RUN_PART_TEST_CASES}\"
                             wget ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
+                            chmod +x run-test-part.sh
 
                             set +e
                             killall -9 -r tidb-server
@@ -192,8 +200,6 @@ try {
                             killall -9 -r pd-server
                             rm -rf /tmp/tidb
                             set -e
-                            awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
-
                             TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                             ./run-test-part.sh
                             
