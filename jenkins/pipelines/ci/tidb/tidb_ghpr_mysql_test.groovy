@@ -184,6 +184,8 @@ try {
                     try {
                         timeout(10) {
                             sh """
+                            wget ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
+
                             set +e
                             killall -9 -r tidb-server
                             killall -9 -r tikv-server
@@ -193,7 +195,7 @@ try {
                             awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
 
                             TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                            ./test.sh
+                            ./run-test-part.sh
                             
                             set +e
                             killall -9 -r tidb-server
