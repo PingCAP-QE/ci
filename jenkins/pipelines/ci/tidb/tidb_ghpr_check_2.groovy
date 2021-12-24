@@ -194,6 +194,7 @@ def test_suites = { suites,option ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
+                        go get gotest.tools/gotestsum
                         gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off ${option} '${suites}'
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 20m -vet=off
                         """
