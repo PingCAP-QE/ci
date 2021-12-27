@@ -123,6 +123,8 @@ def run_with_pod(Closure body) {
             volumes: [
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
             ],
     ) {
         node(label) {
