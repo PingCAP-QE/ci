@@ -191,8 +191,9 @@ try {
                         echo "${githash}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         mkdir -p ${target}/bin
-                        mv bin/cdc ${target}/bin/
-                        tar -czvf ${target}.tar.gz ${target}
+                        #mv bin/cdc ${target}/bin/
+                        #tar -czvf ${target}.tar.gz ${target}
+                        tar -czvf ${target}.tar.gz bin
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
