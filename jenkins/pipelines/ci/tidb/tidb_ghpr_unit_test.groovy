@@ -103,6 +103,9 @@ def run_with_pod(Closure body) {
 }
 
 def upload_test_result(reportDir) {
+    if (!fileExists(reportDir)){
+        return
+    }
     try {
         id=UUID.randomUUID().toString()
         def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
@@ -192,12 +195,12 @@ try {
                     try {
                         sh """
                         export log_level=warn
-                        make gotest_in_verify_ci
-                        mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         make br_unit_test_in_verify_ci
                         mv test_coverage/br_cov.unit_test.out br.coverage
                         make dumpling_unit_test_in_verify_ci
                         mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                        make gotest_in_verify_ci
+                        mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         """
                     }catch (Exception e) {
                         throw e

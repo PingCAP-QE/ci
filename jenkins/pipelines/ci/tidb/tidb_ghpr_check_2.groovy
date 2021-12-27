@@ -135,6 +135,9 @@ def run_with_pod(Closure body) {
 }
 
 def upload_test_result(reportDir) {
+    if (!fileExists(reportDir)){
+        return
+    }
     try {
         id=UUID.randomUUID().toString()
         def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
