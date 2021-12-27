@@ -198,11 +198,14 @@ try {
                         curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
+                    release_one("tiflow","${githash}")
                     if (isHotfix) {
                         release_tiup_patch(filepath, "cdc", patch_path)
+                        def arm_path = "builds/pingcap/test/${env.BRANCH_NAME}/tiflow/${githash}/centos7/tiflow-linux-arm64.tar.gz"
+                        def arm_patch_path = "builds/pingcap/tiflow/patch/${env.BRANCH_NAME}/${githash}/centos7/tiflow-linux-arm64.tar.gz"
+                        release_tiup_patch(arm_path, "cdc", arm_patch_path)
                         release_docker_image("ticdc", filepath,env.BRANCH_NAME)
                     }
-                    release_one("tiflow","${githash}")
                 }
             }
         }
