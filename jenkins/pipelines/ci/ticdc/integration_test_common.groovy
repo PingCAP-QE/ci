@@ -119,16 +119,16 @@ def tests(sink_type, node_label) {
                                 tail /tmp/tidb_cdc_test/cov* || true
                                 """
                             } catch (Exception e) {
+                                def log_tar_name = case_names.replaceAll("\\s","-")
                                 sh """
-                                    echo "archive all log"
-                                    for log in `ls /tmp/tidb_cdc_test/*/*.log`; do
-                                        dirname=`dirname \$log`
-                                        basename=`basename \$log`
-                                        mkdir -p "log\$dirname"
-                                        tar zcvf "log\${log}.tgz" -C "\$dirname" "\$basename"
-                                    done
+                                echo "archive logs"
+                                ls /tmp/tidb_cdc_test/
+
+                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                ls -alh  log-${log_tar_name}.tar.gz   
                                 """
-                                archiveArtifacts artifacts: "log/tmp/tidb_cdc_test/**/*.tgz", caseSensitive: false
+
+                                archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
                                 throw e;
                             }
 
