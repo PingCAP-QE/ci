@@ -154,6 +154,7 @@ catchError {
                 def label = "cdc-kafka-integration-${UUID.randomUUID().toString()}"
                 podTemplate(label: label,
                         idleMinutes: 0,
+                        cloud: "kubernetes-backup",
                         containers: [
                                 containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',

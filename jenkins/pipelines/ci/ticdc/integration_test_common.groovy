@@ -119,15 +119,22 @@ def tests(sink_type, node_label) {
                                 tail /tmp/tidb_cdc_test/cov* || true
                                 """
                             } catch (Exception e) {
+                                // sh """
+                                //     echo "archive all log"
+                                //     for log in `ls /tmp/tidb_cdc_test/*/*.log`; do
+                                //         dirname=`dirname \$log`
+                                //         basename=`basename \$log`
+                                //         mkdir -p "log\$dirname"
+                                //         tar zcvf "log\${log}.tgz" -C "\$dirname" "\$basename"
+                                //     done
+                                // """
                                 sh """
-                                    echo "archive all log"
-                                    for log in `ls /tmp/tidb_cdc_test/*/*.log`; do
-                                        dirname=`dirname \$log`
-                                        basename=`basename \$log`
-                                        mkdir -p "log\$dirname"
-                                        tar zcvf "log\${log}.tgz" -C "\$dirname" "\$basename"
-                                    done
+                                echo "archive logs"
+                                ls /tmp/tidb_cdc_test/
+
+                                tar -cvzf log-${case_names.replaceAll("\\s","-")}.tar.gz $( find /tmp/tidb_cdc_test/ -type f -name "*.log")         
                                 """
+
                                 archiveArtifacts artifacts: "log/tmp/tidb_cdc_test/**/*.tgz", caseSensitive: false
                                 throw e;
                             }
