@@ -1,6 +1,25 @@
 def slackcolor = 'good'
 def githash
 
+def release_one(repo,hash) {
+    def binary = "builds/pingcap/test/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
+    echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
+    def paramsBuild = [
+        string(name: "ARCH", value: "arm64"),
+        string(name: "OS", value: "linux"),
+        string(name: "EDITION", value: "community"),
+        string(name: "OUTPUT_BINARY", value: binary),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "GIT_HASH", value: hash),
+        string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
+        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+    ]
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
 try {
     stage('Prepare') {
         node("build") {
@@ -147,24 +166,25 @@ try {
                 // def refspath = "refs/zhaoyixuan/tikv/${env.BRANCH_NAME}/sha1"
                 // def filepath = "builds/zhaoyixuan/tikv/${githash}/centos7/tikv-server.tar.gz"
                 def refspath = "refs/pingcap/tikv/${env.BRANCH_NAME}/sha1"
-                def filepath = "builds/pingcap/tikv/${githash}/centos7/tikv-server.tar.gz"
+                def filepath = "builds/pingcap/tikv/${env.BRANCH_NAME}/${githash}/centos7/tikv-server.tar.gz"
+                def filepath2 = "builds/pingcap/tikv/${githash}/centos7/tikv-server.tar.gz"
                 container("rust") {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
                         tar czvf tikv-server.tar.gz bin/*
                         curl -F ${filepath}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload --fail
+                        curl -F ${filepath2}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload --fail
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
+                    release_one("tikv","${githash}")
                 }
             }
         }
     }
 
-    stage("Push tikv Docker") {
-        build job: 'build_image_hash', wait: false, parameters: [[$class: 'StringParameterValue', name: 'REPO', value: "tikv"], [$class: 'StringParameterValue', name: 'COMMIT_ID', value: githash], [$class: 'StringParameterValue', name: 'IMAGE_TAG', value: env.BRANCH_NAME]]
-    }
+    
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
