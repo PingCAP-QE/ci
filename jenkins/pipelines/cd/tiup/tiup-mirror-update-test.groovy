@@ -170,7 +170,7 @@ def update_ctl = { version, os, arch ->
     """
     dir("tiup") {
         dir("components/ctl") {
-            // tiup-ctl 一般不会变更，可以固定使用 v1.4.0 版本
+            // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
             sh "curl -L http://fileserver.pingcap.net/download/tiup/releases/v1.8.1/tiup-v1.8.1-${os}-${arch}.tar.gz | tar -xz bin/tiup-ctl"
         }
     }
