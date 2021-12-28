@@ -19,6 +19,8 @@ def tidb_githash, tikv_githash, pd_githash, importer_githash, tools_githash
 def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_githash
 def cdc_githash, lightning_githash
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+
 try {
     timeout(600) {
         node("build_go1130") {
@@ -145,6 +147,37 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+} finally {
+    def result = [:]
+    result["name"] = JOB_NAME
+    result["result"] = currentBuild.result.toLowerCase()
+    result["build_num"] = BUILD_NUMBER
+    result["type"] = "jenkinsci"
+    result["url"] = RUN_DISPLAY_URL
+    result["duration"] = System.currentTimeMillis() - taskStartTimeInMillis
+    result["start_time"] = taskStartTimeInMillis
+    result["trigger"] = "tiup nightly build"
+    if (currentBuild.result == "SUCCESS") {
+        result["notify_message"] = "TiUP release tidb master nightly success"
+    } else if (currentBuild.result == "FAILURE") {
+        result["notify_message"] = "TiUP release tidb master nightly failed"
+    } else {
+        result["notify_message"] = "TiUP release tidb master nightly aborted"
+    }
+    
+    result["notify_receiver"] = ["zhouqiang-cl", "purelind", "VelocityLight"]
+
+    node("lightweight_pod") {
+        container("golang") {
+            writeJSON file: 'result.json', json: result, pretty: 4
+            sh 'cat result.json'
+            archiveArtifacts artifacts: 'result.json', fingerprint: true
+            sh """
+                wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci.py
+                python3 agent-jenkinsci.py result.json || true
+            """  
+        }
+    }
 }
 
 stage('Summary') {
