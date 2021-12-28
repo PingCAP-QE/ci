@@ -9,9 +9,6 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-ghprbTargetBranch = "master"
-ghprbActualCommit = "0af4b77b6be0adf970a6b0bc79d62985deda69c5"
-
 CI_RUN_PART_TEST_CASES = "with_non_recursive window_min_max temp_table mariadb_cte_recursive mariadb_cte_nonrecursive json_functions gcol_view gcol_supported_sql_funcs expression_index date_time_ddl show timestamp_insert infoschema datetime_insert alias alter_table alter_table_PK auto_increment bigint bool builtin charset comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table datetime_update daylight_saving_time ddl_i18n_utf8 decimal do drop echo exec_selection field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_dependenies_on_vcol gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete insert insert_select issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join json like math mysql_replace operator orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare qualified regexp replace select_qualified single_delete_update sqllogic str_quoted sub_query sub_query_more time timestamp_update tpcc transaction_isolation_func type type_binary type_uint union update update_stmt variable with_recursive with_recursive_bugs xd"
 
 
@@ -73,8 +70,8 @@ if (isNeedGo1160) {
 
 POD_NAMESPACE = "jenkins-tidb"
 
-def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 def TIDB_TEST_STASH_FILE = "tidb_test_mysql_test_${UUID.randomUUID().toString()}.tar"
 
 def run_test_with_pod(Closure body) {
