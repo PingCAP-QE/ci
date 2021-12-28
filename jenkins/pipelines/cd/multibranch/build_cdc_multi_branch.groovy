@@ -24,6 +24,40 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
+def release_tiup_patch(filepath, binary, patch_path) {
+    echo "binary ${FILE_SERVER_URL}/download/${filepath}"
+    echo "tiup patch ${FILE_SERVER_URL}/download/${patch_path}"
+    def paramsBuild = [
+        string(name: "INPUT_BINARYS", value: filepath),
+        string(name: "BINARY_NAME", value: binary),
+        string(name: "PRODUCT", value: "ticdc"),
+        string(name: "PATCH_PATH", value: patch_path),
+    ]
+    build job: "patch-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
+def release_docker_image(product, filepath, tag) {
+    def image = "pingcap/${product}:$tag"
+    echo "docker image ${image}"
+
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/${product}"
+    def paramsDocker = [
+        string(name: "ARCH", value: "amd64"),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: filepath),
+        string(name: "REPO", value: product),
+        string(name: "PRODUCT", value: product),
+        string(name: "RELEASE_TAG", value: tag),
+        string(name: "DOCKERFILE", value: dockerfile),
+        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+    ]
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsDocker
+}
+
 
 def isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
@@ -61,6 +95,10 @@ def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_
 def os = "linux"
 def arch = "amd64"
 
+def isHotfix = false
+if ( env.BRANCH_NAME.startsWith("v") &&  env.BRANCH_NAME =~ ".*-202.*") {
+    isHotfix = true
+}
 
 def release_one(repo,hash) {
     def binary = "builds/pingcap/test/${env.BRANCH_NAME}/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
@@ -142,23 +180,32 @@ try {
 
         stage("Upload") {
             dir(build_path) {
-                def target = "ticdc-${os}-${arch}"
+                def target = "tiflow-${os}-${arch}"
                 def refspath = "refs/pingcap/tiflow/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/tiflow/${env.BRANCH_NAME}/${githash}/centos7/${target}.tar.gz"
                 def filepath2 = "builds/pingcap/tiflow/${githash}/centos7/${target}.tar.gz"
+                def patch_path = "builds/pingcap/tiflow/patch/${env.BRANCH_NAME}/${githash}/centos7/${target}.tar.gz"
                 container("golang") {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         mkdir -p ${target}/bin
-                        mv bin/cdc ${target}/bin/
-                        tar -czvf ${target}.tar.gz ${target}
+                        #mv bin/cdc ${target}/bin/
+                        #tar -czvf ${target}.tar.gz ${target}
+                        tar -czvf ${target}.tar.gz bin
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                     release_one("tiflow","${githash}")
+                    if (isHotfix) {
+                        release_tiup_patch(filepath, "cdc", patch_path)
+                        def arm_path = "builds/pingcap/test/${env.BRANCH_NAME}/tiflow/${githash}/centos7/tiflow-linux-arm64.tar.gz"
+                        def arm_patch_path = "builds/pingcap/tiflow/patch/${env.BRANCH_NAME}/${githash}/centos7/tiflow-linux-arm64.tar.gz"
+                        release_tiup_patch(arm_path, "cdc", arm_patch_path)
+                        release_docker_image("ticdc", filepath,env.BRANCH_NAME)
+                    }
                 }
             }
         }
