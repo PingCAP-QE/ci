@@ -119,7 +119,8 @@ def upload_test_result(reportDir) {
             repo: "${ghprbGhRepository}",
             commit_id: ghprbActualCommit,
             branch: ghprbTargetBranch,
-            junit_report_url: downloadPath
+            junit_report_url: downloadPath,
+            pull_request: ghprbPullId
         ]
         def json = groovy.json.JsonOutput.toJson(all_results)
         response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.5.14:30792/report/", validResponseCodes: '200'
