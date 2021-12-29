@@ -89,9 +89,9 @@ try {
                 stage("Build tiflash") {
                     node("mac-i5") {
                         dir("tics") {
-                            if ( !params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
-                                return
-                            }
+                            // if ( !params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                            //     return
+                            // }
                             deleteDir()
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                             def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
@@ -135,9 +135,9 @@ try {
             stage("Build tikv") {
                 node("mac-i7") {
                     dir("go/src/github.com/pingcap/tikv") {
-                        if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
-                            return
-                        }
+                        // if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                        //     return
+                        // }
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
                         def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
@@ -185,9 +185,9 @@ try {
             stage("Build importer") {
                 node("mac-i7") {
                     dir("go/src/github.com/pingcap/importer") {
-                        if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
-                            return
-                        }
+                        // if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+                        //     return
+                        // }
                         def target = "importer-${RELEASE_TAG}-${os}-${arch}"
                         def filepath = "builds/pingcap/importer/optimization/${RELEASE_TAG}/${IMPORTER_HASH}/darwin/importer.tar.gz"
                         retry(20) {
