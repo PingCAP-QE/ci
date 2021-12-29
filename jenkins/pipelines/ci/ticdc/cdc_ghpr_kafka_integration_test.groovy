@@ -151,20 +151,26 @@ catchError {
 
                 common.prepare_binaries()
 
-                def label = "cdc-kafka-integration-${UUID.randomUUID().toString()}"
+                def label = "cdc-kafka-integration-test"
+                if (isNeedGo1160) {
+                    label = "cdc-kafka-integration-test-go1160-build-${BUILD_NUMBER}"
+                } else {
+                    label = "cdc-kafka-integration-test-go1130-build-${BUILD_NUMBER}"
+                }
                 podTemplate(label: label,
                         idleMinutes: 0,
+                        namespace: "jenkins-ticdc",
                         containers: [
                                 containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
                                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true, command: 'cat'),
                                 containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
-                                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                                        resourceRequestCpu: '1000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true),
                                 containerTemplate(
                                         name: 'kafka',
                                         image: "wurstmeister/kafka:${KAFKA_TAG}",
-                                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                                        resourceRequestCpu: '1000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true,
                                         alwaysPullImage: false,
                                         envVars: [

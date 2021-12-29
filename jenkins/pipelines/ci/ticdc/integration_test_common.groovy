@@ -123,7 +123,6 @@ def tests(sink_type, node_label) {
                                 sh """
                                 echo "archive logs"
                                 ls /tmp/tidb_cdc_test/
-
                                 tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
                                 ls -alh  log-${log_tar_name}.tar.gz   
                                 """
@@ -268,14 +267,12 @@ def download_binaries() {
         mkdir -p third_bin
         mkdir -p tmp
         mkdir -p bin
-
         tidb_url="${tidb_url}"
         tidb_archive_path="${tidb_archive_path}"
         tikv_url="${tikv_url}"
         pd_url="${pd_url}"
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
-
         curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
