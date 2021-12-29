@@ -80,12 +80,10 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                 }
                 if (product == "tidb-ctl") {
                     sh """
-                    export GOPATH=/Users/pingcap/gopkg
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
-                    go build -o /Users/pingcap/binarys/${product}
                     rm -rf ${target}
                     mkdir -p ${target}/bin
-                    cp /Users/pingcap/binarys/${product} ${target}/bin/            
+                    go build -o ${target}/bin/${product}         
                     """
                 }
 
@@ -95,7 +93,6 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} != "pd" ]; then
                         make clean
@@ -107,9 +104,6 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                     fi;
                     rm -rf ${target}
                     mkdir -p ${target}/bin
-                    if [ ${product} = "tidb" ]; then
-                        cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
-                    fi;
                     cp bin/* ${target}/bin
                     """
                 }
@@ -119,7 +113,6 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
@@ -141,7 +134,6 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     
                     if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
@@ -160,7 +152,6 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                     make
                     rm -rf ${target}
