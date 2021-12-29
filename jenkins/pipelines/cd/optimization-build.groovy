@@ -1,6 +1,6 @@
-def build_upload = { product, hash, binary ->
+def build_upload = { nodeLabel, product, hash, binary ->
     stage("Build ${product}") {
-        node("mac") {
+        node(nodeLabel) {
             if (checkIfFileCacheExists(product, hash, binary)) {
                 return
             }
@@ -48,17 +48,17 @@ def build_upload = { product, hash, binary ->
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
-                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
+                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
                 if (product == "br") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
                 }
                 def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
                 if (product == "ticdc") {
                     target = "${product}-${os}-${arch}"
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "dumpling") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "ng-monitoring") {
                     filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
@@ -66,7 +66,7 @@ def build_upload = { product, hash, binary ->
                 if (product == "tidb-ctl") {
                     sh """
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     go build -o /Users/pingcap/binarys/${product}
                     rm -rf ${target}
                     mkdir -p ${target}/bin
@@ -81,7 +81,7 @@ def build_upload = { product, hash, binary ->
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} != "pd" ]; then
                         make clean
                     fi;
@@ -98,15 +98,15 @@ def build_upload = { product, hash, binary ->
                     cp bin/* ${target}/bin
                     """
                 }
-                if (product in ["tidb-tools","ticdc","br"]) {
+                if (product in ["tidb-tools", "ticdc", "br"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
                     git tag -f ${RELEASE_TAG} ${hash}
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    if [[ ${product} = "tidb-tools" ]]; then
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
+                    if [ ${product} = "tidb-tools" ]; then
                         make clean;
                     fi;  
                     if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ] && [ $product == "br" ]; then
@@ -127,9 +127,9 @@ def build_upload = { product, hash, binary ->
                     git branch -D refs/tags/${RELEASE_TAG} || true
                     git checkout -b refs/tags/${RELEASE_TAG}
                     export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-
-                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ] ; then
+                    export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
+                    
+                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
                         make build_dumpling
                     else
                         make build
@@ -153,6 +153,7 @@ def build_upload = { product, hash, binary ->
                     mv bin/* ${target}/bin/
                     """
                 }
+
                 sh """
                     tar czvf ${target}.tar.gz ${target}
                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
