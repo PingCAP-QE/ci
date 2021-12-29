@@ -43,39 +43,6 @@ def TIDB_CTL_HASH = "master"
 
 def libs
 
-def checkIfFileCacheExists(product, hash, binary) {
-    if (params.FORCE_REBUILD) {
-        return false
-    }
-    if (!fileExists("gethash.py")) {
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-    }
-    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    if (product == "br") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
-    if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "ng-monitoring") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "tiflash") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
-
-    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
-    // result equal 0 mean cache file exists
-    if (result == 0) {
-        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
-        return true
-    }
-    return false
-}
-
 try {
     stage("Validating HASH") {
         node("mac-arm") {
@@ -101,32 +68,32 @@ try {
         builds = [:]
         
         builds["Build tidb-ctl"] = {
-            libs.build_upload("mac-arm", "tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
+            libs.build_upload("mac-arm", "tidb-ctl", TIDB_CTL_HASH, "tidb-ctl", params.FORCE_REBUILD)
         }
         builds["Build tidb"] = {
-            libs.build_upload("mac-arm", "tidb", TIDB_HASH, "tidb-server")
+            libs.build_upload("mac-arm", "tidb", TIDB_HASH, "tidb-server", params.FORCE_REBUILD)
         }
         builds["Build tidb-binlog"] = {
-            libs.build_upload("mac-arm", "tidb-binlog", BINLOG_HASH, "tidb-binlog")
+            libs.build_upload("mac-arm", "tidb-binlog", BINLOG_HASH, "tidb-binlog", params.FORCE_REBUILD)
         }
         builds["Build tidb-tools"] = {
-            libs.build_upload("mac-arm", "tidb-tools", TOOLS_HASH, "tidb-tools")
+            libs.build_upload("mac-arm", "tidb-tools", TOOLS_HASH, "tidb-tools", params.FORCE_REBUILD)
         }
         builds["Build pd"] = {
-            libs.build_upload("mac-arm", "pd", PD_HASH, "pd-server")
+            libs.build_upload("mac-arm", "pd", PD_HASH, "pd-server", params.FORCE_REBUILD)
         }
         builds["Build ticdc"] = {
-            libs.build_upload("mac-arm", "ticdc", CDC_HASH, "ticdc")
+            libs.build_upload("mac-arm", "ticdc", CDC_HASH, "ticdc", params.FORCE_REBUILD)
         }
         builds["Build br"] = {
-            libs.build_upload("mac-arm", "br", BR_HASH, "br")
+            libs.build_upload("mac-arm", "br", BR_HASH, "br", params.FORCE_REBUILD)
         }
         builds["Build dumpling"] = {
-            libs.build_upload("mac-arm","dumpling", DUMPLING_HASH, "dumpling")
+            libs.build_upload("mac-arm","dumpling", DUMPLING_HASH, "dumpling", params.FORCE_REBUILD)
         }
         if (RELEASE_TAG >= "v5.3.0") {
             builds["Build NGMonitoring"] = {
-                libs.build_upload("mac-arm","ng-monitoring", NGMonitoring_HASH, "ng-monitoring")
+                libs.build_upload("mac-arm","ng-monitoring", NGMonitoring_HASH, "ng-monitoring", params.FORCE_REBUILD)
             }
         }
         
@@ -137,7 +104,7 @@ try {
                     node("mac-arm-tiflash") {
                         def ws = pwd()
                         dir("tics") {
-                            if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                            if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
                                 return
                             }
                             deleteDir()
@@ -188,7 +155,7 @@ try {
             stage("Build tikv") {
                 node("mac-arm") {
                     dir("go/src/github.com/pingcap/tikv") {
-                        if (checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                        if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
                             return
                         }
                         deleteDir()

@@ -1,26 +1,8 @@
 def checkIfFileCacheExists(product, hash, binary) {
-    if (params.FORCE_REBUILD) {
-        return false
-    }
     if (!fileExists("gethash.py")) {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
-    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    if (product == "br") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
-    if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "ng-monitoring") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "tiflash") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
+    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
 
     result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
     // result equal 0 mean cache file exists
@@ -31,10 +13,10 @@ def checkIfFileCacheExists(product, hash, binary) {
     return false
 }
 
-def build_upload = { nodeLabel, product, hash, binary ->
+def build_upload = { nodeLabel, product, hash, binary, force ->
     stage("Build ${product}") {
         node(nodeLabel) {
-            if (checkIfFileCacheExists(product, hash, binary)) {
+            if (!force && checkIfFileCacheExists(product, hash, binary)) {
                 return
             }
             def repo = "git@github.com:pingcap/${product}.git"
