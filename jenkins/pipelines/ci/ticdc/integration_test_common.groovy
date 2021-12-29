@@ -119,23 +119,15 @@ def tests(sink_type, node_label) {
                                 tail /tmp/tidb_cdc_test/cov* || true
                                 """
                             } catch (Exception e) {
-                                // sh """
-                                //     echo "archive all log"
-                                //     for log in `ls /tmp/tidb_cdc_test/*/*.log`; do
-                                //         dirname=`dirname \$log`
-                                //         basename=`basename \$log`
-                                //         mkdir -p "log\$dirname"
-                                //         tar zcvf "log\${log}.tgz" -C "\$dirname" "\$basename"
-                                //     done
-                                // """
+                                def log_tar_name = case_names.replaceAll("\\s","-")
                                 sh """
                                 echo "archive logs"
                                 ls /tmp/tidb_cdc_test/
-
-                                tar -cvzf log-${case_names.replaceAll("\\s","-")}.tar.gz $( find /tmp/tidb_cdc_test/ -type f -name "*.log")         
+                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                ls -alh  log-${log_tar_name}.tar.gz   
                                 """
 
-                                archiveArtifacts artifacts: "log/tmp/tidb_cdc_test/**/*.tgz", caseSensitive: false
+                                archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
                                 throw e;
                             }
 
@@ -275,14 +267,12 @@ def download_binaries() {
         mkdir -p third_bin
         mkdir -p tmp
         mkdir -p bin
-
         tidb_url="${tidb_url}"
         tidb_archive_path="${tidb_archive_path}"
         tikv_url="${tikv_url}"
         pd_url="${pd_url}"
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
-
         curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
