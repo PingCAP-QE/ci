@@ -79,6 +79,7 @@ try {
         build_para["PLATFORM"] = platform
         build_para["OS"] = os
         build_para["ARCH"] = arch
+        build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
 
         builds = libs.create_builds(build_para)
         

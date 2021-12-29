@@ -3,6 +3,7 @@ static def checkIfFileCacheExists(build_para, product, hash, binary) {
     def platform = build_para["PLATFORM"]
     def os = build_para["OS"]
     def arch = build_para["ARCH"]
+    def FILE_SERVER_URL = build_para["FILE_SERVER_URL"]
 
     if (!fileExists("gethash.py")) {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
@@ -24,6 +25,7 @@ static def build_upload = { build_para, product, hash, binary ->
     def platform = build_para["PLATFORM"]
     def os = build_para["OS"]
     def arch = build_para["ARCH"]
+    def FILE_SERVER_URL = build_para["FILE_SERVER_URL"]
 
     stage("Build ${product}") {
         node(build_para["NODE_LABEL"]) {
