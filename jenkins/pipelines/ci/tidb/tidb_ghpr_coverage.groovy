@@ -141,7 +141,8 @@ try {
                     make gotest
                     mv coverage.txt tidb.coverage
                     """
-                    withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN'),
+                                    string(credentialsId: 'codecov-api-token', variable: 'CODECOV_API_TOKEN')]) {
                         timeout(30) {
                             if (ghprbPullId != null && ghprbPullId != "") {
                                 sh """
@@ -156,6 +157,32 @@ try {
                                 ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                 """
                             }
+                            // wait until codecov upload finish
+                            sleep(time:10,unit:"SECONDS")
+                            def response = httpRequest Authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
+                            println('Status: '+response.status)
+                            def obj = readJSON text:response.content
+                            if (response.status == 200) {
+                                println(obj.commit.totals)
+                                currentBuild.description = "Lines coverage: ${obj.commit.totals.c.toFloat().round(2)}%"
+                                println('Coverage: '+obj.commit.totals.c)
+                                println("Files count: "+ obj.commit.totals.f)
+                                println("Lines count: "+obj.commit.totals.n)
+                                println("Hits count: "+obj.commit.totals.h)
+                                println("Misses count: "+obj.commit.totals.m)
+                                println("Paritials count: "+obj.commit.totals.p)
+
+                                println('Coverage: '+obj.commit.totals.diff[5])
+                                println("Files count: "+ obj.commit.totals.diff[0])
+                                println("Lines count: "+obj.commit.totals.diff[1])
+                                println("Hits count: "+obj.commit.totals.diff[2])
+                                println("Misses count: "+obj.commit.totals.diff[3])
+                                println("Paritials count: "+obj.commit.totals.diff[4])
+                            } else {
+                                println('Error: '+response.content)
+                                println('Status not 200: '+response.status)
+                            }
+
                         }
                     }
                 }
