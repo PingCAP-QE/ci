@@ -41,33 +41,6 @@ os = "linux"
 arch = "amd64"
 platform = "centos7"
 
-def ifFileCacheExists(product,hash,binary) {
-    if (params.FORCE_REBUILD){
-        return false
-    }
-    if(!fileExists("gethash.py")){
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-    }
-    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    if (product == "br") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
-    if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
-    } 
-    if (product == "tiflash") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }  
-
-    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
-    // result equal 0 mean cache file exists
-    if (result==0) {
-        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
-        return true
-    }
-    return false
-}
-
 // 为了和之前兼容，linux amd 的 build 和上传包的内容都采用 build_xxx_multi_branch 中的 build 脚本
 // linux arm 和 Darwin amd 保持不变
 try {
@@ -100,28 +73,9 @@ try {
 
 
         builds["Build tidb-ctl"] = {
-            node("${GO_BUILD_SLAVE}") {
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/tidb-ctl") {
-                        deleteDir()
-                        git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/tidb-ctl.git", branch: "master"
-                        githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                        def target = "tidb-ctl"
-                        def filepath = "builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${githash}/centos7/tidb-ctl.tar.gz"
-
-                        sh """
-                            go version
-                            mkdir bin
-                            go build -o bin/tidb-ctl
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
+            libs.build_upload("${GO_BUILD_SLAVE}", "tidb-ctl", TIDB_CTL_HASH, "tidb-ctl", params.FORCE_REBUILD)
         }
+        // TODO: refine tidb & plugin builds
         builds["Build tidb && plugins"] = {
             node("${GO_BUILD_SLAVE}") {
                 if (ifFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
@@ -263,233 +217,28 @@ try {
                 }
             }
         }
-        builds["Build tidb-binlog"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("tidb-binlog",BINLOG_HASH,"tidb-binlog")){
-                    return
-                }
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/tidb-binlog") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
 
-                        def target = "tidb-binlog"
-                        def filepath = "builds/pingcap/tidb-binlog/optimization/${RELEASE_TAG}/${BINLOG_HASH}/centos7/tidb-binlog.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BINLOG_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-binlog.git']]]
-                        sh """
-                            for a in \$(git tag --contains ${BINLOG_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${BINLOG_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            make clean
-                            go version
-                            make
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    """
-                    }
-                }
-            }
+        builds["Build tidb-binlog"] = {
+            libs.build_upload("${GO_BUILD_SLAVE}", "tidb-binlog", BINLOG_HASH, "tidb-binlog", params.FORCE_REBUILD)
         }
         builds["Build tidb-tools"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("tidb-tools",TOOLS_HASH,"tidb-tools")){
-                    return
-                }
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/tidb-tools") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def target = "tidb-tools"
-                        def filepath = "builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${TOOLS_HASH}/centos7/tidb-tools.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TOOLS_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tidb-tools.git']]]
-                        sh """
-                            for a in \$(git tag --contains ${TOOLS_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${TOOLS_HASH}
-                            make clean
-                            go version
-                            make build
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz bin/*
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
+            libs.build_upload("${GO_BUILD_SLAVE}", "tidb-tools", TOOLS_HASH, "tidb-tools", params.FORCE_REBUILD)
         }
         builds["Build pd"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("pd",PD_HASH,"pd-server")){
-                    return
-                }
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/pd") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def target = "pd-server"
-                        def filepath = "builds/pingcap/pd/optimization/${RELEASE_TAG}/${PD_HASH}/centos7/pd-server.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PD_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/pd.git']]]
-
-                        sh """
-                            for a in \$(git tag --contains ${PD_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${PD_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            go version
-                            make
-                            git checkout .
-                            make tools
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz *
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
+            libs.build_upload("${GO_BUILD_SLAVE}", "pd", PD_HASH, "pd-server", params.FORCE_REBUILD)
         }
-        builds["Build cdc"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("ticdc",CDC_HASH,"ticdc")){
-                    return
-                }
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/tiflow") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def target = "ticdc-linux-amd64"
-                        def filepath = "builds/pingcap/ticdc/optimization/${RELEASE_TAG}/${CDC_HASH}/centos7/ticdc-linux-amd64.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${CDC_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tiflow.git']]]
-                        sh """
-                            for a in \$(git tag --contains ${CDC_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${CDC_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            make build
-                            mkdir -p ${target}/bin
-                            mv bin/cdc ${target}/bin/
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-        }
-        builds["Build dumpling"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("dumpling",DUMPLING_HASH,"dumpling")){
-                    return
-                }
-                container("golang") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                    }
-                    def repo = "git@github.com:pingcap/dumpling.git"
-                    if (RELEASE_TAG >= "v5.3.0" ) {
-                        repo = "git@github.com:pingcap/tidb.git"
-                    }
-                    
-
-                    dir("go/src/github.com/pingcap/dumpling") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def filepath = "builds/pingcap/dumpling/optimization/${RELEASE_TAG}/${DUMPLING_HASH}/centos7/dumpling.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${DUMPLING_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: repo]]]                            
-                        sh """
-                            for a in \$(git tag --contains ${DUMPLING_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${DUMPLING_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
-                                make build_dumpling
-                            else
-                                make build
-                            fi;
-                            tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz ./bin
-                            curl -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-        }
-        builds["Build ng monitoring"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("ng-monitoring",NGMonitoring_HASH,"ng-monitoring")){
-                    return
-                }
-                container("golang") {
-                    def ws = pwd()
-                    def target = "ng-monitoring-${RELEASE_TAG}-linux-amd64"
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/ng-monitoring") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def filepath = "builds/pingcap/ng-monitoring/optimization/${RELEASE_TAG}/${NGMonitoring_HASH}/centos7/ng-monitoring-${os}-${arch}.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${NGMonitoring_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/ng-monitoring.git']]]                            
-                        sh """
-                            for a in \$(git tag --contains ${NGMonitoring_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${NGMonitoring_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-
-                            make
-                            rm -rf ${target}
-                            mkdir -p ${target}/bin
-                            mv bin/* ${target}/bin/
-
-                            tar czvf ${target}.tar.gz ${target}
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
+        builds["Build ticdc"] = {
+            libs.build_upload("${GO_BUILD_SLAVE}","ticdc", CDC_HASH, "ticdc", params.FORCE_REBUILD)
         }
         builds["Build br"] = {
-            node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("br",BR_HASH,"br")){
-                    return
-                }
-                container("golang") {
-                    def ws = pwd()
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/br") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def target = "br"
-                        def filepath = "builds/pingcap/br/optimization/${RELEASE_TAG}/${BR_HASH}/centos7/br.tar.gz"
-                        def repo = "git@github.com:pingcap/br.git"
-                        if (RELEASE_TAG >= "v5.2.0" ) {
-                            repo = "git@github.com:pingcap/tidb.git"
-                        }
-
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${BR_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: repo]]]
-                        sh """
-                            for a in \$(git tag --contains ${BR_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${BR_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ]; then
-                                make build_tools
-                            else
-                                make build
-                            fi;
-                            tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
+            libs.build_upload("${GO_BUILD_SLAVE}", "br", BR_HASH, "br", params.FORCE_REBUILD)
+        }
+        builds["Build dumpling"] = {
+            libs.build_upload("${GO_BUILD_SLAVE}","dumpling", DUMPLING_HASH, "dumpling", params.FORCE_REBUILD)
+        }
+        if (RELEASE_TAG >= "v5.3.0") {
+            builds["Build NGMonitoring"] = {
+                libs.build_upload("${GO_BUILD_SLAVE}","ng-monitoring", NGMonitoring_HASH, "ng-monitoring", params.FORCE_REBUILD)
             }
         }
 
