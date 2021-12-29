@@ -180,6 +180,8 @@ def test_suites = { suites,option ->
                         sh"""
                         curl ${tikv_url} | tar xz
                         curl ${pd_url} | tar xz bin
+                        make failpoint-enable
+                        
                         bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
                         bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -f  tikv1.log &
             
@@ -189,7 +191,6 @@ def test_suites = { suites,option ->
                         bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                         bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -f  tikv3.log &
             
-                        make failpoint-enable
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
@@ -292,7 +293,7 @@ try {
                     sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
-            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
+            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb", useDefaultExcludes: false
         }
 
 

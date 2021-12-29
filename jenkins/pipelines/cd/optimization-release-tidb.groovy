@@ -82,7 +82,6 @@ catchError {
                         } else {
                             dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
                         }
-//                        考虑到 tikv 和 importer 的 bump version，release stage 只编译 tikv 和 importer
                     }
                     // lightning 从 4.0.12 开始和 br 的 hash 一样
                     tidb_lightning_sha1 = tidb_br_sha1
@@ -551,7 +550,7 @@ catchError {
                 dir('tidb_docker_build') {
                     sh """
                         cp ../centos7/bin/tidb-server ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64-updated-base-image/tidb
+                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb
                         mv tidb Dockerfile
                         """
                 }
@@ -573,7 +572,7 @@ catchError {
                     sh """
                         cp ../centos7/bin/tikv-server ./
                         cp ../centos7/bin/tikv-ctl ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64-updated-base-image/tikv
+                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tikv
                         mv tikv Dockerfile
                         """
                 }
@@ -594,7 +593,7 @@ catchError {
                     sh """
                         cp ../centos7/bin/pd-server ./
                         cp ../centos7/bin/pd-ctl ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64-updated-base-image/pd
+                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/pd
                         mv pd Dockerfile
                         """
                 }
@@ -818,51 +817,6 @@ __EOF__
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]          
             }
-
-// monitoring 编译，upload
-            // stage("trigger release monitor") {
-            //     build job: 'release-monitor',
-            //             wait: true,
-            //             parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
-            // }
-
-            stage("Trigger jira version") {
-                build(job: "jira_create_release_version", wait: false, parameters: [string(name: "RELEASE_TAG", value: "${RELEASE_TAG}")])
-            }
-
-            // stage("trigger release tidb on tiup") {
-            //     build job: 'tiup-mirror-update-test',
-            //             wait: true,
-            //             parameters: [
-            //                     [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
-            //             ]
-            // }
-            // stage("build ucloud image") {
-            //     build job: 'build-ucloud-image',
-            //             wait: true,
-            //             parameters: [
-            //                     [$class: 'StringParameterValue', name: 'TIDB_TAG', value: TIDB_TAG],
-            //                     [$class: 'StringParameterValue', name: 'TIKV_TAG', value: TIKV_TAG],
-            //                     [$class: 'StringParameterValue', name: 'PD_TAG', value: PD_TAG],
-            //                     [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: BINLOG_TAG],
-            //                     [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: BR_TAG],
-            //                     [$class: 'StringParameterValue', name: 'BR_TAG', value: BR_TAG],
-            //                     [$class: 'StringParameterValue', name: 'CDC_TAG', value: CDC_TAG],
-            //                     [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: TIFLASH_TAG],
-            //                     [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: DUMPLING_TAG],
-            //             ]
-
-            // }
-// 从 https://download.pingcap.org 下载和上传 latest 标志的包
-            if (RELEASE_LATEST == "true") {
-                stage('Publish Latest') {
-                    build job: 'release_tidb_latest', wait: true, parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_DARWIN', value: "true"],
-                    ]
-                }
-            }
-
         }
     }
 

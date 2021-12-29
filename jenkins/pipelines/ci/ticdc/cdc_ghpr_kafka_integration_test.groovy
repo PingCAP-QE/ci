@@ -174,8 +174,10 @@ catchError {
                                         ttyEnabled: true,
                                         alwaysPullImage: false,
                                         envVars: [
-                                                envVar(key: 'KAFKA_MESSAGE_MAX_BYTES', value: '1073741824'),
-                                                envVar(key: 'KAFKA_REPLICA_FETCH_MAX_BYTES', value: '1073741824'),
+                                                // 11MiB
+                                                envVar(key: 'KAFKA_MESSAGE_MAX_BYTES', value: '11534336'),
+                                                envVar(key: 'KAFKA_REPLICA_FETCH_MAX_BYTES', value: '11534336'),
+                                                envVar(key: 'KAFKA_CREATE_TOPICS', value: 'big-message-test:1:1'),
                                                 envVar(key: 'KAFKA_BROKER_ID', value: '1'),
                                                 envVar(key: 'RACK_COMMAND', value: download_jks),
                                                 envVar(key: 'KAFKA_LISTENERS', value: 'SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092'),
