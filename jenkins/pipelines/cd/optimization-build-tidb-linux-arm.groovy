@@ -38,6 +38,7 @@ def slackcolor = 'good'
 os = "linux"
 arch = "arm64"
 platform = "centos7"
+def libs
 
 def TIDB_CTL_HASH = "master"
 
@@ -57,7 +58,7 @@ try {
                 sh "exit 2"
             }
             checkout scm
-            libs = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+            libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
         }
     }
 

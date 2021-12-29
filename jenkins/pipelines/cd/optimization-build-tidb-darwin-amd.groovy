@@ -59,7 +59,7 @@ try {
                 sh "exit 2"
             }
             checkout scm
-            libs = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+            libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
         }
     }
 

@@ -40,6 +40,7 @@ def githash
 os = "linux"
 arch = "amd64"
 platform = "centos7"
+def libs
 
 // 为了和之前兼容，linux amd 的 build 和上传包的内容都采用 build_xxx_multi_branch 中的 build 脚本
 // linux arm 和 Darwin amd 保持不变
@@ -64,6 +65,8 @@ try {
                     sh "exit 2"
                     }
                 }
+                checkout scm
+                libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
             }
         }
     }
