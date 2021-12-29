@@ -168,3 +168,39 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
         }
     }
 }
+
+def create_builds() {
+    builds = [:]
+
+    builds["Build tidb-ctl"] = {
+            libs.build_upload("mac", "tidb-ctl", TIDB_CTL_HASH, "tidb-ctl", params.FORCE_REBUILD)
+    }
+    builds["Build tidb"] = {
+            libs.build_upload("arm","tidb", TIDB_HASH, "tidb-server", params.FORCE_REBUILD)
+    }
+    builds["Build tidb-binlog"] = {
+        libs.build_upload("mac", "tidb-binlog", BINLOG_HASH, "tidb-binlog", params.FORCE_REBUILD)
+    }
+    builds["Build tidb-tools"] = {
+        libs.build_upload("mac","tidb-tools", TOOLS_HASH, "tidb-tools", params.FORCE_REBUILD)
+    }
+    builds["Build pd"] = {
+        libs.build_upload("mac","pd", PD_HASH, "pd-server", params.FORCE_REBUILD)
+    }
+    builds["Build ticdc"] = {
+        libs.build_upload("mac","ticdc", CDC_HASH, "ticdc", params.FORCE_REBUILD)
+    }
+    builds["Build br"] = {
+        libs.build_upload("mac","br", BR_HASH, "br", params.FORCE_REBUILD)
+    }
+    builds["Build dumpling"] = {
+        libs.build_upload("mac","dumpling", DUMPLING_HASH, "dumpling", params.FORCE_REBUILD)
+    }
+    if (RELEASE_TAG >= "v5.3.0") {
+        builds["Build NGMonitoring"] = {
+            libs.build_upload("mac","ng-monitoring", NGMonitoring_HASH, "ng-monitoring", params.FORCE_REBUILD)
+        }
+    }
+
+    return builds
+}

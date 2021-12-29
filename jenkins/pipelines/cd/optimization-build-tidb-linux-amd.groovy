@@ -69,12 +69,7 @@ try {
     }
 
     stage("Build") {
-        builds = [:]
-
-
-        builds["Build tidb-ctl"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}", "tidb-ctl", TIDB_CTL_HASH, "tidb-ctl", params.FORCE_REBUILD)
-        }
+        builds = libs.create_builds(TIDB_CTL_HASH,TIDB_HASH,BINLOG_HASH,TOOLS_HASH,PD_HASH,CDC_HASH,BR_HASH,DUMPLING_HASH,NGMonitoring_HASH)
         // TODO: refine tidb & plugin builds
         builds["Build tidb && plugins"] = {
             node("${GO_BUILD_SLAVE}") {
@@ -215,30 +210,6 @@ try {
                         """
                     }
                 }
-            }
-        }
-
-        builds["Build tidb-binlog"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}", "tidb-binlog", BINLOG_HASH, "tidb-binlog", params.FORCE_REBUILD)
-        }
-        builds["Build tidb-tools"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}", "tidb-tools", TOOLS_HASH, "tidb-tools", params.FORCE_REBUILD)
-        }
-        builds["Build pd"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}", "pd", PD_HASH, "pd-server", params.FORCE_REBUILD)
-        }
-        builds["Build ticdc"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}","ticdc", CDC_HASH, "ticdc", params.FORCE_REBUILD)
-        }
-        builds["Build br"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}", "br", BR_HASH, "br", params.FORCE_REBUILD)
-        }
-        builds["Build dumpling"] = {
-            libs.build_upload("${GO_BUILD_SLAVE}","dumpling", DUMPLING_HASH, "dumpling", params.FORCE_REBUILD)
-        }
-        if (RELEASE_TAG >= "v5.3.0") {
-            builds["Build NGMonitoring"] = {
-                libs.build_upload("${GO_BUILD_SLAVE}","ng-monitoring", NGMonitoring_HASH, "ng-monitoring", params.FORCE_REBUILD)
             }
         }
 
@@ -405,6 +376,7 @@ try {
         if (RELEASE_TAG < "v5.3.0") {
             builds.remove("Build ng monitoring")
         }
+        builds.remove("Build ng monitoring")
         parallel builds
     }
     currentBuild.result = "SUCCESS"

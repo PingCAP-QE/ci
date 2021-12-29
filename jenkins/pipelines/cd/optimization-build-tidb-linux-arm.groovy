@@ -62,37 +62,7 @@ try {
     }
 
     stage("Build") {
-        builds = [:]
-
-        builds["Build tidb-ctl"] = {
-            libs.build_upload("arm","tidb-ctl", TIDB_CTL_HASH, "tidb-ctl", params.FORCE_REBUILD)
-        } 
-        builds["Build tidb"] = {
-            libs.build_upload("arm","tidb", TIDB_HASH, "tidb-server", params.FORCE_REBUILD)
-        }
-        builds["Build tidb-binlog"] = {
-            libs.build_upload("arm","tidb-binlog", BINLOG_HASH, "tidb-binlog", params.FORCE_REBUILD)
-        }
-        builds["Build tidb-tools"] = {
-            libs.build_upload("arm", "tidb-tools", TOOLS_HASH, "tidb-tools", params.FORCE_REBUILD)
-        }
-        builds["Build pd"] = {
-            libs.build_upload("arm", "pd", PD_HASH, "pd-server", params.FORCE_REBUILD)
-        }
-        builds["Build ticdc"] = {
-            libs.build_upload("arm", "ticdc", CDC_HASH, "ticdc", params.FORCE_REBUILD)
-        }
-        builds["Build br"] = {
-            libs.build_upload("arm", "br", BR_HASH, "br", params.FORCE_REBUILD)
-        }
-        builds["Build dumpling"] = {
-            libs.build_upload("arm", "dumpling", DUMPLING_HASH, "dumpling", params.FORCE_REBUILD)
-        }
-        if (RELEASE_TAG >= "v5.3.0") {
-            builds["Build NGMonitoring"] = {
-                libs.build_upload("arm", "ng-monitoring", NGMonitoring_HASH, "ng-monitoring", params.FORCE_REBUILD)
-            }
-        }
+        builds = libs.create_builds(TIDB_CTL_HASH,TIDB_HASH,BINLOG_HASH,TOOLS_HASH,PD_HASH,CDC_HASH,BR_HASH,DUMPLING_HASH,NGMonitoring_HASH)
         
         if (SKIP_TIFLASH == "false") {
             builds["Build tiflash"] = {
