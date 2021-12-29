@@ -1,4 +1,4 @@
-def checkIfFileCacheExists(build_para, product, hash, binary) {
+static def checkIfFileCacheExists(build_para, product, hash, binary) {
     def release_tag = build_para["RELEASE_TAG"]
     def platform = build_para["PLATFORM"]
     def os = build_para["OS"]
@@ -19,7 +19,7 @@ def checkIfFileCacheExists(build_para, product, hash, binary) {
     return false
 }
 
-def build_upload = { build_para, product, hash, binary ->
+static def build_upload = { build_para, product, hash, binary ->
     def release_tag = build_para["RELEASE_TAG"]
     def platform = build_para["PLATFORM"]
     def os = build_para["OS"]
@@ -184,32 +184,32 @@ def create_builds(build_para) {
     builds = [:]
 
     builds["Build tidb-ctl"] = {
-        this.build_upload(build_para, "tidb-ctl", build_para["TIDB_CTL_HASH"], "tidb-ctl")
+        build_upload(build_para, "tidb-ctl", build_para["TIDB_CTL_HASH"], "tidb-ctl")
     }
     builds["Build tidb"] = {
-        this.build_upload(build_para,"tidb", build_para["TIDB_HASH"], "tidb-server")
+        build_upload(build_para,"tidb", build_para["TIDB_HASH"], "tidb-server")
     }
     builds["Build tidb-binlog"] = {
-        this.build_upload(build_para, "tidb-binlog", build_para["BINLOG_HASH"], "tidb-binlog")
+        build_upload(build_para, "tidb-binlog", build_para["BINLOG_HASH"], "tidb-binlog")
     }
     builds["Build tidb-tools"] = {
-        this.build_upload(build_para,"tidb-tools", build_para["TOOLS_HASH"], "tidb-tools")
+        build_upload(build_para,"tidb-tools", build_para["TOOLS_HASH"], "tidb-tools")
     }
     builds["Build pd"] = {
-        this.build_upload(build_para,"pd", build_para["PD_HASH"], "pd-server")
+        build_upload(build_para,"pd", build_para["PD_HASH"], "pd-server")
     }
     builds["Build ticdc"] = {
-        this.build_upload(build_para,"ticdc", build_para["CDC_HASH"], "ticdc")
+        build_upload(build_para,"ticdc", build_para["CDC_HASH"], "ticdc")
     }
     builds["Build br"] = {
-        this.build_upload(build_para,"br", build_para["BR_HASH"], "br")
+        build_upload(build_para,"br", build_para["BR_HASH"], "br")
     }
     builds["Build dumpling"] = {
-        this.build_upload(build_para,"dumpling", build_para["DUMPLING_HASH"], "dumpling")
+        build_upload(build_para,"dumpling", build_para["DUMPLING_HASH"], "dumpling")
     }
     if (release_tag >= "v5.3.0") {
         builds["Build NGMonitoring"] = {
-            this.build_upload(build_para,"ng-monitoring", build_para["NGMonitoring_HASH"], "ng-monitoring")
+            build_upload(build_para,"ng-monitoring", build_para["NGMonitoring_HASH"], "ng-monitoring")
         }
     }
 
