@@ -42,7 +42,6 @@ def TIDB_CTL_HASH = "master"
 
 def libs
 
-
 try {
     stage("Validating HASH") {
         node("mac") {
@@ -65,7 +64,24 @@ try {
     }
 
     stage("Build") {
-        builds = libs.create_builds(TIDB_CTL_HASH,TIDB_HASH,BINLOG_HASH,TOOLS_HASH,PD_HASH,CDC_HASH,BR_HASH,DUMPLING_HASH,NGMonitoring_HASH)
+        build_para = [:]
+        build_para["TIDB_CTL_HASH"] = TIDB_CTL_HASH
+        build_para["TIDB_HASH"] = TIDB_HASH
+        build_para["BINLOG_HASH"] = BINLOG_HASH
+        build_para["TOOLS_HASH"] = TOOLS_HASH
+        build_para["PD_HASH"] = PD_HASH
+        build_para["CDC_HASH"] = CDC_HASH
+        build_para["BR_HASH"] = BR_HASH
+        build_para["DUMPLING_HASH"] = DUMPLING_HASH
+        build_para["NGMonitoring_HASH"] = NGMonitoring_HASH
+        build_para["NODE_LABEL"] = "mac"
+        build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
+        build_para["RELEASE_TAG"] = RELEASE_TAG
+        build_para["PLATFORM"] = platform
+        build_para["OS"] = os
+        build_para["ARCH"] = arch
+
+        builds = libs.create_builds(build_para)
         
         if (SKIP_TIFLASH == "false") {
             builds["Build tiflash"] = {

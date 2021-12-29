@@ -1,8 +1,14 @@
-def checkIfFileCacheExists(product, hash, binary) {
+def checkIfFileCacheExists(build_para, product, hash, binary) {
+    def release_tag = build_para["RELEASE_TAG"]
+    def platform = build_para["PLATFORM"]
+    def os = build_para["OS"]
+    def arch = build_para["ARCH"]
+
     if (!fileExists("gethash.py")) {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     }
-    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+
+    def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
 
     result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
     // result equal 0 mean cache file exists
@@ -13,17 +19,22 @@ def checkIfFileCacheExists(product, hash, binary) {
     return false
 }
 
-def build_upload = { nodeLabel, product, hash, binary, force ->
+def build_upload = { build_para, product, hash, binary ->
+    def release_tag = build_para["RELEASE_TAG"]
+    def platform = build_para["PLATFORM"]
+    def os = build_para["OS"]
+    def arch = build_para["ARCH"]
+
     stage("Build ${product}") {
-        node(nodeLabel) {
-            if (!force && checkIfFileCacheExists(product, hash, binary)) {
+        node(build_para["NODE_LABEL"]) {
+            if (!build_para["FORCE_REBUILD"] && checkIfFileCacheExists(build_para,product, hash, binary)) {
                 return
             }
             def repo = "git@github.com:pingcap/${product}.git"
-            if (RELEASE_TAG >= "v5.2.0" && product == "br") {
+            if (release_tag >= "v5.2.0" && product == "br") {
                 repo = "git@github.com:pingcap/tidb.git"
             }
-            if (RELEASE_TAG >= "v5.3.0" && product == "dumpling") {
+            if (release_tag >= "v5.3.0" && product == "dumpling") {
                 repo = "git@github.com:pingcap/tidb.git"
             }
             if (product == "ticdc") {
@@ -63,20 +74,20 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                 if (product == "tidb-ctl") {
                     hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }
-                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+                def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
                 if (product == "br") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
                 }
-                def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
+                def target = "${product}-${release_tag}-${os}-${arch}"
                 if (product == "ticdc") {
                     target = "${product}-${os}-${arch}"
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "dumpling") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${product}-${os}-${arch}.tar.gz"
                 }
                 if (product == "ng-monitoring") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+                    filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
                 }
                 if (product == "tidb-ctl") {
                     sh """
@@ -90,9 +101,9 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                 if (product in ["tidb", "tidb-binlog", "pd"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
+                    git tag -f ${release_tag} ${hash}
+                    git branch -D refs/tags/${release_tag} || true
+                    git checkout -b refs/tags/${release_tag}
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} != "pd" ]; then
                         make clean
@@ -110,14 +121,14 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                 if (product in ["tidb-tools", "ticdc", "br"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
+                    git tag -f ${release_tag} ${hash}
+                    git branch -D refs/tags/${release_tag} || true
+                    git checkout -b refs/tags/${release_tag}
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     if [ ${product} = "tidb-tools" ]; then
                         make clean;
                     fi;  
-                    if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ] && [ $product == "br" ]; then
+                    if [ $release_tag \\> "v5.2.0" ] || [ $release_tag == "v5.2.0" ] && [ $product == "br" ]; then
                         make build_tools
                     else
                         make build
@@ -131,12 +142,12 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                 if (product in ["dumpling"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
+                    git tag -f ${release_tag} ${hash}
+                    git branch -D refs/tags/${release_tag} || true
+                    git checkout -b refs/tags/${release_tag}
                     export PATH=/usr/local/opt/binutils/bin:/usr/local/bin:/Users/pingcap/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${GO_BIN_PATH}
                     
-                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ]; then
+                    if [ $release_tag \\> "v5.3.0" ] || [ $release_tag == "v5.3.0" ]; then
                         make build_dumpling
                     else
                         make build
@@ -149,9 +160,9 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
                 if (product in ["ng-monitoring"]) {
                     sh """
                     for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
+                    git tag -f ${release_tag} ${hash}
+                    git branch -D refs/tags/${release_tag} || true
+                    git checkout -b refs/tags/${release_tag}
                     export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
                     make
                     rm -rf ${target}
@@ -169,36 +180,36 @@ def build_upload = { nodeLabel, product, hash, binary, force ->
     }
 }
 
-def create_builds() {
+def create_builds(build_para) {
     builds = [:]
 
     builds["Build tidb-ctl"] = {
-            libs.build_upload("mac", "tidb-ctl", TIDB_CTL_HASH, "tidb-ctl", params.FORCE_REBUILD)
+        build_upload(build_para, "tidb-ctl", build_para["TIDB_CTL_HASH"], "tidb-ctl")
     }
     builds["Build tidb"] = {
-            libs.build_upload("arm","tidb", TIDB_HASH, "tidb-server", params.FORCE_REBUILD)
+        build_upload(build_para,"tidb", build_para["TIDB_HASH"], "tidb-server")
     }
     builds["Build tidb-binlog"] = {
-        libs.build_upload("mac", "tidb-binlog", BINLOG_HASH, "tidb-binlog", params.FORCE_REBUILD)
+        build_upload(build_para, "tidb-binlog", build_para["BINLOG_HASH"], "tidb-binlog")
     }
     builds["Build tidb-tools"] = {
-        libs.build_upload("mac","tidb-tools", TOOLS_HASH, "tidb-tools", params.FORCE_REBUILD)
+        build_upload(build_para,"tidb-tools", build_para["TOOLS_HASH"], "tidb-tools")
     }
     builds["Build pd"] = {
-        libs.build_upload("mac","pd", PD_HASH, "pd-server", params.FORCE_REBUILD)
+        build_upload(build_para,"pd", build_para["PD_HASH"], "pd-server")
     }
     builds["Build ticdc"] = {
-        libs.build_upload("mac","ticdc", CDC_HASH, "ticdc", params.FORCE_REBUILD)
+        build_upload(build_para,"ticdc", build_para["CDC_HASH"], "ticdc")
     }
     builds["Build br"] = {
-        libs.build_upload("mac","br", BR_HASH, "br", params.FORCE_REBUILD)
+        build_upload(build_para,"br", build_para["BR_HASH"], "br")
     }
     builds["Build dumpling"] = {
-        libs.build_upload("mac","dumpling", DUMPLING_HASH, "dumpling", params.FORCE_REBUILD)
+        build_upload(build_para,"dumpling", build_para["DUMPLING_HASH"], "dumpling")
     }
-    if (RELEASE_TAG >= "v5.3.0") {
+    if (release_tag >= "v5.3.0") {
         builds["Build NGMonitoring"] = {
-            libs.build_upload("mac","ng-monitoring", NGMonitoring_HASH, "ng-monitoring", params.FORCE_REBUILD)
+            build_upload(build_para,"ng-monitoring", build_para["NGMonitoring_HASH"], "ng-monitoring")
         }
     }
 
