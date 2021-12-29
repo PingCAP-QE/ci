@@ -157,6 +157,7 @@ catchError {
             }
             podTemplate(label: label,
                     idleMinutes: 0,
+                    namespace: "jenkins-ticdc",
                     containers: [
                             containerTemplate(
                                     name: 'golang', alwaysPullImage: true,
