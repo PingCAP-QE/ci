@@ -184,32 +184,32 @@ def create_builds(build_para) {
     builds = [:]
 
     builds["Build tidb-ctl"] = {
-        build_upload(build_para, "tidb-ctl", build_para["TIDB_CTL_HASH"], "tidb-ctl")
+        this.build_upload(build_para, "tidb-ctl", build_para["TIDB_CTL_HASH"], "tidb-ctl")
     }
     builds["Build tidb"] = {
-        build_upload(build_para,"tidb", build_para["TIDB_HASH"], "tidb-server")
+        this.build_upload(build_para,"tidb", build_para["TIDB_HASH"], "tidb-server")
     }
     builds["Build tidb-binlog"] = {
-        build_upload(build_para, "tidb-binlog", build_para["BINLOG_HASH"], "tidb-binlog")
+        this.build_upload(build_para, "tidb-binlog", build_para["BINLOG_HASH"], "tidb-binlog")
     }
     builds["Build tidb-tools"] = {
-        build_upload(build_para,"tidb-tools", build_para["TOOLS_HASH"], "tidb-tools")
+        this.build_upload(build_para,"tidb-tools", build_para["TOOLS_HASH"], "tidb-tools")
     }
     builds["Build pd"] = {
-        build_upload(build_para,"pd", build_para["PD_HASH"], "pd-server")
+        this.build_upload(build_para,"pd", build_para["PD_HASH"], "pd-server")
     }
     builds["Build ticdc"] = {
-        build_upload(build_para,"ticdc", build_para["CDC_HASH"], "ticdc")
+        this.build_upload(build_para,"ticdc", build_para["CDC_HASH"], "ticdc")
     }
     builds["Build br"] = {
-        build_upload(build_para,"br", build_para["BR_HASH"], "br")
+        this.build_upload(build_para,"br", build_para["BR_HASH"], "br")
     }
     builds["Build dumpling"] = {
-        build_upload(build_para,"dumpling", build_para["DUMPLING_HASH"], "dumpling")
+        this.build_upload(build_para,"dumpling", build_para["DUMPLING_HASH"], "dumpling")
     }
     if (release_tag >= "v5.3.0") {
         builds["Build NGMonitoring"] = {
-            build_upload(build_para,"ng-monitoring", build_para["NGMonitoring_HASH"], "ng-monitoring")
+            this.build_upload(build_para,"ng-monitoring", build_para["NGMonitoring_HASH"], "ng-monitoring")
         }
     }
 
