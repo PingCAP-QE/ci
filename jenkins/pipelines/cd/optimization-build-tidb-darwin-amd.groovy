@@ -40,7 +40,7 @@ arch = "amd64"
 platform = "darwin"
 def TIDB_CTL_HASH = "master"
 
-def libs
+def libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
 
 try {
     stage("Validating HASH") {
@@ -58,8 +58,6 @@ try {
                 println "build must be used with githash."
                 sh "exit 2"
             }
-            checkout scm
-            libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
         }
     }
 
