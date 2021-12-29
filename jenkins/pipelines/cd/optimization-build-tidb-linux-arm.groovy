@@ -87,16 +87,15 @@ def build_upload = { product, hash, binary ->
             dir("${workspace}/go/src/github.com/pingcap/${product}") {
                 deleteDir()
                 try {
-                    checkout changelog: false, poll: true, scm: [$class                           : 'GitSCM', branches: [[name: "${hash}"]],
-                                                                 doGenerateSubmoduleConfigurations: false,
-                                                                 extensions                       : [[$class: 'CheckoutOption', timeout: 30],
-                                                                                                     [$class: 'CloneOption', timeout: 600],
-                                                                                                     [$class: 'PruneStaleBranch'],
-                                                                                                     [$class: 'CleanBeforeCheckout']],
-                                                                 submoduleCfg                     : [],
-                                                                 userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh',
-                                                                                                      refspec      : '+refs/heads/*:refs/remotes/origin/*',
-                                                                                                      url          : "${repo}"]]]
+                    checkout changelog: false, poll: true,
+                            scm: [$class: 'GitSCM', branches: [[name: "${hash}"]],doGenerateSubmoduleConfigurations: false,
+                                  extensions: [[$class: 'CheckoutOption', timeout: 30],
+                                                [$class: 'CloneOption', timeout: 600],
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout']],submoduleCfg: [],
+                                  userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                       refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                       url          : "${repo}"]]]
                 } catch (info) {
                     retry(10) {
                         echo "checkout failed, retry..."
@@ -104,16 +103,15 @@ def build_upload = { product, hash, binary ->
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        checkout changelog: false, poll: true, scm: [$class                           : 'GitSCM', branches: [[name: "${hash}"]],
-                                                                     doGenerateSubmoduleConfigurations: false,
-                                                                     extensions                       : [[$class: 'CheckoutOption', timeout: 30],
-                                                                                                         [$class: 'CloneOption', timeout: 60],
-                                                                                                         [$class: 'PruneStaleBranch'],
-                                                                                                         [$class: 'CleanBeforeCheckout']],
-                                                                     submoduleCfg                     : [],
-                                                                     userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh',
-                                                                                                          refspec      : '+refs/heads/*:refs/remotes/origin/*',
-                                                                                                          url          : "${repo}"]]]
+                        checkout changelog: false, poll: true,
+                            scm: [$class: 'GitSCM', branches: [[name: "${hash}"]],doGenerateSubmoduleConfigurations: false,
+                                  extensions: [[$class: 'CheckoutOption', timeout: 30],
+                                                [$class: 'CloneOption', timeout: 600],
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout']],submoduleCfg: [],
+                                  userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                       refspec      : '+refs/heads/*:refs/remotes/origin/*',
+                                                       url          : "${repo}"]]]
                     }
                 }
                 if (product == "tidb-ctl") {
