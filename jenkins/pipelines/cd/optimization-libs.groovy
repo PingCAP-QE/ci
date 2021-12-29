@@ -11,7 +11,7 @@ static def checkIfFileCacheExists(build_para, product, hash, binary) {
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
 
-    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
+    def result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
     // result equal 0 mean cache file exists
     if (result == 0) {
         echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
