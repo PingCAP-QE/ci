@@ -231,7 +231,7 @@ def create_builds(build_para) {
     return builds
 }
 
-def build_product(build_para, product) {
+def build_params(build_para, product) {
     def arch = build_para["ARCH"]
     def os = build_para["OS"]
     def release_tag = build_para["RELEASE_TAG"]
@@ -266,9 +266,10 @@ def build_product(build_para, product) {
     if (git_pr != "" && repo == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
     }
-    return build job: "build-common",
-            wait: true,
-            parameters: paramsBuild
+
+    build job: "build-common", 
+        wait: true, 
+        parameters: paramsBuild
 }
 
 return this
