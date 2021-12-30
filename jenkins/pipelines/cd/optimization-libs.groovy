@@ -1,4 +1,4 @@
-static def checkIfFileCacheExists(build_para, product, hash, binary) {
+def checkIfFileCacheExists(build_para, product, hash, binary) {
     def release_tag = build_para["RELEASE_TAG"]
     def platform = build_para["PLATFORM"]
     def os = build_para["OS"]
@@ -20,7 +20,7 @@ static def checkIfFileCacheExists(build_para, product, hash, binary) {
     return false
 }
 
-static def build_upload = { build_para, product, hash, binary ->
+def build_upload(build_para, product, hash, binary) {
     def release_tag = build_para["RELEASE_TAG"]
     def platform = build_para["PLATFORM"]
     def os = build_para["OS"]
