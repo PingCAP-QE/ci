@@ -199,32 +199,32 @@ def create_builds(build_para) {
     builds = [:]
 
     builds["Build tidb-ctl"] = {
-        build_upload(build_para, "tidb-ctl", build_para["TIDB_CTL_HASH"], "tidb-ctl")
+        build_product(build_para, "tidb-ctl")
     }
     builds["Build tidb"] = {
-        build_upload(build_para,"tidb", build_para["TIDB_HASH"], "tidb-server")
+        build_product(build_para, "tidb")
     }
     builds["Build tidb-binlog"] = {
-        build_upload(build_para, "tidb-binlog", build_para["BINLOG_HASH"], "tidb-binlog")
+        build_product(build_para, "tidb-binlog")
     }
     builds["Build tidb-tools"] = {
-        build_upload(build_para,"tidb-tools", build_para["TOOLS_HASH"], "tidb-tools")
+        build_product(build_para, "tidb-tools")
     }
     builds["Build pd"] = {
-        build_upload(build_para,"pd", build_para["PD_HASH"], "pd-server")
+        build_product(build_para, "pd")
     }
     builds["Build ticdc"] = {
-        build_upload(build_para,"ticdc", build_para["CDC_HASH"], "ticdc")
+        build_product(build_para, "ticdc")
     }
     builds["Build br"] = {
-        build_upload(build_para,"br", build_para["BR_HASH"], "br")
+        build_product(build_para, "br")
     }
     builds["Build dumpling"] = {
-        build_upload(build_para,"dumpling", build_para["DUMPLING_HASH"], "dumpling")
+        build_product(build_para, "dumpling")
     }
     if (release_tag >= "v5.3.0") {
         builds["Build NGMonitoring"] = {
-            build_upload(build_para,"ng-monitoring", build_para["NGMonitoring_HASH"], "ng-monitoring")
+            build_product(build_para, "ng-monitoring")
         }
     }
 
@@ -233,7 +233,11 @@ def create_builds(build_para) {
 
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
+    def os = build_para["OS"]
     def release_tag = build_para["RELEASE_TAG"]
+    def sha1 = build_para[product]
+    def git_pr = build_para["GIT_PR"]
+    def force_rebuild = build_para["FORCE_REBUILD"]
     def repo = "git@github.com:pingcap/${product}.git"
 
     if (release_tag >= "v5.2.0" && product == "br") {
@@ -246,15 +250,10 @@ def build_product(build_para, product) {
         repo = "git@github.com:pingcap/tiflow.git"
     }
 
-    def sha1 = build_para[product]
-    def git_pr = build_para["GIT_PR"]
-    def force_rebuild = build_para["FORCE_REBUILD"]
-
-
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
     def paramsBuild = [
         string(name: "ARCH", value: arch),
-        string(name: "OS", value: "linux"),
+        string(name: "OS", value: os),
         string(name: "EDITION", value: "community"),
         string(name: "OUTPUT_BINARY", value: filepath),
         string(name: "REPO", value: repo),
