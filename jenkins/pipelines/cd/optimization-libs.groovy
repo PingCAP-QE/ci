@@ -266,7 +266,7 @@ def build_product(build_para, product) {
     if (git_pr != "" && repo == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
     }
-    build job: "build-common",
+    return build job: "build-common",
             wait: true,
             parameters: paramsBuild
 }
