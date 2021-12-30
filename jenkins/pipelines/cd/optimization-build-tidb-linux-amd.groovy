@@ -34,6 +34,7 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
+def TIDB_CTL_HASH = "master"
 
 def slackcolor = 'good'
 def githash
