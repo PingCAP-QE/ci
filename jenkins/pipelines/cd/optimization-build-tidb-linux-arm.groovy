@@ -66,6 +66,7 @@ try {
         build_para = [:]
         build_para["tidb-ctl"] = TIDB_CTL_HASH
         build_para["tidb"] = TIDB_HASH
+        build_para["tikv"] = TIKV_HASH
         build_para["tidb-binlog"] = BINLOG_HASH
         build_para["tidb-tools"] = TOOLS_HASH
         build_para["pd"] = PD_HASH
@@ -154,61 +155,7 @@ try {
                 }
             }
         }
-        builds["Build tikv"] = {
-            node("arm") {
-                dir("go/src/github.com/pingcap/tikv") {
-                    // if (ifFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
-                    //     return
-                    // }
-                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        deleteDir()
-                    }
-                    def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                    def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/centos7/tikv-server-${os}-${arch}.tar.gz"
-
-                    def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-                    if (TIKV_PRID != null && TIKV_PRID != "") {
-                        specStr = "+refs/pull/${TIKV_PRID}/*:refs/remotes/origin/pr/${TIKV_PRID}/*"
-                    }
-                    def branch = TIKV_HASH
-                    if (RELEASE_BRANCH != null && RELEASE_BRANCH != "") {
-                        branch =RELEASE_BRANCH
-                    }
-
-                    checkout changelog: false, poll: true,
-                            scm: [$class      : 'GitSCM', branches: [[name: "${branch}"]], doGenerateSubmoduleConfigurations: false,
-                                  extensions  : [[$class: 'CheckoutOption', timeout: 30],
-                                                 [$class: 'CloneOption', timeout: 60],
-                                                 [$class: 'PruneStaleBranch'],
-                                                 [$class: 'CleanBeforeCheckout']],
-                                  submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                                         refspec      : specStr,
-                                                                         url          : 'git@github.com:tikv/tikv.git']]]
-                
-                    sh """
-                        git checkout -f ${TIKV_HASH}
-                        for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
-                        git tag -f ${RELEASE_TAG} ${TIKV_HASH}
-                        git branch -D refs/tags/${RELEASE_TAG} || true
-                        git checkout -b refs/tags/${RELEASE_TAG}
-                    """
-                    
-                    sh """
-                        grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                        if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                            echo using gcc 8
-                            source /opt/rh/devtoolset-8/enable
-                        fi
-                        CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 ROCKSDB_SYS_SSE=0 make dist_release
-                        rm -rf ${target}
-                        mkdir -p ${target}/bin
-                        cp bin/* ${target}/bin
-                        tar czvf ${target}.tar.gz ${target}
-                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    """
-                }
-            }
-        }
+        
         builds["Build importer"] = {
             node("arm") {
                 dir("go/src/github.com/pingcap/importer") {
