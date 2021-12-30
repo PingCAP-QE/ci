@@ -238,16 +238,16 @@ def build_product(build_para, product) {
     def sha1 = build_para[product]
     def git_pr = build_para["GIT_PR"]
     def force_rebuild = build_para["FORCE_REBUILD"]
-    def repo = "git@github.com:pingcap/${product}.git"
+    def repo = product
 
     if (release_tag >= "v5.2.0" && product == "br") {
-        repo = "git@github.com:pingcap/tidb.git"
+        repo = "tidb"
     }
     if (release_tag >= "v5.3.0" && product == "dumpling") {
-        repo = "git@github.com:pingcap/tidb.git"
+        repo = "tidb"
     }
     if (product == "ticdc") {
-        repo = "git@github.com:pingcap/tiflow.git"
+        repo = "tiflow"
     }
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
