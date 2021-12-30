@@ -231,4 +231,45 @@ def create_builds(build_para) {
     return builds
 }
 
+def build_product(build_para, product) {
+    def arch = build_para["ARCH"]
+    def release_tag = build_para["RELEASE_TAG"]
+    def repo = "git@github.com:pingcap/${product}.git"
+
+    if (release_tag >= "v5.2.0" && product == "br") {
+        repo = "git@github.com:pingcap/tidb.git"
+    }
+    if (release_tag >= "v5.3.0" && product == "dumpling") {
+        repo = "git@github.com:pingcap/tidb.git"
+    }
+    if (product == "ticdc") {
+        repo = "git@github.com:pingcap/tiflow.git"
+    }
+
+    def sha1 = build_para[product]
+    def git_pr = build_para["GIT_PR"]
+    def force_rebuild = build_para["FORCE_REBUILD"]
+
+
+    def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    def paramsBuild = [
+        string(name: "ARCH", value: arch),
+        string(name: "OS", value: "linux"),
+        string(name: "EDITION", value: "community"),
+        string(name: "OUTPUT_BINARY", value: filepath),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: product),
+        string(name: "GIT_HASH", value: sha1),
+        string(name: "RELEASE_TAG", value: release_tag),
+        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
+    ]
+
+    if (git_pr != "" && repo == "tikv") {
+        paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
+    }
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
 return this
