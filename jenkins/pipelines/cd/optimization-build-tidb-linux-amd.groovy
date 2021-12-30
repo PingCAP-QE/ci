@@ -15,6 +15,8 @@
 * @NGMonitoring_HASH
 * @TIKV_PRID
 */
+
+GO_BIN_PATH="/usr/local/go/bin"
 def boolean tagNeedUpgradeGoVersion(String tag) {
     if (tag.startsWith("v") && tag > "v5.1") {
         println "tag=${tag} need upgrade go version"
