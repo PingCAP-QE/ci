@@ -73,7 +73,7 @@ try {
         build_para["BR_HASH"] = BR_HASH
         build_para["DUMPLING_HASH"] = DUMPLING_HASH
         build_para["NGMonitoring_HASH"] = NGMonitoring_HASH
-        build_para["NODE_LABEL"] = "mac"
+        build_para["NODE_LABEL"] = "arm"
         build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = platform

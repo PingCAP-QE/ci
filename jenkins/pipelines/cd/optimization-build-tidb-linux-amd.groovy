@@ -82,7 +82,7 @@ try {
         build_para["BR_HASH"] = BR_HASH
         build_para["DUMPLING_HASH"] = DUMPLING_HASH
         build_para["NGMonitoring_HASH"] = NGMonitoring_HASH
-        build_para["NODE_LABEL"] = "mac"
+        build_para["NODE_LABEL"] = GO_BUILD_SLAVE
         build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = platform
@@ -394,10 +394,6 @@ try {
         if (RELEASE_TAG >= "v5.2.0") {
             builds.remove("Build importer")
         }
-        if (RELEASE_TAG < "v5.3.0") {
-            builds.remove("Build ng monitoring")
-        }
-        builds.remove("Build ng monitoring")
         parallel builds
     }
     currentBuild.result = "SUCCESS"
