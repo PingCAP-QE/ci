@@ -92,6 +92,7 @@ try {
         build_para["OS"] = os
         build_para["ARCH"] = arch
         build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
+        build_para["CONTAINER_LABEL"] = "golang"
 
         builds = libs.create_builds(build_para)
         // TODO: refine tidb & plugin builds
