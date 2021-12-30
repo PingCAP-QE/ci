@@ -231,7 +231,7 @@ def create_builds(build_para) {
     return builds
 }
 
-def build_params(build_para, product) {
+def build_product(build_para, product) {
     def arch = build_para["ARCH"]
     def os = build_para["OS"]
     def release_tag = build_para["RELEASE_TAG"]
@@ -250,7 +250,7 @@ def build_params(build_para, product) {
         repo = "git@github.com:pingcap/tiflow.git"
     }
 
-    def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     def paramsBuild = [
         string(name: "ARCH", value: arch),
         string(name: "OS", value: os),
