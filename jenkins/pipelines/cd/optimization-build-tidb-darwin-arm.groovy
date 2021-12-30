@@ -92,9 +92,9 @@ try {
                     node("mac-arm-tiflash") {
                         def ws = pwd()
                         dir("tics") {
-                            if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
-                                return
-                            }
+                            // if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                            //     return
+                            // }
                             deleteDir()
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                             def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash.tar.gz"
@@ -143,9 +143,9 @@ try {
             stage("Build tikv") {
                 node("mac-arm") {
                     dir("go/src/github.com/pingcap/tikv") {
-                        if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
-                            return
-                        }
+                        // if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                        //     return
+                        // }
                         deleteDir()
                         def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
                         def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/${platform}/tikv-server.tar.gz"

@@ -97,9 +97,9 @@ try {
                         container("tiflash-build-arm") {
                             // println "arm debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                             dir("tics") {
-                                if (ifFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
-                                    return
-                                }
+                                // if (ifFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                                //     return
+                                // }
                                 def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                                 def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash-${os}-${arch}.tar.gz"
                                 try {
@@ -157,9 +157,9 @@ try {
         builds["Build tikv"] = {
             node("arm") {
                 dir("go/src/github.com/pingcap/tikv") {
-                    if (ifFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
-                        return
-                    }
+                    // if (ifFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
+                    //     return
+                    // }
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
                     }
@@ -212,9 +212,9 @@ try {
         builds["Build importer"] = {
             node("arm") {
                 dir("go/src/github.com/pingcap/importer") {
-                    if (ifFileCacheExists("importer", IMPORTER_HASH, "importer")) {
-                        return
-                    }
+                    // if (ifFileCacheExists("importer", IMPORTER_HASH, "importer")) {
+                    //     return
+                    // }
                     def target = "importer-${RELEASE_TAG}-${os}-${arch}"
                     def filepath = "builds/pingcap/importer/optimization/${RELEASE_TAG}/${IMPORTER_HASH}/centos7/importer-${os}-${arch}.tar.gz"
                     try {

@@ -95,9 +95,9 @@ try {
         // TODO: refine tidb & plugin builds
         builds["Build tidb && plugins"] = {
             node("${GO_BUILD_SLAVE}") {
-                if (ifFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
-                    return
-                }
+                // if (ifFileCacheExists("tidb",TIDB_HASH,"tidb-server")){
+                //     return
+                // }
                 def ws = pwd()
                 deleteDir()
                 // update code
@@ -314,9 +314,9 @@ try {
 
         builds["Build tikv"] = {
             node("build") {
-                if (ifFileCacheExists("tikv",TIKV_HASH,"tikv-server")){
-                    return
-                }
+                // if (ifFileCacheExists("tikv",TIKV_HASH,"tikv-server")){
+                //     return
+                // }
                 container("rust") {
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     deleteDir()
@@ -359,9 +359,9 @@ try {
         }
         builds["Build importer"] = {
             node("build") {
-                if (ifFileCacheExists("importer",IMPORTER_HASH,"importer")){
-                    return
-                }
+                // if (ifFileCacheExists("importer",IMPORTER_HASH,"importer")){
+                //     return
+                // }
                 container("rust") {
                     // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     deleteDir()
