@@ -150,15 +150,9 @@ def update_ctl = { version, os, arch ->
         """
     }
 
-    lightning_tarball_name = ""
-    lightning_ctl_bin_dir = ""
-    if (arch == "arm64"  && os != "darwin") {
-        lightning_tarball_name = "br-${os}-${arch}.tar.gz"
-        lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
-    } else {
-        lightning_tarball_name = "br.tar.gz"
-        lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
-    }
+    lightning_tarball_name = "br-${os}-${arch}.tar.gz"
+    lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
+    
     if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
         if (HOTFIX_TAG != "nightly") {
             sh """
