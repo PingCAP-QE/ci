@@ -40,202 +40,7 @@ arch = "amd64"
 platform = "darwin"
 def TIDB_CTL_HASH = "master"
 
-def checkIfFileCacheExists(product, hash, binary) {
-    if (params.FORCE_REBUILD) {
-        return false
-    }
-    if (!fileExists("gethash.py")) {
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-    }
-    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    if (product == "br") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
-    if (product == "ticdc") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "dumpling") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "ng-monitoring") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-    }
-    if (product == "tiflash") {
-        filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}.tar.gz"
-    }
-
-    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
-    // result equal 0 mean cache file exists
-    if (result == 0) {
-        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
-        return true
-    }
-    return false
-}
-
-def build_upload = { product, hash, binary ->
-    stage("Build ${product}") {
-        node("mac") {
-            if (checkIfFileCacheExists(product, hash, binary)) {
-                return
-            }
-            def repo = "git@github.com:pingcap/${product}.git"
-            if (RELEASE_TAG >= "v5.2.0" && product == "br") {
-                repo = "git@github.com:pingcap/tidb.git"
-            }
-            if (RELEASE_TAG >= "v5.3.0" && product == "dumpling") {
-                repo = "git@github.com:pingcap/tidb.git"
-            }
-            if (product == "ticdc") {
-                repo = "git@github.com:pingcap/tiflow.git"
-            }
-            def workspace = WORKSPACE
-            dir("${workspace}/go/src/github.com/pingcap/${product}") {
-                deleteDir()
-                try {
-                    checkout changelog: false, poll: true,
-                            scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
-                                  extensions: [[$class: 'CheckoutOption', timeout: 30],
-                                               [$class: 'CloneOption', timeout: 600],
-                                               [$class: 'PruneStaleBranch'],
-                                               [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
-                                  userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                       refspec      : '+refs/heads/*:refs/remotes/origin/*',
-                                                       url          : "${repo}"]]]
-                } catch (info) {
-                    retry(10) {
-                        echo "checkout failed, retry..."
-                        sleep 5
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        checkout changelog: false, poll: true,
-                                scm: [$class: 'GitSCM', branches: [[name: "${hash}"]], doGenerateSubmoduleConfigurations: false,
-                                      extensions: [[$class: 'CheckoutOption', timeout: 30],
-                                                   [$class: 'CloneOption', timeout: 60],
-                                                   [$class: 'PruneStaleBranch'],
-                                                   [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
-                                      userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                           refspec      : '+refs/heads/*:refs/remotes/origin/*',
-                                                           url          : "${repo}"]]]
-                    }
-                }
-                if (product == "tidb-ctl") {
-                    hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                }
-                def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
-                if (product == "br") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${binary}.tar.gz"
-                }
-                def target = "${product}-${RELEASE_TAG}-${os}-${arch}"
-                if (product == "ticdc") {
-                    target = "${product}-${os}-${arch}"
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
-                }
-                if (product == "dumpling") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/darwin/${product}-${os}-${arch}.tar.gz"
-                }
-                if (product == "ng-monitoring") {
-                    filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
-                }
-                if (product == "tidb-ctl") {
-                    sh """
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    go build -o /Users/pingcap/binarys/${product}
-                    rm -rf ${target}
-                    mkdir -p ${target}/bin
-                    cp /Users/pingcap/binarys/${product} ${target}/bin/            
-                    """
-                }
-
-                if (product in ["tidb", "tidb-binlog", "pd"]) {
-                    sh """
-                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    if [ ${product} != "pd" ]; then
-                        make clean
-                    fi;
-                    git checkout .
-                    make
-                    if [ ${product} = "pd" ]; then
-                        make tools;
-                    fi;
-                    rm -rf ${target}
-                    mkdir -p ${target}/bin
-                    if [ ${product} = "tidb" ]; then
-                        cp /Users/pingcap/binarys/tidb-ctl ${target}/bin/
-                    fi;
-                    cp bin/* ${target}/bin
-                    """
-                }
-                if (product in ["tidb-tools","ticdc","br"]) {
-                    sh """
-                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    if [[ ${product} = "tidb-tools" ]]; then
-                        make clean;
-                    fi;  
-                    if [ $RELEASE_TAG \\> "v5.2.0" ] || [ $RELEASE_TAG == "v5.2.0" ] && [ $product == "br" ]; then
-                        make build_tools
-                    else
-                        make build
-                    fi;
-                    rm -rf ${target}
-                    mkdir -p ${target}/bin
-                    mv bin/* ${target}/bin/
-                    """
-                }
-
-                if (product in ["dumpling"]) {
-                    sh """
-                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-
-                    if [ $RELEASE_TAG \\> "v5.3.0" ] || [ $RELEASE_TAG == "v5.3.0" ] ; then
-                        make build_dumpling
-                    else
-                        make build
-                    fi;
-                    rm -rf ${target}
-                    mkdir -p ${target}/bin
-                    mv bin/* ${target}/bin/
-                    """
-                }
-                if (product in ["ng-monitoring"]) {
-                    sh """
-                    for a in \$(git tag --contains ${hash}); do echo \$a && git tag -d \$a;done
-                    git tag -f ${RELEASE_TAG} ${hash}
-                    git branch -D refs/tags/${RELEASE_TAG} || true
-                    git checkout -b refs/tags/${RELEASE_TAG}
-                    export GOPATH=/Users/pingcap/gopkg
-                    export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}
-                    make
-                    rm -rf ${target}
-                    mkdir -p ${target}/bin
-                    mv bin/* ${target}/bin/
-                    """
-                }
-                sh """
-                    tar czvf ${target}.tar.gz ${target}
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                """
-            }
-        }
-    }
-}
+def libs
 
 try {
     stage("Validating HASH") {
@@ -253,51 +58,41 @@ try {
                 println "build must be used with githash."
                 sh "exit 2"
             }
+            checkout scm
+            libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
         }
     }
 
     stage("Build") {
-        builds = [:]
-        
-        builds["Build tidb-ctl"] = {
-            build_upload("tidb-ctl", TIDB_CTL_HASH, "tidb-ctl")
-        }
-        builds["Build tidb"] = {
-            build_upload("tidb", TIDB_HASH, "tidb-server")
-        }
-        builds["Build tidb-binlog"] = {
-            build_upload("tidb-binlog", BINLOG_HASH, "tidb-binlog")
-        }
-        builds["Build tidb-tools"] = {
-            build_upload("tidb-tools", TOOLS_HASH, "tidb-tools")
-        }
-        builds["Build pd"] = {
-            build_upload("pd", PD_HASH, "pd-server")
-        }
-        builds["Build ticdc"] = {
-            build_upload("ticdc", CDC_HASH, "ticdc")
-        }
-        builds["Build br"] = {
-            build_upload("br", BR_HASH, "br")
-        }
-        builds["Build dumpling"] = {
-            build_upload("dumpling", DUMPLING_HASH, "dumpling")
-        }
-        if (RELEASE_TAG >= "v5.3.0") {
-            builds["Build NGMonitoring"] = {
-                build_upload("ng-monitoring", NGMonitoring_HASH, "ng-monitoring")
-            }
-        }
-        
+        build_para = [:]
+        build_para["tidb-ctl"] = TIDB_CTL_HASH
+        build_para["tidb"] = TIDB_HASH
+        build_para["tikv"] = TIKV_HASH
+        build_para["tidb-binlog"] = BINLOG_HASH
+        build_para["tidb-tools"] = TOOLS_HASH
+        build_para["pd"] = PD_HASH
+        build_para["ticdc"] = CDC_HASH
+        build_para["br"] = BR_HASH
+        build_para["dumpling"] = DUMPLING_HASH
+        build_para["ng-monitoring"] = NGMonitoring_HASH
+        build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
+        build_para["RELEASE_TAG"] = RELEASE_TAG
+        build_para["PLATFORM"] = platform
+        build_para["OS"] = os
+        build_para["ARCH"] = arch
+        build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
+        build_para["GIT_PR"] = ""
 
+        builds = libs.create_builds(build_para)
+        
         if (SKIP_TIFLASH == "false") {
             builds["Build tiflash"] = {
                 stage("Build tiflash") {
                     node("mac-i5") {
                         dir("tics") {
-                            if (checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
-                                return
-                            }
+                            // if ( !params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
+                            //     return
+                            // }
                             deleteDir()
                             def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
                             def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/darwin/tiflash.tar.gz"
@@ -337,96 +132,7 @@ try {
             }
         }
 
-        builds["Build tikv"] = {
-            stage("Build tikv") {
-                node("mac-i7") {
-                    dir("go/src/github.com/pingcap/tikv") {
-                        if (checkIfFileCacheExists("tikv", TIKV_HASH, "tikv-server")) {
-                            return
-                        }
-                        def target = "tikv-${RELEASE_TAG}-${os}-${arch}"
-                        def filepath = "builds/pingcap/tikv/optimization/${RELEASE_TAG}/${TIKV_HASH}/darwin/tikv-server.tar.gz"
 
-                        def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
-                        if (TIKV_PRID != null && TIKV_PRID != "") {
-                            specStr = "+refs/pull/${TIKV_PRID}/*:refs/remotes/origin/pr/${TIKV_PRID}/*"
-                        }
-                        def branch = TIKV_HASH
-                        if (RELEASE_BRANCH != null && RELEASE_BRANCH != "") {
-                            branch =RELEASE_BRANCH
-                        }
-
-                        retry(20) {
-                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
-                        }
-                        
-                        sh """
-                        git checkout -f ${TIKV_HASH}
-                        for a in \$(git tag --contains ${TIKV_HASH}); do echo \$a && git tag -d \$a;done
-                        git tag -f ${RELEASE_TAG} ${TIKV_HASH}
-                        git branch -D refs/tags/${RELEASE_TAG} || true
-                        git checkout -b refs/tags/${RELEASE_TAG}
-                        """
-                        
-                        sh """
-                        export GOPATH=/Users/pingcap/gopkg
-                        export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-                        CARGO_TARGET_DIR=/Users/pingcap/.target ROCKSDB_SYS_STATIC=1 make dist_release
-                        rm -rf ${target}
-                        mkdir -p ${target}/bin
-                        cp bin/* /Users/pingcap/binarys
-                        cp bin/* ${target}/bin
-                        tar -czvf ${target}.tar.gz ${target}
-                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-        }
-
-        builds["Build importer"] = {
-            stage("Build importer") {
-                node("mac-i7") {
-                    dir("go/src/github.com/pingcap/importer") {
-                        if (checkIfFileCacheExists("importer", IMPORTER_HASH, "importer")) {
-                            return
-                        }
-                        def target = "importer-${RELEASE_TAG}-${os}-${arch}"
-                        def filepath = "builds/pingcap/importer/optimization/${RELEASE_TAG}/${IMPORTER_HASH}/darwin/importer.tar.gz"
-                        retry(20) {
-                            if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'CloneOption', timeout: 60], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-                        }
-                        
-                        sh """
-                        for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-                        git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-                        git branch -D refs/tags/${RELEASE_TAG} || true
-                        git checkout -b refs/tags/${RELEASE_TAG}
-                        """
-                        
-                        sh """
-                        export GOPATH=/Users/pingcap/gopkg
-                        export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-                        ROCKSDB_SYS_SSE=0 make release
-                        rm -rf ${target}
-                        mkdir -p ${target}/bin
-                        cp target/release/tikv-importer ${target}/bin
-                        tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
-                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-        }
-        if (RELEASE_TAG >= "v5.2.0") {
-            builds.remove("Build importer")
-        }
         parallel builds
     }
     currentBuild.result = "SUCCESS"
