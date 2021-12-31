@@ -82,7 +82,7 @@ def unpack = { version, os, arch ->
     """
     if (HOTFIX_TAG >="v5.3.0" || HOTFIX_TAG =="nightly" ) {
         sh """
-            rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
+            rm -rf bin/*
             tar -zxf ${tarball_name}
         """
     }
@@ -96,8 +96,7 @@ def pack = { version, os, arch ->
     sh """
     mv prometheus-${version}.${os}-${arch} prometheus
     if [ ${HOTFIX_TAG} \\> "v5.3.0" ] || [ ${HOTFIX_TAG} == "v5.3.0" ]; then \
-       cp ng-monitoring-${HOTFIX_TAG}-${os}-${arch}/bin/* ./
-       rm -rf ng-monitoring-${HOTFIX_TAG}-${os}-${arch}
+       cp bin/* ./
     fi
     cd prometheus
     if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
