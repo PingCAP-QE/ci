@@ -101,7 +101,7 @@ def pack = { name, version, os, arch ->
         """
     } else if (name == "tidb-ctl") {
         sh """
-        mv bin/${name} ctls/
+        mv ${name}-*/bin/${name} ctls/
         """
     } else {
         sh """
