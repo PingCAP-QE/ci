@@ -169,7 +169,7 @@ def update_ctl = { version, os, arch ->
         tar -zxf ${lightning_tarball_name}
         cp ${lightning_ctl_bin_dir} ctls/
         tar xf ticdc-${os}-${arch}.tar.gz
-        cp ticdc-${os}-${arch}/bin/cdc ctls/
+        cp bin/cdc ctls/
         """
     }
 
