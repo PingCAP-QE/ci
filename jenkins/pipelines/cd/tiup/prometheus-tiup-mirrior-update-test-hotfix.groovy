@@ -67,11 +67,11 @@ def download = { version, os, arch ->
 
     if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0") {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     } else if (HOTFIX_TAG == "nightly") {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${HOTFIX_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     }
 }
