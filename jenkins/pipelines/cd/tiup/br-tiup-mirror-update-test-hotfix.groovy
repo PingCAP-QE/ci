@@ -57,17 +57,11 @@ def pack = { name, version, os, arch ->
     [ -d package ] || mkdir package
     """
 
-    if (os == "linux" && arch == "amd64") {
-        sh """
-        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz br
-        rm -rf bin
-        """
-    } else {
-        sh """
-        tar -C ${name}-*/bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz br
-        rm -rf ${name}-*
-        """
-    }
+    sh """
+    tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz br
+    rm -rf bin
+    """
+    
 
     sh """
     tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${br_desc}"
