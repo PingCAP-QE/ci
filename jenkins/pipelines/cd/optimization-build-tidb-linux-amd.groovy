@@ -254,9 +254,9 @@ try {
                                         resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
                         ]) {
                     node("build-tiflash-release") {
-                        if (ifFileCacheExists("tiflash",TIFLASH_HASH,"tiflash")){
-                            return
-                        }
+                        // if (ifFileCacheExists("tiflash",TIFLASH_HASH,"tiflash")){
+                        //     return
+                        // }
                         def ws = pwd()
                         // deleteDir()
                         container("builder") {
