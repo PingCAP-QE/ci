@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = "release-test"
 }
 
-def ciRepoUrl = "https://github.com/PingCAP-QE/ci.git"
+def ciRepoUrl = "https://github.com/hi-rustin/ci.git"
 def ciRepoBranch = "main"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
@@ -190,7 +190,23 @@ catchError {
                                                 envVar(key: 'ZK', value: 'zk'),
                                                 envVar(key: 'KAFKA_ZOOKEEPER_CONNECT', value: 'localhost:2181'),
                                         ]
-                                )],
+                                ),
+                                containerTemplate(
+                                        name: 'canal-adapter',
+                                        image: "rustinliu/ticdc-canal-json-adapter",
+                                        resourceRequestCpu: '1000m', resourceRequestMemory: '4Gi',
+                                        ttyEnabled: true,
+                                        alwaysPullImage: false,
+                                        envVars: [
+                                                envVar(key: 'KAFKA_SERVER', value: '127.0.0.1:9092'),
+                                                envVar(key: 'ZOOKEEPER_SERVER', value: '127.0.0.1:2181'),
+                                                envVar(key: 'DB_NAME', value: 'test'),
+                                                envVar(key: 'DOWNSTREAM_DB_HOST', value: '127.0.0.1'),
+                                                envVar(key: 'DOWNSTREAM_DB_PORT', value: '3306'),
+                                                envVar(key: 'USE_FLAT_MESSAGE', value: 'true'),
+                                        ]
+                                )
+                        ],
                         volumes: [
                                 emptyDirVolume(mountPath: '/tmp', memory: true),
                                 emptyDirVolume(mountPath: '/home/jenkins', memory: true)
