@@ -193,7 +193,7 @@ catchError {
                                 ),
                                 containerTemplate(
                                         name: 'canal-adapter',
-                                        image: "rustinliu/ticdc-canal-json-adapter",
+                                        image: "rustinliu/ticdc-canal-json-adapter:latest",
                                         resourceRequestCpu: '1000m', resourceRequestMemory: '4Gi',
                                         ttyEnabled: true,
                                         alwaysPullImage: false,
