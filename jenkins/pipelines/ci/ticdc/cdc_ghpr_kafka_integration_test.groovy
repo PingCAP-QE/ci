@@ -194,7 +194,7 @@ catchError {
                                 containerTemplate(
                                         name: 'canal-adapter',
                                         image: "rustinliu/ticdc-canal-json-adapter:latest",
-                                        resourceRequestCpu: '1000m', resourceRequestMemory: '4Gi',
+                                        resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                                         ttyEnabled: true,
                                         alwaysPullImage: false,
                                         envVars: [
