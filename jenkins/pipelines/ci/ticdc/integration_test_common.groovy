@@ -284,7 +284,8 @@ def download_binaries() {
         curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
         curl -L http://fileserver.pingcap.net/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/new_sync_diff_inspector.tar.gz | tar xz -C ./third_bin
+        curl -L https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz -C ./tmp
+        mv tmp/tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector third_bin
         curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
