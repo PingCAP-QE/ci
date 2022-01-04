@@ -1,5 +1,3 @@
-package ci.tispark
-
 def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPullDescription, credentialsId, tokenCredentialId, channel, teamDomain) {
     env.GOROOT = "/usr/local/go"
     env.GOPATH = "/go"
