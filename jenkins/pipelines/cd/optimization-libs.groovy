@@ -56,6 +56,8 @@ def build_product(build_para, product) {
         repo = "tiflow"
     }
 
+
+
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     def paramsBuild = [
         string(name: "ARCH", value: arch),
@@ -68,7 +70,9 @@ def build_product(build_para, product) {
         string(name: "RELEASE_TAG", value: release_tag),
         [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
     ]
-
+    if (product in ["tidb", "tikv", "pd"]) {
+        paramsBuild.push(booleanParam(name: 'NEED_SOURCE_CODE', value: true))   
+    }
     if (git_pr != "" && repo == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
     }
