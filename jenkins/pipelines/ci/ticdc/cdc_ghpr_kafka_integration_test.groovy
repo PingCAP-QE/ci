@@ -190,7 +190,23 @@ catchError {
                                                 envVar(key: 'ZK', value: 'zk'),
                                                 envVar(key: 'KAFKA_ZOOKEEPER_CONNECT', value: 'localhost:2181'),
                                         ]
-                                )],
+                                ),
+                                containerTemplate(
+                                        name: 'canal-adapter',
+                                        image: "rustinliu/ticdc-canal-json-adapter:latest",
+                                        resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                                        ttyEnabled: true,
+                                        alwaysPullImage: false,
+                                        envVars: [
+                                                envVar(key: 'KAFKA_SERVER', value: '127.0.0.1:9092'),
+                                                envVar(key: 'ZOOKEEPER_SERVER', value: '127.0.0.1:2181'),
+                                                envVar(key: 'DB_NAME', value: 'test'),
+                                                envVar(key: 'DOWNSTREAM_DB_HOST', value: '127.0.0.1'),
+                                                envVar(key: 'DOWNSTREAM_DB_PORT', value: '3306'),
+                                                envVar(key: 'USE_FLAT_MESSAGE', value: 'true'),
+                                        ]
+                                )
+                        ],
                         volumes: [
                                 emptyDirVolume(mountPath: '/tmp', memory: true),
                                 emptyDirVolume(mountPath: '/home/jenkins', memory: true)
