@@ -22,15 +22,15 @@ catchError {
         stage("Prepare") {
             container('toolkit') {
                 if (release_info.release_branch != "release-3.0") {
-                    sh "inv upload --force --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${param.VERSION}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${param.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${param.VERSION}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${param.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${param.VERSION}/${release_info.pd_commit}/centos7/pd-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${param.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${param.VERSION}/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${param.VERSION}/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tikv/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${param.VERSION}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tikv/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${param.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
 
 //                一些集成测试依赖其他组件，同时 e2e 测试需求，需要进行二进制替换
 //                    sh "inv upload --force --dst builds/pingcap/tikv/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${param.VERSION}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz"
@@ -63,13 +63,13 @@ catchError {
                         sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
                     }
                 } else {
-                    sh "inv upload --force --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/${release_info.pd_commit}/centos7/pd-server.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
 
 //                一些集成测试需要集群环境测试，依赖的其他组件有通过 refs/pingcap/xx/${branch}/sha1 找 ref 的逻辑，在这里兼容上传
