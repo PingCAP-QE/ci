@@ -195,7 +195,7 @@ def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprb
                         }
 
                         if (TEST_TIFLASH != "false") {
-                            wget https://github.com/shiyuhang0/ci/blob/main/jenkins/pipelines/ci/tispark/tidb_config-for-tiflash-test.properties
+                            wget https://github.com/PingCAP-QE/ci/blob/main/jenkins/pipelines/ci/tispark/tidb_config-for-tiflash-test.properties
                             sh "cp tidb_config-for-tiflash-test.properties core/src/test/resources/tidb_config.properties"
                         }
 
@@ -222,7 +222,7 @@ def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprb
                         }
 
                         sh """
-                        wget https://github.com/shiyuhang0/ci/blob/main/jenkins/pipelines/ci/tispark/log4j-ci.properties
+                        wget https://github.com/PingCAP-QE/ci/blob/main/jenkins/pipelines/ci/tispark/log4j-ci.properties
                         cp log4j-ci.properties core/src/test/resources/log4j.properties
                         bash core/scripts/version.sh
                         bash core/scripts/fetch-test-data.sh
