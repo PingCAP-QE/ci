@@ -34,7 +34,7 @@ if (params.containsKey("triggered_by_upstream_pr_ci")) {
     ghprbPullDescription = params.getOrDefault("upstream_pr_ci_ghpr_pull_description", "")
 }
 
-def ciRepoUrl = "https://github.com/PingCAP-QE/ci.git"
+def ciRepoUrl = "https://github.com/Leavrth/ci.git"
 def ciRepoBranch = "main"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"

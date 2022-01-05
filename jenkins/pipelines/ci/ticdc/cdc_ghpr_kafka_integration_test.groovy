@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = "release-test"
 }
 
-def ciRepoUrl = "https://github.com/PingCAP-QE/ci.git"
+def ciRepoUrl = "https://github.com/Leavrth/ci.git"
 def ciRepoBranch = "main"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
