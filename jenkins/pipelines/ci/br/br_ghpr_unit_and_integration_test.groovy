@@ -306,7 +306,7 @@ def run_unit_test() {
         }
         all_task_result << ["name": "Unit Test", "status": "success", "error": ""]
     } catch (err) {
-        all_task_result << ["name": "Unit Test", "status": "failed", "error": err.message]
+        all_task_result << ["name": "Unit Test", "status": "failed", "error": ""]
         throw err
     }
 }
@@ -503,7 +503,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
         }
         all_task_result << ["name": case_names.join(" "), "status": "success", "error": ""]
     } catch (err) {
-        all_task_result << ["name": case_names.join(" "), "status": "failed", "error": err.message]
+        all_task_result << ["name": case_names.join(" "), "status": "failed", "error": ""]
         throw err
     }   
 }
