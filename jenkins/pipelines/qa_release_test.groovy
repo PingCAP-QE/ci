@@ -132,9 +132,6 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                         build(job: "tidb_ghpr_mybatis", parameters: default_params)
                     },
                     Group3: {
-                        if (release_info.lightning_commit) {
-                            build(job: "lightning_ghpr_test", parameters: default_params)
-                        }
                         if (release_info.importer_commit) {
                             build(job: "importer_ghpr_test", parameters: default_params)
                         }
