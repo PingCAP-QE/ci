@@ -10,7 +10,7 @@ if (params.containsKey("release_test")) {
 }
 
 def ciRepoUrl = "https://github.com/Leavrth/ci.git"
-def ciRepoBranch = "main"
+def ciRepoBranch = "cdc_sync_diff_nightly"
 
 def specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 if (ghprbPullId == null || ghprbPullId == "") {
