@@ -212,12 +212,21 @@ try {
                 dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                     try {
                         timeout(10) {
+                            if (ghprbTargetBranch in ["master", "release-5.3", "release-5.4"]) {
+                                sh """
+                                curl -o run-test-part.sh ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
+                                chmod +x run-test-part.sh
+                                """
+                            } else {
+                                sh """
+                                curl -o run-test-part.sh ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part-without-all-arg.sh 
+                                chmod +x run-test-part.sh
+                                """
+                            }
+
                             sh """
-
                             export CI_RUN_PART_TEST_CASES=\"${CI_RUN_PART_TEST_CASES}\"
-                            wget ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
-                            chmod +x run-test-part.sh
-
+                            
                             set +e
                             killall -9 -r tidb-server
                             killall -9 -r tikv-server
