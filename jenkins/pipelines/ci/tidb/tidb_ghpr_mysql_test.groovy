@@ -23,7 +23,7 @@ CI_RUN_PART_TEST_CASES = """
     field_length func_concat gcol_alter_table 
     gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
     gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
-    grant_dynamic groupby having in index index_merge2 
+    grant_dynamic groupby having in index index_merge1 index_merge2 
     index_merge_delete insert insert_select issue_11208 issue_165 
     issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
     like math mysql_replace operator orderby partition_bug18198 
@@ -51,7 +51,7 @@ if (ghprbTargetBranch in ["release-5.2"]) {
     field_length func_concat gcol_alter_table 
     gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
     gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
-    grant_dynamic groupby having in index index_merge1 index_merge2 
+    grant_dynamic groupby having in index index_merge2 
     index_merge_delete insert insert_select issue_11208 issue_165 
     issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
     like math mysql_replace operator orderby partition_bug18198 
