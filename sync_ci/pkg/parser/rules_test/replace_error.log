@@ -1,5 +1,0 @@
-[2020-12-07T16:07:51.139Z] + git checkout -f 0f135cbb543c5a19e0344f07e8ccc65fb33eb245
-
-[2020-12-07T16:07:51.139Z] fatal: reference is not a tree: 0f135cbb543c5a19e0344f07e8ccc65fb33eb245
-
-script returned exit code 128
