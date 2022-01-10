@@ -20,6 +20,7 @@ def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_gith
 def cdc_githash, lightning_githash
 
 def taskStartTimeInMillis = System.currentTimeMillis()
+def RELEASE_BRANCH = "master"
 
 try {
     timeout(600) {
@@ -107,6 +108,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
             }
 
@@ -126,6 +128,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
             }
             builds["Build on darwin/arm64"] = {
@@ -144,6 +147,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
             }
 
@@ -163,6 +167,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
             }
             

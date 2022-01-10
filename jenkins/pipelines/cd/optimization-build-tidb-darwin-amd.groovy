@@ -75,6 +75,7 @@ try {
         build_para["br"] = BR_HASH
         build_para["dumpling"] = DUMPLING_HASH
         build_para["ng-monitoring"] = NGMonitoring_HASH
+        build_para["enterprise-plugin"] = RELEASE_BRANCH
         build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = platform
@@ -82,6 +83,7 @@ try {
         build_para["ARCH"] = arch
         build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
         build_para["GIT_PR"] = ""
+        
 
         builds = libs.create_builds(build_para)
         
