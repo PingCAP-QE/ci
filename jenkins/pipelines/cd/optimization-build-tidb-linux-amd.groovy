@@ -87,6 +87,7 @@ try {
         build_para["dumpling"] = DUMPLING_HASH
         build_para["ng-monitoring"] = NGMonitoring_HASH
         build_para["enterprise-plugin"] = RELEASE_BRANCH
+        build_para["tiflash"] = TIFLASH_HASH
         build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = platform
@@ -114,9 +115,9 @@ try {
                                         resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
                         ]) {
                     node("build-tiflash-release") {
-                        // if (ifFileCacheExists("tiflash",TIFLASH_HASH,"tiflash")){
-                        //     return
-                        // }
+                        if (libs.check_file_exists(build_para, "tiflash")) {
+                            return
+                        }
                         def ws = pwd()
                         // deleteDir()
                         container("builder") {
@@ -125,8 +126,9 @@ try {
                                 if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                     deleteDir()
                                 }
-                                def target = "tiflash"
-                                def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash.tar.gz"
+
+                                def target = "tiflash-${os}-${arch}"
+                                def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash-${os}-${arch}.tar.gz"
 
 
                                 try{

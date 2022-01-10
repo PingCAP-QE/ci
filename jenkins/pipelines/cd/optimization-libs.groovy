@@ -1,3 +1,24 @@
+def check_file_exists(build_para, product) {
+    if (build_para["FORCE_REBUILD"]) {
+        return true
+    }
+    def arch = build_para["ARCH"]
+    def os = build_para["OS"]
+    def release_tag = build_para["RELEASE_TAG"]
+    def sha1 = build_para[product]
+    def FILE_SERVER_URL = build_para["FILE_SERVER_URL"]
+
+    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    
+    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
+    // result equal 0 mean cache file exists
+    if (result == 0) {
+        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
+        return true
+    }
+    return false
+}
+
 def create_builds(build_para) {
     builds = [:]
 
