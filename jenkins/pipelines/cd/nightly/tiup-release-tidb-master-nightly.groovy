@@ -94,35 +94,110 @@ try {
             }
         }
 
+        RELEASE_TAG = "v5.5.0-alpha"
+
         stage("Build") {
             def builds = [:]
-
-            builds["Build binarys linux/arm64"] = {
-                build job: "build-linux-arm64-4.0",
+            builds["Build on linux/arm64"] = {
+                build job: "optimization-build-tidb-linux-arm",
                         wait: true,
                         parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
+                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
+                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
 
-            builds["Build binarys darwin/amd64"] = {
-                build job: "build-darwin-amd64-4.0",
+            builds["Build on darwin/amd64"] = {
+                build job: "optimization-build-tidb-darwin-amd",
                         wait: true,
                         parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
+                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
+                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                        ]
+            }
+            builds["Build on darwin/arm64"] = {
+                build job: "optimization-build-tidb-darwin-arm",
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
+                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
+                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
 
-            builds["Build binarys darwin/arm64"] = {
-                build job: "build-darwin-arm64-4.0",
+            builds["Build on linux/amd64"] = {
+                build job: "optimization-build-tidb-linux-amd",
                         wait: true,
                         parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
+                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
+                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
+            
 
             parallel builds
         }
+
+        RELEASE_TAG = "nightly"
 
         stage("TiUP build") {
             build job: "tiup-mirror-update-test",
