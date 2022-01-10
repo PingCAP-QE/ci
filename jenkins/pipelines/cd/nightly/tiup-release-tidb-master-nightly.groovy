@@ -22,6 +22,8 @@ def cdc_githash, lightning_githash
 def taskStartTimeInMillis = System.currentTimeMillis()
 def RELEASE_BRANCH = "master"
 
+def FORCE_REBUILD = false
+
 try {
     timeout(600) {
         node("build_go1130") {
@@ -106,7 +108,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
@@ -126,7 +128,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
@@ -145,7 +147,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
@@ -165,7 +167,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                         ]
