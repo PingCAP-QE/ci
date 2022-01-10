@@ -44,7 +44,7 @@ try {
                     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
                     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
-                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
+                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
 
                     sh """
                 echo ${tidb_sha1} > sha1
