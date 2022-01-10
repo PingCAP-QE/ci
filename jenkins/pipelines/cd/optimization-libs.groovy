@@ -88,6 +88,10 @@ def build_product(build_para, product) {
     if (git_pr != "" && repo == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
     }
+    if (product in ["enterprise-plugin"]) {
+        paramsBuild.push([$class: 'StringParameterValue', name: 'TIDB_HASH', value: build_para["tidb"]])
+    }
+
 
     build job: "build-common", 
         wait: true, 
