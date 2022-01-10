@@ -40,11 +40,11 @@ def create_builds(build_para) {
         }
     }
 
-    if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
-        builds["Build Plugin"] = {
-            build_product(build_para, "enterprise-plugin")
-        }
-    }
+    // if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
+    //     builds["Build Plugin"] = {
+    //         build_product(build_para, "enterprise-plugin")
+    //     }
+    // }
 
     return builds
 }
