@@ -8,7 +8,7 @@ def check_file_exists(build_para, product) {
     def sha1 = build_para[product]
     def FILE_SERVER_URL = build_para["FILE_SERVER_URL"]
 
-    def filepath = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${hash}/${platform}/${binary}-${os}-${arch}.tar.gz"
+    def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     
     result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
     // result equal 0 mean cache file exists
