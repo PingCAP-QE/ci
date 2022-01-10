@@ -106,7 +106,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
-                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
 
@@ -125,7 +125,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
-                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
             builds["Build on darwin/arm64"] = {
@@ -143,7 +143,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
-                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
 
@@ -162,7 +162,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
-                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
             

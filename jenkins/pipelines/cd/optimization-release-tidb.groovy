@@ -116,7 +116,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                     ]
         }
 
@@ -140,7 +140,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                     ]
         }
         if (RELEASE_TAG >= "v5.1.0") {
@@ -164,7 +164,7 @@ catchError {
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                                 [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
         }
@@ -188,7 +188,7 @@ catchError {
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                     ]
         }
         if (STAGE == "build") {
