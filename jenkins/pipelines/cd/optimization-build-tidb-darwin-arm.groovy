@@ -77,6 +77,7 @@ try {
         build_para["dumpling"] = DUMPLING_HASH
         build_para["ng-monitoring"] = NGMonitoring_HASH
         build_para["enterprise-plugin"] = RELEASE_BRANCH
+        build_para["tiflash"] = TIFLASH_HASH
         build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = platform
@@ -94,12 +95,12 @@ try {
                     node("mac-arm-tiflash") {
                         def ws = pwd()
                         dir("tics") {
-                            // if (!params.FORCE_REBUILD && libs.checkIfFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
-                            //     return
-                            // }
+                            if (libs.check_file_exists(build_para, "tiflash")) {
+                                return
+                            }
                             deleteDir()
-                            def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-                            def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash.tar.gz"
+                            def target = "tiflash-${os}-${arch}"
+                            def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash-${os}-${arch}.tar.gz"
                             retry(20) {
                                 if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                     deleteDir()

@@ -75,6 +75,7 @@ try {
         build_para["dumpling"] = DUMPLING_HASH
         build_para["ng-monitoring"] = NGMonitoring_HASH
         build_para["enterprise-plugin"] = RELEASE_BRANCH
+        build_para["tiflash"] = TIFLASH_HASH
         build_para["FORCE_REBUILD"] = params.FORCE_REBUILD
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = platform
@@ -99,11 +100,13 @@ try {
                         container("tiflash-build-arm") {
                             // println "arm debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                             dir("tics") {
-                                // if (ifFileCacheExists("tiflash", TIFLASH_HASH, "tiflash")) {
-                                //     return
-                                // }
-                                def target = "tiflash-${RELEASE_TAG}-${os}-${arch}"
-                                def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/centos7/tiflash-${os}-${arch}.tar.gz"
+                                if (libs.check_file_exists(build_para, "tiflash")) {
+                                    return
+                                }
+
+                                def target = "tiflash-${os}-${arch}"
+                                def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash-${os}-${arch}.tar.gz"
+                                
                                 try {
                                     checkout changelog: false, poll: true,
                                             scm: [$class      : 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false,
