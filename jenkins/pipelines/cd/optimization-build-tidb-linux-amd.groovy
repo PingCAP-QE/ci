@@ -315,45 +315,6 @@ try {
             }
         }
 
-        
-        builds["Build importer"] = {
-            node("build") {
-                // if (ifFileCacheExists("importer",IMPORTER_HASH,"importer")){
-                //     return
-                // }
-                container("rust") {
-                    // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    deleteDir()
-                    dir("go/src/github.com/pingcap/importer") {
-                
-                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        def target = "importer"
-                        def filepath = "builds/pingcap/importer/optimization/${RELEASE_TAG}/${IMPORTER_HASH}/centos7/importer.tar.gz"
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${IMPORTER_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:tikv/importer.git']]]
-                        sh """
-                            for a in \$(git tag --contains ${IMPORTER_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${IMPORTER_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                            fi
-                            make release && mkdir -p bin/ && mv target/release/tikv-importer bin/
-                            tar --exclude=${target}.tar.gz -czvf importer.tar.gz bin/*
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                        
-                    }
-                }
-            }
-        }
-        if (RELEASE_TAG >= "v5.2.0") {
-            builds.remove("Build importer")
-        }
         parallel builds
     }
     currentBuild.result = "SUCCESS"
