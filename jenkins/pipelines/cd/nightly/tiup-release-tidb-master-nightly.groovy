@@ -36,59 +36,52 @@ try {
                 stage("Get hash") {
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    tidb_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
-                    tikv_githash = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
-                    pd_githash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-                    binlog_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
-                    lightning_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-lightning -version=${LIGHTNING_TAG} -s=${FILE_SERVER_URL}").trim()
-                    importer_githash = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
-                    tools_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
-                    br_githash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
-                    dumpling_githash = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
-                    tiflash_githash = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
-                    cdc_githash = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
+                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TOOLS_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
+                    cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
-                    dm_githash = sh(returnStdout: true, script: "python gethash.py -repo=dm -version=${DM_TAG} -s=${FILE_SERVER_URL}").trim()
+                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
 
                     sh """
-                echo ${tidb_githash} > sha1
+                echo ${tidb_sha1} > sha1
                 curl -F refs/pingcap/tidb/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${tikv_githash} > sha1
+                echo ${tikv_sha1} > sha1
                 curl -F refs/pingcap/tikv/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${pd_githash} > sha1
+                echo ${pd_sha1} > sha1
                 curl -F refs/pingcap/pd/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${binlog_githash} > sha1
+                echo ${tidb_binlog_sha1} > sha1
                 curl -F refs/pingcap/tidb-binlog/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${lightning_githash} > sha1
-                curl -F refs/pingcap/tidb-lightning/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
-
-                echo ${importer_githash} > sha1
-                curl -F refs/pingcap/importer/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
-
-                echo ${tools_githash} > sha1
+                echo ${tidb_tools_sha1} > sha1
                 curl -F refs/pingcap/tidb-tools/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${br_githash} > sha1
+                echo ${tidb_sha1} > sha1
                 curl -F refs/pingcap/br/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${dumpling_githash} > sha1
+                echo ${tidb_sha1} > sha1
                 curl -F refs/pingcap/dumpling/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${tiflash_githash} > sha1
+                echo ${tiflash_sha1} > sha1
                 curl -F refs/pingcap/tics/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
-                echo ${cdc_githash} > sha1
+                echo ${cdc_sha1} > sha1
                 curl -F refs/pingcap/tiflow/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_ctl_githash} > sha1
                 curl -F refs/pingcap/tidb-ctl/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
                 
-                echo ${dm_githash} > sha1
+                echo ${cdc_sha1} > sha1
                 curl -F refs/pingcap/dm/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+
+                echo ${ng_monitoring_sha1} > sha1
+                curl -F refs/pingcap/ng-monitoring/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
                 """
                 }
             }
@@ -106,18 +99,13 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
                                 [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
@@ -130,18 +118,13 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
                                 [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
@@ -153,18 +136,13 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
                                 [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
@@ -177,18 +155,13 @@ try {
                                 [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
                                 [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 [$class: 'BooleanParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                         ]
             }
