@@ -38,17 +38,10 @@ def pack = { name, version, os, arch ->
     [ -d package ] || mkdir package
     """
 
-    if (os == "linux" && arch == "amd64") {
-        sh """
-        tar -C bin/ -czvf package/tikv-${name}-${version}-${os}-${arch}.tar.gz tikv-importer
-        rm -rf bin
-        """
-    } else {
-        sh """
-        tar -C ${name}-*/bin/ -czvf package/tikv-${name}-${version}-${os}-${arch}.tar.gz tikv-importer
-        rm -rf ${name}-*
-        """
-    }
+    sh """
+    tar -C bin/ -czvf package/tikv-${name}-${version}-${os}-${arch}.tar.gz tikv-importer
+    rm -rf bin
+    """
 
     sh """
     tiup mirror publish tikv-${name} ${TIDB_VERSION} package/tikv-${name}-${version}-${os}-${arch}.tar.gz tikv-${name} --hide --arch ${arch} --os ${os} --desc="${desc}"
