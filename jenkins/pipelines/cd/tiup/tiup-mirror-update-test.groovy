@@ -312,23 +312,6 @@ node("build_go1130") {
                     update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                 }
             }
-
-
-            // stage("TiUP build node_exporter") {
-            //     build(job: "node_exporter-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
-
-            // stage("TiUP build blackbox_exporter") {
-            //     build(job: "blackbox_exporter-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
-
-            // stage("TiUP build alertmanager") {
-            //     build(job: "alertmanager-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
-
-            // stage("TiUP build pushgateway") {
-            //     build(job: "pushgateway-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
         }
     }
 }
