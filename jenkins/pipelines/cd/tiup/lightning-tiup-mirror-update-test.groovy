@@ -39,17 +39,10 @@ def pack = { name, version, os, arch ->
     [ -d package ] || mkdir package
     """
 
-    if (os == "linux" && arch == "amd64") {
-        sh """
-        tar -C bin/ -czvf package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning
-        rm -rf bin
-        """
-    } else {
-        sh """
-        tar -C ${name}-*/bin/ -czvf package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning
-        rm -rf ${name}-*
-        """
-    }
+    sh """
+    tar -C bin/ -czvf package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning
+    rm -rf bin
+    """
 
     sh """
     tiup mirror publish tidb-lightning ${TIDB_VERSION} package/tidb-lightning-${version}-${os}-${arch}.tar.gz tidb-lightning --standalone --arch ${arch} --os ${os} --desc="${desc}"
