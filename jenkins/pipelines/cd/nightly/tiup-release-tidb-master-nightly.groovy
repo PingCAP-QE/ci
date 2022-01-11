@@ -26,6 +26,7 @@ def FORCE_REBUILD = false
 
 try {
     timeout(600) {
+        RELEASE_TAG = "v5.5.0-alpha"
         node("build_go1130") {
             container("golang") {
                 def ws = pwd()
@@ -51,46 +52,44 @@ try {
 
                     sh """
                 echo ${tidb_sha1} > sha1
-                curl -F refs/pingcap/tidb/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tidb/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tikv_sha1} > sha1
-                curl -F refs/pingcap/tikv/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tikv/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${pd_sha1} > sha1
-                curl -F refs/pingcap/pd/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/pd/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_binlog_sha1} > sha1
-                curl -F refs/pingcap/tidb-binlog/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tidb-binlog/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_tools_sha1} > sha1
-                curl -F refs/pingcap/tidb-tools/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tidb-tools/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_sha1} > sha1
-                curl -F refs/pingcap/br/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/br/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_sha1} > sha1
-                curl -F refs/pingcap/dumpling/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/dumpling/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tiflash_sha1} > sha1
-                curl -F refs/pingcap/tics/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tics/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${cdc_sha1} > sha1
-                curl -F refs/pingcap/tiflow/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tiflow/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${tidb_ctl_githash} > sha1
-                curl -F refs/pingcap/tidb-ctl/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/tidb-ctl/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
                 
                 echo ${cdc_sha1} > sha1
-                curl -F refs/pingcap/dm/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/dm/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
                 echo ${ng_monitoring_sha1} > sha1
-                curl -F refs/pingcap/ng-monitoring/nightly/sha1=@sha1 ${FILE_SERVER_URL}/upload
+                curl -F refs/pingcap/ng-monitoring/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
                 """
                 }
             }
         }
-
-        RELEASE_TAG = "v5.5.0-alpha"
 
         stage("Build") {
             def builds = [:]
