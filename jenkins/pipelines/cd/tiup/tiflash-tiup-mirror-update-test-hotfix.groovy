@@ -41,7 +41,7 @@ def unpack = { name, version, os, arch ->
 
 def pack = { name, version, os, arch ->
     
-    sh "mv tiflash-${version}-${os}-${arch} tiflash"
+    sh "mv tiflash-${os}-${arch} tiflash"
 
     dir("tiflash") {
         sh """
