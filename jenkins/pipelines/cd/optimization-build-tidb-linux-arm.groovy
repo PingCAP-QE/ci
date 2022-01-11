@@ -149,8 +149,7 @@ try {
                                 sh """
                                     NPROC=12 release-centos7/build/build-release.sh
                                     cd release-centos7/
-                                    mv tiflash ${target}
-                                    tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz ${target}
+                                    tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz tiflash
                                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                                 """
                             }
