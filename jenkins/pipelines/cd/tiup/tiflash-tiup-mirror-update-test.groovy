@@ -32,9 +32,6 @@ def unpack = { name, version, os, arch ->
 
 def pack = { name, version, os, arch ->
 
-    sh "mv tiflash-${os}-${arch} tiflash"
-
-
     dir("tiflash") {
         sh """
         wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
