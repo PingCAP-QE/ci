@@ -24,21 +24,10 @@ def download = { name, version, os, arch ->
 
  
     tarball_name = "${name}-${os}-${arch}.tar.gz"
-    if (HOTFIX_TAG != "nightly") {
-        sh """
+
+    sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
     """
-    } else {
-        if (HOTFIX_TAG == "nightly" && arch == "amd64" && os == "linux") {
-            sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/release/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
-    """
-        }else{
-            sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
-    """
-        }
-    }
 
 }
 

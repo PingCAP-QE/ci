@@ -14,15 +14,9 @@ def download = { name, hash, os, arch ->
         """
     }
 
-    if (RELEASE_TAG != "nightly") {
-        sh """
+    sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
     """
-    } else {
-        sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
-    """
-    }
 }
 
 def unpack = { name, os, arch ->
