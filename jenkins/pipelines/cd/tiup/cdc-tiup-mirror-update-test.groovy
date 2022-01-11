@@ -65,7 +65,7 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("TiUP build cdc on linux/amd64") {
