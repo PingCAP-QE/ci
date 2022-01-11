@@ -152,7 +152,7 @@ try {
                                     ls release-centos7/build-release/
                                     ls release-centos7/tiflash/
                                     cd release-centos7/
-                                    tar --exclude=${target}.tar.gz -czvf tiflash.tar.gz tiflash
+                                    tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz tiflash
                                     curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                                 """
                                 // build tiflash docker image
