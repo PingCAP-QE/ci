@@ -1,8 +1,4 @@
-ghprbGhRepository = "pingcap/tispark"
-ghprbActualCommit = "a671a2553852f77a14d01ab3c9e4d2705dc45c63"
-ghprbPullId = "2188"
-ghprbTargetBranch  = "master"
-ghprbCommentBody = ""
+
 credentialsId= "github-sre-bot-ssh"
 
 env.GOROOT = "/usr/local/go"
