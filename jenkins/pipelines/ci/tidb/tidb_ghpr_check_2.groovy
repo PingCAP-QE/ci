@@ -110,7 +110,7 @@ def run_with_pod(Closure body) {
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
                             privileged: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             resourceLimitCpu: '30000m', resourceLimitMemory: "100Gi",
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
