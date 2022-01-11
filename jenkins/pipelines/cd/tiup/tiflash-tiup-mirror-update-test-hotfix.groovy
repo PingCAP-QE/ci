@@ -22,11 +22,8 @@ def download = { name, version, os, arch ->
         """
     }
 
-    if (arch == "arm64" && os != "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
+ 
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
     if (HOTFIX_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${tiflash_sha1}/${platform}/${tarball_name}
@@ -46,11 +43,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64" && os != "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
     tar -zxf ${tarball_name}
@@ -58,11 +51,8 @@ def unpack = { name, version, os, arch ->
 }
 
 def pack = { name, version, os, arch ->
-    if (os == "linux" && arch == "amd64") {
-        sh "echo pass"
-    } else {
-        sh "mv tiflash-${version}-${os}-${arch} tiflash"
-    }
+    
+    sh "mv tiflash-${version}-${os}-${arch} tiflash"
 
     dir("tiflash") {
         sh """
