@@ -1,128 +1,133 @@
-def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPullDescription, credentialsId, channel, teamDomain, tokenCredentialId) {
-    env.GOROOT = "/usr/local/go"
-    env.GOPATH = "/go"
-    env.PATH = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
-    env.PATH = "${env.GOROOT}/bin:/home/jenkins/bin:/bin:${env.PATH}"
-    def TIDB_BRANCH = "master"
-    def TIKV_BRANCH = "master"
-    def PD_BRANCH = "master"
-    def TIFLASH_BRANCH = "master"
-    def MVN_PROFILE = "-Pjenkins"
-    def TEST_MODE = "full"
-    def PARALLEL_NUMBER = 18
-    def TEST_REGION_SIZE = "normal"
-    def TEST_TIFLASH = "false"
-    def TEST_ALTER_PRIMARY_KEY = "true"
-    def TEST_SPARK_CATALOG = "true"
+ghprbGhRepository = "pingcap/tispark"
+ghprbActualCommit = "a671a2553852f77a14d01ab3c9e4d2705dc45c63"
+ghprbPullId = "2188"
+ghprbTargetBranch  = "master"
+ghprbCommentBody = ""
+credentialsId= "github-sre-bot-ssh"
 
-    // parse tidb branch
-    def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m1) {
-        TIDB_BRANCH = "${m1[0][1]}"
+env.GOROOT = "/usr/local/go"
+env.GOPATH = "/go"
+env.PATH = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+env.PATH = "${env.GOROOT}/bin:/home/jenkins/bin:/bin:${env.PATH}"
+def TIDB_BRANCH = "master"
+def TIKV_BRANCH = "master"
+def PD_BRANCH = "master"
+def TIFLASH_BRANCH = "master"
+def MVN_PROFILE = "-Pjenkins"
+def TEST_MODE = "full"
+def PARALLEL_NUMBER = 18
+def TEST_REGION_SIZE = "normal"
+def TEST_TIFLASH = "false"
+def TEST_ALTER_PRIMARY_KEY = "true"
+def TEST_SPARK_CATALOG = "true"
+
+// parse tidb branch
+def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m1) {
+    TIDB_BRANCH = "${m1[0][1]}"
+}
+m1 = null
+println "TIDB_BRANCH=${TIDB_BRANCH}"
+
+// parse pd branch
+def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m2) {
+    PD_BRANCH = "${m2[0][1]}"
+}
+m2 = null
+println "PD_BRANCH=${PD_BRANCH}"
+
+// parse tikv branch
+def m3 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m3) {
+    TIKV_BRANCH = "${m3[0][1]}"
+}
+m3 = null
+println "TIKV_BRANCH=${TIKV_BRANCH}"
+
+// parse tiflash branch
+def m4 = ghprbCommentBody =~ /tiflash\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m4) {
+    TIFLASH_BRANCH = "${m4[0][1]}"
+}
+m4 = null
+println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
+
+// parse mvn profile
+def m5 = ghprbCommentBody =~ /profile\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m5) {
+    MVN_PROFILE = MVN_PROFILE + " -P${m5[0][1]}"
+}
+m5 = null
+
+// parse test mode
+def m6 = ghprbCommentBody =~ /mode\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m6) {
+    TEST_MODE = "${m6[0][1]}"
+}
+m6 = null
+
+// parse test region size
+def m7 = ghprbCommentBody =~ /region\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m7) {
+    TEST_REGION_SIZE = "${m7[0][1]}"
+}
+m7 = null
+
+// parse test tiflash
+def m8 = ghprbCommentBody =~ /test-flash\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m8) {
+    TEST_TIFLASH = "${m8[0][1]}"
+}
+m8 = null
+
+// parse test alter primary key
+def m9 = ghprbCommentBody =~ /test-alter-primary-key\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m9) {
+    TEST_ALTER_PRIMARY_KEY = "${m9[0][1]}"
+}
+m9 = null
+
+// parse test spark catalog
+def m10 = ghprbCommentBody =~ /test-spark-catalog\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m10) {
+    TEST_SPARK_CATALOG = "${m100[0][1]}"
+}
+m10 = null
+
+groovy.lang.Closure readfile = { filename ->
+    def file = readFile filename
+    return file.split("\n") as List
+}
+
+groovy.lang.Closure get_mvn_str = { total_chunks ->
+    def mvnStr = " -DwildcardSuites="
+    for (int i = 0 ; i < total_chunks.size() - 1; i++) {
+        // print total_chunks
+        def trimStr = total_chunks[i]
+        mvnStr = mvnStr + "${trimStr},"
     }
-    m1 = null
-    println "TIDB_BRANCH=${TIDB_BRANCH}"
+    def trimStr = total_chunks[total_chunks.size() - 1]
+    mvnStr = mvnStr + "${trimStr}"
+    mvnStr = mvnStr + " -DfailIfNoTests=false"
+    mvnStr = mvnStr + " -DskipAfterFailureCount=1"
+    return mvnStr
+}
 
-    // parse pd branch
-    def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m2) {
-        PD_BRANCH = "${m2[0][1]}"
-    }
-    m2 = null
-    println "PD_BRANCH=${PD_BRANCH}"
+def label = "regression-test-tispark-${BUILD_NUMBER}"
 
-    // parse tikv branch
-    def m3 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m3) {
-        TIKV_BRANCH = "${m3[0][1]}"
-    }
-    m3 = null
-    println "TIKV_BRANCH=${TIKV_BRANCH}"
-
-    // parse tiflash branch
-    def m4 = ghprbCommentBody =~ /tiflash\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m4) {
-        TIFLASH_BRANCH = "${m4[0][1]}"
-    }
-    m4 = null
-    println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-
-    // parse mvn profile
-    def m5 = ghprbCommentBody =~ /profile\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m5) {
-        MVN_PROFILE = MVN_PROFILE + " -P${m5[0][1]}"
-    }
-    m5 = null
-
-    // parse test mode
-    def m6 = ghprbCommentBody =~ /mode\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m6) {
-        TEST_MODE = "${m6[0][1]}"
-    }
-    m6 = null
-
-    // parse test region size
-    def m7 = ghprbCommentBody =~ /region\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m7) {
-        TEST_REGION_SIZE = "${m7[0][1]}"
-    }
-    m7 = null
-
-    // parse test tiflash
-    def m8 = ghprbCommentBody =~ /test-flash\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m8) {
-        TEST_TIFLASH = "${m8[0][1]}"
-    }
-    m8 = null
-
-    // parse test alter primary key
-    def m9 = ghprbCommentBody =~ /test-alter-primary-key\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m9) {
-        TEST_ALTER_PRIMARY_KEY = "${m9[0][1]}"
-    }
-    m9 = null
-
-    // parse test spark catalog
-    def m100 = ghprbCommentBody =~ /test-spark-catalog\s*=\s*([^\s\\]+)(\s|\\|$)/
-    if (m100) {
-        TEST_SPARK_CATALOG = "${m100[0][1]}"
-    }
-    m100 = null
-
-    groovy.lang.Closure readfile = { filename ->
-        def file = readFile filename
-        return file.split("\n") as List
-    }
-
-    groovy.lang.Closure get_mvn_str = { total_chunks ->
-        def mvnStr = " -DwildcardSuites="
-        for (int i = 0 ; i < total_chunks.size() - 1; i++) {
-            // print total_chunks
-            def trimStr = total_chunks[i]
-            mvnStr = mvnStr + "${trimStr},"
-        }
-        def trimStr = total_chunks[total_chunks.size() - 1]
-        mvnStr = mvnStr + "${trimStr}"
-        mvnStr = mvnStr + " -DfailIfNoTests=false"
-        mvnStr = mvnStr + " -DskipAfterFailureCount=1"
-        return mvnStr
-    }
-
-    def label = "regression-test-tispark"
-
-    podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tispark' , containers: [
-            containerTemplate(name: 'golang', image: 'hub.pingcap.net/jenkins/centos7_golang-1.12:cached',
-                    envVars: [
-                            envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-                    ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
-            containerTemplate(name: 'java', image: 'hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached',
-                    resourceRequestCpu: '4000m',
-                    resourceRequestMemory: '8Gi',
-                    envVars: [
-                            envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-                    ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
-    ]) {
-
+podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tispark' , containers: [
+        containerTemplate(name: 'golang', image: 'hub.pingcap.net/jenkins/centos7_golang-1.12:cached',
+                envVars: [
+                        envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
+                ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'java', image: 'hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached',
+                resourceRequestCpu: '4000m',
+                resourceRequestMemory: '8Gi',
+                envVars: [
+                        envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
+                ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
+]) {
     catchError {
         stage('Prepare') {
             node (label) {
@@ -195,7 +200,7 @@ def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprb
                         }
 
                         if (TEST_TIFLASH != "false") {
-                            wget https://github.com/PingCAP-QE/ci/blob/main/jenkins/pipelines/ci/tispark/tidb_config-for-tiflash-test.properties
+                            wget https://github.com/shiyuhang0/ci/blob/main/jenkins/pipelines/ci/tispark/tidb_config-for-tiflash-test.properties
                             sh "cp tidb_config-for-tiflash-test.properties core/src/test/resources/tidb_config.properties"
                         }
 
@@ -222,7 +227,7 @@ def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprb
                         }
 
                         sh """
-                        wget https://github.com/PingCAP-QE/ci/blob/main/jenkins/pipelines/ci/tispark/log4j-ci.properties
+                        wget https://github.com/shiyuhang0/ci/blob/main/jenkins/pipelines/ci/tispark/log4j-ci.properties
                         cp log4j-ci.properties core/src/test/resources/log4j.properties
                         bash core/scripts/version.sh
                         bash core/scripts/fetch-test-data.sh
@@ -265,21 +270,23 @@ def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprb
             }
 
             groovy.lang.Closure run_tikvclient_test = { chunk_suffix ->
-                dir("go/src/github.com/pingcap/tispark") {
-                    sh """
-                        rm -rf /maven/.m2/repository/*
-                        rm -rf /maven/.m2/settings.xml
-                        rm -rf ~/.m2/settings.xml
-                        archive_url=http://fileserver.pingcap.net/download/builds/pingcap/tispark/cache/tispark-m2-cache-latest.tar.gz
-                        if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
-                    """
-                    sh """
-                        export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=512M"
-                        mvn test ${MVN_PROFILE} -am -pl tikv-client
-                    """
-                    unstash "CODECOV_TOKEN"
-                    sh 'curl -s https://codecov.io/bash | bash -s - -t @CODECOV_TOKEN'
-                }
+            withCredentials([string(credentialsId: 'codecov-token-tispark', variable: 'CODECOV_TOKEN')]) { 
+                dir("go/src/github.com/pingcap/tispark") {      
+                        sh """
+                            rm -rf /maven/.m2/repository/*
+                            rm -rf /maven/.m2/settings.xml
+                            rm -rf ~/.m2/settings.xml
+                            archive_url=http://fileserver.pingcap.net/download/builds/pingcap/tispark/cache/tispark-m2-cache-latest.tar.gz
+                            if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
+                        """
+                        sh """
+                            export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=512M"
+                            mvn test ${MVN_PROFILE} -am -pl tikv-client
+                        """
+                        unstash "CODECOV_TOKEN"
+                        sh 'curl -s https://codecov.io/bash | bash -s
+                    }
+                }      
             }
 
             groovy.lang.Closure run_intergration_test = { chunk_suffix, run_test ->
@@ -386,21 +393,4 @@ def call(ghprbActualCommit, ghprbCommentBody, ghprbPullId, ghprbPullTitle, ghprb
 
         currentBuild.result = "SUCCESS"
     }
-
-    }
-    stage('Summary') {
-        def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-        def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-        "${ghprbPullLink}" + "\n" +
-        "${ghprbPullDescription}" + "\n" +
-        "Integration Common Test Result: `${currentBuild.result}`" + "\n" +
-        "Elapsed Time: `${duration} mins` " + "\n" +
-        "${env.RUN_DISPLAY_URL}"
-
-        if (currentBuild.result != "SUCCESS") {
-            slackSend channel: channel, color: 'danger', teamDomain: teamDomain, tokenCredentialId: tokenCredentialId, message: "${slackmsg}"
-        }
-    }
 }
-
-return this
