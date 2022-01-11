@@ -283,7 +283,6 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                             export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=512M"
                             mvn test ${MVN_PROFILE} -am -pl tikv-client
                         """
-                        unstash "CODECOV_TOKEN"
                         sh 'curl -s https://codecov.io/bash | bash -s'
                     }
                 }      
