@@ -16,11 +16,9 @@ def download = { name, version, os, arch ->
         """
     }
 
-    if (arch == "arm64" || os == "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
+
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
+ 
     if (RELEASE_TAG != "nightly") {
         sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${dumpling_sha1}/${platform}/${tarball_name}
@@ -34,11 +32,7 @@ def download = { name, version, os, arch ->
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64" || os == "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
     tar -zxf ${tarball_name}
