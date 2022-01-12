@@ -8,6 +8,7 @@ def pump_desc = "The pump componet of TiDB binlog service"
 def drainer_desc = "The drainer componet of TiDB binlog service"
 def pd_recover_desc = "PD Recover is a disaster recovery tool of PD, used to recover the PD cluster which cannot start or provide services normally"
 
+def RELEASE_BRANCH = ""
 
 def download = { name, hash, os, arch ->
     if (os == "linux") {
@@ -208,6 +209,7 @@ node("build_go1130") {
                         tidb_version = "v5.5.0"
                         time = sh(returnStdout: true, script: "date '+%Y%m%d'").trim()
                         tidb_version = "${tidb_version}-nightly-${time}"
+                        RELEASE_BRANCH = "master"
                     }
                 }
             } else {
@@ -219,6 +221,7 @@ node("build_go1130") {
             // }
 
             def params1 = [
+                    string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
                     string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
