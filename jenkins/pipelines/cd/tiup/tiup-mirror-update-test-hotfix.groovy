@@ -355,7 +355,7 @@ node("build_go1130") {
             }
 
             def paramsPROMETHEUS = [
-                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
+                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
