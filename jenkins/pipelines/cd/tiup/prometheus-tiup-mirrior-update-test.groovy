@@ -152,8 +152,9 @@ node("build_go1130") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
+        def tag = RELEASE_TAG
+        
         stage("Checkout tics") {
-            def tag = RELEASE_TAG
             if (RELEASE_BRANCH != "") {
                 tag = RELEASE_BRANCH
             }
