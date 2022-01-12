@@ -27,11 +27,6 @@ def checkoutTiCS(branch) {
     // checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/heads/*:refs/remotes/origin/*", url: 'git@github.com:pingcap/tics.git']]]
 }
 
-params.ARCH_X86 = true
-params.ARCH_ARM = true
-params.ARCH_MAC = true
-params.ARCH_MAC_ARM = true
-
 
 def name="ng-monitoring"
 def ng_monitoring_sha1, tarball_name
@@ -66,8 +61,8 @@ def download = { version, os, arch ->
     """
 
     def tag = RELEASE_TAG
-    if (tag == "nightly") {
-        tag = "master"
+    if (RELEASE_BRANCH != "") {
+        tag = RELEASE_BRANCH
     }
 
     if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0") {
@@ -95,8 +90,8 @@ def unpack = { version, os, arch ->
 
 def pack = { version, os, arch ->
     def tag = RELEASE_TAG
-    if (tag == "nightly") {
-        tag = "master"
+    if (RELEASE_BRANCH != "") {
+        tag = RELEASE_BRANCH
     }
 
     sh """
@@ -163,12 +158,10 @@ node("build_go1130") {
 
         stage("Checkout tics") {
             def tag = RELEASE_TAG
-            if (tag == "nightly") {
-                tag = "master"
+            if (RELEASE_BRANCH != "") {
+                tag = RELEASE_BRANCH
             }
-            if (tag == "master" || tag > "v4") {
-                checkoutTiCS(tag)
-            }
+            checkoutTiCS(tag)
         }
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
         ng_monitoring_sha1 = ""
