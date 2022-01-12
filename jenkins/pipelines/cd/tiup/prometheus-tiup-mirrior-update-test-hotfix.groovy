@@ -99,7 +99,7 @@ def pack = { version, os, arch ->
        cp bin/* ./
     fi
     cd prometheus
-    if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
+
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${RELEASE_BRANCH}/metrics/alertmanager/tidb.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/pd/${RELEASE_BRANCH}/metrics/alertmanager/pd.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/tikv/tikv/${RELEASE_BRANCH}/metrics/alertmanager/tikv.rules.yml || true; \
@@ -115,20 +115,8 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/bypass.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/kafka.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/node.rules.yml || true; \
-    cp ../metrics/alertmanager/tiflash.rules.yml . || true; \
-    else \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tidb.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/pd.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tikv.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tikv.accelerate.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/binlog.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/lightning.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/blacker.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/bypass.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/kafka.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/node.rules.yml|| true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${RELEASE_BRANCH}/roles/prometheus/files/tiflash.rules.yml || true; \
-    fi
+    cp ../metrics/alertmanager/tiflash.rules.yml . || true; 
+    
 
     cd ..
 
