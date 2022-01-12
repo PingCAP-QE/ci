@@ -65,15 +65,11 @@ def download = { version, os, arch ->
         tag = RELEASE_BRANCH
     }
 
-    if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0") {
-        sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
-        """
-    } else if (RELEASE_TAG == "nightly") {
-        sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${ng_monitoring_sha1}/${platform}/${tarball_name}
-        """
-    }
+ 
+    sh """
+        wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${RELEASE_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+    """
+
 }
 
 def unpack = { version, os, arch ->
