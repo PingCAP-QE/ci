@@ -225,10 +225,10 @@ node("build_go1130") {
                     string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: true],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: true],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: true],
+                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: true],
             ]
 
             stage("TiUP build cdc") {
