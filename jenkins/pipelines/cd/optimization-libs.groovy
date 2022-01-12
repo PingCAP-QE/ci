@@ -1,3 +1,24 @@
+def check_file_exists(build_para, product) {
+    if (build_para["FORCE_REBUILD"]) {
+        return true
+    }
+    def arch = build_para["ARCH"]
+    def os = build_para["OS"]
+    def release_tag = build_para["RELEASE_TAG"]
+    def sha1 = build_para[product]
+    def FILE_SERVER_URL = build_para["FILE_SERVER_URL"]
+
+    def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    
+    result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
+    // result equal 0 mean cache file exists
+    if (result == 0) {
+        echo "file ${FILE_SERVER_URL}/download/${filepath} found in cache server,skip build again"
+        return true
+    }
+    return false
+}
+
 def create_builds(build_para) {
     builds = [:]
 
@@ -34,6 +55,18 @@ def create_builds(build_para) {
         }
     }
 
+    if (release_tag < "v5.2.0" && build_para["OS"] == "linux") {
+        builds["Build Importer"] = {
+            build_product(build_para, "importer")
+        }
+    }
+
+    if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
+        builds["Build Plugin"] = {
+            build_product(build_para, "enterprise-plugin")
+        }
+    }
+
     return builds
 }
 
@@ -56,6 +89,8 @@ def build_product(build_para, product) {
         repo = "tiflow"
     }
 
+
+
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     def paramsBuild = [
         string(name: "ARCH", value: arch),
@@ -68,10 +103,16 @@ def build_product(build_para, product) {
         string(name: "RELEASE_TAG", value: release_tag),
         [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
     ]
-
+    if (product in ["tidb", "tikv", "pd"]) {
+        paramsBuild.push(booleanParam(name: 'NEED_SOURCE_CODE', value: true))   
+    }
     if (git_pr != "" && repo == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
     }
+    if (product in ["enterprise-plugin"]) {
+        paramsBuild.push([$class: 'StringParameterValue', name: 'TIDB_HASH', value: build_para["tidb"]])
+    }
+
 
     build job: "build-common", 
         wait: true, 

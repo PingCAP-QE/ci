@@ -14,15 +14,9 @@ def download = { name, hash, os, arch ->
         """
     }
 
-    if (RELEASE_TAG != "nightly") {
-        sh """
+    sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
     """
-    } else {
-        sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
-    """
-    }
 }
 
 def unpack = { name, os, arch ->
@@ -36,7 +30,7 @@ def pack = { name, version, os, arch ->
     sh """
     # tiup package cdc -C ${name}-${os}-${arch}/bin --hide --name=cdc --release=${version} --entry=cdc --os=${os} --arch=${arch} --desc="${cdc_desc}"
     [ -d package ] || mkdir package
-    tar -C ${name}-${os}-${arch}/bin -czvf package/cdc-${version}-${os}-${arch}.tar.gz cdc
+    tar -C bin -czvf package/cdc-${version}-${os}-${arch}.tar.gz cdc
     tiup mirror publish cdc ${TIDB_VERSION} package/cdc-${version}-${os}-${arch}.tar.gz cdc --arch ${arch} --os ${os} --desc="${cdc_desc}"
     """
 }
@@ -71,7 +65,7 @@ node("build_go1130") {
                     tag = RELEASE_TAG
                 }
 
-                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
             stage("TiUP build cdc on linux/amd64") {

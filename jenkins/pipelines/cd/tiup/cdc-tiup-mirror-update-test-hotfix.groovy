@@ -12,7 +12,7 @@ def get_hash = { hash_or_branch, repo ->
     if (hash_or_branch.length() == 40) {
         return hash_or_branch
     }
-    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
+    return sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
 }
 
 def download = { name, hash, os, arch ->
@@ -28,15 +28,9 @@ def download = { name, hash, os, arch ->
         """
     }
 
-    if (HOTFIX_TAG != "nightly") {
-        sh """
+    sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
     """
-    } else {
-        sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
-    """
-    }
 }
 
 def unpack = { name, os, arch ->

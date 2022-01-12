@@ -23,6 +23,34 @@ CI_RUN_PART_TEST_CASES = """
     field_length func_concat gcol_alter_table 
     gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
     gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
+    grant_dynamic groupby having in index index_merge2 
+    index_merge_delete insert insert_select issue_11208 issue_165 
+    issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
+    like math mysql_replace operator orderby partition_bug18198 
+    partition_hash partition_innodb partition_list partition_range 
+    precedence prepare qualified regexp replace select_qualified 
+    single_delete_update sqllogic str_quoted sub_query sub_query_more 
+    time timestamp_update tpcc transaction_isolation_func type 
+    type_binary type_uint union update update_stmt variable 
+    with_recursive with_recursive_bugs xd
+    """
+
+// remove test: temp_table
+if (ghprbTargetBranch in ["release-5.2"]) {
+    CI_RUN_PART_TEST_CASES = """
+    with_non_recursive window_min_max mariadb_cte_recursive 
+    mariadb_cte_nonrecursive json_functions gcol_view gcol_supported_sql_funcs 
+    expression_index date_time_ddl show timestamp_insert 
+    infoschema datetime_insert alias 
+    alter_table alter_table_PK auto_increment 
+    bigint bool builtin charset comment_table 
+    composite_index concurrent_ddl count_distinct 
+    count_distinct2 create_database create_index 
+    create_table datetime_update daylight_saving_time 
+    ddl_i18n_utf8 decimal do drop echo exec_selection 
+    field_length func_concat gcol_alter_table 
+    gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
+    gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
     grant_dynamic groupby having in index index_merge1 index_merge2 
     index_merge_delete insert insert_select issue_11208 issue_165 
     issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
@@ -34,6 +62,65 @@ CI_RUN_PART_TEST_CASES = """
     type_binary type_uint union update update_stmt variable 
     with_recursive with_recursive_bugs xd
     """
+}
+
+// remove test: temp_table
+if (ghprbTargetBranch in ["release-5.2"]) {
+    CI_RUN_PART_TEST_CASES = """
+    with_non_recursive window_min_max mariadb_cte_recursive 
+    mariadb_cte_nonrecursive json_functions gcol_view gcol_supported_sql_funcs 
+    expression_index date_time_ddl show timestamp_insert 
+    infoschema datetime_insert alias 
+    alter_table alter_table_PK auto_increment 
+    bigint bool builtin charset comment_table 
+    composite_index concurrent_ddl count_distinct 
+    count_distinct2 create_database create_index 
+    create_table datetime_update daylight_saving_time 
+    ddl_i18n_utf8 decimal do drop echo exec_selection 
+    field_length func_concat gcol_alter_table 
+    gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
+    gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
+    grant_dynamic groupby having in index index_merge1 index_merge2 
+    index_merge_delete insert insert_select issue_11208 issue_165 
+    issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
+    like math mysql_replace operator orderby partition_bug18198 
+    partition_hash partition_innodb partition_list partition_range 
+    precedence prepare qualified regexp replace select_qualified 
+    single_delete_update sqllogic str_quoted sub_query sub_query_more 
+    time timestamp_update tpcc transaction_isolation_func type 
+    type_binary type_uint union update update_stmt variable 
+    with_recursive with_recursive_bugs xd
+    """
+}
+
+// remove test: temp_table
+if (ghprbTargetBranch in ["release-5.2"]) {
+    CI_RUN_PART_TEST_CASES = """
+    with_non_recursive window_min_max mariadb_cte_recursive 
+    mariadb_cte_nonrecursive json_functions gcol_view gcol_supported_sql_funcs 
+    expression_index date_time_ddl show timestamp_insert 
+    infoschema datetime_insert alias 
+    alter_table alter_table_PK auto_increment 
+    bigint bool builtin charset comment_table 
+    composite_index concurrent_ddl count_distinct 
+    count_distinct2 create_database create_index 
+    create_table datetime_update daylight_saving_time 
+    ddl_i18n_utf8 decimal do drop echo exec_selection 
+    field_length func_concat gcol_alter_table 
+    gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
+    gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
+    grant_dynamic groupby having in index index_merge2 
+    index_merge_delete insert insert_select issue_11208 issue_165 
+    issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
+    like math mysql_replace operator orderby partition_bug18198 
+    partition_hash partition_innodb partition_list partition_range 
+    precedence prepare qualified regexp replace select_qualified 
+    single_delete_update sqllogic str_quoted sub_query sub_query_more 
+    time timestamp_update tpcc transaction_isolation_func type 
+    type_binary type_uint union update update_stmt variable 
+    with_recursive with_recursive_bugs xd
+    """
+}
 
 
 
@@ -212,12 +299,21 @@ try {
                 dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                     try {
                         timeout(10) {
+                            if (ghprbTargetBranch in ["master", "release-5.3", "release-5.4"]) {
+                                sh """
+                                curl -o run-test-part.sh ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
+                                chmod +x run-test-part.sh
+                                """
+                            } else {
+                                sh """
+                                curl -o run-test-part.sh ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part-without-all-arg.sh 
+                                chmod +x run-test-part.sh
+                                """
+                            }
+
                             sh """
-
                             export CI_RUN_PART_TEST_CASES=\"${CI_RUN_PART_TEST_CASES}\"
-                            wget ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
-                            chmod +x run-test-part.sh
-
+                            
                             set +e
                             killall -9 -r tidb-server
                             killall -9 -r tikv-server

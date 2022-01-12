@@ -22,44 +22,16 @@ def download = { name, hash, os, arch ->
         """
     }
 
-    if (name == "tidb" || name == "tikv" || name == "pd") {
-        if (arch == "arm64" && os != "darwin") {
-            tarball_name = "${name}-server-${os}-${arch}.tar.gz"
-        } else {
-            tarball_name = "${name}-server.tar.gz"
-        }
-    } else {
-        if (arch == "arm64" && os != "darwin") {
-            tarball_name = "${name}-${os}-${arch}.tar.gz"
-        } else {
-            tarball_name = "${name}.tar.gz"
-        }
-    }
-    if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v4.0.0") {
-        sh """
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
+    
+    sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${tarball_name}
     """
-    } else {
-        sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${hash}/${platform}/${tarball_name}
-    """
-    }
 }
 
 def unpack = { name, os, arch ->
-    if (name == "tidb" || name == "tikv" || name == "pd") {
-        if (arch == "arm64" && os != "darwin") {
-            tarball_name = "${name}-server-${os}-${arch}.tar.gz"
-        } else {
-            tarball_name = "${name}-server.tar.gz"
-        }
-    } else {
-        if (arch == "arm64" && os != "darwin") {
-            tarball_name = "${name}-${os}-${arch}.tar.gz"
-        } else {
-            tarball_name = "${name}.tar.gz"
-        }
-    }
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
+
     sh """
     tar -zxf ${tarball_name}
     """
@@ -69,83 +41,43 @@ def pack = { name, version, os, arch ->
     sh """
     mkdir -p ctls
     """
-    if (os == "linux" && arch == "amd64") {
-        if (name == "tidb") {
-            sh """
-            tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
-            """
-        } else if (name == "tikv") {
-            sh """
-            mv bin/${name}-ctl ctls/
-            tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
-            """
-        } else if (name == "pd") {
-            sh """
-            mv bin/${name}-ctl ctls/
-            tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
-            tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
-            tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
-            """
-        } else if (name == 'tidb-binlog') {
-            sh """
-            tiup package pump -C bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
-            tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
-            tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
-            tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
-            mv bin/binlogctl ctls/
-            """
-        } else if (name == "tidb-ctl") {
-            sh """
-            mv bin/${name} ctls/
-            """
-        } else {
-            sh """
-            tiup package ${name} -C bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
-            """
-        }
+
+    if (name == "tidb") {
+        sh """
+        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
+        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
+        """
+    } else if (name == "tikv") {
+        sh """
+        mv bin/${name}-ctl ctls/
+        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
+        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
+        """
+    } else if (name == "pd") {
+        sh """
+        mv bin/${name}-ctl ctls/
+        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
+        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
+        tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
+        tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
+        """
+    } else if (name == 'tidb-binlog') {
+        sh """
+        tiup package pump -C bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
+        tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
+        tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
+        tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
+        mv bin/binlogctl ctls/
+        """
+    } else if (name == "tidb-ctl") {
+        sh """
+        mv bin/${name} ctls/
+        """
     } else {
-        if (name == "tidb") {
-            sh """
-            tiup package ${name}-server -C ${name}-${version}-${os}-${arch}/bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
-            """
-        } else if (name == "tikv") {
-            sh """
-            mv ${name}-${version}-${os}-${arch}/bin/${name}-ctl ctls/
-            tiup package ${name}-server -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
-            """
-        } else if (name == "pd") {
-            sh """
-            mv ${name}-${version}-${os}-${arch}/bin/${name}-ctl ctls/
-            tiup package ${name}-server -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
-            tiup package ${name}-recover -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
-            tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
-            """
-        } else if (name == 'tidb-binlog') {
-            sh """
-            mv ${name}-${version}-${os}-${arch}/bin/binlogctl ctls/
-            tiup package pump -C ${name}-${version}-${os}-${arch}/bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
-            tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
-            tiup package drainer -C ${name}-${version}-${os}-${arch}/bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
-            tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
-            """
-        } else if (name == "tidb-ctl") {
-            sh """
-            # mv ${name}-${version}-${os}-${arch}/bin/${name} ctls/
-            mv ${name}-*/bin/${name} ctls/
-            """
-        } else {
-            sh """
-            tiup package ${name} -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-            tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
-            """
-        }
+        sh """
+        tiup package ${name} -C bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
+        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
+        """
     }
 
     sh """
@@ -187,20 +119,10 @@ def update_ctl = { version, os, arch ->
         """
     }
 
-    lightning_tarball_name = ""
-    lightning_ctl_bin_dir = ""
-    if (arch == "arm64"  && os != "darwin") {
-        lightning_tarball_name = "br-${os}-${arch}.tar.gz"
-        lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
-    } else {
-        lightning_tarball_name = "br.tar.gz"
-        lightning_ctl_bin_dir = "br-*/bin/tidb-lightning-ctl"
-    }
 
-    if (arch == "amd64" && os == "linux") {
-        lightning_tarball_name = "br.tar.gz"
-        lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
-    }
+    lightning_tarball_name = "br-${os}-${arch}.tar.gz"
+    lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
+
 
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
         if (RELEASE_TAG != "nightly") {
@@ -219,7 +141,7 @@ def update_ctl = { version, os, arch ->
         tar -zxf ${lightning_tarball_name}
         cp ${lightning_ctl_bin_dir} ctls/
         tar xf ticdc-${os}-${arch}.tar.gz
-        cp ticdc-${os}-${arch}/bin/cdc ctls/
+        cp bin/cdc ctls/
         """
     }
 
@@ -252,18 +174,20 @@ node("build_go1130") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
                 if (RELEASE_TAG == "nightly") {
-                    tag = "master"
+                    tag = "v5.5.0-alpha"
+                    RELEASE_TAG = "v5.5.0-alpha"
                 } else {
                     tag = RELEASE_TAG
                 }
 
                 tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
+                tidb_ctl_sha1 = "master"
                 tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
                 lightning_sha1 = ""
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
@@ -273,7 +197,7 @@ node("build_go1130") {
                 }
             }
 
-            if (RELEASE_TAG == "nightly") {
+            if (RELEASE_TAG == "v5.5.0-alpha") {
                 stage("Get version info when nightly") {
                     dir("tidb") {
                         // sh"""
@@ -388,23 +312,6 @@ node("build_go1130") {
                     update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                 }
             }
-
-
-            // stage("TiUP build node_exporter") {
-            //     build(job: "node_exporter-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
-
-            // stage("TiUP build blackbox_exporter") {
-            //     build(job: "blackbox_exporter-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
-
-            // stage("TiUP build alertmanager") {
-            //     build(job: "alertmanager-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
-
-            // stage("TiUP build pushgateway") {
-            //     build(job: "pushgateway-tiup-mirrior-update-test", wait: true, parameters: params2)
-            // }
         }
     }
 }

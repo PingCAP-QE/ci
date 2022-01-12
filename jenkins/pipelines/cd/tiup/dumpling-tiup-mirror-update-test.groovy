@@ -16,29 +16,17 @@ def download = { name, version, os, arch ->
         """
     }
 
-    if (arch == "arm64" || os == "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
-    if (RELEASE_TAG != "nightly") {
-        sh """
+
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
+ 
+    sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${dumpling_sha1}/${platform}/${tarball_name}
     """
-    } else {
-        sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${tag}/${dumpling_sha1}/${platform}/${tarball_name}
-    """
-    }
 
 }
 
 def unpack = { name, version, os, arch ->
-    if (arch == "arm64" || os == "darwin") {
-        tarball_name = "${name}-${os}-${arch}.tar.gz"
-    } else {
-        tarball_name = "${name}.tar.gz"
-    }
+    tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
     tar -zxf ${tarball_name}
@@ -52,17 +40,10 @@ def pack = { name, version, os, arch ->
     [ -d package ] || mkdir package
     """
 
-    if (os == "linux" && arch == "amd64") {
-        sh """
-        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz dumpling
-        rm -rf bin
-        """
-    } else {
-        sh """
-        tar -C ${name}-*/bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz dumpling
-        rm -rf ${name}-*
-        """
-    }
+    sh """
+    tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz dumpling
+    rm -rf bin
+    """
 
     sh """
     tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${desc}"
