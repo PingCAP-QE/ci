@@ -165,7 +165,7 @@ node("build_go1130") {
             if (RELEASE_TAG == "nightly"){
                 ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
             } else {
-                ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${tag} -s=${FILE_SERVER_URL}").trim()
             }
         }
 
