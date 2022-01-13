@@ -47,13 +47,13 @@ def unpack = { version, os, arch ->
 
 def pack = { version, os, arch ->
     def tag = RELEASE_TAG
-    if (tag == "nightly") {
-        tag = "master"
+    if (RELEASE_BRANCH != "") {
+        tag = RELEASE_BRANCH
     }
 
     sh """
     cd "grafana-${version}"
-    if [ ${tag} == "master" ] || [[ ${tag} > "v4" ]];then \
+
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/tidb.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/tidb_summary.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/overview.json || true; \
@@ -79,27 +79,7 @@ def pack = { version, os, arch ->
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
     fi
-    cp ../metrics/grafana/* . || true; \
-    else \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tidb.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tidb_summary.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/overview.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/pd.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tikv_summary.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tikv_details.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tikv_trouble_shooting.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/performance_read.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/performance_write.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/binlog.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/disk_performance.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/blackbox_exporter.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/node.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/kafka.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/lightning.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tiflash_proxy_summary.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tiflash_summary.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb-ansible/${tag}/scripts/tiflash_proxy_details.json || true; \
-    fi
+    cp ../metrics/grafana/* . || true;
 
     cd ..
     tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
@@ -134,27 +114,28 @@ node("build_go1130") {
 
         stage("Checkout tics") {
             def tag = RELEASE_TAG
-            if (tag == "nightly") {
-                tag = "master"
+            if (RELEASE_BRANCH != "") {
+                tag = RELEASE_BRANCH
             }
-            if (tag == "master" || tag > "v4") {
-                checkoutTiCS(tag)
+            checkoutTiCS(tag)
+        }
+
+        if (params.ARCH_X86) {
+            stage("tiup build grafana on linux/amd64") {
+                update VERSION, "linux", "amd64"
             }
         }
-
-        stage("tiup build grafana on linux/amd64") {
-            update VERSION, "linux", "amd64"
+        if (params.ARCH_ARM) {
+            stage("TiUP build grafana on linux/arm64") {
+                update VERSION, "linux", "arm64"
+            }
         }
-
-        stage("TiUP build grafana on linux/arm64") {
-            update VERSION, "linux", "arm64"
+        if (params.ARCH_MAC) {
+            stage("TiUP build grafana on darwin/amd64") {
+                update VERSION, "darwin", "amd64"
+            }
         }
-
-        stage("TiUP build grafana on darwin/amd64") {
-            update VERSION, "darwin", "amd64"
-        }
-
-        if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+        if (params.ARCH_MAC_ARM) {
             stage("TiUP build grafana on darwin/arm64") {
                 // grafana did not provide the binary we need so we upgrade it.
                 update "7.5.10", "darwin", "arm64"
