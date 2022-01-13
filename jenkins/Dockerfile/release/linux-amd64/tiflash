@@ -3,7 +3,7 @@ FROM hub.pingcap.net/tiflash/centos:7.9.2009-amd64
 USER root
 WORKDIR /root/
 
-ARG INSTALL_MYSQL 0
+ARG INSTALL_MYSQL
 ENV HOME /root/
 ENV TZ Asia/Shanghai
 ENV LD_LIBRARY_PATH /tiflash
