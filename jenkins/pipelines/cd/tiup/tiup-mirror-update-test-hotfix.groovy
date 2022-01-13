@@ -306,23 +306,6 @@ node("build_go1130") {
                 build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
             }
 
-            def paramsIMPORTER = [
-                    string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${IMPORTER_TAG}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            if (HOTFIX_TAG != "nightly" && HOTFIX_TAG < "v4.0.0") {
-                stage("TiUP build importer") {
-                    build(job: "importer-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsIMPORTER)
-                }
-            }
-
             def paramsTIFLASH = [
                     string(name: "HOTFIX_TAG", value: "${HOTFIX_TAG}"),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
