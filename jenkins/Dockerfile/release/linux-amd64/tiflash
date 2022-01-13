@@ -1,4 +1,4 @@
-FROM hub.pingcap.net/tiflash/centos:centos7.6.1810
+FROM hub.pingcap.net/tiflash/centos:7.9.2009-amd64
 
 USER root
 WORKDIR /root/
@@ -10,9 +10,7 @@ ENV LD_LIBRARY_PATH /tiflash
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
-    if [[ $INSTALL_MYSQL -eq 1 ]]; then \
-        yum install mysql -y && yum clean all \
-    fi
+    if [[ $INSTALL_MYSQL -eq 1 ]]; then yum install mysql -y; yum clean all; fi
 
 
 COPY tiflash /tiflash
