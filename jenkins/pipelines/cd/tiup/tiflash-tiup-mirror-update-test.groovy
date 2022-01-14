@@ -96,7 +96,7 @@ node("build_go1130") {
                     update "tiflash", RELEASE_TAG, "linux", "amd64"
                 }
             }
-            if (params.ARCH_ARM && (HOTFIX_TAG >= "v4.0" || HOTFIX_TAG == "nightly")) {
+            if (params.ARCH_ARM) {
                 stage("tiup release tiflash linux arm64") {
                     update "tiflash", RELEASE_TAG, "linux", "arm64"
                 }
