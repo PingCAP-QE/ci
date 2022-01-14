@@ -5,16 +5,11 @@ if (params.containsKey("release_test")) {
     ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
     ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tikv_commit)
     ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", 0)
-    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
-    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
-    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
 def notRun = 1
-def chunk_count = 20
 
 def pod_image_param = ghprbTargetBranch
-
 
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
 // remove suffix "-20210724", only use "release-4.0"
@@ -58,7 +53,7 @@ stage("Cover") {
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
                 alwaysPullImage: true, privileged: true,
-                resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                resourceRequestCpu: '2', resourceRequestMemory: '8Gi',
                 ttyEnabled: true, command: 'cat'),
         ]) {
         node(label) {
@@ -73,6 +68,8 @@ stage("Cover") {
                         git fetch origin refs/pull/${ghprbPullId}/head
                     fi
                     git checkout -f ${ghprbActualCommit}
+                    rustup component add llvm-tools-preview
+                    cargo install grcov
                 """
 
                 def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
@@ -93,23 +90,28 @@ stage("Cover") {
                     source /opt/rh/devtoolset-8/enable
                 fi
 
-                env RUSTFLAGS="-Zinstrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test
+                env RUSTFLAGS="-Zinstrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test || true
                 """
 
-                sh label: 'Post-build: Upload coverage', script: """
+                sh label: 'Post-build: Generating coverage', script: """
                 cd \$HOME/tikv-src
-                curl -Os https://github.com/mozilla/grcov/releases/download/v0.8.2/grcov-linux-x86_64.tar.bz2
-                tar xf grcov-linux-x86_64.tar.bz2
-                ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "target/debug/*" -o lcov.info
-
-                curl -Os https://uploader.codecov.io/latest/linux/codecov
-                chmod +x codecov
-                if [[ "${ghprbPullId}" == 0 ]]; then
-                    ./codecov -f lcov.info -C ${ghprbActualCommit} -P ${ghprbPullId}
-                else
-                    ./codecov -f lcov.info -C ${ghprbActualCommit} -B ${ghprbTargetBranch}
-                fi
+                grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "target/debug/*" -o lcov.info
                 """
+
+                withCredentials([string(credentialsId: 'TIKV_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+                    timeout(180) {
+                        sh label: 'Post-build: Uploading coverage', script: """
+                        cd \$HOME/tikv-src
+                        curl -OLs https://uploader.codecov.io/latest/linux/codecov
+                        chmod +x codecov
+                        if [[ "${ghprbPullId}" == 0 ]]; then
+                            ./codecov -f lcov.info -C ${ghprbActualCommit} -B ${ghprbTargetBranch}
+                        else
+                            ./codecov -f lcov.info -C ${ghprbActualCommit} -P ${ghprbPullId}
+                        fi
+                        """
+                    }
+                }
             }
         }
     }
