@@ -87,53 +87,6 @@ try {
         
 
         builds = libs.create_builds(build_para)
-        
-        if (SKIP_TIFLASH == "false") {
-            builds["Build tiflash"] = {
-                stage("Build tiflash") {
-                    node("mac-i5") {
-                        dir("tics") {
-                            if (libs.check_file_exists(build_para, "tiflash")) {
-                                return
-                            }
-                            deleteDir()
-                            def target = "tiflash-${os}-${arch}"
-                            def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash-${os}-${arch}.tar.gz"
-                            retry(20) {
-                                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                    deleteDir()
-                                }
-                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 30], [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 60], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: '', shallow: true, threads: 8], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
-                            }
-                            sh """
-                            for a in \$(git tag --contains ${TIFLASH_HASH}); do echo \$a && git tag -d \$a;done
-                            git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
-                            git branch -D refs/tags/${RELEASE_TAG} || true
-                            git checkout -b refs/tags/${RELEASE_TAG}
-                            """
-                            sh """
-                            export GOPATH=/Users/pingcap/gopkg
-                            export PATH=/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:${GO_BIN_PATH}:/usr/local/opt/binutils/bin/
-                            mkdir -p release-darwin/build/
-                            [ -f "release-darwin/build/build-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-release.sh > release-darwin/build/build-release.sh
-                            [ -f "release-darwin/build/build-cluster-manager.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-cluster-manager.sh > release-darwin/build/build-cluster-manager.sh
-                            [ -f "release-darwin/build/build-tiflash-proxy.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-proxy.sh > release-darwin/build/build-tiflash-proxy.sh
-                            [ -f "release-darwin/build/build-tiflash-release.sh" ] || curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/tiflash/build-tiflash-release.sh > release-darwin/build/build-tiflash-release.sh
-                            chmod +x release-darwin/build/*
-                            ./release-darwin/build/build-release.sh
-                            ls -l ./release-darwin/tiflash/
-                            """
-                            sh """
-                            cd release-darwin
-                            tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz tiflash
-                            curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
 
         parallel builds
     }
