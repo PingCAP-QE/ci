@@ -83,96 +83,79 @@ def run_with_pod(Closure body) {
 catchError {
     run_with_pod() {
         stage('Prepare') {
+            container("golang") {
             def ws = pwd()
-            deleteDir()
+                deleteDir()
 
-            dir("${ws}/go/src/github.com/pingcap/tiflow") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tiflow"
-                    deleteDir()
-                }
-                try {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
-                } catch (info) {
-                    retry(2) {
-                        echo "checkout failed, retry.."
-                        sleep 5
-                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            deleteDir()
-                        }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
-                    }
-                }
-                sh "git checkout -f ${ghprbActualCommit}"
-            }
-
-            dir("${ws}/go/src/github.com/pingcap/ci") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                    deleteDir()
-                }
-                try {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                } catch (info) {
-                    retry(2) {
-                        echo "checkout failed, retry.."
-                        sleep 5
-                        if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                            deleteDir()
-                        }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                    }
-                }
-
-            }
-
-            stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
-        }
-
-        catchError {
-            stage("Unit Test") {
-                run_with_pod() {
-                    container("golang") {
-                        def ws = pwd()
+                dir("${ws}/go/src/github.com/pingcap/tiflow") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tiflow"
                         deleteDir()
-                        unstash 'ticdc'
-
-                        dir("go/src/github.com/pingcap/tiflow") {
-                            sh """
-                                rm -rf /tmp/tidb_cdc_test
-                                mkdir -p /tmp/tidb_cdc_test
-                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
-                                rm -rf cov_dir
-                                mkdir -p cov_dir
-                                ls /tmp/tidb_cdc_test
-                                cp /tmp/tidb_cdc_test/cov*out cov_dir
-                            """
-                            sh """
-                                tail /tmp/tidb_cdc_test/cov*
-                            """
-                        }
-                        stash includes: "go/src/github.com/pingcap/tiflow/cov_dir/**", name: "unit_test", useDefaultExcludes: false
                     }
+                    try {
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
+                    } catch (info) {
+                        retry(2) {
+                            echo "checkout failed, retry.."
+                            sleep 5
+                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                deleteDir()
+                            }
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
+                        }
+                    }
+                    sh "git checkout -f ${ghprbActualCommit}"
                 }
-            }
 
-            currentBuild.result = "SUCCESS"
+                dir("${ws}/go/src/github.com/pingcap/ci") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                        deleteDir()
+                    }
+                    try {
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
+                    } catch (info) {
+                        retry(2) {
+                            echo "checkout failed, retry.."
+                            sleep 5
+                            if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                                deleteDir()
+                            }
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
+                        }
+                    }
+
+                }
+
+                stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
+            }
         }
 
-        stage('Coverage') {
-            node("${GO_TEST_SLAVE}") {
+
+        stage("Unit Test") {
+            container("golang") {
                 def ws = pwd()
                 deleteDir()
                 unstash 'ticdc'
-                unstash 'unit_test'
 
                 dir("go/src/github.com/pingcap/tiflow") {
-                    container("golang") {
-                        archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-                        withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN')]) {
-                            timeout(30) {
-                                sh '''
+                    sh """
+                        rm -rf /tmp/tidb_cdc_test
+                        mkdir -p /tmp/tidb_cdc_test
+                        GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make test
+                        rm -rf cov_dir
+                        mkdir -p cov_dir
+                        ls /tmp/tidb_cdc_test
+                        cp /tmp/tidb_cdc_test/cov*out cov_dir
+                    """
+                    sh """
+                        tail /tmp/tidb_cdc_test/cov*
+                    """
+                    archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
+                    withCredentials([string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN')]) {
+                        timeout(30) {
+                            sh '''
                             rm -rf /tmp/tidb_cdc_test
                             mkdir -p /tmp/tidb_cdc_test
                             cp cov_dir/* /tmp/tidb_cdc_test
@@ -180,27 +163,12 @@ catchError {
                             BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make unit_test_coverage
                             set -x
                             '''
-                            }
                         }
                     }
                 }
             }
+            currentBuild.result = "SUCCESS"
         }
-
-        stage('Summary') {
-            def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-            def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-                    "${ghprbPullLink}" + "\n" +
-                    "${ghprbPullDescription}" + "\n" +
-                    "Unit Test Result: `${currentBuild.result}`" + "\n" +
-                    "Elapsed Time: `${duration} mins` " + "\n" +
-                    "${env.RUN_DISPLAY_URL}"
-
-            if (currentBuild.result != "SUCCESS") {
-                slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-            }
-        }
-
     }
 }
 
