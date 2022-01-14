@@ -67,6 +67,10 @@ def create_builds(build_para) {
         }
     }
 
+    builds["Build Tiflash"] = {
+        build_product(build_para, "tiflash")
+    }
+
     return builds
 }
 
@@ -89,9 +93,12 @@ def build_product(build_para, product) {
         repo = "tiflow"
     }
 
-
-
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (product == "tiflash") {
+        repo = "tics"
+        product = "tics"
+    }
+
     def paramsBuild = [
         string(name: "ARCH", value: arch),
         string(name: "OS", value: os),
