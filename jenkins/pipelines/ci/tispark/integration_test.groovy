@@ -87,7 +87,7 @@ m9 = null
 // parse test spark catalog
 def m10 = ghprbCommentBody =~ /test-spark-catalog\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m10) {
-    TEST_SPARK_CATALOG = "${m100[0][1]}"
+    TEST_SPARK_CATALOG = "${m10[0][1]}"
 }
 m10 = null
 
