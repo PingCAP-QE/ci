@@ -223,6 +223,7 @@ node("build_go1130") {
             def params1 = [
                     string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
                     string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                    string(name: "ORIGIN_TAG", value: ""),
                     string(name: "TIDB_VERSION", value: "${tidb_version}"),
                     string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
                     [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: true],
@@ -245,12 +246,6 @@ node("build_go1130") {
 
             stage("TiUP build lightning") {
                 build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
-            }
-
-            if (RELEASE_TAG != "nightly" && RELEASE_TAG < "v4.0.0") {
-                stage("TiUP build importer") {
-                    build(job: "importer-tiup-mirror-update-test", wait: true, parameters: params1)
-                }
             }
 
             stage("TiUP build tiflash") {

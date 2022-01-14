@@ -1,5 +1,5 @@
 FROM centos:centos7.9.2009
-RUN yum install tzdata bash curl socat
+RUN yum install -y tzdata bash curl socat
 COPY cdc /cdc
 EXPOSE 8300
 CMD [ "/cdc" ]

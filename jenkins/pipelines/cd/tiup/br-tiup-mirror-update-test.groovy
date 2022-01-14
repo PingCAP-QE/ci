@@ -74,31 +74,34 @@ node("build_go1130") {
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if (RELEASE_TAG == "nightly") {
-                    tag = "master"
+                tag = RELEASE_TAG
+                if(ORIGIN_TAG != "") {
+                    br_sha1 = ORIGIN_TAG
                 } else {
-                    tag = RELEASE_TAG
-                }
-
-                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
-                    br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                } else {
-                    br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    if (RELEASE_TAG >= "v5.2.0") {
+                        br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    } else {
+                        br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    }
                 }
             }
 
-            stage("tiup release br linux amd64") {
-                update "br", RELEASE_TAG, "linux", "amd64"
+            if (params.ARCH_X86) {
+                stage("tiup release br linux amd64") {
+                    update "br", RELEASE_TAG, "linux", "amd64"
+                }
             }
-
-            stage("tiup release br linux arm64") {
-                update "br", RELEASE_TAG, "linux", "arm64"
+            if (params.ARCH_ARM) {
+                stage("tiup release br linux arm64") {
+                    update "br", RELEASE_TAG, "linux", "arm64"
+                }
             }
-
-            stage("tiup release br darwin amd64") {
-                update "br", RELEASE_TAG, "darwin", "amd64"
+            if (params.ARCH_MAC) {
+                stage("tiup release br darwin amd64") {
+                    update "br", RELEASE_TAG, "darwin", "amd64"
+                }
             }
-            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            if (params.ARCH_MAC_ARM) {
                 stage("tiup release br darwin arm64") {
                     update "br", RELEASE_TAG, "darwin", "arm64"
                 }

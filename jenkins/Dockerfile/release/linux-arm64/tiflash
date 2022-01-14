@@ -1,4 +1,4 @@
-FROM hub.pingcap.net/jenkins/centos7_arm64:cached
+FROM hub.pingcap.net/tiflash/centos:7.9.2009-aarch64
 USER root
 WORKDIR /root/
 ENV HOME /root/
