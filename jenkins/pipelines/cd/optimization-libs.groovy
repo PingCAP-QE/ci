@@ -67,10 +67,8 @@ def create_builds(build_para) {
         }
     }
 
-    if (build_para["OS"] == "darwin") {
-        builds["Build Tiflash"] = {
-            build_product(build_para, "tiflash")
-        }
+    builds["Build Tiflash"] = {
+        build_product(build_para, "tiflash")
     }
 
     return builds
