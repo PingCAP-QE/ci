@@ -59,31 +59,34 @@ node("build_go1130") {
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if (RELEASE_TAG == "nightly") {
-                    tag = "master"
+                tag = RELEASE_TAG
+                if(ORIGIN_TAG != "") {
+                    ticdc_sha1 = ORIGIN_TAG
                 } else {
-                    tag = RELEASE_TAG
+                    ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
-
-                ticdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
             }
 
-            stage("TiUP build cdc on linux/amd64") {
-                update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "amd64"
+            if (params.ARCH_X86) {
+                stage("TiUP build cdc on linux/amd64") {
+                    update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "amd64"
+                }
             }
-
-            stage("TiUP build cdc on linux/arm64") {
-                update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "arm64"
+            if (params.ARCH_ARM) {
+                stage("TiUP build cdc on linux/arm64") {
+                    update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "arm64"
+                }
             }
-
-            stage("TiUP build cdc on darwin/amd64") {
-                update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
+            if (params.ARCH_MAC) {
+                stage("TiUP build cdc on darwin/amd64") {
+                    update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
+                }
             }
-            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            if (params.ARCH_MAC_ARM && RELEASE_TAG >="v5.1.0") {
                 stage("TiUP build cdc on darwin/arm64") {
                     update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "arm64"
                 }
-            }   
+            }
         }
     }
 }
