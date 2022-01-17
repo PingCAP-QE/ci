@@ -622,7 +622,7 @@ __EOF__
             }
 
             builds["Push tiflash Docker"] = {
-                libs.release_online_image("tics", tics_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tics", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
             builds["NG Monitoring Docker"] = {
@@ -631,7 +631,7 @@ __EOF__
 
             // TODO: refine monitoring
             builds["Push monitor initializer"] = {
-                libs.release_online_image("monitoring", tics_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("monitoring", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
                 build job: 'release-monitor',
                         wait: true,
                         parameters: [
