@@ -28,11 +28,14 @@ def get_hash = { hash_or_branch, repo ->
 env.DOCKER_HOST = "tcp://localhost:2375"
 
 ng_monitoring_sha1 = ""
+def libs
 catchError {
     stage('Prepare') {
         node('delivery') {
             container('delivery') {
                 dir('centos7') {
+                    checkout scm
+                    libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     if (STAGE != "build") {
                         if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
@@ -545,70 +548,22 @@ catchError {
                     push_binary(MINOR_RELEASE_TAG)
                 }
             }
-
+            def os = "linux"
+            def arch = "amd64"
+            def platform = "centos7"
             builds["Push tidb Docker"] = {
-                dir('tidb_docker_build') {
-                    sh """
-                        cp ../centos7/bin/tidb-server ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb
-                        mv tidb Dockerfile
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb:${RELEASE_TAG}", "tidb_docker_build").push()
-                }
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tidb:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tidb", tidb_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
             builds["Push tikv Docker"] = {
-                dir('tikv_docker_build') {
-                    sh """
-                        cp ../centos7/bin/tikv-server ./
-                        cp ../centos7/bin/tikv-ctl ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tikv
-                        mv tikv Dockerfile
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tikv:${RELEASE_TAG}", "tikv_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tikv:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tikv:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tikv:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
             builds["Push pd Docker"] = {
-                dir('pd_docker_build') {
-                    sh """
-                        cp ../centos7/bin/pd-server ./
-                        cp ../centos7/bin/pd-ctl ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/pd
-                        mv pd Dockerfile
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/pd:${RELEASE_TAG}", "pd_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/pd:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/pd:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/pd:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
+            // TODO: refine it when no longer need lightning
             builds["Push lightning Docker"] = {
                 dir('lightning_docker_build') {
                     sh """
@@ -651,117 +606,32 @@ __EOF__
             }
 
             builds["Push br Docker"] = {
-                dir('br_docker_build') {
-                    sh """
-                        cp ../centos7/bin/br ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY br /br
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/br:${RELEASE_TAG}", "br_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/br:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/br:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/br:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
             builds["Push dumpling Docker"] = {
-                dir('dumpling_docker_build') {
-                    sh """
-                        cp ../centos7/bin/dumpling ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY dumpling /dumpling
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/dumpling:${RELEASE_TAG}", "dumpling_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/dumpling:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/dumpling:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/dumpling:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
             builds["Push tidb-binlog Docker"] = {
-                dir('tidb_binlog_docker_build') {
-                    sh """
-                        cp ../centos7/bin/pump ./
-                        cp ../centos7/bin/drainer ./
-                        cp ../centos7/bin/reparo ./
-                        cp ../centos7/bin/binlogctl ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY pump /pump
-COPY drainer /drainer
-COPY reparo /reparo
-COPY binlogctl /binlogctl
-EXPOSE 4000
-EXPOSE 8249 8250
-CMD ["/pump"]
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tidb-binlog:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG)
             }
-//ticdc 编译，制作镜像，push
+
             builds["Push cdc Docker"] = {
-                build job: 'release_cdc_docker',
-                        wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'BUILD_TAG', value: "${RELEASE_TAG}"]]
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker pull registry-mirror.pingcap.net/pingcap/ticdc:${RELEASE_TAG}
-                        docker tag registry-mirror.pingcap.net/pingcap/ticdc:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG)
             }
-            // tiflash 上传二进制，制作上传镜像 
+
             builds["Push tiflash Docker"] = {
-                build job: 'release_tiflash_by_tag',
-                        wait: true,
-                        parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
-                        ]
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker pull registry-mirror.pingcap.net/pingcap/tiflash:${RELEASE_TAG}
-                        docker tag registry-mirror.pingcap.net/pingcap/tiflash:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
+            builds["NG Monitoring Docker"] = {
+                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            // TODO: refine monitoring
             builds["Push monitor initializer"] = {
+                libs.release_online_image("monitoring", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
                 build job: 'release-monitor',
                         wait: true,
                         parameters: [
