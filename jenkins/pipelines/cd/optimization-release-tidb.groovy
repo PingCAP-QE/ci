@@ -622,7 +622,7 @@ __EOF__
             }
 
             builds["Push tiflash Docker"] = {
-                libs.release_online_image("tics", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
             builds["NG Monitoring Docker"] = {
