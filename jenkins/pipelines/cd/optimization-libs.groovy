@@ -132,10 +132,9 @@ def release_online_image(product, sha1, arch,  os , platform,tag) {
     def imageName = product
     def repo = product
 
-    // TODO: maybe we should remove this
-    // if (repo == "monitoring") {
-    //     imageName = "tidb-monitor-initializer"
-    // }
+    if (repo == "monitoring") {
+        imageName = "tidb-monitor-initializer"
+    }
     if (arch == "arm64") {
         imageName = imageName + "-arm64"
     }

@@ -563,6 +563,7 @@ catchError {
                 libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
+            // TODO: refine it when no longer need lightning
             builds["Push lightning Docker"] = {
                 dir('lightning_docker_build') {
                     sh """
@@ -613,47 +614,24 @@ __EOF__
             }
 
             builds["Push tidb-binlog Docker"] = {
-                dir('tidb_binlog_docker_build') {
-                    sh """
-                        cp ../centos7/bin/pump ./
-                        cp ../centos7/bin/drainer ./
-                        cp ../centos7/bin/reparo ./
-                        cp ../centos7/bin/binlogctl ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY pump /pump
-COPY drainer /drainer
-COPY reparo /reparo
-COPY binlogctl /binlogctl
-EXPOSE 4000
-EXPOSE 8249 8250
-CMD ["/pump"]
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tidb-binlog:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG)
             }
-//ticdc 编译，制作镜像，push
+
             builds["Push cdc Docker"] = {
                 libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG)
             }
-            // tiflash 上传二进制，制作上传镜像 
+
             builds["Push tiflash Docker"] = {
                 libs.release_online_image("tics", tics_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
+            builds["NG Monitoring Docker"] = {
+                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            // TODO: refine monitoring
             builds["Push monitor initializer"] = {
+                libs.release_online_image("monitoring", tics_sha1, arch,  os , platform,RELEASE_TAG)
                 build job: 'release-monitor',
                         wait: true,
                         parameters: [
