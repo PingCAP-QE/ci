@@ -1,11 +1,8 @@
-echo "release test: ${params.containsKey("release_test")}"
-if (params.containsKey("release_test")) {
-    echo "release test: ${params.containsKey("release_test")}"
-    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
-    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
-    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tikv_commit)
-    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", 0)
-}
+properties([
+	pipelineTriggers([cron('H H * * *')])
+])
+
+def ghprbTargetBranch = params.getOrDefault("coverage_target_brach", "master")
 
 def notRun = 1
 
@@ -27,24 +24,6 @@ println "ci image use  hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:la
 
 
 try {
-stage("PreCheck") {
-    if (!params.force) {
-        node("${GO_BUILD_SLAVE}"){
-            container("golang") {
-                notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/coverage_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-            }
-        }
-    }
-
-    if (notRun == 0) {
-        println "the ${ghprbActualCommit} has been tested"
-        currentBuild.result = 'SUCCESS'
-        throw new RuntimeException("hasBeenTested")
-    }
-}
-
 stage("Cover") {
     def label="tikv_cached_${ghprbTargetBranch}_build"
     podTemplate(name: label, label: label,
@@ -62,17 +41,20 @@ stage("Cover") {
             container("rust") {
                 sh label: 'Prepare workspace', script: """
                     cd \$HOME/tikv-src
-                    if [[ "${ghprbPullId}" == 0 ]]; then
-                        git fetch origin
-                    else
-                        git fetch origin refs/pull/${ghprbPullId}/head
-                    fi
-                    git checkout -f ${ghprbActualCommit}
+                    git fetch origin
+                    git checkout -f origin/${ghprbTargetBranch}
                     rustup component add llvm-tools-preview
                     cargo install grcov
                 """
 
-                def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
+                def should_skip = sh (label: 'Check if can skip', script: """
+                cd \$HOME/tikv-src
+                if git log -1 | grep '\\[ci skip\\]'; then
+                    exit 0
+                fi
+                ghprbActualCommit=`git rev-parse HEAD`
+                curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/coverage_check/${JOB_NAME}/\$ghprbActualCommit
+                """, returnStatus: true)
                 if (should_skip == 0) {
                     throw new RuntimeException("ci skip")
                 }
@@ -104,30 +86,24 @@ stage("Cover") {
                         cd \$HOME/tikv-src
                         curl -OLs https://uploader.codecov.io/latest/linux/codecov
                         chmod +x codecov
-                        if [[ "${ghprbPullId}" == 0 ]]; then
-                            ./codecov -f lcov.info -C ${ghprbActualCommit} -B ${ghprbTargetBranch}
-                        else
-                            ./codecov -f lcov.info -C ${ghprbActualCommit} -P ${ghprbPullId}
-                        fi
+                        ghprbActualCommit=`git rev-parse HEAD`
+                        ./codecov -f lcov.info -C \$ghprbActualCommit -B ${ghprbTargetBranch}
                         """
                     }
                 }
+                
+                sh label: 'Mark coverage success', script: """
+                cd \$HOME/tikv-src
+                echo "done" > done
+                ghprbActualCommit=`git rev-parse HEAD`
+                curl -F coverage_check/${JOB_NAME}/\$ghprbActualCommit=@done ${FILE_SERVER_URL}/upload
+                """
             }
         }
     }
 }
 
 currentBuild.result = "SUCCESS"
-stage('Post-cover') {
-    node("${GO_BUILD_SLAVE}"){
-        container("golang"){
-            sh """
-            echo "done" > done
-            curl -F coverage_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-            """
-        }
-    }
-}
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {
@@ -137,35 +113,5 @@ stage('Post-cover') {
     } else {
         currentBuild.result = "FAILURE"
         echo "${e}"
-    }
-}
-
-if (params.containsKey("triggered_by_upstream_ci")) {
-    stage("update commit status") {
-        node("master") {
-            if (currentBuild.result == "ABORTED") {
-                PARAM_DESCRIPTION = 'Jenkins job aborted'
-                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
-                PARAM_STATUS = 'error'
-            } else if (currentBuild.result == "FAILURE") {
-                PARAM_DESCRIPTION = 'Jenkins job failed'
-                PARAM_STATUS = 'failure'
-            } else if (currentBuild.result == "SUCCESS") {
-                PARAM_DESCRIPTION = 'Jenkins job success'
-                PARAM_STATUS = 'success'
-            } else {
-                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
-                PARAM_STATUS = 'error'
-            }
-            def default_params = [
-                    string(name: 'TIKV_COMMIT_ID', value: ghprbActualCommit ),
-                    string(name: 'CONTEXT', value: 'idc-jenkins-ci/coverage'),
-                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
-                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
-                    string(name: 'STATUS', value: PARAM_STATUS ),
-            ]
-            echo("default params: ${default_params}")
-            build(job: "tikv_update_commit_status", parameters: default_params, wait: true)
-        }
     }
 }
