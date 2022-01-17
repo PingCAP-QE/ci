@@ -126,4 +126,35 @@ def build_product(build_para, product) {
         parameters: paramsBuild
 }
 
+def release_online_image(product, sha1, arch,  os , platform,tag) {
+    def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    def imageName = product
+    def repo = product
+
+    // TODO: maybe we should remove this
+    // if (repo == "monitoring") {
+    //     imageName = "tidb-monitor-initializer"
+    // }
+    if (arch == "arm64") {
+        imageName = imageName + "-arm64"
+    }
+
+    def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
+
+    def paramsDocker = [
+        string(name: "ARCH", value: arch),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: binary),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "RELEASE_TAG", value: RELEASE_TAG),
+        string(name: "DOCKERFILE", value: dockerfile),
+        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+    ]
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsDocker
+}
+
 return this
