@@ -84,7 +84,7 @@ stage("Cover") {
                     timeout(180) {
                         sh label: 'Post-build: Uploading coverage', script: """
                         cd \$HOME/tikv-src
-                        curl -OLs https://uploader.codecov.io/latest/linux/codecov
+                        curl -OLs ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                         chmod +x codecov
                         ghprbActualCommit=`git rev-parse HEAD`
                         ./codecov -f lcov.info -C \$ghprbActualCommit -B ${ghprbTargetBranch}
