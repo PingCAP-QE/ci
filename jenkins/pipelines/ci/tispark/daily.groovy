@@ -23,7 +23,7 @@ node("lightweight_pod") {
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
                                         booleanParam(name: 'daily_test', value: true),
                                         string(name: 'ghprbActualCommit', value: commitID),
-                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master profile=spark-3.0.0  test-spark-catalog=true"),
+                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master test-spark-catalog=true"),
                                 ],
                                 wait: true, propagate: true)
 
@@ -48,7 +48,7 @@ node("lightweight_pod") {
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
                                         booleanParam(name: 'daily_test', value: true),
                                         string(name: 'ghprbActualCommit', value: commitID),
-                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master profile=spark-3.0.0  test-spark-catalog=true"),
+                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master test-spark-catalog=true"),
                                 ],
                                 wait: true, propagate: true)
                     },
@@ -60,7 +60,7 @@ node("lightweight_pod") {
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
                                         booleanParam(name: 'daily_test', value: true),
                                         string(name: 'ghprbActualCommit', value: commitID),
-                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master profile=spark-3.1.1  test-spark-catalog=false"),
+                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master profile=spark-3.1.1 test-spark-catalog=false"),
                                 ],
                                 wait: true, propagate: true)
                     },
