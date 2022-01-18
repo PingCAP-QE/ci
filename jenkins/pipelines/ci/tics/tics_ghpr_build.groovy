@@ -158,8 +158,8 @@ podTemplate(name: loader, label: loader, instanceCap: 3, containers: [
 ]) {
     node(loader) {
         container('toolkit') {
-            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                if (sh(script: "inv resolve-dir --path .ci --repo pingcap/tics --commit ${params.ghprbActualCommit} --auth sre-bot:${TOKEN} && test -f build.groovy", returnStatus: true) == 0) {
+            withCredentials([string(credentialsId: 'ti-srebot', variable: 'TOKEN')]) {
+                if (sh(script: "inv resolve-dir --path .ci --repo pingcap/tics --commit ${params.ghprbActualCommit} --auth ti-srebot:${TOKEN} && test -f build.groovy", returnStatus: true) == 0) {
                     load 'build.groovy'
                 } else {
                     fallback()
