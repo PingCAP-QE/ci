@@ -17,7 +17,7 @@ node("lightweight_pod") {
         stage("Trigger job") {
             parallel(
                     test1: {
-                        println "tidb=master pd=master tiflash=master tikv=master profile=3.0  test-spark-catalog=yes"
+                        println "tidb=master pd=master tiflash=master tikv=master test-spark-catalog=true (spark:3.0.2)"
                         build(job: "tispark_ghpr_integration_test",
                                 parameters: [
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
@@ -30,31 +30,31 @@ node("lightweight_pod") {
                     },
 
                     test2: {
-                        println "tidb=master pd=master tiflash=master tikv=master profile=3.0  test-spark-catalog=no"
+                        println "tidb=master pd=master tiflash=master tikv=master test-spark-catalog=false (spark:3.0.2)"
                         build(job: "tispark_ghpr_integration_test",
                                 parameters: [
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
                                         booleanParam(name: 'daily_test', value: true),
                                         string(name: 'ghprbActualCommit', value: commitID),
-                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master profile=spark-3.1.1  test-spark-catalog=false"),
+                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master test-spark-catalog=false"),
                                 ],
                                 wait: true, propagate: true)
                     },
 
                     test3: {
-                        println "tidb=master pd=master tiflash=master tikv=master profile=3.1  test-spark-catalog=yes"
+                        println "tidb=master pd=master tiflash=master tikv=master profile=spark-3.1.1  test-spark-catalog=true"
                         build(job: "tispark_ghpr_integration_test",
                                 parameters: [
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
                                         booleanParam(name: 'daily_test', value: true),
                                         string(name: 'ghprbActualCommit', value: commitID),
-                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master test-spark-catalog=true"),
+                                        string(name: 'ghprbCommentBody', value: "tidb=master pd=master tiflash=master tikv=master profile=spark-3.1.1 test-spark-catalog=true"),
                                 ],
                                 wait: true, propagate: true)
                     },
 
                     test4: {
-                        println "tidb=master pd=master tiflash=master tikv=master profile=3.1  test-spark-catalog=no"
+                        println "tidb=master pd=master tiflash=master tikv=master profile=spark-3.1.1  test-spark-catalog=false"
                         build(job: "tispark_ghpr_integration_test",
                                 parameters: [
                                         string(name: 'triggered_by_upstream_ci', value: "daily-trigger-tispark"),
