@@ -33,6 +33,7 @@ CI_RUN_PART_TEST_CASES = """
     time timestamp_update tpcc transaction_isolation_func type 
     type_binary type_uint union update update_stmt variable 
     with_recursive with_recursive_bugs xd
+    index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans index_merge1
     """
 
 // remove test: temp_table
@@ -61,6 +62,7 @@ if (ghprbTargetBranch in ["release-5.2"]) {
     time timestamp_update tpcc transaction_isolation_func type 
     type_binary type_uint union update update_stmt variable 
     with_recursive with_recursive_bugs xd
+    index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans
     """
 }
 
@@ -90,6 +92,7 @@ if (ghprbTargetBranch in ["release-5.2"]) {
     time timestamp_update tpcc transaction_isolation_func type 
     type_binary type_uint union update update_stmt variable 
     with_recursive with_recursive_bugs xd
+    index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans
     """
 }
 
@@ -119,6 +122,7 @@ if (ghprbTargetBranch in ["release-5.2"]) {
     time timestamp_update tpcc transaction_isolation_func type 
     type_binary type_uint union update update_stmt variable 
     with_recursive with_recursive_bugs xd
+    index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans index_merge1
     """
 }
 
