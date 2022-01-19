@@ -37,58 +37,32 @@ catchError {
                     checkout scm
                     libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    if (STAGE != "build") {
-                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
-                            println "release must be used with tag."
-                            sh "exit 2"
-                        }
-                    }
+
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    if (STAGE == "build") {
-                        tidb_sha1 = get_hash(TIDB_TAG, "tidb")
-                        tikv_sha1 = get_hash(TIKV_TAG, "tikv")
-                        pd_sha1 = get_hash(PD_TAG, "pd")
-                        if (RELEASE_TAG >= "v5.2.0") {
-                            tidb_br_sha1 = get_hash(BR_TAG, "tidb")
-                        } else {
-                            tidb_br_sha1 = get_hash(BR_TAG, "br")
-                            importer_sha1 = get_hash(IMPORTER_TAG, "importer")
-                        }
-
-                        if (RELEASE_TAG >= "v5.3.0") {
-                            dumpling_sha1 = tidb_br_sha1
-                        } else {
-                            dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
-                        }
-
-                        tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
-                        tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")    
-                        cdc_sha1 = get_hash(CDC_TAG, "ticdc")
+                    
+                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    if (RELEASE_TAG >= "v5.2.0") {
+                        tidb_br_sha1 = tidb_sha1 
                     } else {
-                        tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
-                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-                        if (RELEASE_TAG >= "v5.2.0") {
-                            tidb_br_sha1 = tidb_sha1 
-                        } else {
-                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
-                            importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
-                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
-                        cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
+                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                        importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    }
+                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
 
-                        if (RELEASE_TAG >= "v5.3.0") {
-                            dumpling_sha1 = tidb_sha1
-                            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
-                        } else {
-                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
+                    if (RELEASE_TAG >= "v5.3.0") {
+                        dumpling_sha1 = tidb_sha1
+                        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    } else {
+                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     }
                     // lightning 从 4.0.12 开始和 br 的 hash 一样
                     tidb_lightning_sha1 = tidb_br_sha1
-                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
                 }
@@ -96,113 +70,7 @@ catchError {
         }
     }
 
-    stage('Build') {
-
-        builds = [:]
-        builds["Build on linux/arm64"] = {
-            build job: "optimization-build-tidb-linux-arm",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                    ]
-        }
-
-        builds["Build on darwin/amd64"] = {
-            build job: "optimization-build-tidb-darwin-amd",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                    ]
-        }
-        if (RELEASE_TAG >= "v5.1.0") {
-            builds["Build on darwin/arm64"] = {
-                build job: "optimization-build-tidb-darwin-arm",
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                        ]
-            }
-        }
-        def build_linux_amd = {
-            build job: "optimization-build-tidb-linux-amd",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                    ]
-        }
-        if (STAGE == "build") {
-            builds["Build on linux/amd64"] = build_linux_amd
-            parallel builds
-        }
-    }
-//    build stage return
-    if (STAGE == "build") {
-        return
-    }
+    
     node('delivery') {
         container("delivery") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
