@@ -1,5 +1,0 @@
-FROM centos:8
-RUN yum install -y curl
-COPY tidb-server /tidb-server
-EXPOSE 4000
-ENTRYPOINT ["/tidb-server"]
