@@ -260,7 +260,7 @@ node("build_go1130") {
                 build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
             }
 
-            if (RELEASE_TAG == "nightly") {
+            if (RELEASE_TAG == "v5.5.0-alpha") {
                 stage("TiUP build dm") {
                     build(job: "dm-tiup-mirror-update-test", wait: true, parameters: params1)
                 }
