@@ -410,11 +410,6 @@ catchError {
             builds["Push Centos7 Binary"] = {
                 def ws = pwd()
                 push_binary(RELEASE_TAG, ws)
-
-                // if the parameter MINOR_RELEASE_TAG is setting, will push minor release tag binary
-                if (MINOR_RELEASE_TAG != "" && MINOR_RELEASE_TAG != null && MINOR_RELEASE_TAG != RELEASE_TAG) {
-                    push_binary(MINOR_RELEASE_TAG)
-                }
             }
             def os = "linux"
             def arch = "amd64"
