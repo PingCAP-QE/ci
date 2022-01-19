@@ -1,28 +1,8 @@
 /*
-* @TIDB_TAG
-* @TIKV_TAG
-* @PD_TAG
-* @BINLOG_TAG
-* @TIFLASH_TAG
-* @IMPORTER_TAG
-* @BR_TAG
-* @CDC_TAG
-* @DUMPLING_TAG
-* @MINOR_RELEASE_TAG
 * @RELEASE_TAG
-* @RELEASE_LATEST
-* @SKIP_TIFLASH
-* @STAGE
-* @FORCE_REBUILD
-* @TIKV_PRID
+* @RELEASE_BRANCH
 */
 
-def get_hash = { hash_or_branch, repo ->
-    if (hash_or_branch.length() == 40) {
-        return hash_or_branch
-    }
-    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
-}
 
 
 env.DOCKER_HOST = "tcp://localhost:2375"
@@ -60,7 +40,7 @@ catchError {
                     } else {
                         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     }
-                    // lightning 从 4.0.12 开始和 br 的 hash 一样
+
                     tidb_lightning_sha1 = tidb_br_sha1
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
