@@ -1,228 +1,209 @@
 def label = "build-tiflash-release"
 def slackcolor = 'good'
-
-// properties([
-//         parameters([
-//                 string(name: 'BUILD_BRANCH', defaultValue: 'master', description: '', trim: true),
-//         ])
-// ])
+githash = null
 
 def checkoutTiCS(branch) {
+    refSpec = "+refs/heads/*:refs/remotes/origin/*"
     if (branch.startsWith("refs/tags")) {
-        checkout(changelog: false, poll: true, scm: [
-                $class                           : "GitSCM",
-                branches                         : [
-                        [name: "${branch}"],
-                ],
-                userRemoteConfigs                : [
-                        [
-                                url          : "git@github.com:pingcap/tics.git",
-                                refspec      : "+${branch}:${branch}",
-                                credentialsId: "github-sre-bot-ssh",
-                        ]
-                ],
-                extensions                       : [
-                        [$class             : 'SubmoduleOption',
-                         disableSubmodules  : false,
-                         parentCredentials  : true,
-                         recursiveSubmodules: true,
-                         trackingSubmodules : false,
-                         reference          : ''],
-                        [$class: 'PruneStaleBranch'],
-                        [$class: 'CleanBeforeCheckout'],
-                        [$class: 'LocalBranch'],
-                        [$class: 'CloneOption', noTags: true, timeout: 60]
-                ],
-                doGenerateSubmoduleConfigurations: false,
-        ])
-    } else {
-        checkout(changelog: false, poll: true, scm: [
-                $class                           : "GitSCM",
-                branches                         : [
-                        [name: "${branch}"],
-                ],
-                userRemoteConfigs                : [
-                        [
-                                url          : "git@github.com:pingcap/tics.git",
-                                refspec      : "+refs/heads/*:refs/remotes/origin/*",
-                                credentialsId: "github-sre-bot-ssh",
-                        ]
-                ],
-                extensions                       : [
-                        [$class             : 'SubmoduleOption',
-                         disableSubmodules  : false,
-                         parentCredentials  : true,
-                         recursiveSubmodules: true,
-                         trackingSubmodules : false,
-                         reference          : ''],
-                        [$class: 'PruneStaleBranch'],
-                        [$class: 'CleanBeforeCheckout'],
-                        [$class: 'LocalBranch']
-                ],
-                doGenerateSubmoduleConfigurations: false,
-        ])
+        refSpec = "+${branch}:${branch}"
     }
+
+    checkout(changelog: false, poll: true, scm: [
+            $class                           : "GitSCM",
+            branches                         : [
+                    [name: "${branch}"],
+            ],
+            userRemoteConfigs                : [
+                    [
+                            url          : "git@github.com:pingcap/tics.git",
+                            refspec      : refSpec,
+                            credentialsId: "github-sre-bot-ssh",
+                    ]
+            ],
+            extensions                       : [
+                    [$class             : 'SubmoduleOption',
+                     disableSubmodules  : false,
+                     parentCredentials  : true,
+                     recursiveSubmodules: true,
+                     trackingSubmodules : false,
+                     reference          : ''],
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'LocalBranch']
+            ],
+            doGenerateSubmoduleConfigurations: false,
+    ])
 }
 
+stage("Checkout") {
+    node("${GO_TEST_SLAVE}") {
+        def ws = pwd()
+        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-def buildTiflash(mode) {
-    def githash = null
-    dir("tics") {
-        def ws=pwd()
+        // 如果不是 TAG，直接传入 branch_name ； 否则就应该 checkout 到 refs/tags 下
+        def target_branch = (env.TAG_NAME == null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
+        println target_branch
 
-        stage("Checkout") {
-            container("builder") {
-                sh "rm -rf ./*"
-            }
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-            container("docker") {
-                sh "chown -R 1000:1000 ./"
-            }
-            // 如果不是 TAG，直接传入 branch_name ； 否则就应该 checkout 到 refs/tags 下
-            def target_branch = (env.TAG_NAME == null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
-            println target_branch
-
-            dir("/home/jenkins/agent/code-archive") {
-                // delete to clean workspace in case of agent pod reused lead to conflict.
-                deleteDir()
-                // copy code from nfs cache
-                container("builder") {
-                    if(fileExists("/nfs/cache/git-test/src-tics.tar.gz")){
-                        timeout(5) {
-                            sh """
-                            cp -R /nfs/cache/git-test/src-tics.tar.gz*  ./
-                            tar -xzf src-tics.tar.gz -C ${ws} --strip-components=1
-                        """
-                        }
-                    }
-                }
-                dir("${ws}") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}"
-                        echo "Clean dir then get tidb src code from fileserver"
-                        deleteDir()
-                    }
-                    checkoutTiCS(target_branch)
+        dir("/home/jenkins/agent/code-archive") {
+            // delete to clean workspace in case of agent pod reused lead to conflict.
+            deleteDir()
+            // copy code from nfs cache
+            container("golang") {
+                def repoDailyCache = "/nfs/cache/git/src-tics.tar.gz"
+                if (fileExists(repoDailyCache)) {
+                    println "get code from nfs to reduce clone time"
                     sh """
+                    cp -R ${repoDailyCache}  ./
+                    mkdir -p ${ws}/tics
+                    tar -xzf src-tics.tar.gz -C ${ws}/tics --strip-components=1
+                    """
+                }
+            }
+            dir("${ws}/tics") {
+                checkoutTiCS(target_branch)
+                sh """
                     git branch
                     git symbolic-ref --short HEAD
-                    """
-                    githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                }
+                """
+                githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
         }
+    }
 
-        stage("Build") {
-            timeout(120) {
-                container("builder") {
-                    if (env.TAG_NAME == null && mode != "nightly") {
-                        // merge
-                        // using this script will not build tiflash proxy which should be much faster
-                        sh "NPROC=12 CMAKE_BUILD_TYPE=RELWITHDEBINFO release-centos7/build/build-tiflash-ci.sh"
-                    } else {
-                        // release
-                        sh "NPROC=12 release-centos7/build/build-release.sh"
-                        sh "ls release-centos7/build-release/"
-                        sh "ls release-centos7/tiflash/"
-                    }
-                }
-            }
-        }
-        stage("Upload") {
-            container("builder") {
-                // 用 sha1 标志 branch 上最新的 commit ID，看以此去获取 tarball 的路径
-                def refspath = "refs/pingcap/tics/${env.BRANCH_NAME}/sha1"
-                def refspath1 = "refs/pingcap/tiflash/${env.BRANCH_NAME}/sha1"
-                def filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz"
-                if (mode == "nightly") {
-                    filepath = "builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz"
-                }
-                sh """
-                        cd release-centos7/
-                        tar -czvf tiflash.tar.gz tiflash
-                        echo "${githash}" > sha1
+}
 
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                        curl -F ${refspath1}=@sha1 ${FILE_SERVER_URL}/upload
-                        curl -F ${filepath}=@tiflash.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-            }
-            container("docker") {
-                if (env.TAG_NAME == null && mode != "nightly") {
-                    // merge
-                    sh """
-                            cd release-centos7
-                            while ! make image_tiflash_ci ;do echo "fail @ `date "+%Y-%m-%d %H:%M:%S"`"; sleep 60; done
-                            """
-                    docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-                        sh """
-                                docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tiflash:${env.BRANCH_NAME}
-                                docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tics:${env.BRANCH_NAME}
-                                docker push hub.pingcap.net/tiflash/tiflash:${env.BRANCH_NAME}
-                                docker push hub.pingcap.net/tiflash/tics:${env.BRANCH_NAME}
-                                """
-                    }
-                } else {
-                    // release
-                    sh """
-                            cd release-centos7
-                            while ! make image_tiflash_release ;do echo "fail @ `date "+%Y-%m-%d %H:%M:%S"`"; sleep 60; done
-                            """
-                    docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-                        if(mode=="nightly"){
-//                            sh """
-//                                docker tag hub.pingcap.net/tiflash/tiflash-server-centos7 hub.pingcap.net/release/tiflash/tiflash:${env.BRANCH_NAME}
-//                                docker tag hub.pingcap.net/tiflash/tiflash-server-centos7 hub.pingcap.net/release/tiflash/tics:${env.BRANCH_NAME}
-//                                docker push hub.pingcap.net/release/tiflash/tiflash:${env.BRANCH_NAME}
-//                                docker push hub.pingcap.net/release/tiflash/tics:${env.BRANCH_NAME}
-//                                """
-                        }else{
-                            sh """
-                                docker tag hub.pingcap.net/tiflash/tiflash-server-centos7 hub.pingcap.net/tiflash/tiflash:${env.BRANCH_NAME}
-                                docker tag hub.pingcap.net/tiflash/tiflash-server-centos7 hub.pingcap.net/tiflash/tics:${env.BRANCH_NAME}
-                                docker push hub.pingcap.net/tiflash/tiflash:${env.BRANCH_NAME}
-                                docker push hub.pingcap.net/tiflash/tics:${env.BRANCH_NAME}
-                                """
-                        }
-                    }
-                }
-            }
-        }
+def release_arm64(repo,hash) {
+    def filepath = "builds/pingcap/test/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
+    echo "release file path: ${FILE_SERVER_URL}/download/${filepath}"
+    def paramsBuild = [
+        string(name: "ARCH", value: "arm64"),
+        string(name: "OS", value: "linux"),
+        string(name: "EDITION", value: "community"),
+        string(name: "OUTPUT_BINARY", value: filepath),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "GIT_HASH", value: hash),
+        string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
+        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+    ]
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
+def release_amd64(repo,hash,mode) {
+    def filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
+
+    if (mode == "nightly") {
+        filepath = "builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
+    }
+
+    echo "release filepath: ${FILE_SERVER_URL}/download/${filepath}"
+
+    def update_cache = false
+
+    if (env.TAG_NAME == null && mode != "nightly") {
+        update_cache = true
+    }
+
+    def paramsBuild = [
+        string(name: "ARCH", value: "amd64"),
+        string(name: "OS", value: "linux"),
+        string(name: "EDITION", value: "community"),
+        string(name: "OUTPUT_BINARY", value: filepath),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "GIT_HASH", value: hash),
+        string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
+        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+        [$class: 'BooleanParameterValue', name: 'UPDATE_TIFLASH_CACHE', value: update_cache],
+    ]
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
+def docker_amd64(repo, hash, mode) {
+    def filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
+
+    if (mode == "nightly") {
+        filepath = "builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
+    }
+
+    echo "input filepath: ${FILE_SERVER_URL}/download/${filepath}"
+
+    def release_tag = null
+
+    if (mode == "nightly") {
+        release_tag = nightly
+    } else if (env.TAG_NAME != null) {
+        release_tag = env.TAG_NAME
+    } else {
+        release_tag = ""
+    }
+
+    def paramsBuild = [
+        string(name: "ARCH", value: "amd64"),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: filepath),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "RELEASE_TAG", value: release_tag),
+        string(name: "DOCKERFILE", value: "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tiflash"),
+        string(name: "RELEASE_DOCKER_IMAGES", value: "hub.pingcap.net/tiflash/tiflash:${env.BRANCH_NAME},hub.pingcap.net/tiflash/tics:${env.BRANCH_NAME}")
+    ]
+
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsBuild
+}
+
+def run_pipeline_amd64(repo, hash, mode) {
+    stage("Build") {
+        release_amd64(repo, hash, mode)
+    }
+    stage("Docker") {
+        docker_amd64(repo, hash, mode)
     }
 }
 
-
 try {
-    podTemplate(name: label, label: label,
-            nodeSelector: 'role_type=slave',
-            instanceCap: 5,workspaceVolume: emptyDirWorkspaceVolume(memory: true),
-            containers: [
-                    containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-                    containerTemplate(name: 'docker', image: 'hub.pingcap.net/zyguan/docker:build-essential',
-                            alwaysPullImage: false, envVars: [
-                            envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-                    ], ttyEnabled: true, command: 'cat'),
-                    containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-builder',
-                            alwaysPullImage: true, ttyEnabled: true, privileged: true, command: 'cat',
-                            resourceRequestCpu: '12000m', resourceRequestMemory: '20Gi',
-                            resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
-            ]) {
-        parallel(
-                "nightly build": {
-                    if ("master" == "${env.BRANCH_NAME}") {
-                        node(label) {
-                            buildTiflash("nightly")
-                        }
-                    }
-                },
-                "normal build": {
-                    node(label) {
-                        buildTiflash("normal")
-                    }
-                }
-        )
-    }
+    parallel(
+        "nightly build": {
+            if ("master" == "${env.BRANCH_NAME}") {
+                run_pipeline_amd64("tics", "${githash}", "nightly")
+            }
+        },
+        "normal build": {
+            run_pipeline_amd64("tics", "${githash}", "normal")
+        },
+        "arm build": {
+            release_arm64("tics", "${githash}")
+        }
+    )
     currentBuild.result = "SUCCESS"
+    stage("Update sha1") {
+        node("${GO_TEST_SLAVE}") {
+            container("golang") {
+                println "githash=${githash}"
+                if (githash != null && !githash.isEmpty()) {
+                    echo "all build success, update sha1 now..."
+                    // 用 sha1 标志 branch 上最新的 commit ID，以此去获取 tarball 的路径
+                    def refspath = "refs/pingcap/tics/${env.BRANCH_NAME}/sha1"
+                    def refspath1 = "refs/pingcap/tiflash/${env.BRANCH_NAME}/sha1"
+                    sh """
+                    echo "${githash}" > sha1
+                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                    curl -F ${refspath1}=@sha1 ${FILE_SERVER_URL}/upload
+                    """
+                } else {
+                    echo 'invalid gitHash, mark this build as failed'
+                    currentBuild.result = 'FAILURE'
+                    slackcolor = 'danger'
+                }
+            }
+        }
+    }
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
@@ -237,9 +218,31 @@ stage('Summary') {
 
     echo "${msg}"
 
-    def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
     if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#tiflash-dev', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-        slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+        stage("sendLarkMessage") {
+            def result_mark = "❌"
+            def feishumsg = "build_tiflash_multi_branch\\n" +
+                    "Build Number: ${env.BUILD_NUMBER}\\n" +
+                    "Result: ${currentBuild.result} ${result_mark}\\n" +
+                    "Branch: ${env.BRANCH_NAME}\\n" +
+                    "Git Hash: ${githash}\\n" +
+                    "Elapsed Time: ${duration} Mins\\n" +
+                    "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build_tiflash_multi_branch/detail/master/${env.BUILD_NUMBER}/pipeline\\n" +
+                    "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build_tiflash_multi_branch/activity/"
+            print feishumsg
+            node("master") {
+                withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                    sh """
+                      curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                      -d '{
+                        "msg_type": "text",
+                        "content": {
+                          "text": "$feishumsg"
+                        }
+                      }'
+                    """
+                }
+            }
+        }
     }
 }
