@@ -35,8 +35,8 @@ try {
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
+                    tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
 
                     sh """
                 echo ${tidb_sha1} > sha1
