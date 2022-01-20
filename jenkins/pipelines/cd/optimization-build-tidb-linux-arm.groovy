@@ -40,7 +40,6 @@ arch = "arm64"
 platform = "centos7"
 def libs
 
-def TIDB_CTL_HASH = "master"
 
 try {
     stage("Validating HASH") {

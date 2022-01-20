@@ -39,7 +39,6 @@ def slackcolor = 'good'
 os = "darwin"
 arch = "arm64"
 platform = "${os}-${arch}"
-def TIDB_CTL_HASH = "master"
 
 def libs
 
