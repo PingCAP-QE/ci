@@ -2,74 +2,13 @@ def label = "build-tiflash-release"
 def slackcolor = 'good'
 githash = null
 
-def checkoutTiCS(branch) {
-    refSpec = "+refs/heads/*:refs/remotes/origin/*"
-    if (branch.startsWith("refs/tags")) {
-        refSpec = "+${branch}:${branch}"
-    }
-
-    checkout(changelog: false, poll: true, scm: [
-            $class                           : "GitSCM",
-            branches                         : [
-                    [name: "${branch}"],
-            ],
-            userRemoteConfigs                : [
-                    [
-                            url          : "git@github.com:pingcap/tics.git",
-                            refspec      : refSpec,
-                            credentialsId: "github-sre-bot-ssh",
-                    ]
-            ],
-            extensions                       : [
-                    [$class             : 'SubmoduleOption',
-                     disableSubmodules  : false,
-                     parentCredentials  : true,
-                     recursiveSubmodules: true,
-                     trackingSubmodules : false,
-                     reference          : ''],
-                    [$class: 'PruneStaleBranch'],
-                    [$class: 'CleanBeforeCheckout'],
-                    [$class: 'LocalBranch']
-            ],
-            doGenerateSubmoduleConfigurations: false,
-    ])
-}
-
-stage("Checkout") {
+stage("Get Hash") {
     node("${GO_TEST_SLAVE}") {
-        def ws = pwd()
-        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
-        // 如果不是 TAG，直接传入 branch_name ； 否则就应该 checkout 到 refs/tags 下
         def target_branch = (env.TAG_NAME == null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
-        println target_branch
-
-        dir("/home/jenkins/agent/code-archive") {
-            // delete to clean workspace in case of agent pod reused lead to conflict.
-            deleteDir()
-            // copy code from nfs cache
-            container("golang") {
-                def repoDailyCache = "/nfs/cache/git/src-tics.tar.gz"
-                if (fileExists(repoDailyCache)) {
-                    println "get code from nfs to reduce clone time"
-                    sh """
-                    cp -R ${repoDailyCache}  ./
-                    mkdir -p ${ws}/tics
-                    tar -xzf src-tics.tar.gz -C ${ws}/tics --strip-components=1
-                    """
-                }
-            }
-            dir("${ws}/tics") {
-                checkoutTiCS(target_branch)
-                sh """
-                    git branch
-                    git symbolic-ref --short HEAD
-                """
-                githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-            }
-        }
+        echo "Target Branch: ${target_branch}"
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+        githash = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
     }
-
 }
 
 def release_arm64(repo,hash) {
