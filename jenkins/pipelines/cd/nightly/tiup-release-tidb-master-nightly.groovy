@@ -28,13 +28,13 @@ try {
                 stage("Get hash") {
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
 
