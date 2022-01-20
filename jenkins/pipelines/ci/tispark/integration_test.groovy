@@ -259,7 +259,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                     """
                     sh """
                         export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=512M"
-                        mvn clean package -DskipTests
+                        mvn clean package ${MVN_PROFILE} -DskipTests
                         mvn test ${MVN_PROFILE} -Dtest=moo ${mvnStr}
                     """
                 }
