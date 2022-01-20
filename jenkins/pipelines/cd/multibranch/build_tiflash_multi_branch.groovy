@@ -11,25 +11,6 @@ stage("Get Hash") {
     }
 }
 
-def release_arm64(repo,hash) {
-    def filepath = "builds/pingcap/test/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
-    echo "release file path: ${FILE_SERVER_URL}/download/${filepath}"
-    def paramsBuild = [
-        string(name: "ARCH", value: "arm64"),
-        string(name: "OS", value: "linux"),
-        string(name: "EDITION", value: "community"),
-        string(name: "OUTPUT_BINARY", value: filepath),
-        string(name: "REPO", value: repo),
-        string(name: "PRODUCT", value: repo),
-        string(name: "GIT_HASH", value: hash),
-        string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
-        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
-    ]
-    build job: "build-common",
-            wait: true,
-            parameters: paramsBuild
-}
-
 def release_amd64(repo,hash,mode) {
     def filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
 
@@ -62,20 +43,14 @@ def release_amd64(repo,hash,mode) {
             parameters: paramsBuild
 }
 
-def docker_amd64(repo, hash, mode) {
+def docker_amd64(repo, hash) {
     def filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
-
-    if (mode == "nightly") {
-        filepath = "builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
-    }
 
     echo "input filepath: ${FILE_SERVER_URL}/download/${filepath}"
 
     def release_tag = null
 
-    if (mode == "nightly") {
-        release_tag = nightly
-    } else if (env.TAG_NAME != null) {
+    if (env.TAG_NAME != null) {
         release_tag = env.TAG_NAME
     } else {
         release_tag = ""
@@ -97,30 +72,24 @@ def docker_amd64(repo, hash, mode) {
             parameters: paramsBuild
 }
 
-def run_pipeline_amd64(repo, hash, mode) {
-    stage("Build") {
-        release_amd64(repo, hash, mode)
-    }
-    stage("Docker") {
-        docker_amd64(repo, hash, mode)
-    }
-}
-
 try {
     parallel(
         "nightly build": {
             if ("master" == "${env.BRANCH_NAME}") {
-                run_pipeline_amd64("tics", "${githash}", "nightly")
+                release_amd64("tics", "${githash}", "nightly")
             }
         },
         "normal build": {
-            run_pipeline_amd64("tics", "${githash}", "normal")
+            release_amd64("tics", "${githash}", "normal")
         },
-        "arm build": {
-            release_arm64("tics", "${githash}")
-        }
     )
+
+    stage("Docker") {
+        docker_amd64("tics", "${githash}")
+    }
+
     currentBuild.result = "SUCCESS"
+
     stage("Update sha1") {
         node("${GO_TEST_SLAVE}") {
             container("golang") {
