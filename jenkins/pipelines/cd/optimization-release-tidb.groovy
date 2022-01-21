@@ -557,6 +557,10 @@ __EOF__
                 libs.release_online_arm_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG)
             }
 
+            stage("Push arm images") {
+                parallel build_arms
+            }
+
             stage("Publish arm64 docker images") {
                 build job: 'build-arm-image',
                         wait: true,
