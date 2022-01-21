@@ -1,4 +1,4 @@
-def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/jenkins-pipelines/jenkins/Dockerfile/release/"
+def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/"
 node("arm_image") {
    dir("go/src/github.com/pingcap/monitoring") {
        stage("prepare monitor") {
@@ -33,8 +33,8 @@ node("arm_image") {
                sh """
                export DOCKER_HOST=unix:///var/run/docker.sock
                cd reload
-               wget ${baseUrl}tidb-monitor-reloader-arm64
-               docker build  -t pingcap/tidb-monitor-reloader-arm64:v1.0.1 -f tidb-monitor-reloader-arm64 .
+               wget ${baseUrl}tidb-monitor-reloader
+               docker build  -t pingcap/tidb-monitor-reloader-arm64:v1.0.1 -f tidb-monitor-reloader .
                docker push pingcap/tidb-monitor-reloader-arm64:v1.0.1
                """
            }
