@@ -119,7 +119,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
         containerTemplate(name: 'java', image: 'hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached',
                 resourceRequestCpu: '4000m',
-                resourceRequestMemory: '8Gi',
+                resourceRequestMemory: '12Gi',
                 envVars: [
                         envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
