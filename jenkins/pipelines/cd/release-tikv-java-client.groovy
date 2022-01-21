@@ -10,8 +10,9 @@ pipeline {
         maven "Maven"
     }
 
-    // 变量
+    // 环境变量
     environment {
+        // Nexus配置
         NEXUS_VERSION = "nexus2"
         NEXUS_PROTOCOL = "https"
         NEXUS_URL = "oss.sonatype.org"
@@ -19,6 +20,7 @@ pipeline {
         NEXUS_REPOSITORY = "snapshots"
         NEXUS_CREDENTIAL_ID = "ossrh"
 
+        // Git配置
         GIT_CREDENTIAL_ID = "github-sre-bot-ssh"
         GIT_REPO_SSH_URL = "git@github.com:tikv/client-java.git"
     }
@@ -28,9 +30,11 @@ pipeline {
         stage("Clone Code") {
             steps {
                 script {
-                    git branch: BRANCH,
+                    git(
+                        branch: BRANCH,
                         credentialsId: GIT_CREDENTIAL_ID,
                         url: GIT_REPO_SSH_URL
+                    );
                 }
             }
         }
