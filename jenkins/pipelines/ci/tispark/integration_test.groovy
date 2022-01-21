@@ -52,7 +52,9 @@ println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
 // parse mvn profile
 def m5 = ghprbCommentBody =~ /profile\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m5) {
-    MVN_PROFILE = MVN_PROFILE + " -P${m5[0][1]}"
+    for (int i = 0 ; i < m5.groupCount(); i++) {
+        MVN_PROFILE = MVN_PROFILE + " -P${m5[i][1]}"
+    }
 }
 m5 = null
 
