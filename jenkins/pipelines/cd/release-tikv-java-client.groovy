@@ -16,7 +16,7 @@ pipeline {
         NEXUS_PROTOCOL = "https"
         NEXUS_URL = "oss.sonatype.org"
         // NEXUS_REPOSITORY = "Releases"
-        NEXUS_REPOSITORY = "Snapshots"
+        NEXUS_REPOSITORY = "snapshots"
         NEXUS_CREDENTIAL_ID = "ossrh"
     }
     
