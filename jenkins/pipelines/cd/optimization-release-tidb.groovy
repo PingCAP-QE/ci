@@ -474,7 +474,6 @@ __EOF__
 
             // TODO: refine monitoring
             builds["Push monitor initializer"] = {
-                libs.release_online_image("monitoring", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
                 build job: 'release-monitor',
                         wait: true,
                         parameters: [
@@ -583,34 +582,4 @@ __EOF__
     }
 
     currentBuild.result = "SUCCESS"
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[${env.JOB_NAME.replaceAll('%2F', '/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration}` Mins" + "\n" +
-            "tidb Version: `${RELEASE_TAG}`, Githash: `${tidb_sha1.take(7)}`" + "\n" +
-            "tikv Version: `${RELEASE_TAG}`, Githash: `${tikv_sha1.take(7)}`" + "\n" +
-            "pd   Version: `${RELEASE_TAG}`, Githash: `${pd_sha1.take(7)}`" + "\n" +
-            "tidb-lightning   Version: `${RELEASE_TAG}`, Githash: `${tidb_lightning_sha1.take(7)}`" + "\n" +
-            "tidb_binlog   Version: `${RELEASE_TAG}`, Githash: `${tidb_binlog_sha1.take(7)}`" + "\n" +
-            "TiDB Binary Download URL:" + "\n" +
-            "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-            "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-            "TiDB Binary sha256   URL:" + "\n" +
-            "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-            "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-            "tidb Docker Image: `pingcap/tidb:${RELEASE_TAG}`" + "\n" +
-            "pd   Docker Image: `pingcap/pd:${RELEASE_TAG}`" + "\n" +
-            "tikv Docker Image: `pingcap/tikv:${RELEASE_TAG}`" + "\n" +
-            "tidb-lightning Docker Image: `pingcap/tidb-lightning:${RELEASE_TAG}`" + "\n" +
-            "tidb-binlog Docker Image: `pingcap/tidb-binlog:${RELEASE_TAG}`"
-
-    if (currentBuild.result == "SUCCESS") {
-        slackSend channel: '#binary_publish', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-    // if (currentBuild.result != "SUCCESS") {
-    //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    // }
 }
