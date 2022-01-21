@@ -121,24 +121,6 @@ node("lightweight_pod") {
             )
 
             parallel(
-                    test17: {
-                        test(commitID2,"tidb=v4.0.16  pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 test-spark-catalog=true")
-                    },
-
-                    test18: {
-                        test(commitID2,"tidb=v4.0.16  pd=v4.0.16  tiflash=v4.0.16 tikv=v4.0.16 test-spark-catalog=false")
-                    },
-
-                    test19: {
-                        test(commitID2,"tidb=v4.0.16  pd=v4.0.16  tiflash=v4.0.16 tikv=v4.0.16 profile=spark-3.1.1 test-spark-catalog=true")
-                    },
-
-                    test20: {
-                        test(commitID2,"tidb=v4.0.16  pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=spark-3.1.1 test-spark-catalog=false")
-                    },
-            )
-
-            parallel(
                     test21: {
                         test(commitID2,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.11 profile=spark-2.3")
                     },
