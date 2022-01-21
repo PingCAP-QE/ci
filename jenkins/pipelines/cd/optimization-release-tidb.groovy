@@ -495,17 +495,6 @@ __EOF__
                         wait: true,
                         parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
             }
-            
-            // 这一步显得没有必要
-            // builds["Push monitor reloader"] = {
-            //     docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-            //         sh """
-            //             docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1 uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
-            //         """
-            //     }
-            // }
 
             stage("Push tarbll/image") {
                 parallel builds
@@ -564,16 +553,6 @@ __EOF__
                 build job: 'build-arm-image',
                         wait: true,
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIKV_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'PD_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'BR_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'CDC_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]          
