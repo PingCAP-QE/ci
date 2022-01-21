@@ -10,6 +10,15 @@ def cdc_githash, lightning_githash
 def taskStartTimeInMillis = System.currentTimeMillis()
 def RELEASE_BRANCH = "master"
 
+def OS_LINUX = "linux"
+def OS_DARWIN = "darwin"
+def ARM64 = "arm64"
+def AMD64 = "amd64"
+def PLATFORM_CENTOS = "centos7"
+def PLATFORM_DARWIN = "darwin"
+def PLATFORM_DARWINARM = "darwin-arm64"
+
+
 def FORCE_REBUILD = false
 
 try {
@@ -83,7 +92,7 @@ try {
         stage("Build") {
             def builds = [:]
             builds["Build on linux/arm64"] = {
-                build job: "optimization-build-tidb-linux-arm",
+                build job: "optimization-build-tidb",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
@@ -100,11 +109,14 @@ try {
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
+                                [$class: 'StringParameterValue', name: 'ARCH', value: ARM64],
+                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
                         ]
             }
 
             builds["Build on darwin/amd64"] = {
-                build job: "optimization-build-tidb-darwin-amd",
+                build job: "optimization-build-tidb",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
@@ -121,10 +133,13 @@ try {
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'OS', value: OS_DARWIN],
+                                [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
+                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_DARWIN],
                         ]
             }
             builds["Build on darwin/arm64"] = {
-                build job: "optimization-build-tidb-darwin-arm",
+                build job: "optimization-build-tidb",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
@@ -141,11 +156,14 @@ try {
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'OS', value: OS_DARWIN],
+                                [$class: 'StringParameterValue', name: 'ARCH', value: ARM64],
+                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_DARWINARM],
                         ]
             }
 
             builds["Build on linux/amd64"] = {
-                build job: "optimization-build-tidb-linux-amd",
+                build job: "optimization-build-tidb",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
@@ -162,6 +180,9 @@ try {
                                 [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
                                 [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
+                                [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
+                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
                         ]
             }
             
