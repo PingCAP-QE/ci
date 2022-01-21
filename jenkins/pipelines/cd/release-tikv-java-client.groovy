@@ -1,5 +1,5 @@
 /*
-* @VERSION
+* @BRANCH
 */
 
 pipeline {
@@ -18,6 +18,9 @@ pipeline {
         // NEXUS_REPOSITORY = "Releases"
         NEXUS_REPOSITORY = "snapshots"
         NEXUS_CREDENTIAL_ID = "ossrh"
+
+        GIT_CREDENTIAL_ID = "github-sre-bot-ssh"
+        GIT_REPO_SSH_URL = "git@github.com:tikv/client-java.git"
     }
     
     // CD Pipeline
@@ -25,7 +28,9 @@ pipeline {
         stage("Clone Code") {
             steps {
                 script {
-                    git 'https://github.com/tikv/client-java.git';
+                    git branch: BRANCH,
+                        credentialsId: GIT_CREDENTIAL_ID,
+                        url: GIT_REPO_SSH_URL
                 }
             }
         }
