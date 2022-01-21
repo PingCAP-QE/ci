@@ -140,71 +140,71 @@ node("lightweight_pod") {
 
             parallel(
                     test21: {
-                        test(commitID,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.11 profile=spark-2.3")
+                        test(commitID2,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.11 profile=spark-2.3")
                     },
 
                     test22: {
-                        test(commitID,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.11")
+                        test(commitID2,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.11")
                     },
 
                     test23: {
-                        test(commitID,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.12")
+                        test(commitID2,"tidb=v5.3.0 pd=v5.3.0 tiflash=v5.3.0 tikv=v5.3.0 profile=scala-2.12")
                     },
             )
 
             parallel(
                     test24: {
-                        test(commitID,"tidb=v5.2.3 pd=v5.2.3 tiflash=v5.2.3 tikv=v5.2.3 profile=scala-2.11 profile=spark-2.3")
+                        test(commitID2,"tidb=v5.2.3 pd=v5.2.3 tiflash=v5.2.3 tikv=v5.2.3 profile=scala-2.11 profile=spark-2.3")
                     },
 
                     test25: {
-                        test(commitID,"tidb=v5.2.3 pd=v5.2.3 tiflash=v5.2.3 tikv=v5.2.3 profile=scala-2.11")
+                        test(commitID2,"tidb=v5.2.3 pd=v5.2.3 tiflash=v5.2.3 tikv=v5.2.3 profile=scala-2.11")
                     },
 
                     test26: {
-                        test(commitID,"tidb=v5.2.3 pd=v5.2.3 tiflash=v5.2.3 tikv=v5.2.3 profile=scala-2.12")
+                        test(commitID2,"tidb=v5.2.3 pd=v5.2.3 tiflash=v5.2.3 tikv=v5.2.3 profile=scala-2.12")
                     },
             )
 
             parallel(
                     test27: {
-                        test(commitID,"tidb=v5.1.3 pd=v5.1.3 tiflash=v5.1.3 tikv=v5.1.3 profile=scala-2.11 profile=spark-2.3")
+                        test(commitID2,"tidb=v5.1.3 pd=v5.1.3 tiflash=v5.1.3 tikv=v5.1.3 profile=scala-2.11 profile=spark-2.3")
                     },
 
                     test28: {
-                        test(commitID,"tidb=v5.1.3 pd=v5.1.3 tiflash=v5.1.3 tikv=v5.1.3 profile=scala-2.11")
+                        test(commitID2,"tidb=v5.1.3 pd=v5.1.3 tiflash=v5.1.3 tikv=v5.1.3 profile=scala-2.11")
                     },
 
                     test29: {
-                        test(commitID,"tidb=v5.1.3 pd=v5.1.3 tiflash=v5.1.3 tikv=v5.1.3 profile=scala-2.12")
+                        test(commitID2,"tidb=v5.1.3 pd=v5.1.3 tiflash=v5.1.3 tikv=v5.1.3 profile=scala-2.12")
                     },
             )
 
             parallel(
                     test30: {
-                        test(commitID,"tidb=v5.0.6 pd=v5.0.6 tiflash=v5.0.6 tikv=v5.0.6 profile=scala-2.11 profile=spark-2.3")
+                        test(commitID2,"tidb=v5.0.6 pd=v5.0.6 tiflash=v5.0.6 tikv=v5.0.6 profile=scala-2.11 profile=spark-2.3")
                     },
 
                     test31: {
-                        test(commitID,"tidb=v5.0.6 pd=v5.0.6 tiflash=v5.1.3 tikv=v5.0.6 profile=scala-2.11")
+                        test(commitID2,"tidb=v5.0.6 pd=v5.0.6 tiflash=v5.1.3 tikv=v5.0.6 profile=scala-2.11")
                     },
 
                     test32: {
-                        test(commitID,"tidb=v5.0.6 pd=v5.0.6 tiflash=v5.0.6 tikv=v5.0.6 profile=scala-2.12")
+                        test(commitID2,"tidb=v5.0.6 pd=v5.0.6 tiflash=v5.0.6 tikv=v5.0.6 profile=scala-2.12")
                     },
             )
 
             parallel(
                     test33: {
-                        test(commitID,"tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=scala-2.11 profile=spark-2.3")
+                        test(commitID2,"tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=scala-2.11 profile=spark-2.3")
                     },
 
                     test34: {
-                        test(commitID,"tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=scala-2.11")
+                        test(commitID2,"tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=scala-2.11")
                     },
 
                     test35: {
-                        test(commitID,"tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=scala-2.12")
+                        test(commitID2,"tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 profile=scala-2.12")
                     },
             )
 
