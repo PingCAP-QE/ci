@@ -474,7 +474,6 @@ __EOF__
 
             // TODO: refine monitoring
             builds["Push monitor initializer"] = {
-                libs.release_online_image("monitoring", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
                 build job: 'release-monitor',
                         wait: true,
                         parameters: [
@@ -496,36 +495,64 @@ __EOF__
                         wait: true,
                         parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
             }
-            
-            // 这一步显得没有必要
-            // builds["Push monitor reloader"] = {
-            //     docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-            //         sh """
-            //             docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1 uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
-            //         """
-            //     }
-            // }
 
             stage("Push tarbll/image") {
                 parallel builds
+            }
+
+            def build_arms = [:]
+            os = "linux"
+            arch = "arm64"
+            platform = "centos7"
+
+            build_arms["Push tidb Docker"] = {
+                libs.release_online_arm_image("tidb", tidb_sha1, arch, os , platform, RELEASE_TAG)
+            }
+
+            build_arms["Push tikv Docker"] = {
+                libs.release_online_arm_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Push pd Docker"] = {
+                libs.release_online_arm_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Push br Docker"] = {
+                libs.release_online_arm_image("br", br_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Push dumpling Docker"] = {
+                libs.release_online_arm_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Push tidb-binlog Docker"] = {
+                libs.release_online_arm_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Push cdc Docker"] = {
+                libs.release_online_arm_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Push tiflash Docker"] = {
+                libs.release_online_arm_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["Lightning Docker"] = {
+                libs.release_online_arm_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            build_arms["NG Monitoring Docker"] = {
+                libs.release_online_arm_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG)
+            }
+
+            stage("Push arm images") {
+                parallel build_arms
             }
 
             stage("Publish arm64 docker images") {
                 build job: 'build-arm-image',
                         wait: true,
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIKV_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'PD_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'BR_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'CDC_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]          
@@ -534,34 +561,4 @@ __EOF__
     }
 
     currentBuild.result = "SUCCESS"
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[${env.JOB_NAME.replaceAll('%2F', '/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration}` Mins" + "\n" +
-            "tidb Version: `${RELEASE_TAG}`, Githash: `${tidb_sha1.take(7)}`" + "\n" +
-            "tikv Version: `${RELEASE_TAG}`, Githash: `${tikv_sha1.take(7)}`" + "\n" +
-            "pd   Version: `${RELEASE_TAG}`, Githash: `${pd_sha1.take(7)}`" + "\n" +
-            "tidb-lightning   Version: `${RELEASE_TAG}`, Githash: `${tidb_lightning_sha1.take(7)}`" + "\n" +
-            "tidb_binlog   Version: `${RELEASE_TAG}`, Githash: `${tidb_binlog_sha1.take(7)}`" + "\n" +
-            "TiDB Binary Download URL:" + "\n" +
-            "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-            "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-            "TiDB Binary sha256   URL:" + "\n" +
-            "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-            "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-            "tidb Docker Image: `pingcap/tidb:${RELEASE_TAG}`" + "\n" +
-            "pd   Docker Image: `pingcap/pd:${RELEASE_TAG}`" + "\n" +
-            "tikv Docker Image: `pingcap/tikv:${RELEASE_TAG}`" + "\n" +
-            "tidb-lightning Docker Image: `pingcap/tidb-lightning:${RELEASE_TAG}`" + "\n" +
-            "tidb-binlog Docker Image: `pingcap/tidb-binlog:${RELEASE_TAG}`"
-
-    if (currentBuild.result == "SUCCESS") {
-        slackSend channel: '#binary_publish', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-    // if (currentBuild.result != "SUCCESS") {
-    //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    // }
 }
