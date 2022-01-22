@@ -97,6 +97,7 @@ def build_product(build_para, product) {
     def arch = build_para["ARCH"]
     def os = build_para["OS"]
     def release_tag = build_para["RELEASE_TAG"]
+    def platform = build_para["PLATFORM"]
     def sha1 = build_para[product]
     def git_pr = build_para["GIT_PR"]
     def force_rebuild = build_para["FORCE_REBUILD"]
