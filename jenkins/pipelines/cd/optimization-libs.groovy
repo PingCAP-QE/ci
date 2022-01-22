@@ -113,6 +113,9 @@ def build_product(build_para, product) {
     }
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (build_para["ENTERPRISE"]) {
+        filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    }
     if (product == "tiflash") {
         repo = "tics"
         product = "tics"

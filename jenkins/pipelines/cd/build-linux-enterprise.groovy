@@ -3,6 +3,9 @@
 */
 def libs
 
+def PLATFORM = "centos7"
+def OS = "linux"
+
 try {
     stage("Load libs") {
         node("${GO_BUILD_SLAVE}") {
