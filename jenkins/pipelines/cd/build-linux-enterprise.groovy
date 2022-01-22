@@ -33,6 +33,7 @@ try {
         build_para["OS"] = OS
         build_para["ARCH"] = ARCH
         build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
+        build_para["GIT_PR"] = ""
         
         builds = libs.create_enterprise_builds(build_para)
 
