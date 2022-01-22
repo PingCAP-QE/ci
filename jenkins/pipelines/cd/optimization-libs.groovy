@@ -74,10 +74,30 @@ def create_builds(build_para) {
     return builds
 }
 
+def create_enterprise_builds(build_para) {
+    builds = [:]
+    build_para["ENTERPRISE"] = true
+
+    builds["Build tidb"] = {
+        build_product(build_para, "tidb")
+    }
+    builds["Build tikv"] = {
+        build_product(build_para, "tikv")
+    }
+    builds["Build pd"] = {
+        build_product(build_para, "pd")
+    }
+    builds["Build tiflash"] = {
+        build_product(build_para, "tiflash")
+    }
+    return builds
+}
+
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
     def os = build_para["OS"]
     def release_tag = build_para["RELEASE_TAG"]
+    def platform = build_para["PLATFORM"]
     def sha1 = build_para[product]
     def git_pr = build_para["GIT_PR"]
     def force_rebuild = build_para["FORCE_REBUILD"]
@@ -94,6 +114,9 @@ def build_product(build_para, product) {
     }
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (build_para["ENTERPRISE"]) {
+        filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    }
     if (product == "tiflash") {
         repo = "tics"
         product = "tics"
@@ -102,7 +125,6 @@ def build_product(build_para, product) {
     def paramsBuild = [
         string(name: "ARCH", value: arch),
         string(name: "OS", value: os),
-        string(name: "EDITION", value: "community"),
         string(name: "OUTPUT_BINARY", value: filepath),
         string(name: "REPO", value: repo),
         string(name: "PRODUCT", value: product),
@@ -118,6 +140,11 @@ def build_product(build_para, product) {
     }
     if (product in ["enterprise-plugin"]) {
         paramsBuild.push([$class: 'StringParameterValue', name: 'TIDB_HASH', value: build_para["tidb"]])
+    }
+    if (build_para["ENTERPRISE"]) {
+        paramsBuild.push(string(name: "EDITION", value: "enterprise"))
+    } else {
+        paramsBuild.push(string(name: "EDITION", value: "community"))
     }
 
 
