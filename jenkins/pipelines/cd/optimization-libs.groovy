@@ -96,7 +96,6 @@ def create_enterprise_builds(build_para) {
 def retag_enterprise_docker(product, release_tag) {
     def community_image = "pingcap/${product}:${release_tag}"
     def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
-    def DOCKER_HOST = "tcp://localhost:2375"
 
     sh """
     docker pull ${community_image}
