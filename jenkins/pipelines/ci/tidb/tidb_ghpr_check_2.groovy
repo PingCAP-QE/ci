@@ -104,7 +104,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             nodeSelector: 'role_type=slave',
-            idleMinutes: 30,
+            idleMinutes: 0,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -300,7 +300,7 @@ try {
                     }
                 }
             }
-            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb", useDefaultExcludes: false
+            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb", useDefaultExcludes: true
         }
 
         def tests = [:]
@@ -366,11 +366,10 @@ try {
                                     ls -alh ./bin/
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
-                                    export COLLATION_DISABLE=1
                                     export TIKV_PATH=127.0.0.1:2379
-                                    chmod +x cmd/explaintest/test.sh
+                                    chmod +x cmd/explaintest/run-tests.sh
                                     cd cmd/explaintest && ls -alh
-                                    ./test.sh
+                                    ./run-tests.sh -d y
                                     """
                                  } catch (Exception e){ 
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
@@ -431,11 +430,10 @@ try {
                                     ls -alh ./bin/
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
-                                    export COLLATION_DISABLE=0
                                     export TIKV_PATH=127.0.0.1:2379
-                                    chmod +x cmd/explaintest/test.sh
+                                    chmod +x cmd/explaintest/run-tests.sh
                                     cd cmd/explaintest && ls -alh
-                                    ./test.sh
+                                    ./run-tests.sh -d n
                                     """
                                  } catch (Exception e){ 
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
