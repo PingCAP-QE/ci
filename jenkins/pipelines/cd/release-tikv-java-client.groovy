@@ -52,9 +52,9 @@ pipeline {
                     echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
                     
                     // 获取产物仓库
-                    NEXUS_REPOSITORY = "snapshots"
+                    NEXUS_REPOSITORY = "snapshots";
                     if (!pom.version.contains("-SNAPSHOT")) {
-                        NEXUS_REPOSITORY = "releases"
+                        NEXUS_REPOSITORY = "releases";
                     }
 
                     // 获取产物信息: 文件位置等
