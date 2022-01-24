@@ -93,6 +93,18 @@ def create_enterprise_builds(build_para) {
     return builds
 }
 
+def retag_enterprise_docker(product, release_tag) {
+    def community_image = "pingcap/${product}:${release_tag}"
+    def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
+    def DOCKER_HOST = "tcp://localhost:2375"
+
+    sh """
+    docker pull ${community_image}
+    docker tag ${community_image} ${enterprise_image}
+    docker push ${enterprise_image}
+    """
+}
+
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
     def os = build_para["OS"]

@@ -167,119 +167,19 @@ catchError {
             }
 
             builds["Push lightning Docker"] = {
-                dir('lightning_docker_build') {
-                    sh """
-                    cp ../centos7/bin/tidb-lightning ./
-                    cp ../centos7/bin/tidb-lightning-ctl ./
-                    if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
-                        cp ../centos7/bin/tikv-importer ./
-                    fi;
-                    cp ../centos7/bin/br ./
-                    cp /usr/local/go/lib/time/zoneinfo.zip ./
-                    cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY tidb-lightning /tidb-lightning
-COPY tidb-lightning-ctl /tidb-lightning-ctl
-COPY br /br
-__EOF__
-                    if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
-                    cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY tidb-lightning /tidb-lightning
-COPY tidb-lightning-ctl /tidb-lightning-ctl
-COPY tikv-importer /tikv-importer
-COPY br /br
-__EOF__
-                    fi;
-                    """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-lightning-enterprise:${RELEASE_TAG}", "lightning_docker_build").push()
-                }
+                retag_enterprise_docker("tidb-lightning", RELEASE_TAG)
             }
 
             builds["Push tidb-binlog Docker"] = {
-                dir('tidb_binlog_docker_build') {
-                    sh """
-                    cp ../centos7/bin/pump ./
-                    cp ../centos7/bin/drainer ./
-                    cp ../centos7/bin/reparo ./
-                    cp ../centos7/bin/binlogctl ./
-                    cp /usr/local/go/lib/time/zoneinfo.zip ./
-                    cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY pump /pump
-COPY drainer /drainer
-COPY reparo /reparo
-COPY binlogctl /binlogctl
-EXPOSE 4000
-EXPOSE 8249 8250
-CMD ["/pump"]
-__EOF__
-                    """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-binlog-enterprise:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
-                }
+                retag_enterprise_docker("tidb-binlog", RELEASE_TAG)
             }
 
             builds["Push tiflash Docker"] = {
-                def harbor_image = "hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}"
-                def docker_hub_image = "pingcap/tiflash-enterprise:${RELEASE_TAG}"
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                }
-                sh """
-                docker pull ${harbor_image}
-                docker tag ${harbor_image} ${docker_hub_image}
-                docker push ${docker_hub_image}
-                """
+                retag_enterprise_docker("tiflash", RELEASE_TAG)
             }
 
             builds["Push cdc Docker"] = {
-                dir("go/src/github.com/pingcap/tiflow") {
-                    // deleteDir()
-                    checkout changelog: false,
-                            poll: true,
-                            scm: [$class: 'GitSCM',
-                                  branches: [[name: "${RELEASE_TAG}"]],
-                                  doGenerateSubmoduleConfigurations: false,
-                                  extensions: [[$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true]],
-                                  submoduleCfg: [],
-                                  userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                       refspec: "+refs/tags/${CDC_TAG}:refs/tags/${CDC_TAG}",
-                                                       url: 'git@github.com:pingcap/tiflow.git']]
-                            ]
-
-                    def DOCKER_TAG = "${RELEASE_TAG}"
-                    if ( DOCKER_TAG == "master" ) {
-                        DOCKER_TAG = "nightly"
-                    }
-                    sh """
-                        mkdir -p /home/jenkins/.docker
-                        cp /etc/dockerconfig.json /home/jenkins/.docker/config.json
-                        mkdir -p bin
-                        cat - >"bin/Dockerfile" <<EOF
-FROM ${buildImage} as builder
-RUN apk add --no-cache git make bash
-WORKDIR /go/src/github.com/pingcap/tiflow
-COPY . .
-RUN make
-
-FROM alpine:3.12
-RUN apk add --no-cache tzdata bash curl socat
-COPY --from=builder /go/src/github.com/pingcap/tiflow/bin/cdc /cdc
-EXPOSE 8300
-CMD [ "/cdc" ]
-EOF
-                        docker build -f bin/Dockerfile -t docker.io/pingcap/ticdc-enterprise:${RELEASE_TAG} .
-                        docker push docker.io/pingcap/ticdc-enterprise:${RELEASE_TAG}
-                    """
-                }
+                retag_enterprise_docker("ticdc", RELEASE_TAG)
             }
 
             stage("Push tarbll/image") {
