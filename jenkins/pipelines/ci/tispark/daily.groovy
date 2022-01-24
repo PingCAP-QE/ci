@@ -19,7 +19,7 @@ def test_master(commitID, version) {
     println "tispark master"
     parallel(
             test1: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv$version test-spark-catalog=true")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-spark-catalog=true")
             },
 
             test2: {
