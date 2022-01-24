@@ -17,8 +17,6 @@ pipeline {
         NEXUS_VERSION = "nexus2"
         NEXUS_PROTOCOL = "https"
         NEXUS_URL = "oss.sonatype.org"
-        // NEXUS_REPOSITORY = "Releases"
-        NEXUS_REPOSITORY = "snapshots"
         NEXUS_CREDENTIAL_ID = "ossrh"
 
         // Git配置
@@ -53,6 +51,12 @@ pipeline {
                     filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
                     echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
                     
+                    // 获取产物仓库
+                    NEXUS_REPOSITORY = "snapshots"
+                    if (pom.version.contains("-SNAPSHOT")) {
+                        NEXUS_REPOSITORY = "releases"
+                    }
+
                     // 获取产物信息: 文件位置等
                     artifactPath = filesByGlob[0].path;
                     artifactExists = fileExists artifactPath;
