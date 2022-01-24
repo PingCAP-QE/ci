@@ -297,7 +297,7 @@ try {
                     sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
-            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb", useDefaultExcludes: false
+            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
         }
 
 
