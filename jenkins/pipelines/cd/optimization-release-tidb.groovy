@@ -395,15 +395,15 @@ catchError {
             def arch = "amd64"
             def platform = "centos7"
             builds["Push tidb Docker"] = {
-                libs.release_online_image("tidb", tidb_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tidb", tidb_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push tikv Docker"] = {
-                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push pd Docker"] = {
-                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             // TODO: refine it when no longer need lightning
@@ -449,27 +449,27 @@ __EOF__
             }
 
             builds["Push br Docker"] = {
-                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push dumpling Docker"] = {
-                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push tidb-binlog Docker"] = {
-                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push cdc Docker"] = {
-                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push tiflash Docker"] = {
-                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["NG Monitoring Docker"] = {
-                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             // TODO: refine monitoring
@@ -506,43 +506,43 @@ __EOF__
             platform = "centos7"
 
             build_arms["Push tidb Docker"] = {
-                libs.release_online_image("tidb", tidb_sha1, arch, os , platform, RELEASE_TAG)
+                libs.release_online_image("tidb", tidb_sha1, arch, os , platform, RELEASE_TAG, false)
             }
 
             build_arms["Push tikv Docker"] = {
-                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push pd Docker"] = {
-                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push br Docker"] = {
-                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push dumpling Docker"] = {
-                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push tidb-binlog Docker"] = {
-                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push cdc Docker"] = {
-                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push tiflash Docker"] = {
-                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Lightning Docker"] = {
-                libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["NG Monitoring Docker"] = {
-                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG)
+                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             stage("Push arm images") {

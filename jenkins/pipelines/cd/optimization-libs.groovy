@@ -165,14 +165,20 @@ def build_product(build_para, product) {
         parameters: paramsBuild
 }
 
-def release_online_image(product, sha1, arch,  os , platform,tag) {
+def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
     def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (enterprise) {
+        binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    }
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
     def imageName = product
     def repo = product
 
     if (repo == "monitoring") {
         imageName = "tidb-monitor-initializer"
+    }
+    if (enterprise) {
+        imageName = imageName + "-enterprise"
     }
     if (arch == "arm64") {
         imageName = imageName + "-arm64"
