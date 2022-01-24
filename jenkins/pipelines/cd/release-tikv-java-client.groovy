@@ -1,4 +1,5 @@
 /*
+* @GIT_REPO_SSH_URL
 * @BRANCH
 */
 
@@ -22,7 +23,6 @@ pipeline {
 
         // Git配置
         GIT_CREDENTIAL_ID = "github-sre-bot-ssh"
-        GIT_REPO_SSH_URL = "git@github.com:tikv/client-java.git"
     }
     
     // CD Pipeline
