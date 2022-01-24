@@ -61,7 +61,7 @@ pipeline {
                     artifactPath = filesByGlob[0].path;
                     artifactExists = fileExists artifactPath;
                     if(artifactExists) {
-                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}, repo ${NEXUS_REPOSITORY}";
+                        echo "KeyLog: File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}, nexus repo ${NEXUS_REPOSITORY}";
 
                         // 上传到中央Nexus仓库
                         nexusArtifactUploader(
