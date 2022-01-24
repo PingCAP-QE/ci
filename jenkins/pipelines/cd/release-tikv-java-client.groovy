@@ -31,10 +31,11 @@ pipeline {
             steps {
                 script {
                     // Clone and Checkout Branch
-                    git credentialsId: GIT_CREDENTIAL_ID, url: GIT_REPO_SSH_URL
-                    sh "git branch -a" // List all branches.
-                    sh "git checkout ${BRANCH}" // Checkout to a specific branch in your repo.
-                    sh "ls -lart ./*"  // Just to view all the files if needed
+                    // git credentialsId: GIT_CREDENTIAL_ID, url: GIT_REPO_SSH_URL
+                    // sh "git branch -a" // List all branches.
+                    // sh "git checkout ${BRANCH}" // Checkout to a specific branch in your repo.
+                    // sh "ls -lart ./*"  // Just to view all the files if needed
+                    git 'https://github.com/tikv/client-java.git';
                 }
             }
         }
