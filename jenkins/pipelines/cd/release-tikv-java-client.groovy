@@ -53,7 +53,7 @@ pipeline {
                     
                     // 获取产物仓库
                     NEXUS_REPOSITORY = "snapshots"
-                    if (pom.version.contains("-SNAPSHOT")) {
+                    if (!pom.version.contains("-SNAPSHOT")) {
                         NEXUS_REPOSITORY = "releases"
                     }
 
