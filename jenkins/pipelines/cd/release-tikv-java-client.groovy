@@ -3,6 +3,8 @@
 * @BRANCH
 */
 
+// https://cd.pingcap.net/job/release_tikv-java-client/
+
 pipeline {
     agent any
 
