@@ -42,6 +42,9 @@ pipeline {
         stage("Maven Build") {
             steps {
                 script {
+                    if (VERSION != null && !VERSION.isEmpty()) {
+                        sh "mvn versions:set -DnewVersion=${VERSION}"
+                    }
                     sh "mvn clean package -DskipTests=true"
                 }
             }
