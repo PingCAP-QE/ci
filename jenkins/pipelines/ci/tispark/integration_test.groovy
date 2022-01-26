@@ -52,7 +52,9 @@ println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
 // parse mvn profile
 def m5 = ghprbCommentBody =~ /profile\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m5) {
-    MVN_PROFILE = MVN_PROFILE + " -P${m5[0][1]}"
+    for (int i = 0 ; i < m5.getCount(); i++) {
+        MVN_PROFILE = MVN_PROFILE + " -P${m5[i][1]}"
+    }
 }
 m5 = null
 
@@ -119,7 +121,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
         containerTemplate(name: 'java', image: 'hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached',
                 resourceRequestCpu: '4000m',
-                resourceRequestMemory: '8Gi',
+                resourceRequestMemory: '24Gi',
                 envVars: [
                         envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
@@ -258,7 +260,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                         if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
                     """
                     sh """
-                        export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=512M"
+                        export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=1024M"
                         mvn clean package ${MVN_PROFILE} -DskipTests
                         mvn test ${MVN_PROFILE} -Dtest=moo ${mvnStr}
                     """
@@ -276,7 +278,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                             if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
                         """
                         sh """
-                            export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=512M"
+                            export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=1024M"
                             mvn test ${MVN_PROFILE} -am -pl tikv-client
                         """
                         sh 'curl -s https://codecov.io/bash | bash -s'

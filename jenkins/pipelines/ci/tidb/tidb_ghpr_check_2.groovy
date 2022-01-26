@@ -152,7 +152,8 @@ def upload_test_result(reportDir) {
             commit_id: ghprbActualCommit,
             branch: ghprbTargetBranch,
             junit_report_url: downloadPath,
-            pull_request: ghprbPullId.toInteger()
+            pull_request: ghprbPullId.toInteger(),
+            author: ghprbPullAuthorLogin
         ]
         def json = groovy.json.JsonOutput.toJson(all_results)
         response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.5.14:30792/report/", validResponseCodes: '200'
@@ -297,7 +298,7 @@ try {
                     sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
-            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb", useDefaultExcludes: false
+            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
         }
 
 
