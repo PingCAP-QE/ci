@@ -1,6 +1,7 @@
 /*
 * @GIT_REPO_SSH_URL
 * @BRANCH
+* @VERSION
 */
 
 // https://cd.pingcap.net/job/release_tikv-java-client/
@@ -62,16 +63,20 @@ pipeline {
                     // 获取产物信息: 文件位置等
                     artifactPath = filesByGlob[0].path;
                     artifactExists = fileExists artifactPath;
-                    if(artifactExists) {
-                        echo "KeyLog: File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}, nexus repo ${NEXUS_REPOSITORY}";
+                    version = pom.version;
+                    if (VERSION != null && !VERSION.isEmpty()) {
+                        version = VERSION;
+                    }
+                    echo "KeyLog: File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${version}, nexus repo ${NEXUS_REPOSITORY}";
 
-                        // 上传到中央Nexus仓库
+                    // 上传到中央Nexus仓库
+                    if(artifactExists) {
                         nexusArtifactUploader(
                             nexusVersion: NEXUS_VERSION,
                             protocol: NEXUS_PROTOCOL,
                             nexusUrl: NEXUS_URL,
                             groupId: pom.groupId,
-                            version: pom.version,
+                            version: version,
                             repository: NEXUS_REPOSITORY,
                             credentialsId: NEXUS_CREDENTIAL_ID,
                             artifacts: [
