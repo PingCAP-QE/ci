@@ -37,7 +37,7 @@ CI_RUN_PART_TEST_CASES = """
     """
 
 // remove test: temp_table
-if (ghprbTargetBranch in ["release-5.2"]) {
+if (ghprbTargetBranch in ["release-5.2", "release-5.1"]) {
     CI_RUN_PART_TEST_CASES = """
     with_non_recursive window_min_max mariadb_cte_recursive 
     mariadb_cte_nonrecursive json_functions gcol_view gcol_supported_sql_funcs 
