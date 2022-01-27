@@ -48,6 +48,54 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
 
 
+def list_pr_diff_files() {
+    def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
+    withCredentials([string(credentialsId: 'test-ci-wulifu', variable: 'github_token')]) { 
+        response = httpRequest consoleLogResponseBody: false, 
+            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+            customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
+            url: list_pr_files_api_url, validResponseCodes: '200'
+
+        def json = new groovy.json.JsonSlurper().parseText(response.content)
+
+        echo "Status: ${response.status}"
+        def files = []
+        for (element in json) { 
+            files.add(element.filename)
+        }
+
+        println "pr diff files: ${files}"
+        return files
+    }
+}
+
+// if any file matches the pattern, return true
+def pattern_match_any_file(pattern, files_list) {
+    for (file in files_list) {
+        if (file.matches(pattern)) {
+            println "diff file matched: ${file}"
+            return true
+        }
+    }
+
+    return false
+}
+
+
+def pr_diff_files = list_pr_diff_files()
+def pattern = /(^dm\/|^pkg\/).*$/
+// if any diff files start with dm/ or pkg/ , run the dm integration test
+def matched = pattern_match_any_file(pattern, pr_diff_files)
+if (matched) {
+    echo "matched, some diff files full path start with dm/ or pkg/, run the dm integration test"
+} else {
+    echo "not matched, all files full path not start with dm/ or pkg/, current pr not releate to dm, so skip the dm integration test"
+    currentBuild.result = 'SUCCESS'
+    return 0
+}
+
+
+
 def run_test_with_pod(Closure body) {
     def label = "dm-integration-test-${BUILD_NUMBER}"
     def cloud = "kubernetes"
@@ -364,23 +412,6 @@ pipeline {
     agent any
 
     stages {
-        stage('Check Code') {
-            steps {
-                print_all_vars()
-                script {
-                    try {
-                        checkout_and_stash_dm_code()
-                    }catch (info) {
-                        retry(count: 3) {
-                            echo 'checkout failed, retry..'
-                            sleep 1
-                            checkout_and_stash_dm_code()
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Build Bin') {
             options { retry(count: 3) }
             steps {
