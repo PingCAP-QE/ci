@@ -94,6 +94,75 @@ println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
 
+
+/**
+ * List diff files in the pull request.
+ */
+def list_pr_diff_files() {
+    def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
+    withCredentials([string(credentialsId: 'test-ci-wulifu', variable: 'github_token')]) { 
+        response = httpRequest consoleLogResponseBody: false, 
+            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+            customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
+            url: list_pr_files_api_url, validResponseCodes: '200'
+
+        def json = new groovy.json.JsonSlurper().parseText(response.content)
+
+        echo "Status: ${response.status}"
+        def files = []
+        for (element in json) { 
+            files.add(element.filename)
+        }
+
+        println "pr diff files: ${files}"
+        return files
+    }
+}
+
+
+/**
+ * If all files matches the pattern, return true
+ */
+def pattern_match_all_files(pattern, files_list) {
+    for (file in files_list) {
+        if (!file.matches(pattern)) {
+            println "diff file not matched: ${file}"
+            return false
+        }
+    }
+
+    return true
+}
+
+
+def check_pr_diff_files() {
+    def files = list_pr_diff_files()
+    def pattern = /^dm\/.*$/
+    // if all diff files start with dm/, skip cdc integration test
+    def matched = pattern_match_all_files(pattern, files)
+    if (matched) {
+        echo "matched, all diff files full path start with dm/, current pr is dm's pr(not related to ticdc), skip cdc integration test"
+        throw new Exception("skip cdc integration test for dm's pr")
+    } else {
+        echo "not matched, some diff files not start with dm/, need run the cdc integration test"
+    }
+
+}
+
+
+try {
+    check_pr_diff_files()
+} catch (e) {
+    echo "Error: ${e}"
+    if (e.message.contains("skip cdc integration test for dm's pr")) {
+        currentBuild.result = 'SUCCESS'
+        return 0
+    } else {
+        throw e
+    }
+}
+
+
 catchError {
     node("${GO_TEST_SLAVE}") {
         stage('Prepare') {
