@@ -243,6 +243,7 @@ podTemplate(name: label, label: label, instanceCap: 10, namespace: 'jenkins-tisp
         }
 
         stage('Integration Tests') {
+            timeout(150){
             def tests = [:]
 
             groovy.lang.Closure run_tispark_test = { chunk_suffix ->
@@ -389,6 +390,7 @@ podTemplate(name: label, label: label, instanceCap: 10, namespace: 'jenkins-tisp
             tests["Integration tikv-client test"] = {run_intergration_test(0, run_tikvclient_test)}
 
             parallel tests
+        }
         }
 
         currentBuild.result = "SUCCESS"
