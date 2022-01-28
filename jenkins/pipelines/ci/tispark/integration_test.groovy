@@ -114,19 +114,22 @@ groovy.lang.Closure get_mvn_str = { total_chunks ->
 
 def label = "regression-test-tispark-${BUILD_NUMBER}"
 
-podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tispark' , containers: [
+podTemplate(name: label, label: label, instanceCap: 12, namespace: 'jenkins-tispark' , containers: [
         containerTemplate(name: 'golang', image: 'hub.pingcap.net/jenkins/centos7_golang-1.12:cached',
                 envVars: [
                         envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
         containerTemplate(name: 'java', image: 'hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached',
-                resourceRequestCpu: '4000m',
+                resourceRequestCpu: '8000m',
                 resourceRequestMemory: '24Gi',
                 envVars: [
                         envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
 ]) {
     catchError {
+        options {
+            timeout(time: 2, unit: 'HOURS') 
+            }
         stage('Prepare') {
             node (label) {
                 println "${NODE_NAME}"
@@ -240,6 +243,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
         }
 
         stage('Integration Tests') {
+            timeout(150){
             def tests = [:]
 
             groovy.lang.Closure run_tispark_test = { chunk_suffix ->
@@ -260,7 +264,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                         if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
                     """
                     sh """
-                        export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=1024M"
+                        export MAVEN_OPTS="-Xmx6G -XX:MaxMetaspaceSize=1024M"
                         mvn clean package ${MVN_PROFILE} -DskipTests
                         mvn test ${MVN_PROFILE} -Dtest=moo ${mvnStr}
                     """
@@ -278,7 +282,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
                             if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
                         """
                         sh """
-                            export MAVEN_OPTS="-Xmx6G -XX:MaxPermSize=1024M"
+                            export MAVEN_OPTS="-Xmx6G -XX:MaxMetaspaceSize=1024M"
                             mvn test ${MVN_PROFILE} -am -pl tikv-client
                         """
                         sh 'curl -s https://codecov.io/bash | bash -s'
@@ -386,6 +390,7 @@ podTemplate(name: label, label: label, instanceCap: 20, namespace: 'jenkins-tisp
             tests["Integration tikv-client test"] = {run_intergration_test(0, run_tikvclient_test)}
 
             parallel tests
+        }
         }
 
         currentBuild.result = "SUCCESS"
