@@ -127,9 +127,6 @@ podTemplate(name: label, label: label, instanceCap: 12, namespace: 'jenkins-tisp
                 ], alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
 ]) {
     catchError {
-        options {
-            timeout(time: 2, unit: 'HOURS') 
-            }
         stage('Prepare') {
             node (label) {
                 println "${NODE_NAME}"
