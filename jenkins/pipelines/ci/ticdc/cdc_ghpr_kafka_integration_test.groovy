@@ -108,33 +108,18 @@ def pattern_match_all_files(pattern, files_list) {
     return true
 }
 
-
-def check_pr_diff_files() {
-    def files = list_pr_diff_files()
-    def pattern = /^dm\/.*$/
-    // if all diff files start with dm/, skip cdc integration test
-    def matched = pattern_match_all_files(pattern, files)
-    if (matched) {
-        echo "matched, all diff files full path start with dm/, current pr is dm's pr(not related to ticdc), skip cdc integration test"
-        throw new Exception("skip cdc integration test for dm's pr")
-    } else {
-        echo "not matched, some diff files not start with dm/, need run the cdc integration test"
-    }
-
+def pr_diff_files = list_pr_diff_files()
+def pattern = /^dm\/.*$/
+// if all diff files start with dm/, skip cdc integration test
+def matched = pattern_match_all_files(pattern, pr_diff_files)
+if (matched) {
+    echo "matched, all diff files full path start with dm/, current pr is dm's pr(not related to ticdc), skip cdc integration test"
+    currentBuild.result = 'SUCCESS'
+    return 0
+} else {
+    echo "not matched, some diff files not start with dm/, need run the cdc integration test"
 }
 
-
-try {
-    check_pr_diff_files()
-} catch (e) {
-    echo "Error: ${e}"
-    if (e.message.contains("skip cdc integration test for dm's pr")) {
-        currentBuild.result = 'SUCCESS'
-        return 0
-    } else {
-        throw e
-    }
-}
 
 catchError {
     withEnv(['CODECOV_TOKEN=c6ac8b7a-7113-4b3f-8e98-9314a486e41e',
