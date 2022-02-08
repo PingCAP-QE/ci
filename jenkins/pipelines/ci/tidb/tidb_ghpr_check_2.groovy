@@ -331,7 +331,7 @@ try {
                 test_suites(sessionTestSuitesString, "-check.exclude")
             }
 
-            tests["Explain Test1"] = {
+            tests["New Collation Enabled"] = {
                 run_with_pod {
                     deleteDir()
                     unstash 'tidb'
@@ -395,7 +395,7 @@ try {
                 }
             }
 
-            tests["Explain Test2"] = {
+            tests["New Collation Disabled"] = {
                 run_with_pod {
                     deleteDir()
                     unstash 'tidb'
