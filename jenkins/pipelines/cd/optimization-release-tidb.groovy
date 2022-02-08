@@ -1,91 +1,48 @@
 /*
-* @TIDB_TAG
-* @TIKV_TAG
-* @PD_TAG
-* @BINLOG_TAG
-* @TIFLASH_TAG
-* @IMPORTER_TAG
-* @BR_TAG
-* @CDC_TAG
-* @DUMPLING_TAG
-* @MINOR_RELEASE_TAG
 * @RELEASE_TAG
-* @RELEASE_LATEST
-* @SKIP_TIFLASH
-* @STAGE
-* @FORCE_REBUILD
-* @TIKV_PRID
+* @RELEASE_BRANCH
 */
 
-def get_hash = { hash_or_branch, repo ->
-    if (hash_or_branch.length() == 40) {
-        return hash_or_branch
-    }
-    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
-}
 
 
 env.DOCKER_HOST = "tcp://localhost:2375"
 
 ng_monitoring_sha1 = ""
+def libs
 catchError {
     stage('Prepare') {
         node('delivery') {
             container('delivery') {
                 dir('centos7') {
+                    checkout scm
+                    libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    if (STAGE != "build") {
-                        if (TIDB_TAG.length() == 40 || TIKV_TAG.length() == 40 || PD_TAG.length() == 40 || BINLOG_TAG.length() == 40 || TIFLASH_TAG.length() == 40 || IMPORTER_TAG.length() == 40 || BR_TAG.length() == 40 || CDC_TAG.length() == 40) {
-                            println "release must be used with tag."
-                            sh "exit 2"
-                        }
-                    }
+
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    if (STAGE == "build") {
-                        tidb_sha1 = get_hash(TIDB_TAG, "tidb")
-                        tikv_sha1 = get_hash(TIKV_TAG, "tikv")
-                        pd_sha1 = get_hash(PD_TAG, "pd")
-                        if (RELEASE_TAG >= "v5.2.0") {
-                            tidb_br_sha1 = get_hash(BR_TAG, "tidb")
-                        } else {
-                            tidb_br_sha1 = get_hash(BR_TAG, "br")
-                            importer_sha1 = get_hash(IMPORTER_TAG, "importer")
-                        }
-
-                        if (RELEASE_TAG >= "v5.3.0") {
-                            dumpling_sha1 = tidb_br_sha1
-                        } else {
-                            dumpling_sha1 = get_hash(DUMPLING_TAG, "dumpling")
-                        }
-
-                        tidb_binlog_sha1 = get_hash(BINLOG_TAG, "tidb-binlog")
-                        tiflash_sha1 = get_hash(TIFLASH_TAG, "tics")    
-                        cdc_sha1 = get_hash(CDC_TAG, "ticdc")
+                    
+                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    if (RELEASE_TAG >= "v5.2.0") {
+                        tidb_br_sha1 = tidb_sha1 
                     } else {
-                        tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_TAG} -s=${FILE_SERVER_URL}").trim()
-                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_TAG} -s=${FILE_SERVER_URL}").trim()
-                        if (RELEASE_TAG >= "v5.2.0") {
-                            tidb_br_sha1 = tidb_sha1 
-                        } else {
-                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${BR_TAG} -s=${FILE_SERVER_URL}").trim()
-                            importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${IMPORTER_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
-                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${BINLOG_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${TIFLASH_TAG} -s=${FILE_SERVER_URL}").trim()
-                        cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${CDC_TAG} -s=${FILE_SERVER_URL}").trim()
-
-                        if (RELEASE_TAG >= "v5.3.0") {
-                            dumpling_sha1 = tidb_sha1
-                            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
-                        } else {
-                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
+                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                        importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     }
-                    // lightning 从 4.0.12 开始和 br 的 hash 一样
+                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+
+                    if (RELEASE_TAG >= "v5.3.0") {
+                        dumpling_sha1 = tidb_sha1
+                        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    } else {
+                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    }
+
                     tidb_lightning_sha1 = tidb_br_sha1
-                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TIDB_TAG} -s=${FILE_SERVER_URL}").trim()
+                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
                 }
@@ -93,113 +50,7 @@ catchError {
         }
     }
 
-    stage('Build') {
-
-        builds = [:]
-        builds["Build on linux/arm64"] = {
-            build job: "optimization-build-tidb-linux-arm",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                    ]
-        }
-
-        builds["Build on darwin/amd64"] = {
-            build job: "optimization-build-tidb-darwin-amd",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                    ]
-        }
-        if (RELEASE_TAG >= "v5.1.0") {
-            builds["Build on darwin/arm64"] = {
-                build job: "optimization-build-tidb-darwin-arm",
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                                [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                        ]
-            }
-        }
-        def build_linux_amd = {
-            build job: "optimization-build-tidb-linux-amd",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: tidb_lightning_sha1],
-                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
-                            [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: SKIP_TIFLASH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_PRID],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                    ]
-        }
-        if (STAGE == "build") {
-            builds["Build on linux/amd64"] = build_linux_amd
-            parallel builds
-        }
-    }
-//    build stage return
-    if (STAGE == "build") {
-        return
-    }
+    
     node('delivery') {
         container("delivery") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -539,76 +390,23 @@ catchError {
             builds["Push Centos7 Binary"] = {
                 def ws = pwd()
                 push_binary(RELEASE_TAG, ws)
-
-                // if the parameter MINOR_RELEASE_TAG is setting, will push minor release tag binary
-                if (MINOR_RELEASE_TAG != "" && MINOR_RELEASE_TAG != null && MINOR_RELEASE_TAG != RELEASE_TAG) {
-                    push_binary(MINOR_RELEASE_TAG)
-                }
             }
-
+            def os = "linux"
+            def arch = "amd64"
+            def platform = "centos7"
             builds["Push tidb Docker"] = {
-                dir('tidb_docker_build') {
-                    sh """
-                        cp ../centos7/bin/tidb-server ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tidb
-                        mv tidb Dockerfile
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb:${RELEASE_TAG}", "tidb_docker_build").push()
-                }
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tidb:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tidb", tidb_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push tikv Docker"] = {
-                dir('tikv_docker_build') {
-                    sh """
-                        cp ../centos7/bin/tikv-server ./
-                        cp ../centos7/bin/tikv-ctl ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tikv
-                        mv tikv Dockerfile
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tikv:${RELEASE_TAG}", "tikv_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tikv:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tikv:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tikv:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push pd Docker"] = {
-                dir('pd_docker_build') {
-                    sh """
-                        cp ../centos7/bin/pd-server ./
-                        cp ../centos7/bin/pd-ctl ./
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/pd
-                        mv pd Dockerfile
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/pd:${RELEASE_TAG}", "pd_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/pd:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/pd:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/pd:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
+            // TODO: refine it when no longer need lightning
             builds["Push lightning Docker"] = {
                 dir('lightning_docker_build') {
                     sh """
@@ -651,116 +449,30 @@ __EOF__
             }
 
             builds["Push br Docker"] = {
-                dir('br_docker_build') {
-                    sh """
-                        cp ../centos7/bin/br ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY br /br
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/br:${RELEASE_TAG}", "br_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/br:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/br:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/br:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push dumpling Docker"] = {
-                dir('dumpling_docker_build') {
-                    sh """
-                        cp ../centos7/bin/dumpling ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY dumpling /dumpling
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/dumpling:${RELEASE_TAG}", "dumpling_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/dumpling:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/dumpling:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/dumpling:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push tidb-binlog Docker"] = {
-                dir('tidb_binlog_docker_build') {
-                    sh """
-                        cp ../centos7/bin/pump ./
-                        cp ../centos7/bin/drainer ./
-                        cp ../centos7/bin/reparo ./
-                        cp ../centos7/bin/binlogctl ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY pump /pump
-COPY drainer /drainer
-COPY reparo /reparo
-COPY binlogctl /binlogctl
-EXPOSE 4000
-EXPOSE 8249 8250
-CMD ["/pump"]
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tidb-binlog:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb-binlog:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
-//ticdc 编译，制作镜像，push
+
             builds["Push cdc Docker"] = {
-                build job: 'release_cdc_docker',
-                        wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'BUILD_TAG', value: "${RELEASE_TAG}"]]
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker pull registry-mirror.pingcap.net/pingcap/ticdc:${RELEASE_TAG}
-                        docker tag registry-mirror.pingcap.net/pingcap/ticdc:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/ticdc:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
-            // tiflash 上传二进制，制作上传镜像 
+
             builds["Push tiflash Docker"] = {
-                build job: 'release_tiflash_by_tag',
-                        wait: true,
-                        parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]
-                        ]
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker pull registry-mirror.pingcap.net/pingcap/tiflash:${RELEASE_TAG}
-                        docker tag registry-mirror.pingcap.net/pingcap/tiflash:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tiflash:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
+            builds["NG Monitoring Docker"] = {
+                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            // TODO: refine monitoring
             builds["Push monitor initializer"] = {
                 build job: 'release-monitor',
                         wait: true,
@@ -783,36 +495,64 @@ __EOF__
                         wait: true,
                         parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
             }
-            
-            // 这一步显得没有必要
-            // builds["Push monitor reloader"] = {
-            //     docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-            //         sh """
-            //             docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-reloader:v1.0.1 uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
-            //             docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-reloader:v1.0.1
-            //         """
-            //     }
-            // }
 
             stage("Push tarbll/image") {
                 parallel builds
+            }
+
+            def build_arms = [:]
+            os = "linux"
+            arch = "arm64"
+            platform = "centos7"
+
+            build_arms["Push tidb Docker"] = {
+                libs.release_online_image("tidb", tidb_sha1, arch, os , platform, RELEASE_TAG, false)
+            }
+
+            build_arms["Push tikv Docker"] = {
+                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Push pd Docker"] = {
+                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Push br Docker"] = {
+                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Push dumpling Docker"] = {
+                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Push tidb-binlog Docker"] = {
+                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Push cdc Docker"] = {
+                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Push tiflash Docker"] = {
+                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["Lightning Docker"] = {
+                libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            build_arms["NG Monitoring Docker"] = {
+                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false)
+            }
+
+            stage("Push arm images") {
+                parallel build_arms
             }
 
             stage("Publish arm64 docker images") {
                 build job: 'build-arm-image',
                         wait: true,
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIKV_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'PD_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'LIGHTNING_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'BR_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'CDC_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]          
@@ -821,34 +561,4 @@ __EOF__
     }
 
     currentBuild.result = "SUCCESS"
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[${env.JOB_NAME.replaceAll('%2F', '/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration}` Mins" + "\n" +
-            "tidb Version: `${RELEASE_TAG}`, Githash: `${tidb_sha1.take(7)}`" + "\n" +
-            "tikv Version: `${RELEASE_TAG}`, Githash: `${tikv_sha1.take(7)}`" + "\n" +
-            "pd   Version: `${RELEASE_TAG}`, Githash: `${pd_sha1.take(7)}`" + "\n" +
-            "tidb-lightning   Version: `${RELEASE_TAG}`, Githash: `${tidb_lightning_sha1.take(7)}`" + "\n" +
-            "tidb_binlog   Version: `${RELEASE_TAG}`, Githash: `${tidb_binlog_sha1.take(7)}`" + "\n" +
-            "TiDB Binary Download URL:" + "\n" +
-            "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-            "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-            "TiDB Binary sha256   URL:" + "\n" +
-            "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-            "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-            "tidb Docker Image: `pingcap/tidb:${RELEASE_TAG}`" + "\n" +
-            "pd   Docker Image: `pingcap/pd:${RELEASE_TAG}`" + "\n" +
-            "tikv Docker Image: `pingcap/tikv:${RELEASE_TAG}`" + "\n" +
-            "tidb-lightning Docker Image: `pingcap/tidb-lightning:${RELEASE_TAG}`" + "\n" +
-            "tidb-binlog Docker Image: `pingcap/tidb-binlog:${RELEASE_TAG}`"
-
-    if (currentBuild.result == "SUCCESS") {
-        slackSend channel: '#binary_publish', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-    // if (currentBuild.result != "SUCCESS") {
-    //     slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    // }
 }

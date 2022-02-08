@@ -132,6 +132,10 @@ catchError {
                 sh "curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz"
                 sh "mv gh-ost bin/"
 
+                // minio
+                sh 'curl -L http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
+                sh 'mv minio bin/'
+                
                 stash includes: "bin/**", name: "binaries"
             }
         }

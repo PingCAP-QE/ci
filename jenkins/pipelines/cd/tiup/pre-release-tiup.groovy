@@ -22,6 +22,7 @@ tools_sha1=""
 cdc_sha1=""
 dumpling_sha1=""
 ng_monitoring_sha1=""
+tidb_ctl_githash=""
 
 def get_sha() {
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
@@ -37,14 +38,15 @@ def get_sha() {
     }
     if (RELEASE_TAG >= "v5.3.0") {
         dumpling_sha1 = tidb_sha1
-        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     } else {
         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     }
     binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     lightning_sha1 = br_sha1
-    tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master -s=${FILE_SERVER_URL}").trim()
     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=master -s=${FILE_SERVER_URL}").trim()
 
     if (TIKV_BUMPVERION_HASH.length() == 40) {
         return tikv_sha1 = TIKV_BUMPVERION_HASH
@@ -78,6 +80,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -103,6 +106,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -129,6 +133,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -155,6 +160,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                            [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                             [$class: 'BooleanParameterValue', name: 'SKIP_TIFLASH', value: false],
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -180,6 +186,7 @@ stage('releaese tiup') {
                 [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
                 [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
                 [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
+                [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
                 [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
                 [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
                 [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],

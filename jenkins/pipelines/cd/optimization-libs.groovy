@@ -67,13 +67,48 @@ def create_builds(build_para) {
         }
     }
 
+    builds["Build Tiflash"] = {
+        build_product(build_para, "tiflash")
+    }
+
     return builds
+}
+
+def create_enterprise_builds(build_para) {
+    builds = [:]
+    build_para["ENTERPRISE"] = true
+
+    builds["Build tidb"] = {
+        build_product(build_para, "tidb")
+    }
+    builds["Build tikv"] = {
+        build_product(build_para, "tikv")
+    }
+    builds["Build pd"] = {
+        build_product(build_para, "pd")
+    }
+    builds["Build tiflash"] = {
+        build_product(build_para, "tiflash")
+    }
+    return builds
+}
+
+def retag_enterprise_docker(product, release_tag) {
+    def community_image = "pingcap/${product}:${release_tag}"
+    def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
+
+    sh """
+    docker pull ${community_image}
+    docker tag ${community_image} ${enterprise_image}
+    docker push ${enterprise_image}
+    """
 }
 
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
     def os = build_para["OS"]
     def release_tag = build_para["RELEASE_TAG"]
+    def platform = build_para["PLATFORM"]
     def sha1 = build_para[product]
     def git_pr = build_para["GIT_PR"]
     def force_rebuild = build_para["FORCE_REBUILD"]
@@ -89,13 +124,18 @@ def build_product(build_para, product) {
         repo = "tiflow"
     }
 
-
-
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (build_para["ENTERPRISE"]) {
+        filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    }
+    if (product == "tiflash") {
+        repo = "tics"
+        product = "tics"
+    }
+
     def paramsBuild = [
         string(name: "ARCH", value: arch),
         string(name: "OS", value: os),
-        string(name: "EDITION", value: "community"),
         string(name: "OUTPUT_BINARY", value: filepath),
         string(name: "REPO", value: repo),
         string(name: "PRODUCT", value: product),
@@ -112,11 +152,52 @@ def build_product(build_para, product) {
     if (product in ["enterprise-plugin"]) {
         paramsBuild.push([$class: 'StringParameterValue', name: 'TIDB_HASH', value: build_para["tidb"]])
     }
+    if (build_para["ENTERPRISE"]) {
+        paramsBuild.push(string(name: "EDITION", value: "enterprise"))
+    } else {
+        paramsBuild.push(string(name: "EDITION", value: "community"))
+    }
 
 
     build job: "build-common", 
         wait: true, 
         parameters: paramsBuild
+}
+
+def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
+    def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (enterprise) {
+        binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    }
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    def imageName = product
+    def repo = product
+
+    if (repo == "monitoring") {
+        imageName = "tidb-monitor-initializer"
+    }
+    if (enterprise) {
+        imageName = imageName + "-enterprise"
+    }
+    if (arch == "arm64") {
+        imageName = imageName + "-arm64"
+    }
+
+    def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
+
+    def paramsDocker = [
+        string(name: "ARCH", value: arch),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: binary),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "RELEASE_TAG", value: RELEASE_TAG),
+        string(name: "DOCKERFILE", value: dockerfile),
+        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+    ]
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsDocker
 }
 
 return this

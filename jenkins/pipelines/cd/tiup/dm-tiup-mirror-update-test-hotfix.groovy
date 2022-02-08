@@ -142,7 +142,7 @@ try{
 
                 dm_sha1 = get_hash(ORIGIN_TAG,"dm")
                 if (HOTFIX_TAG.startsWith("v") && HOTFIX_TAG >= "v5.3.0" ){
-                    dm_sha1 = get_hash(ORIGIN_TAG,"ticdc")
+                    dm_sha1 = get_hash(ORIGIN_TAG,"tiflow")
                 }
             }
 

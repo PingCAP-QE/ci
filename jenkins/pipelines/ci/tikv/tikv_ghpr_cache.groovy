@@ -60,7 +60,7 @@ RUN rustup set profile minimal
 RUN cd tikv-src \
         && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
         && git checkout origin/${ghBranch} \
-        && rustup component add rustfmt clippy \
+        && rustup component add rustfmt clippy llvm-tools-preview \
         && cargo fetch
 
 ENV CARGO_INCREMENTAL=0
