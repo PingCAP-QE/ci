@@ -34,6 +34,7 @@ CI_RUN_PART_TEST_CASES = """
     type_binary type_uint union update update_stmt variable 
     with_recursive with_recursive_bugs xd
     index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans index_merge1
+    ctype_gbk date_formats invisible_indexes nth type_varchar variables
     """
 
 // remove test: temp_table
