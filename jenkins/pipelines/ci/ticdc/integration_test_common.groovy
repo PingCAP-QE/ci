@@ -93,6 +93,25 @@ def tests(sink_type, node_label) {
             // Start running integration tests.
             def run_integration_test = { step_name, case_names ->
                 node(node_label) {
+                    if (sink_type == "kafka") {
+                        timeout(time: 6, unit: 'MINUTES') {
+                            container("zookeeper") {
+                                sh """
+                                    echo "Waiting for zookeeper to be ready..."
+                                    while ! nc -z localhost 2181; do sleep 10; done
+                                """
+                                sh """
+                                    echo "Waiting for kafka to be ready..."
+                                    while ! nc -z localhost 9092; do sleep 10; done
+                                """
+                                sh """
+                                    echo "Waiting for kafka-broker to be ready..."
+                                    while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                """
+                            }
+                        }
+                    }
+
                     container("golang") {
                         def ws = pwd()
                         deleteDir()

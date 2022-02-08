@@ -182,8 +182,7 @@ node("build_go1130") {
                 }
 
                 tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
-                tidb_ctl_sha1 = "master"
+                tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=master -s=${FILE_SERVER_URL}").trim()
                 tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -260,7 +259,7 @@ node("build_go1130") {
                 build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
             }
 
-            if (RELEASE_TAG == "nightly") {
+            if (RELEASE_TAG == "v5.5.0-alpha") {
                 stage("TiUP build dm") {
                     build(job: "dm-tiup-mirror-update-test", wait: true, parameters: params1)
                 }

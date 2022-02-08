@@ -135,7 +135,7 @@ try{
 
                 dm_sha1 = ""
                 if (RELEASE_TAG.startsWith("v") && RELEASE_TAG >= "v5.3.0" ){
-                    dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                    dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 } else {
                     dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dm -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }

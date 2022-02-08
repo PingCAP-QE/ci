@@ -1,4 +1,4 @@
-def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/"
+def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64"
 
 node("arm_image") {
     stage("Prepare & build binary") {
@@ -10,8 +10,8 @@ node("arm_image") {
         """
     }
     stage("Build Docker image") {
-        operatorDockerfilePath = baseUrl + "tidb-operator-arm64"
-        backupManagerDockerfilePath = baseUrl + "tidb-backup-manager-arm64"
+        operatorDockerfilePath = baseUrl + "tidb-operator"
+        backupManagerDockerfilePath = baseUrl + "tidb-backup-manager"
         docker.withRegistry("", "dockerhub") {
             sh """
             cd images/tidb-operator && wget ${operatorDockerfilePath} -O Dockerfile

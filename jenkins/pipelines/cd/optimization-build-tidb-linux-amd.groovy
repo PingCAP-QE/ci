@@ -36,7 +36,6 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
-def TIDB_CTL_HASH = "master"
 
 def slackcolor = 'good'
 def githash
@@ -97,86 +96,6 @@ try {
         build_para["GIT_PR"] = ""
 
         builds = libs.create_builds(build_para)
-        // TODO: refine tidb & plugin builds
-
-        if (SKIP_TIFLASH == "false") {
-            builds["Build tiflash release"] = {
-                podTemplate(name: "build-tiflash-release", label: "build-tiflash-release",
-                        nodeSelector: 'role_type=slave', instanceCap: 5,
-                        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
-                        containers: [
-                                containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-                                containerTemplate(name: 'docker', image: 'hub.pingcap.net/zyguan/docker:build-essential',
-                                        alwaysPullImage: false, envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),],
-                                        ttyEnabled: true, command: 'cat'),
-                                containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-builder',
-                                        alwaysPullImage: true, ttyEnabled: true, command: 'cat',
-                                        resourceRequestCpu: '12000m', resourceRequestMemory: '10Gi',
-                                        resourceLimitCpu: '16000m', resourceLimitMemory: '48Gi'),
-                        ]) {
-                    node("build-tiflash-release") {
-                        if (libs.check_file_exists(build_para, "tiflash")) {
-                            return
-                        }
-                        def ws = pwd()
-                        // deleteDir()
-                        container("builder") {
-                            // println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                            dir("tics") {
-                                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                    deleteDir()
-                                }
-
-                                def target = "tiflash-${os}-${arch}"
-                                def filepath = "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${TIFLASH_HASH}/${platform}/tiflash-${os}-${arch}.tar.gz"
-
-
-                                try{
-                                    checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
-                                } catch (info) {
-                                    retry(10) {
-                                        echo "checkout failed, retry.."
-                                        sleep 5
-                                        if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                            deleteDir()
-                                        }
-                                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${TIFLASH_HASH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''], [$class: 'LocalBranch']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/tics.git']]]
-                                    }
-                                }
-                                sh """
-                                    for a in \$(git tag --contains ${TIFLASH_HASH}); do echo \$a && git tag -d \$a;done
-                                    git tag -f ${RELEASE_TAG} ${TIFLASH_HASH}
-                                    git branch -D refs/tags/${RELEASE_TAG} || true
-                                    git checkout -b refs/tags/${RELEASE_TAG}
-                                    NPROC=12 release-centos7/build/build-release.sh
-                                    ls release-centos7/build-release/
-                                    ls release-centos7/tiflash/
-                                    cd release-centos7/
-                                    tar --exclude=${target}.tar.gz -czvf ${target}.tar.gz tiflash
-                                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                                """
-                                // build tiflash docker image
-                                container("docker") {
-                                    sh """
-                                        cd release-centos7
-                                        while ! make image_tiflash_ci ;do echo "fail @ `date "+%Y-%m-%d %H:%M:%S"`"; sleep 60; done
-                                    """
-                                    docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-                                        sh """
-                                            docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}
-                                            docker tag hub.pingcap.net/tiflash/tiflash-ci-centos7 hub.pingcap.net/tiflash/tics:${RELEASE_TAG}
-                                            docker push hub.pingcap.net/tiflash/tiflash:${RELEASE_TAG}
-                                            docker push hub.pingcap.net/tiflash/tics:${RELEASE_TAG}
-                                        """
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         parallel builds
     }
     currentBuild.result = "SUCCESS"

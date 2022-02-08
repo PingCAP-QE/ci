@@ -171,6 +171,10 @@ def build_dm_bin() {
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                 sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
                 sh 'mv gh-ost bin/'
+
+                // minio
+                sh 'curl -L http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
+                sh 'mv minio bin/'
             }
             dir("${ws}") {
                 stash includes: 'go/src/github.com/pingcap/tiflow/**', name: 'ticdc-with-bin', useDefaultExcludes: false

@@ -73,37 +73,37 @@ try {
             stage("Get hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                if (RELEASE_TAG == "nightly") {
-                    tag = "master"
+                tag = RELEASE_TAG
+                if(ORIGIN_TAG != "") {
+                    lightning_sha1 = ORIGIN_TAG
+                } else if (RELEASE_TAG >= "v5.2.0") {
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 } else {
-                    tag = RELEASE_TAG
+                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                 }
 
                 if (TIDB_VERSION == "") {
                     TIDB_VERSION = RELEASE_TAG
                 }
                 // After v4.0.11, we use br repo instead of br repo, and we should not maintain old version, if we indeed need, we can use the old version of this groovy file
-                lightning_sha1 = ""
-                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
-                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                } else {
-                    lightning_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            }
+
+            if (params.ARCH_X86) {
+                stage("tiup release tidb-lightning linux amd64") {
+                    update "br", RELEASE_TAG, "linux", "amd64"
                 }
             }
-
-            stage("tiup release tidb-lightning linux amd64") {
-                update "br", RELEASE_TAG, "linux", "amd64"
+            if (params.ARCH_ARM) {
+                stage("tiup release tidb-lightning linux arm64") {
+                    update "br", RELEASE_TAG, "linux", "arm64"
+                }
             }
-
-            stage("tiup release tidb-lightning linux arm64") {
-                update "br", RELEASE_TAG, "linux", "arm64"
+            if (params.ARCH_MAC) {
+                stage("tiup release tidb-lightning darwin amd64") {
+                    update "br", RELEASE_TAG, "darwin", "amd64"
+                }
             }
-
-            stage("tiup release tidb-lightning darwin amd64") {
-                update "br", RELEASE_TAG, "darwin", "amd64"
-            }
-
-            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            if (params.ARCH_MAC_ARM && RELEASE_TAG >="v5.1.0") {
                 stage("tiup release tidb-lightning darwin arm64") {
                     update "br", RELEASE_TAG, "darwin", "arm64"
                 }
