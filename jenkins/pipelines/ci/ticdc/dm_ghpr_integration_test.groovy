@@ -83,13 +83,13 @@ def pattern_match_any_file(pattern, files_list) {
 
 
 def pr_diff_files = list_pr_diff_files()
-def pattern = /(^dm\/|^pkg\/).*$/
+def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
 // if any diff files start with dm/ or pkg/ , run the dm integration test
 def matched = pattern_match_any_file(pattern, pr_diff_files)
 if (matched) {
-    echo "matched, some diff files full path start with dm/ or pkg/, run the dm integration test"
+    echo "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm integration test"
 } else {
-    echo "not matched, all files full path not start with dm/ or pkg/, current pr not releate to dm, so skip the dm integration test"
+    echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
     currentBuild.result = 'SUCCESS'
     return 0
 }
