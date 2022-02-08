@@ -239,10 +239,10 @@ try {
             }
         }
 
-        // if (notRun == 0){
-        //     println "the ${ghprbActualCommit} has been tested"
-        //     throw new RuntimeException("hasBeenTested")
-        // }
+        if (notRun == 0){
+            println "the ${ghprbActualCommit} has been tested"
+            throw new RuntimeException("hasBeenTested")
+        }
     }
 
     run_with_pod {
