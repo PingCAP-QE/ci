@@ -184,8 +184,8 @@ def test_suites = { suites,option ->
                         curl ${pd_url} | tar xz bin
                         make failpoint-enable
                         
-			# Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
-			echo -e "[pessimistic-txn]\npipelined = false" > tikv.toml
+                        # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
+                        echo -e "[pessimistic-txn]\npipelined = false" > tikv.toml
 			
                         bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
                         bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
@@ -265,43 +265,44 @@ try {
                             """
                         }
                     }
-                }
-                dir("${ws}/go/src/github.com/pingcap/tidb") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
-                        echo "Clean dir then get tidb src code from fileserver"
-                        deleteDir()
-                    }
-                    if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
-                        dir("${ws}/go/src/github.com/pingcap/tidb") {
-                            sh """
-                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                                rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
-                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
-                            """
+                    dir("${ws}/go/src/github.com/pingcap/tidb") {
+                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                            echo "Clean dir then get tidb src code from fileserver"
+                            deleteDir()
                         }
-                    }
-                    try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    }   catch (info) {
-                            retry(2) {
-                                echo "checkout failed, retry.."
-                                sleep 5
-                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                    deleteDir()
-                                }
-                                // if checkout one pr failed, we fallback to fetch all thre pr data
-                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                            dir("${ws}/go/src/github.com/pingcap/tidb") {
+                                sh """
+                                    rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                    rm -rf /home/jenkins/agent/code-archive/tidb
+                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                    tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                                """
                             }
                         }
-                    sh "git checkout -f ${ghprbActualCommit}"
+                        try {
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        }   catch (info) {
+                                retry(2) {
+                                    echo "checkout failed, retry.."
+                                    sleep 5
+                                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                        deleteDir()
+                                    }
+                                    // if checkout one pr failed, we fallback to fetch all thre pr data
+                                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                                }
+                            }
+                        sh "git checkout -f ${ghprbActualCommit}"
+                        sh """
+                        GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                        """
+                    }
                 }
             }
             stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
         }
-
-
 
         def tests = [:]
         tests["Build & Test"] = {
@@ -328,6 +329,134 @@ try {
             }
             tests["test session with real tikv exclude suites ${sessionTestSuitesString}"] = {
                 test_suites(sessionTestSuitesString, "-check.exclude")
+            }
+
+            tests["New Collation Enabled"] = {
+                run_with_pod {
+                    deleteDir()
+                    unstash 'tidb'
+                    container("golang") {
+                        dir("go/src/github.com/pingcap/tidb") { 
+                             timeout(15) { 
+                                 try {
+                                    ws = pwd()
+                                    def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                                    def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                                    tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+                                    def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                                    def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                                    pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                    sh """
+                                    curl ${tikv_url} | tar xz
+                                    curl ${pd_url} | tar xz bin
+
+                                    # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
+                                    echo -e "[pessimistic-txn]\npipelined = false" > tikv.toml
+
+                                    bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
+                                    bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
+                        
+                                    bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
+                                    bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f  tikv2.log &
+                    
+                                    bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
+                                    bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
+
+                                    # GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                                    ls -alh ./bin/
+
+                                    export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
+                                    export TIKV_PATH=127.0.0.1:2379
+                                    chmod +x cmd/explaintest/run-tests.sh
+                                    cd cmd/explaintest && ls -alh
+                                    ./run-tests.sh -d y
+                                    """
+                                 } catch (Exception e){ 
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explaintest.log || true"
+                                    throw e
+                                 } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r -q tikv-server
+                                    killall -9 -r -q pd-server
+                                    set -e
+                                    """
+                                 }
+                             }
+                        }
+                    }
+                }
+            }
+
+            tests["New Collation Disabled"] = {
+                run_with_pod {
+                    deleteDir()
+                    unstash 'tidb'
+                    container("golang") {
+                        dir("go/src/github.com/pingcap/tidb") { 
+                             timeout(15) { 
+                                 try {
+                                    ws = pwd()
+                                    def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                                    def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                                    tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+                                    def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                                    def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                                    pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                    sh """
+                                    curl ${tikv_url} | tar xz
+                                    curl ${pd_url} | tar xz bin
+
+                                    # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
+                                    echo -e "[pessimistic-txn]\npipelined = false" > tikv.toml
+
+                                    bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
+                                    bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
+                        
+                                    bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
+                                    bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f  tikv2.log &
+                    
+                                    bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
+                                    bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
+
+                                    # GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                                    ls -alh ./bin/
+
+                                    export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
+                                    export TIKV_PATH=127.0.0.1:2379
+                                    chmod +x cmd/explaintest/run-tests.sh
+                                    cd cmd/explaintest && ls -alh
+                                    ./run-tests.sh -d n
+                                    """
+                                 } catch (Exception e){ 
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explaintest.log || true"
+                                    throw e
+                                 } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r -q tikv-server
+                                    killall -9 -r -q pd-server
+                                    set -e
+                                    """
+                                 }
+                             }
+                        }
+                    }
+                }
             }
         }
         parallel tests
@@ -404,13 +533,3 @@ if (params.containsKey("triggered_by_upstream_ci")) {
     }
 }
 
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Build Result: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-}
