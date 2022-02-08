@@ -74,7 +74,7 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
  */
 def list_pr_diff_files() {
     def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
-    withCredentials([string(credentialsId: 'test-ci-wulifu', variable: 'github_token')]) { 
+    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
         response = httpRequest consoleLogResponseBody: false, 
             contentType: 'APPLICATION_JSON', httpMode: 'GET', 
             customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
