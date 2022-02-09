@@ -73,7 +73,7 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
  * List diff files in the pull request.
  */
 def list_pr_diff_files() {
-    def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
+    def list_pr_files_api_url = "https://api.github.com/repos/pingcap/tiflow/pulls/${ghprbPullId}/files"
     withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
         response = httpRequest consoleLogResponseBody: false, 
             contentType: 'APPLICATION_JSON', httpMode: 'GET', 
