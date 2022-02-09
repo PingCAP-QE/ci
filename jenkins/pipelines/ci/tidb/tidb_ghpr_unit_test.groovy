@@ -97,7 +97,9 @@ def run_with_pod(Closure body) {
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
+            timeout(time: 60, unit: 'MINUTES') {
+               body() 
+            }
         }
     }
 }
