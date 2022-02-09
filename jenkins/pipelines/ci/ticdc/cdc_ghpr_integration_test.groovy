@@ -99,7 +99,7 @@ println "POD_GO_DOCKER_IMAGE=${POD_GO_DOCKER_IMAGE}"
  * List diff files in the pull request.
  */
 def list_pr_diff_files() {
-    def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
+    def list_pr_files_api_url = "https://api.github.com/repos/pingcap/tiflow/pulls/${ghprbPullId}/files"
     withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
         response = httpRequest consoleLogResponseBody: false, 
             contentType: 'APPLICATION_JSON', httpMode: 'GET', 
@@ -134,16 +134,18 @@ def pattern_match_all_files(pattern, files_list) {
     return true
 }
 
-def pr_diff_files = list_pr_diff_files()
-def pattern = /^dm\/.*$/
-// if all diff files start with dm/, skip cdc integration test
-def matched = pattern_match_all_files(pattern, pr_diff_files)
-if (matched) {
-    echo "matched, all diff files full path start with dm/, current pr is dm's pr(not related to ticdc), skip cdc integration test"
-    currentBuild.result = 'SUCCESS'
-    return 0
-} else {
-    echo "not matched, some diff files not start with dm/, need run the cdc integration test"
+if (ghprbPullId != null && ghprbPullId != "") {
+    def pr_diff_files = list_pr_diff_files()
+    def pattern = /^dm\/.*$/
+    // if all diff files start with dm/, skip cdc integration test
+    def matched = pattern_match_all_files(pattern, pr_diff_files)
+    if (matched) {
+        echo "matched, all diff files full path start with dm/, current pr is dm's pr(not related to ticdc), skip cdc integration test"
+        currentBuild.result = 'SUCCESS'
+        return 0
+    } else {
+        echo "not matched, some diff files not start with dm/, need run the cdc integration test"
+    }
 }
 
 
