@@ -113,7 +113,7 @@ catchError {
                            cp ${ws}/centos7/bin/pd-ctl ./bin
                            cp ${ws}/centos7/bin/pd-recover ./bin
                            cp ${ws}/centos7/bin/pd-server ./bin
-                           cp ${ws}/centos7/bin/tidb-ctl ./bin
+                           cp ${ws}/centos7/tidb-ctl-${RELEASE_TAG}-linux-amd64/bin/tidb-ctl ./bin
                            cp ${ws}/centos7/bin/tidb-server ./bin
                            cp ${ws}/centos7/bin/tikv-ctl ./bin
                            cp ${ws}/centos7/bin/tikv-server ./bin
@@ -461,7 +461,7 @@ __EOF__
             }
 
             builds["Push cdc Docker"] = {
-                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
+                libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push tiflash Docker"] = {
@@ -530,7 +530,7 @@ __EOF__
             }
 
             build_arms["Push cdc Docker"] = {
-                libs.release_online_image("cdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
+                libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push tiflash Docker"] = {
