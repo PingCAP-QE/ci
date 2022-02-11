@@ -6,7 +6,7 @@ RUN set -e && \
     sed -e 's|^mirrorlist=|#mirrorlist=|g' \
          -e 's|^#baseurl=http://mirror.centos.org/$contentdir|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos|g' \
          -i.bak \
-         /etc/yum.repos.d/CentOS-*.repo \
+         /etc/yum.repos.d/CentOS-*.repo && \
     dnf install bind-utils wget -y && \
     dnf clean all
 EXPOSE 2379 2380
