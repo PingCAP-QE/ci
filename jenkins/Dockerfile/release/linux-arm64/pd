@@ -3,8 +3,10 @@ COPY pd-server /pd-server
 COPY pd-ctl /pd-ctl
 COPY pd-recover /pd-recover
 RUN set -e && \
-    curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-8.repo && \
-    sed -i '/aliyuncs.com/d' /etc/yum.repos.d/*.repo && \
+    sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+         -e 's|^#baseurl=http://mirror.centos.org/$contentdir|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos|g' \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-*.repo \
     dnf install bind-utils wget -y && \
     dnf clean all
 EXPOSE 2379 2380
