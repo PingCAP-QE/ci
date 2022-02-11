@@ -62,5 +62,16 @@ run_with_pod {
         stage("Trigger jobs") {
             build(job: "tidb_ghpr_mysql_test", parameters: basic_params, wait: true)
         }
+
+
+        parallel(
+            "run-all-tests": {
+
+            },
+            "run-tests-in-wightlist": {
+
+            }
+        )
     }
 }
+
