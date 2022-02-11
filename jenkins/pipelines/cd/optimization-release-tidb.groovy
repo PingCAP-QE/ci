@@ -449,7 +449,7 @@ __EOF__
             }
 
             builds["Push br Docker"] = {
-                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG, false)
+                libs.release_online_image("br", tidb_br_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push dumpling Docker"] = {
@@ -518,7 +518,7 @@ __EOF__
             }
 
             build_arms["Push br Docker"] = {
-                libs.release_online_image("br", br_sha1, arch,  os , platform,RELEASE_TAG, false)
+                libs.release_online_image("br", tidb_br_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             build_arms["Push dumpling Docker"] = {
