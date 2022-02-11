@@ -166,6 +166,9 @@ def build_product(build_para, product) {
 
 def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
     def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    if (product == "tidb-lightning") {
+        binary = "builds/pingcap/br/optimization/${tag}/${sha1}/${platform}/br-${os}-${arch}.tar.gz"
+    }
     if (enterprise) {
         binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
     }
