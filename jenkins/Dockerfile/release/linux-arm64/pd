@@ -3,7 +3,7 @@ COPY pd-server /pd-server
 COPY pd-ctl /pd-ctl
 COPY pd-recover /pd-recover
 RUN set -e && \
-    wget 'http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/centos-gpg-keys-8-3.el8.noarch.rpm' && \
+    curl -O 'http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/centos-gpg-keys-8-3.el8.noarch.rpm' && \
     rpm -i 'centos-gpg-keys-8-3.el8.noarch.rpm' && \
     dnf install bind-utils wget -y && \
     dnf clean all
