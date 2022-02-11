@@ -123,7 +123,7 @@ node("github-status-updater") {
 
     try {
         stage("Build") {
-            build(job: "tidb_merged_pr_build", parameters: default_params, wait: true, propagate: false)
+            build(job: "tidb_merged_pr_build", parameters: default_params, wait: true, propagate: true)
         }
         stage("Trigger Test Job") {
             container("github-status-updater") {
