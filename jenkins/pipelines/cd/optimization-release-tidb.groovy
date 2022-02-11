@@ -170,7 +170,7 @@ catchError {
                            cp ${ws}/arm/bin/pd-ctl ./bin
                            cp ${ws}/arm/bin/pd-recover ./bin
                            cp ${ws}/arm/bin/pd-server ./bin
-                           cp ${ws}/arm/bin/tidb-ctl ./bin
+                           cp ${ws}/arm/bin/tidb-ctl-${RELEASE_TAG}-linux-arm64/tidb-ctl ./bin
                            cp ${ws}/arm/bin/tidb-server ./bin
                            cp ${ws}/arm/bin/tikv-ctl ./bin
                            cp ${ws}/arm/bin/tikv-server ./bin
@@ -267,16 +267,16 @@ catchError {
                     dir("${target}") {
                         sh """
                            mkdir bin
-                           cp ${ws}/arm/tidb-tools-v*-linux-arm64/bin/sync_diff_inspector ./bin
-                           cp ${ws}/arm/pd-v*-linux-arm64/bin/pd-tso-bench ./bin
+                           cp ${ws}/arm/bin/sync_diff_inspector ./bin
+                           cp ${ws}/arm/bin/pd-tso-bench ./bin
                            if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
-                               cp ${ws}/arm/importer-v*-linux-arm64/bin/tikv-importer ./bin
+                               cp ${ws}/arm/bin/tikv-importer ./bin
                            fi;
-                           cp ${ws}/arm/br-v*-linux-arm64/bin/br ./bin
-                           cp ${ws}/arm/br-v*-linux-arm64/bin/tidb-lightning ./bin
-                           cp ${ws}/arm/br-v*-linux-arm64/bin/tidb-lightning-ctl ./bin
-                           cp ${ws}/arm/dumpling-v*-linux-arm64/bin/dumpling ./bin
-                           # cp ${ws}/arm/mydumper-linux-amd64/bin/mydumper ./bin
+                           cp ${ws}/arm/bin/br ./bin
+                           cp ${ws}/arm/bin/tidb-lightning ./bin
+                           cp ${ws}/arm/bin/tidb-lightning-ctl ./bin
+                           cp ${ws}/arm/bin/dumpling ./bin
+                           # cp ${ws}/arm/bin/mydumper ./bin
                         """
                     }
 
@@ -338,7 +338,7 @@ catchError {
                 def push_arm_tiflash = { target ->
                     dir("${target}") {
                         sh """
-                            cp -R ${ws}/arm/tiflash-v*-linux-arm64/* ./
+                            cp -R ${ws}/arm/tiflash/* ./
                             wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
                             md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
                             curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
