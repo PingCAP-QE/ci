@@ -245,13 +245,18 @@ node("github-status-updater") {
                     def type = result_map["type"]
                     def triggered_job_summary = ""
                     if (result_map.result.getDescription() != null && result_map.result.getDescription() != "") {
-                        // println "description: ${result_map.result.getDescription()}"
-                        def jsonObj = readJSON text: result_map.result.getDescription()
-                        triggered_job_summary = parseBuildResult(jsonObj)
-                        writeJSON file: "${name}.json", json: result_map.result.getDescription(), pretty: 4
-                        sh """
-                        python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} ${name}.json
-                        """
+                        if (name == "tidb_ghpr_coverage") {
+                            println "this is tidb_ghpr_coverage"
+                            triggered_job_summary = result_map.result.getDescription()
+                        } else {
+                            // println "description: ${result_map.result.getDescription()}"
+                            def jsonObj = readJSON text: result_map.result.getDescription()
+                            triggered_job_summary = parseBuildResult(jsonObj)
+                            writeJSON file: "${name}.json", json: result_map.result.getDescription(), pretty: 4
+                            sh """
+                            python3 tiinsight-agent-integration-test-ci.py ${name} ${TIDB_COMMIT_ID} ${TIDB_BRANCH} ${name}.json
+                            """
+                        }
                     }
                     // println "name: ${name}, type: ${type}, result: triggered_job_summary"
                     pipeline_result << [
