@@ -15,7 +15,7 @@
 def libs
 
 def os = "linux"
-def arch = "arm64"
+def arch = "amd64"
 def platform = "centos7"
 
 catchError {
