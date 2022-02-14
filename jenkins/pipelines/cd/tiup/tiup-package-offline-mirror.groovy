@@ -75,10 +75,10 @@ def package_enterprise = { arch ->
 
     def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     sh """
-    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${VERSION}/${tiflash_hash}/centos7/tiflash-${VERSION}-${os}-${arch}-enterprise.tar.gz
+    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${VERSION}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
     rm -rf tiflash
-    tar -xzf tiflash-${VERSION}-linux-${arch}-enterprise.tar.gz
-    rm -rf tiflash-${VERSION}-linux-${arch}-enterprise.tar.gz
+    tar -xzf tiflash-linux-${arch}-enterprise.tar.gz
+    rm -rf tiflash-linux-${arch}-enterprise.tar.gz
     tar -czf tiflash-${VERSION}-linux-${arch}.tar.gz tiflash
     tiup mirror publish tiflash ${VERSION} tiflash-${VERSION}-linux-${arch}.tar.gz tiflash/tiflash --arch ${arch} --os linux --desc="The TiFlash Columnar Storage Engine"
     """
@@ -113,7 +113,7 @@ def package_tools = { plat, arch ->
     sh """
         mkdir -p ${toolkit_dir}/bin/
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${VERSION}/${binlog_hash}/centos7/tidb-binlog-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-server-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${VERSION}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${VERSION}/${br_hash}/centos7/br-linux-${arch}.tar.gz
         if [ $VERSION \\< "v5.2.0" ]; then
@@ -122,7 +122,7 @@ def package_tools = { plat, arch ->
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
-        tar xf pd-server-linux-${arch}.tar.gz
+        tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
         if [ $VERSION \\< "v5.2.0" ]; then
