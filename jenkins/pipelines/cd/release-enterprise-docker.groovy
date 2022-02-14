@@ -14,6 +14,10 @@
 
 def libs
 
+def os = "linux"
+def arch = "arm64"
+def platform = "centos7"
+
 catchError {
     stage('Prepare') {
         node('delivery') {
