@@ -41,6 +41,7 @@ try {
         build_para["pd"] = PD_HASH
         build_para["ticdc"] = CDC_HASH
         build_para["br"] = BR_HASH
+        build_para["importer"] = IMPORTER_HASH
         build_para["dumpling"] = DUMPLING_HASH
         build_para["ng-monitoring"] = NGMonitoring_HASH
         build_para["enterprise-plugin"] = RELEASE_BRANCH
