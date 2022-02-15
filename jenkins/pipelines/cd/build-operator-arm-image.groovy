@@ -1,4 +1,4 @@
-def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64"
+def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/"
 
 node("arm_image") {
     stage("Prepare & build binary") {
