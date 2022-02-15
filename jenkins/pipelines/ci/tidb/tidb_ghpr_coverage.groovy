@@ -134,12 +134,13 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     sh """
-                    make br_unit_test
-                    mv coverage.txt br.coverage
-                    make dumpling_unit_test
-                    mv coverage.txt dumpling.coverage
-                    make gotest
-                    mv coverage.txt tidb.coverage
+                        export log_level=warn
+                        make br_unit_test_in_verify_ci
+                        mv test_coverage/br_cov.unit_test.out br.coverage
+                        make dumpling_unit_test_in_verify_ci
+                        mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                        make gotest_in_verify_ci
+                        mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                     """
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN'),
                                     string(credentialsId: 'codecov-api-token', variable: 'CODECOV_API_TOKEN')]) {
@@ -158,7 +159,7 @@ try {
                                 """
                             }
                             // wait until codecov upload finish
-                            sleep(time:10,unit:"SECONDS")
+                            sleep(time:100,unit:"SECONDS")
                             def response = httpRequest Authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
                             println('Status: '+response.status)
                             def obj = readJSON text:response.content
