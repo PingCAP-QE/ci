@@ -179,10 +179,6 @@ if (params.containsKey("upstreamJob")) {
     tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
 }
 
-if (ghprbTargetBranch.startsWith("release-") || ghprbTargetBranch in ["master", "hz-poc", "ft-data-inconsistency", "br-stream"]) {
-    println "This PR is for release branch"
-} 
-
 if (ghprbTargetBranch in ["br-stream"]) {
     println "This PR is for feature branch"
     println "Skip mysql_test ci for feature branch: ${ghprbTargetBranch}"
