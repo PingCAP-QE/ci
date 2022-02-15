@@ -89,11 +89,12 @@ spec:
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            yaml: yaml,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
-                            yaml: yaml, yamlMergeStrategy: merge(),
                             resourceRequestCpu: '6000m', resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
