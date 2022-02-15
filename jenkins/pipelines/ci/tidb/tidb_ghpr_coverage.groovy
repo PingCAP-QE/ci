@@ -158,7 +158,7 @@ try {
                                 """
                             }
                             // wait until codecov upload finish
-                            sleep(time:10,unit:"SECONDS")
+                            sleep(time:100,unit:"SECONDS")
                             def response = httpRequest Authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
                             println('Status: '+response.status)
                             def obj = readJSON text:response.content
