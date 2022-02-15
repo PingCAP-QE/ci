@@ -134,7 +134,7 @@ def pattern_match_all_files(pattern, files_list) {
     return true
 }
 
-if (ghprbPullId != null && ghprbPullId != "") {
+if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) {
     def pr_diff_files = list_pr_diff_files()
     def pattern = /^dm\/.*$/
     // if all diff files start with dm/, skip cdc integration test

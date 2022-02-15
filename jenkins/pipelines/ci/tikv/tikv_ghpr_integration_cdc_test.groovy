@@ -33,7 +33,8 @@ catchError {
                             string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
                             // We use the target branch here because it will be used to download the corresponding branch code for TiCDC.
                             string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbTargetBranch}"),
-                            string(name: 'upstream_pr_ci_ghpr_pull_id', value: "${ghprbPullId}"),
+                            // We set the pull id to empty string here because we download the code with the specified commit.
+                            string(name: 'upstream_pr_ci_ghpr_pull_id', value: ""),
                             string(name: 'upstream_pr_ci_ghpr_pull_title', value: "${ghprbPullTitle}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_link', value: "${ghprbPullLink}"),
                             string(name: 'upstream_pr_ci_ghpr_pull_description', value: "${ghprbPullDescription}"),
