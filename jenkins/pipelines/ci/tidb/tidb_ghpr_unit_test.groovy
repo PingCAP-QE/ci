@@ -69,6 +69,22 @@ def run_with_pod(Closure body) {
     def cloud = "kubernetes"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def yaml = """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: golang
+      volumeMounts:
+        - name: go-mod-cache
+          mountPath: /go
+          subPath: gomodcache
+  volumes:
+    - name: go-mod-cache
+      glusterfs:
+        endpoints: gluster-nvme-cluster
+        path: gluster-nvme
+"""
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -77,6 +93,7 @@ def run_with_pod(Closure body) {
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
+                            yaml: yaml, yamlMergeStrategy: merge(),
                             resourceRequestCpu: '6000m', resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
