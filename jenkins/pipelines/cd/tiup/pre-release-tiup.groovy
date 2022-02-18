@@ -17,6 +17,7 @@ tiflash_sha1=""
 br_sha1=""
 binlog_sha1=""
 lightning_sha1=""
+importer_sha1=""
 tools_sha1=""
 cdc_sha1=""
 dumpling_sha1=""
@@ -41,6 +42,7 @@ def get_sha() {
         br_sha1 = tidb_sha1
     } else {
         br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+        importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     }
     if (RELEASE_TAG >= "v5.3.0") {
         dumpling_sha1 = tidb_sha1
@@ -85,6 +87,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                             [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: binlog_sha1],
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
+                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
@@ -113,6 +116,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                             [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: binlog_sha1],
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
+                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
@@ -142,6 +146,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                             [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: binlog_sha1],
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
+                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
@@ -171,6 +176,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                             [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: binlog_sha1],
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
+                            [$class: 'StringParameterValue', name: 'IMPORTER_HASH', value: importer_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
@@ -200,6 +206,7 @@ stage('releaese tiup') {
                 [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
                 [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
                 [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
+                [$class: 'StringParameterValue', name: 'IMPORTER_TAG', value: importer_sha1],
                 [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
                 [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
                 [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
