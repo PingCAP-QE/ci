@@ -208,6 +208,7 @@ try {
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
+    currentBuild.description = "unit test failed, coverage data was not available"
     slackcolor = 'danger'
     echo "${e}"
 }
