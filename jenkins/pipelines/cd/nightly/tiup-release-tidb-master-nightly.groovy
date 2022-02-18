@@ -3,7 +3,7 @@
 */
 def slackcolor = 'good'
 def githash
-def tidb_githash, tikv_githash, pd_githash, tools_githash
+def tidb_githash, tikv_githash, pd_githash, importer_githash, tools_githash
 def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_githash
 def cdc_githash, lightning_githash
 

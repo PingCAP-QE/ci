@@ -28,6 +28,7 @@ catchError {
                         tidb_br_sha1 = tidb_sha1 
                     } else {
                         tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                        importer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     }
                     tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -68,6 +69,9 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${RELEASE_TAG}/${pd_sha1}/centos7/pd-linux-amd64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-amd64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${RELEASE_TAG}/${tikv_sha1}/centos7/tikv-linux-amd64.tar.gz | tar xz"
+                    if (RELEASE_TAG < "v5.2.0") {
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${RELEASE_TAG}/${importer_sha1}/centos7/importer-linux-amd64.tar.gz | tar xz"
+                    }
                     
 
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${tidb_tools_sha1}/centos7/tidb-tools-linux-amd64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
@@ -83,6 +87,9 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${RELEASE_TAG}/${tikv_sha1}/centos7/tikv-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${RELEASE_TAG}/${pd_sha1}/centos7/pd-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-arm64.tar.gz | tar xz"
+                    if (RELEASE_TAG < "v5.2.0") {
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${RELEASE_TAG}/${importer_sha1}/centos7/importer-linux-arm64.tar.gz | tar xz"
+                    } 
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${tidb_tools_sha1}/centos7/tidb-tools-linux-arm64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${RELEASE_TAG}/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-arm64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${tidb_br_sha1}/centos7/br-linux-arm64.tar.gz | tar xz"
@@ -220,6 +227,9 @@ catchError {
                            cp ${ws}/centos7/bin/pd-tso-bench ./bin
                            cp ${ws}/centos7/bin/tidb-lightning ./bin
                            cp ${ws}/centos7/bin/tidb-lightning-ctl ./bin
+                           if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
+                              cp ${ws}/centos7/bin/tikv-importer ./bin
+                           fi;
                            cp ${ws}/centos7/bin/br ./bin
                            cp ${ws}/centos7/bin/dumpling ./bin
                            cp ${ws}/centos7/mydumper-linux-amd64/bin/mydumper ./bin
@@ -259,6 +269,9 @@ catchError {
                            mkdir bin
                            cp ${ws}/arm/bin/sync_diff_inspector ./bin
                            cp ${ws}/arm/bin/pd-tso-bench ./bin
+                           if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
+                               cp ${ws}/arm/bin/tikv-importer ./bin
+                           fi;
                            cp ${ws}/arm/bin/br ./bin
                            cp ${ws}/arm/bin/tidb-lightning ./bin
                            cp ${ws}/arm/bin/tidb-lightning-ctl ./bin
@@ -400,6 +413,9 @@ catchError {
                         cp ../centos7/bin/tidb-lightning ./
                         cp ../centos7/bin/tidb-lightning-ctl ./
                         cp ../centos7/bin/br ./
+                        if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then 
+                            cp ../centos7/bin/tikv-importer ./
+                        fi;
                         cp /usr/local/go/lib/time/zoneinfo.zip ./
                         cat > Dockerfile << __EOF__
 FROM pingcap/alpine-glibc:alpine-3.14
@@ -408,6 +424,16 @@ COPY tidb-lightning /tidb-lightning
 COPY tidb-lightning-ctl /tidb-lightning-ctl
 COPY br /br
 __EOF__
+                        if [ ${RELEASE_TAG} \\< "v5.2.0" ]; then
+                        cat > Dockerfile << __EOF__
+FROM pingcap/alpine-glibc:alpine-3.14
+COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
+COPY tidb-lightning /tidb-lightning
+COPY tidb-lightning-ctl /tidb-lightning-ctl
+COPY tikv-importer /tikv-importer
+COPY br /br
+__EOF__
+                        fi;
                         """
                 }
 
