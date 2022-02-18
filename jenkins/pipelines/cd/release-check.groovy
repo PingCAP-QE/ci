@@ -201,13 +201,13 @@ parallel(
         },
 
         "Tiup Linux Amd64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "tikv-importer", "ticdc", "dumpling"], task)
+            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], task)
         },
         "Tiup Linux Arm64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "tikv-importer", "ticdc", "dumpling"], "arm")
+            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "arm")
         },
         "Tiup Darwin Amd64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "tikv-importer", "ticdc", "dumpling"], "mac")
+            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac")
         },
 
         "Pingcap Community Linux Amd64": {

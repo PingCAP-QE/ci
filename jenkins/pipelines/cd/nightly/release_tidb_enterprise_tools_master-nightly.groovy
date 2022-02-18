@@ -60,7 +60,6 @@ catchError {
                 cat > Dockerfile << __EOF__
 FROM registry-mirror.pingcap.net/pingcap/alpine-glibc:mysql_client
 COPY mydumper /mydumper
-COPY importer /importer
 COPY loader /loader
 COPY syncer /syncer
 COPY ddl_checker /ddl_checker
