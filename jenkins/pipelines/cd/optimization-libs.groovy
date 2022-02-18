@@ -57,12 +57,6 @@ def create_builds(build_para) {
         }
     }
 
-    if (release_tag < "v5.2.0" && build_para["OS"] == "linux") {
-        builds["Build Importer"] = {
-            build_product(build_para, "importer")
-        }
-    }
-
     if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
         builds["Build Plugin"] = {
             build_product(build_para, "enterprise-plugin")
