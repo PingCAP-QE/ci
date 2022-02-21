@@ -204,7 +204,11 @@ def build_dm_bin() {
                 sh 'make dm_integration_test_build'
 
                 // tidb
-                tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/master/sha1").trim()
+                def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
+                println "TIDB_BRANCH=${TIDB_BRANCH}"
+
+
+                tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
                 sh "curl -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
                 sh 'mkdir -p tidb-server'
                 sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
