@@ -216,9 +216,13 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server'
                 sh 'rm -r tidb-server.tar.gz'
 
-                sh 'curl -L https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz'
-                sh 'mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/'
-                sh 'rm -r tidb-enterprise-tools-nightly-linux-amd64 || true'
+                // tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/${TIDB_BRANCH}/sha1").trim()
+                sh "curl -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/5ab2963d24c16cd1334b77f0ee45f8e8aaf578a9/centos7/tidb-tools.tar.gz"
+                sh 'mkdir -p tidb-tools'
+                sh 'tar -zxf tidb-tools.tar.gz -C tidb-tools'
+                sh 'mv tidb-tools/bin/sync_diff_inspector bin/'
+                sh 'rm -r tidb-tools'
+                sh 'rm -r tidb-tools.tar.gz'
 
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
                 sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
