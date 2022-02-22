@@ -113,7 +113,7 @@ catchError {
                            cp ${ws}/centos7/bin/pd-ctl ./bin
                            cp ${ws}/centos7/bin/pd-recover ./bin
                            cp ${ws}/centos7/bin/pd-server ./bin
-                           cp ${ws}/centos7/tidb-ctl-${RELEASE_TAG}-linux-amd64/bin/tidb-ctl ./bin
+                           cp ${ws}/centos7/bin/tidb-ctl ./bin
                            cp ${ws}/centos7/bin/tidb-server ./bin
                            cp ${ws}/centos7/bin/tikv-ctl ./bin
                            cp ${ws}/centos7/bin/tikv-server ./bin
@@ -170,7 +170,7 @@ catchError {
                            cp ${ws}/arm/bin/pd-ctl ./bin
                            cp ${ws}/arm/bin/pd-recover ./bin
                            cp ${ws}/arm/bin/pd-server ./bin
-                           cp ${ws}/arm/bin/tidb-ctl-${RELEASE_TAG}-linux-arm64/tidb-ctl ./bin
+                           cp ${ws}/arm/bin/tidb-ctl ./bin
                            cp ${ws}/arm/bin/tidb-server ./bin
                            cp ${ws}/arm/bin/tikv-ctl ./bin
                            cp ${ws}/arm/bin/tikv-server ./bin
