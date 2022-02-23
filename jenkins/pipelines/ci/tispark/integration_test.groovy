@@ -301,7 +301,7 @@ podTemplate(name: label, label: label, instanceCap: 12, namespace: 'jenkins-tisp
                         try {
 
                             groovy.lang.Closure isv4 = { branch_name ->
-                                if (branch_name.startsWith("v4") || branch_name.startsWith("release-4") || branch_name == "master") {
+                                if (branch_name.startsWith("v4") || branch_name.startsWith("release-4")) {
                                     return true
                                 }
                                 return false
