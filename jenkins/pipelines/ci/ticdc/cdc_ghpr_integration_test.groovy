@@ -72,7 +72,7 @@ def isNeedGo1160 = false
 releaseBranchUseGo1160 = "release-5.1"
 
 if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc"], ghprbTargetBranch)
+    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "release-multi-source"], ghprbTargetBranch)
 }
 if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
     isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
