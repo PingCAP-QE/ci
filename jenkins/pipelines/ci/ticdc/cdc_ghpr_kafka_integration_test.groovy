@@ -124,167 +124,164 @@ if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_b
 
 
 catchError {
-    withEnv(['CODECOV_TOKEN=c6ac8b7a-7113-4b3f-8e98-9314a486e41e',
-             'COVERALLS_TOKEN=HTRawMvXi9p5n4OyBvQygxd5iWjNUKd1o']) {
-        node("${GO_TEST_SLAVE}") {
-            stage('Prepare') {
-                def ws = pwd()
-                deleteDir()
+    node("${GO_TEST_SLAVE}") {
+        stage('Prepare') {
+            def ws = pwd()
+            deleteDir()
 
-                dir("${ws}/go/src/github.com/pingcap/tiflow") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tiflow"
-                        deleteDir()
-                    }
-                    try {
+            dir("${ws}/go/src/github.com/pingcap/tiflow") {
+                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tiflow"
+                    deleteDir()
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
+                } catch (info) {
+                    retry(2) {
+                        echo "checkout failed, retry.."
+                        sleep 5
+                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
-                    } catch (info) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 5
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
-                        }
                     }
-                    sh "git checkout -f ${ghprbActualCommit}"
                 }
+                sh "git checkout -f ${ghprbActualCommit}"
+            }
 
-                dir("${ws}/go/src/github.com/pingcap/ci") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                        deleteDir()
-                    }
-                    try {
+            dir("${ws}/go/src/github.com/pingcap/ci") {
+                if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                    deleteDir()
+                }
+                try {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
+                } catch (info) {
+                    retry(2) {
+                        echo "checkout failed, retry.."
+                        sleep 5
+                        if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                            deleteDir()
+                        }
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                    } catch (info) {
-                        retry(2) {
-                            echo "checkout failed, retry.."
-                            sleep 5
-                            if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                                deleteDir()
-                            }
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                        }
                     }
-
                 }
 
-                stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
             }
 
-            def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
-            def common = load script_path
+            stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
+        }
 
-            // HACK! Download jks by injecting RACK_COMMAND
-            // https://git.io/JJZXX -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks
-            // https://git.io/JJZXM -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks
-            def download_jks = 'curl -sfL https://git.io/JJZXX -o /tmp/kafka.server.keystore.jks && curl -sfL https://git.io/JJZXM -o /tmp/kafka.server.truststore.jks'
+        def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
+        def common = load script_path
 
-            catchError {
-                def KAFKA_TAG = "2.12-2.4.1"
-                def KAFKA_VERSION = "2.4.1"
-                // parse kafka tag
-                def m1 = ghprbCommentBody =~ /kafka-tag\s*=\s*([^\s\\]+)(\s|\\|$)/
-                if (m1) {
-                    KAFKA_TAG = "${m1[0][1]}"
-                }
-                m1 = null
-                println "KAFKA_TAG=${KAFKA_TAG}"
+        // HACK! Download jks by injecting RACK_COMMAND
+        // https://git.io/JJZXX -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks
+        // https://git.io/JJZXM -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks
+        def download_jks = 'curl -sfL https://git.io/JJZXX -o /tmp/kafka.server.keystore.jks && curl -sfL https://git.io/JJZXM -o /tmp/kafka.server.truststore.jks'
 
-                // parse kafka version
-                def m2 = ghprbCommentBody =~ /kafka-version\s*=\s*([^\s\\]+)(\s|\\|$)/
-                if (m2) {
-                    KAFKA_VERSION = "${m2[0][1]}"
-                }
-                m2 = null
-                println "KAFKA_VERSION=${KAFKA_VERSION}"
+        catchError {
+            def KAFKA_TAG = "2.12-2.4.1"
+            def KAFKA_VERSION = "2.4.1"
+            // parse kafka tag
+            def m1 = ghprbCommentBody =~ /kafka-tag\s*=\s*([^\s\\]+)(\s|\\|$)/
+            if (m1) {
+                KAFKA_TAG = "${m1[0][1]}"
+            }
+            m1 = null
+            println "KAFKA_TAG=${KAFKA_TAG}"
 
-                env.KAFKA_VERSION = "${KAFKA_VERSION}"
+            // parse kafka version
+            def m2 = ghprbCommentBody =~ /kafka-version\s*=\s*([^\s\\]+)(\s|\\|$)/
+            if (m2) {
+                KAFKA_VERSION = "${m2[0][1]}"
+            }
+            m2 = null
+            println "KAFKA_VERSION=${KAFKA_VERSION}"
 
-                common.prepare_binaries()
+            env.KAFKA_VERSION = "${KAFKA_VERSION}"
 
-                def label = "cdc-kafka-integration-test"
-                if (isNeedGo1160) {
-                    label = "cdc-kafka-integration-test-go1160-build-${BUILD_NUMBER}"
-                } else {
-                    label = "cdc-kafka-integration-test-go1130-build-${BUILD_NUMBER}"
-                }
-                podTemplate(label: label,
-                        idleMinutes: 0,
-                        namespace: "jenkins-ticdc",
-                        containers: [
-                                containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
-                                        resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                        ttyEnabled: true, command: 'cat'),
-                                containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
-                                        resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
-                                        ttyEnabled: true),
-                                containerTemplate(
-                                        name: 'kafka',
-                                        image: "wurstmeister/kafka:${KAFKA_TAG}",
-                                        resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
-                                        ttyEnabled: true,
-                                        alwaysPullImage: false,
-                                        envVars: [
-                                                // 11MiB
-                                                envVar(key: 'KAFKA_MESSAGE_MAX_BYTES', value: '11534336'),
-                                                envVar(key: 'KAFKA_REPLICA_FETCH_MAX_BYTES', value: '11534336'),
-                                                envVar(key: 'KAFKA_CREATE_TOPICS', value: 'big-message-test:1:1'),
-                                                envVar(key: 'KAFKA_BROKER_ID', value: '1'),
-                                                envVar(key: 'RACK_COMMAND', value: download_jks),
-                                                envVar(key: 'KAFKA_LISTENERS', value: 'SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092'),
-                                                envVar(key: 'KAFKA_ADVERTISED_LISTENERS', value: 'SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092'),
-                                                envVar(key: 'KAFKA_SSL_KEYSTORE_LOCATION', value: '/tmp/kafka.server.keystore.jks'),
-                                                envVar(key: 'KAFKA_SSL_KEYSTORE_PASSWORD', value: 'test1234'),
-                                                envVar(key: 'KAFKA_SSL_KEY_PASSWORD', value: 'test1234'),
-                                                envVar(key: 'KAFKA_SSL_TRUSTSTORE_LOCATION', value: '/tmp/kafka.server.truststore.jks'),
-                                                envVar(key: 'KAFKA_SSL_TRUSTSTORE_PASSWORD', value: 'test1234'),
-                                                envVar(key: 'ZK', value: 'zk'),
-                                                envVar(key: 'KAFKA_ZOOKEEPER_CONNECT', value: 'localhost:2181'),
-                                        ]
-                                ),
-                                containerTemplate(
-                                        name: 'canal-adapter',
-                                        image: "rustinliu/ticdc-canal-json-adapter:latest",
-                                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
-                                        ttyEnabled: true,
-                                        alwaysPullImage: false,
-                                        envVars: [
-                                                envVar(key: 'KAFKA_SERVER', value: '127.0.0.1:9092'),
-                                                envVar(key: 'ZOOKEEPER_SERVER', value: '127.0.0.1:2181'),
-                                                envVar(key: 'DB_NAME', value: 'test'),
-                                                envVar(key: 'DOWNSTREAM_DB_HOST', value: '127.0.0.1'),
-                                                envVar(key: 'DOWNSTREAM_DB_PORT', value: '3306'),
-                                                envVar(key: 'USE_FLAT_MESSAGE', value: 'true'),
-                                        ]
-                                )
-                        ],
-                        volumes: [
-                                emptyDirVolume(mountPath: '/tmp', memory: true),
-                                emptyDirVolume(mountPath: '/home/jenkins', memory: true)
-                        ]
-                ) {
-                    common.tests("kafka", label)
-                }
+            common.prepare_binaries()
 
-                currentBuild.result = "SUCCESS"
+            def label = "cdc-kafka-integration-test"
+            if (isNeedGo1160) {
+                label = "cdc-kafka-integration-test-go1160-build-${BUILD_NUMBER}"
+            } else {
+                label = "cdc-kafka-integration-test-go1130-build-${BUILD_NUMBER}"
+            }
+            podTemplate(label: label,
+                    idleMinutes: 0,
+                    namespace: "jenkins-ticdc",
+                    containers: [
+                            containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}",
+                                    resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
+                                    ttyEnabled: true, command: 'cat'),
+                            containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
+                                    resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
+                                    ttyEnabled: true),
+                            containerTemplate(
+                                    name: 'kafka',
+                                    image: "wurstmeister/kafka:${KAFKA_TAG}",
+                                    resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
+                                    ttyEnabled: true,
+                                    alwaysPullImage: false,
+                                    envVars: [
+                                            // 11MiB
+                                            envVar(key: 'KAFKA_MESSAGE_MAX_BYTES', value: '11534336'),
+                                            envVar(key: 'KAFKA_REPLICA_FETCH_MAX_BYTES', value: '11534336'),
+                                            envVar(key: 'KAFKA_CREATE_TOPICS', value: 'big-message-test:1:1'),
+                                            envVar(key: 'KAFKA_BROKER_ID', value: '1'),
+                                            envVar(key: 'RACK_COMMAND', value: download_jks),
+                                            envVar(key: 'KAFKA_LISTENERS', value: 'SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092'),
+                                            envVar(key: 'KAFKA_ADVERTISED_LISTENERS', value: 'SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092'),
+                                            envVar(key: 'KAFKA_SSL_KEYSTORE_LOCATION', value: '/tmp/kafka.server.keystore.jks'),
+                                            envVar(key: 'KAFKA_SSL_KEYSTORE_PASSWORD', value: 'test1234'),
+                                            envVar(key: 'KAFKA_SSL_KEY_PASSWORD', value: 'test1234'),
+                                            envVar(key: 'KAFKA_SSL_TRUSTSTORE_LOCATION', value: '/tmp/kafka.server.truststore.jks'),
+                                            envVar(key: 'KAFKA_SSL_TRUSTSTORE_PASSWORD', value: 'test1234'),
+                                            envVar(key: 'ZK', value: 'zk'),
+                                            envVar(key: 'KAFKA_ZOOKEEPER_CONNECT', value: 'localhost:2181'),
+                                    ]
+                            ),
+                            containerTemplate(
+                                    name: 'canal-adapter',
+                                    image: "rustinliu/ticdc-canal-json-adapter:latest",
+                                    resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                                    ttyEnabled: true,
+                                    alwaysPullImage: false,
+                                    envVars: [
+                                            envVar(key: 'KAFKA_SERVER', value: '127.0.0.1:9092'),
+                                            envVar(key: 'ZOOKEEPER_SERVER', value: '127.0.0.1:2181'),
+                                            envVar(key: 'DB_NAME', value: 'test'),
+                                            envVar(key: 'DOWNSTREAM_DB_HOST', value: '127.0.0.1'),
+                                            envVar(key: 'DOWNSTREAM_DB_PORT', value: '3306'),
+                                            envVar(key: 'USE_FLAT_MESSAGE', value: 'true'),
+                                    ]
+                            )
+                    ],
+                    volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: true),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    ]
+            ) {
+                common.tests("kafka", label)
             }
 
-            stage('Summary') {
-                def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-                def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-                        "${ghprbPullLink}" + "\n" +
-                        "${ghprbPullDescription}" + "\n" +
-                        "Integration Kafka Test Result: `${currentBuild.result}`" + "\n" +
-                        "Elapsed Time: `${duration} mins` " + "\n" +
-                        "${env.RUN_DISPLAY_URL}"
+            currentBuild.result = "SUCCESS"
+        }
 
-                if (currentBuild.result != "SUCCESS") {
-                    slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-                }
+        stage('Summary') {
+            def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+            def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
+                    "${ghprbPullLink}" + "\n" +
+                    "${ghprbPullDescription}" + "\n" +
+                    "Integration Kafka Test Result: `${currentBuild.result}`" + "\n" +
+                    "Elapsed Time: `${duration} mins` " + "\n" +
+                    "${env.RUN_DISPLAY_URL}"
+
+            if (currentBuild.result != "SUCCESS") {
+                slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
             }
         }
     }
