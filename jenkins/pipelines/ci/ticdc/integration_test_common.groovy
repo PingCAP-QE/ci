@@ -36,6 +36,17 @@ static def partition(array, size) {
     return partitions
 }
 
+def test_file_existed(file_url) {
+    cacheExisted = sh(returnStatus: true, script: """
+    if curl --output /dev/null --silent --head --fail ${file_url}; then exit 0; else exit 1; fi
+    """)
+    if (cacheExisted == 0) {
+        return true
+    } else {
+        return false
+    }
+}
+
 /**
  * Prepare the binary file for testing.
  */
@@ -46,29 +57,39 @@ def prepare_binaries() {
         prepares["build binaries"] = {
             node("${GO_TEST_SLAVE}") {
                 container("golang") {
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    def ws = pwd()
-                    deleteDir()
-                    unstash 'ticdc'
-
-                    dir("go/src/github.com/pingcap/tiflow") {
-                        sh """
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
-                            tar czvf ticdc_bin.tar.gz bin/*
-                            curl -F test/cdc/ci/ticdc_bin_${env.BUILD_NUMBER}.tar.gz=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
-                        """
+                    def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
+                    def cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
+                    if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
+                        println "cache binary existed"
+                        println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
+                        return
+                    } else {
+                        println "start to build binary"
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        def ws = pwd()
+                        deleteDir()
+                        unstash 'ticdc'
+                        dir("go/src/github.com/pingcap/tiflow") {
+                            sh """
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
+                                tar czvf ticdc_bin.tar.gz bin/*
+                                curl -F ${cacheBinaryPath}=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
+                                cat "${ghprbActualCommit}" > done
+                                curl -F ${cacheBinaryDonePath}=@done http://fileserver.pingcap.net/upload
+                            """
+                        }
+                        dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
+                            def cases_name = sh(
+                                    script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
+                                    returnStdout: true
+                            ).trim().split().join(" ")
+                            sh "echo ${cases_name} > CASES"
+                        }
+                        stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
                     }
-                    dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
-                        def cases_name = sh(
-                                script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
-                                returnStdout: true
-                        ).trim().split().join(" ")
-                        sh "echo ${cases_name} > CASES"
-                    }
-                    stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
                 }
             }
         }
@@ -281,7 +302,7 @@ def download_binaries() {
             tidb_archive_path = "./bin/tidb-server"
             break;
     }
-
+    def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
     sh """
         mkdir -p third_bin
         mkdir -p tmp
@@ -301,14 +322,14 @@ def download_binaries() {
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin
         curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
-        curl -L http://fileserver.pingcap.net/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
+        curl -L ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz | tar xz -C ./third_bin
+        curl ${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz | tar xz -C ./third_bin
         curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
         rm -rf tmp
-        curl -L http://fileserver.pingcap.net/download/test/cdc/ci/ticdc_bin_${env.BUILD_NUMBER}.tar.gz | tar xvz -C .
+        curl -L ${FILE_SERVER_URL}/download/${cacheBinaryPath} | tar xvz -C .
         mv ./third_bin/* ./bin
         rm -rf third_bin
     """
