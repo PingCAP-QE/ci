@@ -62,7 +62,16 @@ def prepare_binaries() {
                     if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
                         println "cache binary existed"
                         println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
-                        return
+                        def ws = pwd()
+                        deleteDir()
+                        unstash 'ticdc'
+                        sh """
+                        cd go/src/github.com/pingcap/tiflow
+                        ls -alh
+                        curl -O ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                        tar -xvf ticdc_bin.tar.gz
+                        rm -rf ticdc_bin.tar.gz
+                        """
                     } else {
                         println "start to build binary"
                         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -81,15 +90,21 @@ def prepare_binaries() {
                                 curl -F ${cacheBinaryDonePath}=@done http://fileserver.pingcap.net/upload
                             """
                         }
-                        dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
-                            def cases_name = sh(
-                                    script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
-                                    returnStdout: true
-                            ).trim().split().join(" ")
-                            sh "echo ${cases_name} > CASES"
-                        }
-                        stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
                     }
+                    dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
+                        println "hello world"
+                        sh """
+                        pwd 
+                        ls -alh .
+                        
+                        """
+                        def cases_name = sh(
+                                script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
+                                returnStdout: true
+                        ).trim().split().join(" ")
+                        sh "echo ${cases_name} > CASES"
+                    }
+                    stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
                 }
             }
         }
