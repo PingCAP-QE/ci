@@ -31,11 +31,17 @@ try {
         build_para["RELEASE_TAG"] = RELEASE_TAG
         build_para["PLATFORM"] = PLATFORM
         build_para["OS"] = OS
-        build_para["ARCH"] = ARCH
+        build_para["ARCH"] = "arm64"
         build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
         build_para["GIT_PR"] = ""
         
-        builds = libs.create_enterprise_builds(build_para)
+        builds_arm = libs.create_enterprise_builds(build_para)
+
+        build_para["ARCH"] = "amd64"
+
+        builds_amd = libs.create_enterprise_builds(build_para)
+
+        builds = builds_arm + builds_amd
 
         parallel builds
     }
