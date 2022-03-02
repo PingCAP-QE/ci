@@ -293,84 +293,12 @@ catchError {
                         """
                 }
 
-                def push_tiflash = { target ->
-                    dir("${target}") {
-                        sh """
-                            cp -R ${ws}/centos7/tiflash/* ./
-                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
-                            md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
-                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
-                            md5sum --check /tmp/chinese.check
-
-                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
-                            md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
-                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
-                            md5sum --check /tmp/english.check
-                        """
-                    }
-                    sh """
-                    tar czvf ${target}.tar.gz ${target}
-                    sha256sum ${target}.tar.gz > ${target}.sha256
-                    md5sum ${target}.tar.gz > ${target}.md5
-                    """
-
-                    def filepath = "builds/pingcap/release/${target}.tar.gz"
-                    sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    echo ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
-                    """
-//tiflash linux amd linux version 有 release ci，不需要再次上传到公有云
-                }
-
-                def push_arm_tiflash = { target ->
-                    dir("${target}") {
-                        sh """
-                            cp -R ${ws}/arm/tiflash/* ./
-                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
-                            md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
-                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
-                            md5sum --check /tmp/chinese.check
-
-                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
-                            md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
-                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
-                            md5sum --check /tmp/english.check
-                        """
-                    }
-                    sh """
-                    tar czvf ${target}.tar.gz ${target}
-                    sha256sum ${target}.tar.gz > ${target}.sha256
-                    md5sum ${target}.tar.gz > ${target}.md5
-                    """
-
-                    def filepath = "builds/pingcap/release/${target}.tar.gz"
-                    sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    echo ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
-                    """
-
-                    sh """
-                        export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
-                        upload.py ${target}.tar.gz ${target}.tar.gz
-                        upload.py ${target}.sha256 ${target}.sha256
-                        upload.py ${target}.md5 ${target}.md5
-                        """
-
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                        """
-                }
+                
 
                 push_bin("tidb-${release_tag}-linux-amd64")
                 push_toolkit("tidb-toolkit-${release_tag}-linux-amd64")
                 push_arm_bin("tidb-${release_tag}-linux-arm64")
                 push_arm_toolkit("tidb-toolkit-${release_tag}-linux-arm64")
-                if (RELEASE_TAG >= "v3.1") {
-                    push_tiflash("tiflash-${release_tag}-linux-amd64")
-                    push_arm_tiflash("tiflash-${release_tag}-linux-arm64")
-                }
             }
 
             def builds = [:]
