@@ -1,13 +1,4 @@
 
-
-// CI_NAME="jenkins-ci"
-// CI_BUILD_NUMBER=""
-// CI_BUILD_URL=""
-// CI_BRANCH=""
-// CI_PULL_REQUEST=""   // (optional)
-// COVERAGE_FILE = ""
-
-
 properties([
         parameters([
                 string(
