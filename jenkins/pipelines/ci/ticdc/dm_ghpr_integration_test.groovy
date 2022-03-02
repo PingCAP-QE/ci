@@ -216,7 +216,7 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server'
                 sh 'rm -r tidb-server.tar.gz'
 
-                tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/${TIDB_BRANCH}/sha1").trim()
+                tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
                 sh "curl -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
                 sh 'mkdir -p tidb-tools'
                 sh 'tar -zxf tidb-tools.tar.gz -C tidb-tools'
