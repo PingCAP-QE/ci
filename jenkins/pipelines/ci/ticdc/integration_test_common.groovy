@@ -392,18 +392,6 @@ def coverage() {
             dir("go/src/github.com/pingcap/tiflow") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-                    // withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
-                    //     timeout(30) {
-                    //         sh '''
-                    //         rm -rf /tmp/tidb_cdc_test
-                    //         mkdir -p /tmp/tidb_cdc_test
-                    //         cp cov_dir/* /tmp/tidb_cdc_test
-                    //         set +x
-                    //         BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make integration_test_coverage || true
-                    //         set -x
-                    //         '''
-                    //     }
-                    // }
                 }
             }
         }
