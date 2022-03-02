@@ -358,13 +358,18 @@ def coverage() {
             // tar the coverage files and upload to file server.
             def tiflowCoverageFile = "test/cdc/ci/integration_test/${ghprbActualCommit}/tiflow_coverage.tar.gz"
             sh """
-            tar -czf tilfow-coverage.tar.gz go/src/github.com/pingcap/tiflow
+            tar -czf tiflow_coverage.tar.gz go/src/github.com/pingcap/tiflow
             curl -F ${tiflowCoverageFile}=@tiflow_coverage.tar.gz http://fileserver.pingcap.net/upload
             """
 
             def params_downstream_coverage_pipeline = [       
                 string(name: "COVERAGE_FILE", value: "${FILE_SERVER_URL}/download/${tiflowCoverageFile}"),
+                string(name: "CI_BUILD_NUMBER", value: "${BUILD_NUMBER}"),
+                string(name: "CI_BUILD_URL", value: "${RUN_DISPLAY_URL}"),
+                string(name: "CI_BRANCH", value: "${ghprbTargetBranch}"),
+                string(name: "CI_PULL_REQUEST", value: "${ghprbPullId}"),
             ]
+            println "params_downstream_coverage_pipeline=${params_downstream_coverage_pipeline}"
             build job: "cdc_ghpr_downstream_coverage",
                 wait: false,
                 parameters: params_downstream_coverage_pipeline
