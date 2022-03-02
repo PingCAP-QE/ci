@@ -237,7 +237,7 @@ catchError {
                 common.tests("mysql", label)
             }
             // If it is triggered upstream, there is no need to collect test coverage.
-            if (!params.containsKey("triggered_by_upstream_pr_ci")) {
+            if (!params.containsKey("triggered_by_upstream_pr_ci") && !params.containsKey("release_test")) {
                 common.coverage()
             }
             currentBuild.result = "SUCCESS"
