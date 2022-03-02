@@ -73,17 +73,18 @@ def create_builds(build_para) {
 def create_enterprise_builds(build_para) {
     builds = [:]
     build_para["ENTERPRISE"] = true
+    arch = build_para["ARCH"]
 
-    builds["Build tidb"] = {
+    builds["Build tidb ${arch}"] = {
         build_product(build_para, "tidb")
     }
-    builds["Build tikv"] = {
+    builds["Build tikv ${arch}"] = {
         build_product(build_para, "tikv")
     }
-    builds["Build pd"] = {
+    builds["Build pd ${arch}"] = {
         build_product(build_para, "pd")
     }
-    builds["Build tiflash"] = {
+    builds["Build tiflash ${arch}"] = {
         build_product(build_para, "tiflash")
     }
     return builds
