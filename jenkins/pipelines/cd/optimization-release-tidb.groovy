@@ -393,33 +393,8 @@ catchError {
                 libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
-            // TODO: refine it when no longer need lightning
             builds["Push lightning Docker"] = {
-                dir('lightning_docker_build') {
-                    sh """
-                        cp ../centos7/bin/tidb-lightning ./
-                        cp ../centos7/bin/tidb-lightning-ctl ./
-                        cp ../centos7/bin/br ./
-                        cp /usr/local/go/lib/time/zoneinfo.zip ./
-                        cat > Dockerfile << __EOF__
-FROM pingcap/alpine-glibc:alpine-3.14
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY tidb-lightning /tidb-lightning
-COPY tidb-lightning-ctl /tidb-lightning-ctl
-COPY br /br
-__EOF__
-                        """
-                }
-
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-lightning:${RELEASE_TAG}", "lightning_docker_build").push()
-                }
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker tag pingcap/tidb-lightning:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-lightning:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb-lightning:${RELEASE_TAG}
-                    """
-                }
+                libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG, false)
             }
 
             builds["Push br Docker"] = {
