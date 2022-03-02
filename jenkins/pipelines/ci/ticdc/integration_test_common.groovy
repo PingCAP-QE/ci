@@ -77,7 +77,7 @@ def prepare_binaries() {
                                 GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
                                 tar czvf ticdc_bin.tar.gz bin/*
                                 curl -F ${cacheBinaryPath}=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
-                                cat "${ghprbActualCommit}" > done
+                                touch done
                                 curl -F ${cacheBinaryDonePath}=@done http://fileserver.pingcap.net/upload
                             """
                         }
@@ -355,21 +355,35 @@ def coverage() {
                 unstash item
             }
 
+            // tar the coverage files and upload to file server.
+            def tiflowCoverageFile = "test/cdc/ci/integration_test/${ghprbActualCommit}/tiflow_coverage.tar.gz"
+            sh """
+            tar -czf tilfow-coverage.tar.gz go/src/github.com/pingcap/tiflow
+            curl -F ${tiflowCoverageFile}=@tiflow_coverage.tar.gz http://fileserver.pingcap.net/upload
+            """
+
+            def params_downstream_coverage_pipeline = [       
+                string(name: "COVERAGE_FILE", value: "${FILE_SERVER_URL}/download/${tiflowCoverageFile}"),
+            ]
+            build job: "cdc_ghpr_downstream_coverage",
+                wait: true,
+                parameters: params_downstream_coverage_pipeline
+
             dir("go/src/github.com/pingcap/tiflow") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-                    withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
-                        timeout(30) {
-                            sh '''
-                            rm -rf /tmp/tidb_cdc_test
-                            mkdir -p /tmp/tidb_cdc_test
-                            cp cov_dir/* /tmp/tidb_cdc_test
-                            set +x
-                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make integration_test_coverage || true
-                            set -x
-                            '''
-                        }
-                    }
+                    // withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
+                    //     timeout(30) {
+                    //         sh '''
+                    //         rm -rf /tmp/tidb_cdc_test
+                    //         mkdir -p /tmp/tidb_cdc_test
+                    //         cp cov_dir/* /tmp/tidb_cdc_test
+                    //         set +x
+                    //         BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make integration_test_coverage || true
+                    //         set -x
+                    //         '''
+                    //     }
+                    // }
                 }
             }
         }
