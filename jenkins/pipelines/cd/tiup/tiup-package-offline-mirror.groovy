@@ -102,12 +102,10 @@ def package_tools = { plat, arch ->
     pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     br_hash = ""
-    importer_hash = ""
     if (VERSION >= "v5.2.0") {
         br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     } else {
         br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
-        importer_hash = sh(returnStdout: true, script: "python gethash.py -repo=importer -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
     }
 
     sh """
@@ -116,24 +114,15 @@ def package_tools = { plat, arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${VERSION}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${VERSION}/${br_hash}/centos7/br-linux-${arch}.tar.gz
-        if [ $VERSION \\< "v5.2.0" ]; then
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${VERSION}/${importer_hash}/centos7/importer-linux-${arch}.tar.gz
-        fi;
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
         tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
-        if [ $VERSION \\< "v5.2.0" ]; then
-            tar xf importer-linux-${arch}.tar.gz
-        fi; 
 
         cd bin/
         cp arbiter reparo pd-recover pd-tso-bench sync_diff_inspector tidb-lightning tidb-lightning-ctl ../${toolkit_dir}/bin/
-        if [ $VERSION \\< "v5.2.0" ]; then
-            cp tikv-importer ../${toolkit_dir}/bin/
-        fi;
         
         cd ../
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
