@@ -366,7 +366,7 @@ def coverage() {
                 string(name: "COVERAGE_FILE", value: "${FILE_SERVER_URL}/download/${tiflowCoverageFile}"),
             ]
             build job: "cdc_ghpr_downstream_coverage",
-                wait: true,
+                wait: false,
                 parameters: params_downstream_coverage_pipeline
 
             dir("go/src/github.com/pingcap/tiflow") {
