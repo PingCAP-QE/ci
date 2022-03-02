@@ -240,10 +240,16 @@ try {
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
+                    tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
+                    tidbArmPatch = "builds/pingcap/tidb/patch/${env.BRANCH_NAME}/${githash}/centos7/tidb-server-arm64.tar.gz"
+                    release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
+                    
                     if (isHotfix) {
                         release_tiup_patch(filepath, "tidb-server", patch_path)
+                        release_tiup_patch(tidbArmBinary, "tidb-server", tidbArmPatch)
                         release_docker_image("tidb", filepath,env.BRANCH_NAME)
                     }
+                    
                     if (isNeedBuildBr) {
                         brAmdBinary = "builds/pingcap/br/${env.BRANCH_NAME}/${githash}/centos7/br.tar.gz"
                         release_one("tidb","br","${githash}","amd64",brAmdBinary)
@@ -261,8 +267,7 @@ try {
                         // DumplingArmBinary = "builds/pingcap/test/dumpling/${githash}/centos7/dumpling-linux-arm64.tar.gz"
                         // release_one("tidb","dumpling","${githash}","arm64",DumplingArmBinary)
                     }
-                    tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
-                    release_one("tidb","tidb","${githash}","arm64",tidbArmBinary)
+                    
                 }
             }
         }
