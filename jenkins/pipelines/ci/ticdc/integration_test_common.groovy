@@ -36,6 +36,17 @@ static def partition(array, size) {
     return partitions
 }
 
+def test_file_existed(file_url) {
+    cacheExisted = sh(returnStatus: true, script: """
+    if curl --output /dev/null --silent --head --fail ${file_url}; then exit 0; else exit 1; fi
+    """)
+    if (cacheExisted == 0) {
+        return true
+    } else {
+        return false
+    }
+}
+
 /**
  * Prepare the binary file for testing.
  */
@@ -46,22 +57,47 @@ def prepare_binaries() {
         prepares["build binaries"] = {
             node("${GO_TEST_SLAVE}") {
                 container("golang") {
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    def ws = pwd()
-                    deleteDir()
-                    unstash 'ticdc'
-
-                    dir("go/src/github.com/pingcap/tiflow") {
+                    def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
+                    def cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
+                    if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
+                        println "cache binary existed"
+                        println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
+                        def ws = pwd()
+                        deleteDir()
+                        unstash 'ticdc'
                         sh """
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
-                            tar czvf ticdc_bin.tar.gz bin/*
-                            curl -F test/cdc/ci/ticdc_bin_${env.BUILD_NUMBER}.tar.gz=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
+                        cd go/src/github.com/pingcap/tiflow
+                        ls -alh
+                        curl -O ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                        tar -xvf ticdc_bin.tar.gz
+                        rm -rf ticdc_bin.tar.gz
                         """
+                    } else {
+                        println "start to build binary"
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        def ws = pwd()
+                        deleteDir()
+                        unstash 'ticdc'
+                        dir("go/src/github.com/pingcap/tiflow") {
+                            sh """
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
+                                tar czvf ticdc_bin.tar.gz bin/*
+                                curl -F ${cacheBinaryPath}=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
+                                touch done
+                                curl -F ${cacheBinaryDonePath}=@done http://fileserver.pingcap.net/upload
+                            """
+                        }
                     }
                     dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
+                        println "hello world"
+                        sh """
+                        pwd 
+                        ls -alh .
+                        
+                        """
                         def cases_name = sh(
                                 script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
                                 returnStdout: true
@@ -281,7 +317,7 @@ def download_binaries() {
             tidb_archive_path = "./bin/tidb-server"
             break;
     }
-
+    def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
     sh """
         mkdir -p third_bin
         mkdir -p tmp
@@ -301,14 +337,14 @@ def download_binaries() {
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin
         curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
-        curl -L http://fileserver.pingcap.net/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
+        curl -L ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl http://fileserver.pingcap.net/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz | tar xz -C ./third_bin
+        curl ${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz | tar xz -C ./third_bin
         curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
         rm -rf tmp
-        curl -L http://fileserver.pingcap.net/download/test/cdc/ci/ticdc_bin_${env.BUILD_NUMBER}.tar.gz | tar xvz -C .
+        curl -L ${FILE_SERVER_URL}/download/${cacheBinaryPath} | tar xvz -C .
         mv ./third_bin/* ./bin
         rm -rf third_bin
     """
@@ -334,21 +370,28 @@ def coverage() {
                 unstash item
             }
 
+            // tar the coverage files and upload to file server.
+            def tiflowCoverageFile = "test/cdc/ci/integration_test/${ghprbActualCommit}/tiflow_coverage.tar.gz"
+            sh """
+            tar -czf tiflow_coverage.tar.gz go/src/github.com/pingcap/tiflow
+            curl -F ${tiflowCoverageFile}=@tiflow_coverage.tar.gz http://fileserver.pingcap.net/upload
+            """
+
+            def params_downstream_coverage_pipeline = [       
+                string(name: "COVERAGE_FILE", value: "${FILE_SERVER_URL}/download/${tiflowCoverageFile}"),
+                string(name: "CI_BUILD_NUMBER", value: "${BUILD_NUMBER}"),
+                string(name: "CI_BUILD_URL", value: "${RUN_DISPLAY_URL}"),
+                string(name: "CI_BRANCH", value: "${ghprbTargetBranch}"),
+                string(name: "CI_PULL_REQUEST", value: "${ghprbPullId}"),
+            ]
+            println "params_downstream_coverage_pipeline=${params_downstream_coverage_pipeline}"
+            build job: "cdc_ghpr_downstream_coverage",
+                wait: false,
+                parameters: params_downstream_coverage_pipeline
+
             dir("go/src/github.com/pingcap/tiflow") {
                 container("golang") {
                     archiveArtifacts artifacts: 'cov_dir/*', fingerprint: true
-                    withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
-                        timeout(30) {
-                            sh '''
-                            rm -rf /tmp/tidb_cdc_test
-                            mkdir -p /tmp/tidb_cdc_test
-                            cp cov_dir/* /tmp/tidb_cdc_test
-                            set +x
-                            BUILD_NUMBER=${BUILD_NUMBER} CODECOV_TOKEN="${CODECOV_TOKEN}" COVERALLS_TOKEN="${COVERALLS_TOKEN}" GOPATH=${ws}/go:\$GOPATH PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make integration_test_coverage || true
-                            set -x
-                            '''
-                        }
-                    }
                 }
             }
         }
