@@ -22,24 +22,37 @@ try {
     }
 
     stage("Build") {
-        build_para = [:]
-        build_para["tidb"] = TIDB_HASH
-        build_para["tikv"] = TIKV_HASH
-        build_para["pd"] = PD_HASH
-        build_para["tiflash"] = TIFLASH_HASH
-        build_para["FORCE_REBUILD"] = true
-        build_para["RELEASE_TAG"] = RELEASE_TAG
-        build_para["PLATFORM"] = PLATFORM
-        build_para["OS"] = OS
-        build_para["ARCH"] = "arm64"
-        build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
-        build_para["GIT_PR"] = ""
+        build_para_arm = [:]
+        build_para_arm["tidb"] = TIDB_HASH
+        build_para_arm["tikv"] = TIKV_HASH
+        build_para_arm["pd"] = PD_HASH
+        build_para_arm["tiflash"] = TIFLASH_HASH
+        build_para_arm["FORCE_REBUILD"] = true
+        build_para_arm["RELEASE_TAG"] = RELEASE_TAG
+        build_para_arm["PLATFORM"] = PLATFORM
+        build_para_arm["OS"] = OS
+        build_para_arm["ARCH"] = "arm64"
+        build_para_arm["FILE_SERVER_URL"] = FILE_SERVER_URL
+        build_para_arm["GIT_PR"] = ""
         
-        builds_arm = libs.create_enterprise_builds(build_para)
+        builds_arm = libs.create_enterprise_builds(build_para_arm)
 
-        build_para["ARCH"] = "amd64"
+    
+        build_para_amd = [:]
+        build_para_amd["tidb"] = TIDB_HASH
+        build_para_amd["tikv"] = TIKV_HASH
+        build_para_amd["pd"] = PD_HASH
+        build_para_amd["tiflash"] = TIFLASH_HASH
+        build_para_amd["FORCE_REBUILD"] = true
+        build_para_amd["RELEASE_TAG"] = RELEASE_TAG
+        build_para_amd["PLATFORM"] = PLATFORM
+        build_para_amd["OS"] = OS
+        build_para_amd["ARCH"] = "amd64"
+        build_para_amd["FILE_SERVER_URL"] = FILE_SERVER_URL
+        build_para_amd["GIT_PR"] = ""
 
-        builds_amd = libs.create_enterprise_builds(build_para)
+
+        builds_amd = libs.create_enterprise_builds(build_para_amd)
 
         builds = builds_arm + builds_amd
 
