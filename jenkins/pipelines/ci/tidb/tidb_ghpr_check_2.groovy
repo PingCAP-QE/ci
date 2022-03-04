@@ -379,7 +379,7 @@ try {
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explaintest.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explain-test.out || true"
                                     throw e
                                  } finally {
                                     sh """
@@ -443,7 +443,7 @@ try {
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
                                     sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explaintest.log || true"
+                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explain-test.out || true"
                                     throw e
                                  } finally {
                                     sh """
