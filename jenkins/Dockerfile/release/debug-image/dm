@@ -1,0 +1,8 @@
+FROM centos:centos7.9.2009
+RUN yum install -y tzdata
+COPY dm-worker /dm-worker
+COPY dm-master /dm-master
+COPY dmctl /dmctl
+COPY mydumper /mydumper
+
+EXPOSE 8291 8261 8262
