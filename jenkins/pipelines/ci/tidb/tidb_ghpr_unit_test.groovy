@@ -196,6 +196,8 @@ try {
                     try {
                         sh """
                         export log_level=warn
+                        make br_unit_test_in_verify_ci
+                        mv test_coverage/br_cov.unit_test.out br.coverage
                         make dumpling_unit_test_in_verify_ci
                         mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
                         make gotest_in_verify_ci
