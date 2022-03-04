@@ -23,7 +23,7 @@ def FORCE_REBUILD = false
 
 try {
     timeout(600) {
-        RELEASE_TAG = "v6.0.0-alpha "
+        RELEASE_TAG = "v6.0.0-alpha"
         node("build_go1130") {
             container("golang") {
                 def ws = pwd()
