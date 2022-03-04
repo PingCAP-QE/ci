@@ -373,13 +373,13 @@ try {
                                     ./run-tests.sh -d y
                                     """
                                  } catch (Exception e){ 
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explain-test.out || true"
+                                    sh "cat ${ws}/pd1.log || true"
+                                    sh "cat ${ws}/tikv1.log || true"
+                                    sh "cat ${ws}/pd2.log || true"
+                                    sh "cat ${ws}/tikv2.log || true"
+                                    sh "cat ${ws}/pd3.log || true"
+                                    sh "cat ${ws}/tikv3.log || true"
+                                    sh "cat ${ws}/cmd/explaintest/explain-test.out || true"
                                     throw e
                                  } finally {
                                     sh """
@@ -437,13 +437,13 @@ try {
                                     ./run-tests.sh -d n
                                     """
                                  } catch (Exception e){ 
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv1.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd2.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv2.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd3.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/tikv3.log || true"
-                                    sh "cat ${ws}/go/src/github.com/pingcap/tidb/cmd/explaintest/explain-test.out || true"
+                                    sh "cat ${ws}/pd1.log || true"
+                                    sh "cat ${ws}/tikv1.log || true"
+                                    sh "cat ${ws}/pd2.log || true"
+                                    sh "cat ${ws}/tikv2.log || true"
+                                    sh "cat ${ws}/pd3.log || true"
+                                    sh "cat ${ws}/tikv3.log || true"
+                                    sh "cat ${ws}/cmd/explaintest/explain-test.out || true"
                                     throw e
                                  } finally {
                                     sh """
