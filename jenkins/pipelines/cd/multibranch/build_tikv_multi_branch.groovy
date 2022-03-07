@@ -107,11 +107,8 @@ try {
                             rm ~/.gitconfig || true
                             rm -rf bin/*
                             rm -rf /home/jenkins/.target/*
-                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                            fi
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
                             CARGO_TARGET_DIR=/home/jenkins/.target ROCKSDB_SYS_STATIC=1 make dist_release                            
                             ./bin/tikv-server --version
                             """
@@ -135,11 +132,8 @@ try {
                             sh """
                             rm ~/.gitconfig || true
                             rm -rf bin/*
-                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                            fi
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
                             CARGO_TARGET_DIR=/home/jenkins/.target ROCKSDB_SYS_STATIC=1 make fail_release
                             mv bin/tikv-server bin/tikv-server-failpoint
                             """                            

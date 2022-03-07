@@ -66,11 +66,8 @@ stage("Cover") {
                 export CARGO_INCREMENTAL=0
                 export RUSTFLAGS="-Zinstrument-coverage"
 
-                grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                    echo using gcc 8
-                    source /opt/rh/devtoolset-8/enable
-                fi
+                echo using gcc 8
+                source /opt/rh/devtoolset-8/enable
 
                 env RUSTFLAGS="-Zinstrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test || true
                 """
