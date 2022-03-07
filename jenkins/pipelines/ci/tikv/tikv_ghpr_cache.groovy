@@ -71,8 +71,8 @@ ARG BUILD_DATE
 RUN cd tikv-src \
         && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
         && git checkout origin/${ghBranch} \
-        && grpcio_ver=\\`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2\\` \
-        && if [[ ! "0.8.0" > "\\\$grpcio_ver" ]]; then echo using gcc 8; source /opt/rh/devtoolset-8/enable; fi \
+        && echo using gcc 8 \
+        && source /opt/rh/devtoolset-8/enable \
         && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
 """, "base", args, !params.force_base && now.getDate() != 1)
             
@@ -86,8 +86,8 @@ ARG BUILD_DATE
 RUN cd tikv-src \
         && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
         && git checkout origin/${ghBranch} \
-        && grpcio_ver=\\`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2\\` \
-        && if [[ ! "0.8.0" > "\\\$grpcio_ver" ]]; then echo using gcc 8; source /opt/rh/devtoolset-8/enable; fi \
+        && echo using gcc 8 \
+        && source /opt/rh/devtoolset-8/enable \
         && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
 """, "latest", args, false)
         }

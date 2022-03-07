@@ -60,11 +60,8 @@ try {
                             rm ~/.gitconfig || true
                             cp -R /home/jenkins/agent/git/tikv/. ./
                             git checkout -f ${ghprbActualCommit}
-                            grpcio_ver=`grep -A 1 'name = "grpcio"' Cargo.lock | tail -n 1 | cut -d '"' -f 2`
-                            if [[ ! "0.8.0" > "\$grpcio_ver" ]]; then
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                            fi
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
                             CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
                             # use make release
                             mkdir -p bin
