@@ -161,7 +161,7 @@ node("build_go1130") {
             }
             checkoutTiCS(tag)
         }
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
         ng_monitoring_sha1 = ""
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
             if (RELEASE_BRANCH == "master"){
