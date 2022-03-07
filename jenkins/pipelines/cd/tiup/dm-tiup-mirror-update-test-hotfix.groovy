@@ -157,4 +157,5 @@ try{
     }
 } catch (Exception e) {
     echo "${e}"
+    throw e
 }
