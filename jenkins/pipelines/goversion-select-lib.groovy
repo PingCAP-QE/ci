@@ -50,6 +50,11 @@ def selectGoVersion(branchNameOrTag) {
             println "feature branch ${branchNameOrTag} use go 1.18"
             return "go1.18"
         }
+        if (branchNameOrTag == "master") {
+            println("branchNameOrTag: master  use go1.18")
+            return "go1.18"
+        }
+
 
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
@@ -59,13 +64,10 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.16")
             return "go1.16"
         }
-        if (branchNameOrTag < "release-5.1") {
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-5.1") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
             return "go1.13"
-        }
-        if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.18")
-            return "go1.18"
         }
         println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
         return "go1.18"
@@ -104,7 +106,7 @@ def selectGoVersion(branchNameOrTag) {
 // assert selectGoVersion("release-5.4") == "go1.16"
 // assert selectGoVersion("release-5.1") == "go1.16"
 // assert selectGoVersion("release-5.0") == "go1.13"
-// assert selectGoVersion("master") == "go1.13"
+// assert selectGoVersion("master") == "go1.18"
 // assert selectGoVersion("release-4.0") == "go1.13"
 // assert selectGoVersion("release-6.0-20220202") == "go1.18"
 // assert selectGoVersion("release-5.2-20220203") == "go1.16"
