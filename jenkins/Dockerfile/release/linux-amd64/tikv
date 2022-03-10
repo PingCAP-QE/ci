@@ -1,6 +1,9 @@
 FROM pingcap/alpine-glibc:alpine-3.14
 ENV TZ=/etc/localtime
 ENV TZDIR=/usr/share/zoneinfo
+# TODO: remove this after tikv image issue fixed(not found libstdc++.so.6)
+# 20220310
+RUN apk add --no-cache libstdc++
 
 COPY tikv-server /tikv-server
 COPY tikv-ctl /tikv-ctl
