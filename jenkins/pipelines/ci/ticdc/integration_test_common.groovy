@@ -247,10 +247,14 @@ def tests(sink_type, node_label) {
  * Download the integration test-related binaries.
  */
 def download_binaries() {
-    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
-    def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", ghprbTargetBranch)
-    def PD_BRANCH = params.getOrDefault("release_test__pd_commit", ghprbTargetBranch)
-    def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", ghprbTargetBranch)
+    def dependencyBranch = ghprbTargetBranch
+    if (!ghprbTargetBranch.startsWith("release-")) {
+        dependencyBranch = "master"
+    }
+    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", dependencyBranch)
+    def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", dependencyBranch)
+    def PD_BRANCH = params.getOrDefault("release_test__pd_commit", dependencyBranch)
+    def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", dependencyBranch)
     def TIFLASH_COMMIT = params.getOrDefault("release_test__tiflash_commit", null)
 
     // parse tidb branch
