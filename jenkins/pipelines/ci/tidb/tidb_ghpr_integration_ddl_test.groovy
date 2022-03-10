@@ -49,65 +49,41 @@ println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-
-@NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
-    if (a == b) {
-        return true
-    }
-
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
-}
-
-string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
-
-def boolean isBranchMatched(List<String> branches, String targetBranch) {
-    for (String item : branches) {
-        if (targetBranch.startsWith(item)) {
-            println "targetBranch=${targetBranch} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
-isNeedGo1160 = false
-releaseBranchUseGo1160 = "release-5.1"
-
-if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency", "br-stream"], ghprbTargetBranch)
-}
-if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-    if (isNeedGo1160) {
-        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-    }
-}
-
 all_task_result = []
-
-
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
-} else {
-    println "This build use go1.13"
-    POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
-}
 POD_NAMESPACE = "jenkins-tidb"
 
+GO_VERSION = "go1.18"
+POD_GO_IMAGE = ""
+GO_IMAGE_MAP = [
+    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
+    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+]
+
+node("master") {
+    deleteDir()
+    def ws = pwd()
+    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    def script_path = "${ws}/goversion-select-lib.groovy"
+    def goversion_lib = load script_path
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    println "go version: ${GO_VERSION}"
+    println "go image: ${POD_GO_IMAGE}"
+}
+
 def run_with_pod(Closure body) {
-    def label = "tidb-ghpr-integration-ddl-test"
-    if (isNeedGo1160) {
-        label = "${label}-go1160-${BUILD_NUMBER}"
-    } else {
-        label = "${label}-go1130-${BUILD_NUMBER}"
+    def label = "tidb-ghpr-integration-ddl-test-${BUILD_NUMBER}"
+    if (GO_VERSION == "go1.13") {
+        label = "tidb-ghpr-integration-ddl-test-go1130-${BUILD_NUMBER}"
     }
+    if (GO_VERSION == "go1.16") {
+        label = "tidb-ghpr-integration-ddl-test-go1160-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.18") {
+        label = "tidb-ghpr-integration-ddl-test-go1180-${BUILD_NUMBER}"
+    }
+
     def cloud = "kubernetes"
     podTemplate(label: label,
             cloud: cloud,
@@ -116,7 +92,7 @@ def run_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
-                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
@@ -137,12 +113,17 @@ def run_with_pod(Closure body) {
 }
 
 def run_with_memory_volume_pod(Closure body) {
-    def label = "tidb-ghpr-integration-ddl-test-memory-volume"
-    if (isNeedGo1160) {
-        label = "${label}-go1160-${BUILD_NUMBER}"
-    } else {
-        label = "${label}-go1130-${BUILD_NUMBER}"
+    def label = "tidb-ghpr-integration-ddl-test-memory-volume-${BUILD_NUMBER}"
+    if (GO_VERSION == "go1.13") {
+        label = "tidb-ghpr-integration-ddl-test-memory-volume-go1130-${BUILD_NUMBER}"
     }
+    if (GO_VERSION == "go1.16") {
+        label = "tidb-ghpr-integration-ddl-test-memory-volume-go1160-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.18") {
+        label = "tidb-ghpr-integration-ddl-test-memory-volume-go1180-${BUILD_NUMBER}"
+    }
+    
     def cloud = "kubernetes"
     podTemplate(label: label,
             cloud: cloud,
@@ -151,7 +132,7 @@ def run_with_memory_volume_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
-                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
