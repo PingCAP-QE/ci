@@ -248,9 +248,14 @@ def tests(sink_type, node_label) {
  */
 def download_binaries() {
     def dependencyBranch = ghprbTargetBranch
-    if (!ghprbTargetBranch.startsWith("release-")) {
+    def match = ghprbTargetBranch =~ /^release\-(\d+)\.(\d+)/
+    if (match.matches()) {
+        println "target branch is release branch, dependency use release branch to download binaries"
+    } else {
         dependencyBranch = "master"
+        println "target branch is not release branch, dependency use master branch instead"
     }
+    match = null
     def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", dependencyBranch)
     def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", dependencyBranch)
     def PD_BRANCH = params.getOrDefault("release_test__pd_commit", dependencyBranch)
