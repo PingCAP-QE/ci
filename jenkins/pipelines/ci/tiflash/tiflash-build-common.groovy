@@ -668,7 +668,7 @@ def staticAnalysis(repo_path, build_dir) {
     def include_flag = "--includes=/tmp/usr/lib64/clang/12.0.0/include"
     if (getToolchain(repo_path) == 'llvm') {
         generator = "Ninja"
-        include_path = ""
+        include_flag = ""
     }
 
     def fix_compile_commands = "${repo_path}/release-centos7-llvm/scripts/fix_compile_commands.py"
