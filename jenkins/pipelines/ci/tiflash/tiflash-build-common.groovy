@@ -610,18 +610,18 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
         sh "cp '${build_dir}/dbms/gtests_dbms' '${install_dir}/'"
         sh "cp '${build_dir}/libs/libcommon/src/tests/gtests_libcommon' '${install_dir}/'"
     }
-    
+
     dir(build_dir) {
         if (targets.contains('page_ctl')) {
-            def target = sh(returnStdout: true, script: 'realpath $(find . -executable | grep page_ctl)').trim()
+            def target = sh(returnStdout: true, script: 'realpath $(find . -executable | grep -v page_ctl.dir | grep page_ctl)').trim()
             sh "cp '${target}' '${install_dir}/'"
         }
         if (targets.contains('page_stress_testing')) {
-            def target = sh(returnStdout: true, script: 'realpath $(find . -executable | grep page_stress_testing)').trim()
+            def target = sh(returnStdout: true, script: 'realpath $(find . -executable | grep -v page_stress_testing.dir | grep page_stress_testing)').trim()
             sh "cp '${target}' '${install_dir}/'"
         }
         if (targets.contains('gtests_libdaemon')) {
-            def target = sh(returnStdout: true, script: 'realpath $(find . -executable | grep gtests_libdaemon)').trim()
+            def target = sh(returnStdout: true, script: 'realpath $(find . -executable | grep -v gtests_libdaemon.dir | grep gtests_libdaemon)').trim()
             sh "cp '${target}' '${install_dir}/'"
         }
     }
