@@ -254,7 +254,7 @@ node(GO_TEST_SLAVE) {
                     popd
 
                     COMMIT_HASH_BASE=\$(git merge-base origin/${ghprbTargetBranch} HEAD)
-                    SOURCE_DELTA=\$(git diff --name-only '\$COMMIT_HASH_BASE' | { grep -E '.*\\.(cpp|h|hpp|cc|c)\$' || true; })
+                    SOURCE_DELTA=\$(git diff --name-only "\$COMMIT_HASH_BASE" | { grep -E '.*\\.(cpp|h|hpp|cc|c)\$' || true; })
                     echo '### Coverage for changed files' > ${cwd}/diff-coverage
                     echo '```' >> ${cwd}/diff-coverage
 
