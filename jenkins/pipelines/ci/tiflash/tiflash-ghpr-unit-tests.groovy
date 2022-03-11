@@ -21,7 +21,7 @@ def page_tools() {
     }
     return true
 }
-def IDENTIFIER = "tiflash-ut-${ghprbTargetBranch}-${ghprbPullId}"
+def IDENTIFIER = "tiflash-ut-${ghprbTargetBranch}-${ghprbPullId}-${BUILD_NUMBER}"
 def parameters = [
         string(name: "ARCH", value: "amd64"),
         string(name: "OS", value: "linux"),
