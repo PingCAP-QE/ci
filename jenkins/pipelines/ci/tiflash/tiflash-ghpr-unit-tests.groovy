@@ -211,6 +211,7 @@ node(GO_TEST_SLAVE) {
         stage('Run Tests') {
             dir(repo_path) {
                 sh """
+                mkdir -p /root/.cache
                 source /tests/docker/util.sh
                 export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${prallelism}m.profraw"
                 show_env
