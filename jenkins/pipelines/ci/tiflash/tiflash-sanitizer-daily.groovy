@@ -1,4 +1,5 @@
 
+// TODO: Migrate this to use tiflash-build-common
 properties([
         parameters([
             booleanParam(
