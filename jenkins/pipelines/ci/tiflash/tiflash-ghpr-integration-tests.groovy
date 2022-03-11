@@ -142,19 +142,19 @@ node(GO_TEST_SLAVE) {
     parallel (
         "tidb ci test": {
             def name = "tidb-ci-test"
-            runTest("${identifier}-${name}", name, "tests/tidb-ci", tidb_branch)
+            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/tidb-ci", tidb_branch)
         },
         "delta merge test": {
             def name = "delta-merge-test"
-            runTest("${identifier}-${name}", name, "tests/delta-merge-test", tidb_branch)
+            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/delta-merge-test", tidb_branch)
         },
         "fullstack test": {
             def name = "fullstack-test"
-            runTest("${identifier}-${name}", name, "tests/fullstack-test", tidb_branch)
+            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/fullstack-test", tidb_branch)
         },
         "fullstack test2": {
             def name = "fullstack-test2"
-            runTest("${identifier}-${name}", name, "tests/fullstack-test2", tidb_branch)
+            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/fullstack-test2", tidb_branch)
         }
     )
 }
