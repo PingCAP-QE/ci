@@ -645,7 +645,7 @@ def clangFormat(repo_path) {
     }
 
     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
-    if (!fileExists("${repo_path}/release-centos7/build/run-clang-tidy.py") && !fileExists("${repo_path}/release-centos7/build/run-clang-tidy.py")) {
+    if (!fileExists("${repo_path}/release-centos7-llvm/scripts/run-clang-tidy.py") && !fileExists("${repo_path}/release-centos7/build/run-clang-tidy.py")) {
         diff_flag = ""
     }
 
