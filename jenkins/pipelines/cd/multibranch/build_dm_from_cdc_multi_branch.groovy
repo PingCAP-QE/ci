@@ -1,15 +1,4 @@
-def boolean needGo1164(List<String> branches, String targetBranchOrTAG) {
-    for (String item : branches) {
-        if (targetBranchOrTAG.startsWith(item)) {
-            println "${targetBranchOrTAG} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
-def GO_BIN_PATH="/usr/local/go/bin"
-def BUILD_URL = 'git@github.com:pingcap/dm.git'
+def BUILD_URL = 'git@github.com:pingcap/ticdc.git'
 def build_path = 'go/src/github.com/pingcap/dm'
 def UCLOUD_OSS_URL = "http://pingcap-dev.hk.ufileos.com"
 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
@@ -17,18 +6,41 @@ def slackcolor = 'good'
 def githash
 def ws
 
-def isNeedGo1160 = needGo1164(["master", "release-2.0", "v2.0", "refs/tags/v2.0"], branch)
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-    GO_BIN_PATH="/usr/local/go1.16.4/bin"
-} else {
-    println "This build use go1.13"
+
+// choose which go version to use. 
+def String selectGoVersion(String branchORTag) {
+    goVersion="go1.18"
+    if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
+        return "go1.13"
+    }
+    if (branchORTag.startsWith("v") && branchORTag > "v5.1" && branchORTag < "v6.0") {
+        return "go1.16"
+    }
+    if (branchORTag.startsWith("release-") && branchORTag <= "release-5.1"){
+        return "go1.13"
+    }
+    if (branchORTag.startsWith("release-") && branchORTag > "release-5.1" && branchORTag < "release-6.0"){
+        return "go1.16"
+    }
+    if (branchORTag.startsWith("hz-poc") || branchORTag.startsWith("arm-dup") ) {
+        return "go1.16"
+    }
+    return "go1.18"
 }
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
-println "GO_BIN_PATH=${GO_BIN_PATH}"
+
+println "This build use ${goVersion}"
+
+def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
+def GO_BIN_PATH = "/usr/local/go1.18rc1/bin"
+goVersion = selectGoVersion(env.BRANCH_NAME)
+if ( goVersion == "go1.16" ) {
+    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
+    GO_BIN_PATH="/usr/local/go1.16.4/bin"
+}
+if ( goVersion == "go1.13" ) {
+    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BIN_PATH="/usr/local/go/bin"
+}
 
 env.DOCKER_HOST = "tcp://localhost:2375"
 
@@ -78,10 +90,7 @@ try {
                     timeout(30) {
                         sh """
                         mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                        GOPATH=\$GOPATH:${ws}/go make dmctl
-                        GOPATH=\$GOPATH:${ws}/go make dm-worker
-                        GOPATH=\$GOPATH:${ws}/go make dm-master
-                        GOPATH=\$GOPATH:${ws}/go make dm-portal
+                        GOPATH=\$GOPATH:${ws}/go make dm
                         """
                     }
                 }
@@ -102,10 +111,10 @@ try {
                         mkdir ${target}/bin
                         mkdir ${target}/conf
                         mv bin/dm* ${target}/bin/
-                        mv dm/master/task_basic.yaml ${target}/conf/
-                        mv dm/master/task_advanced.yaml ${target}/conf/
-                        mv dm/master/dm-master.toml ${target}/conf/
-                        mv dm/worker/dm-worker.toml ${target}/conf/
+                        mv dm/dm/master/task_basic.yaml ${target}/conf/
+                        mv dm/dm/master/task_advanced.yaml ${target}/conf/
+                        mv dm/dm/master/dm-master.toml ${target}/conf/
+                        mv dm/dm/worker/dm-worker.toml ${target}/conf/
                         mv LICENSE ${target}/
                         curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
                         mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
@@ -134,7 +143,7 @@ try {
                 container("golang") {
                     timeout(10) {
                         sh """
-                        cp -r dm/dm-ansible ./
+                        cp -r dm/dm/dm-ansible ./
                         tar -czvf dm-ansible.tar.gz dm-ansible
                         """
                     }
@@ -167,8 +176,11 @@ try {
                     container("golang") {
                         timeout(30) {
                             sh """
+                            cd dm
                             mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                            cp -f dm/dm-ansible/scripts/dm.json monitoring/dashboards/
+                            cp -f dm/dm-ansible/scripts/DM-Monitor-Professional.json monitoring/dashboards/
+                            cp -f dm/dm-ansible/scripts/DM-Monitor-Standard.json monitoring/dashboards/
+                            cp -f dm/dm-ansible/scripts/dm_instances.json monitoring/dashboards/
                             mkdir -p monitoring/rules
                             cp -f dm/dm-ansible/conf/dm_worker.rules.yml monitoring/rules/
                             GOPATH=\$GOPATH:${ws}/go cd monitoring && go run dashboards/dashboard.go
@@ -176,7 +188,7 @@ try {
                         }
                     }
                 }
-                stash includes: "go/src/github.com/pingcap/dm/monitoring/**", name: "monitoring"
+                stash includes: "go/src/github.com/pingcap/dm/dm/monitoring/**", name: "monitoring"
             }
         }
     }
@@ -225,10 +237,7 @@ try {
                     export PATH=${GO_BIN_PATH}:/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
                     go version
                     mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                    GOPATH=\$GOPATH:${ws}/go make dmctl
-                    GOPATH=\$GOPATH:${ws}/go make dm-worker
-                    GOPATH=\$GOPATH:${ws}/go make dm-master
-                    GOPATH=\$GOPATH:${ws}/go make dm-portal
+                    GOPATH=\$GOPATH:${ws}/go make dm
                     """
                 }
             }
@@ -247,10 +256,10 @@ try {
                     mkdir ${target}/bin
                     mkdir ${target}/conf
                     mv bin/dm* ${target}/bin/
-                    mv dm/master/task_basic.yaml ${target}/conf/
-                    mv dm/master/task_advanced.yaml ${target}/conf/
-                    mv dm/master/dm-master.toml ${target}/conf/
-                    mv dm/worker/dm-worker.toml ${target}/conf/
+                    mv dm/dm/master/task_basic.yaml ${target}/conf/
+                    mv dm/dm/master/task_advanced.yaml ${target}/conf/
+                    mv dm/dm/master/dm-master.toml ${target}/conf/
+                    mv dm/dm/worker/dm-worker.toml ${target}/conf/
                     mv LICENSE ${target}/
                     # curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
                     # mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
@@ -289,7 +298,7 @@ try {
                 container("delivery") {
                     deleteDir()
                     unstash 'monitoring'
-                    dir("go/src/github.com/pingcap/dm/monitoring") {
+                    dir("go/src/github.com/pingcap/dm/dm/monitoring") {
                         withDockerServer([uri: "${env.DOCKER_HOST}"]) {
                             docker.build("pingcap/dm-monitor-initializer:${RELEASE_TAG}").push()
                         }
