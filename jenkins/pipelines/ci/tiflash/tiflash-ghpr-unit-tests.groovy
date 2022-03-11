@@ -209,12 +209,14 @@ node(GO_TEST_SLAVE) {
             }
         }
         stage('Run Tests') {
-            sh """
-            source /tests/docker/util.sh
-            export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${prallelism}m.profraw"
-            show_env
-            ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${prallelism} /tests/run-gtest.sh
-            """
+            dir(repo_path) {
+                sh """
+                source /tests/docker/util.sh
+                export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${prallelism}m.profraw"
+                show_env
+                ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${prallelism} /tests/run-gtest.sh
+                """
+            }
         }
 
         stage('Prepare Coverage Report') {
