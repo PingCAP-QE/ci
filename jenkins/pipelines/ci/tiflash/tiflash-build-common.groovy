@@ -836,7 +836,7 @@ node("${GO_TEST_SLAVE}") {
     def checkout_target = getCheckoutTarget()
     def repo_path = "${pwd()}/tiflash"
     def build_dir = "${pwd()}/build"
-    def install_dir = "${pwd()}/tiflash"
+    def install_dir = "${pwd()}/install/tiflash"
     def error_msg = ""
     try {
         dir(repo_path) {
