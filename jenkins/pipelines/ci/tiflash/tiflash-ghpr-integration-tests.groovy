@@ -96,6 +96,10 @@ def checkoutTiFlash() {
         }
 
         stage('Stash') {
+            sh """
+            rm -rf .git
+            rm -rf contrib
+            """
             stash name: "code-and-artifacts", useDefaultExcludes: true
         }
     }
