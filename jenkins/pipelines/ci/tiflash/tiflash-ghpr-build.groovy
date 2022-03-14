@@ -36,10 +36,16 @@ def parameters = [
     ]
 
 stage('Build') {
-    build job: "tiflash-build-common",
-        wait: true,
-        propagate: true,
-        parameters: parameters
+    def built = build(
+                job: "tiflash-build-common",
+                wait: true,
+                propagate: false,
+                parameters: parameters
+            )
+    echo "built at: ${built.getAbsoluteUrl()}"
+    if (built.getResult() != 'SUCCESS') {
+        error "build failed"
+    }
 }
 
 stage("Sync Status") {

@@ -127,9 +127,13 @@ node(GO_TEST_SLAVE) {
             built = build(
                 job: "tiflash-build-common",
                 wait: true,
-                propagate: true,
+                propagate: false,
                 parameters: parameters
             )
+            echo "built at: ${built.getAbsoluteUrl()}"
+            if (built.getResult() != 'SUCCESS') {
+                error "build failed"
+            }
         } else {
             echo "Using cached build"
         }
