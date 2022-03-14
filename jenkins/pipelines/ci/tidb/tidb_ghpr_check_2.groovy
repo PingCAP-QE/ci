@@ -93,8 +93,6 @@ def run_with_pod(Closure body) {
             volumes: [
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
             ],
     ) {
         node(label) {
@@ -169,7 +167,7 @@ def test_suites = { suites,option ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        go get gotest.tools/gotestsum
+                        go install gotest.tools/gotestsum@latest
                         gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off ${option} '${suites}'
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 20m -vet=off
                         """
@@ -226,10 +224,10 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
-                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
-                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
                                 mkdir -p ${ws}/go/src/github.com/pingcap/tidb
                                 tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                             """
@@ -246,7 +244,7 @@ try {
                                 sh """
                                     rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                                     rm -rf /home/jenkins/agent/code-archive/tidb
-                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz -q --show-progress
                                     tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
                                 """
                             }

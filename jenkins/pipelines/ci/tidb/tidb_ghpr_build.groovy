@@ -122,7 +122,7 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
-                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily")){
+                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
                                 cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./

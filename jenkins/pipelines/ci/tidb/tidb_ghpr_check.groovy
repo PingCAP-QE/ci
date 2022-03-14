@@ -107,10 +107,10 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
-                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
-                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
                                 mkdir -p ${ws}/go/src/github.com/pingcap/tidb
                                 tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                             """
@@ -128,7 +128,7 @@ try {
                             sh """
                                 rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                                 rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz-q --show-progress
                                 tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
                             """
                         }
