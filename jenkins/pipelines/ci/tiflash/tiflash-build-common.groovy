@@ -758,11 +758,9 @@ def uploadProxyCache(repo_path, install_dir) {
         }
         def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
         def suffix = getFileSuffix()
-        dir(install_dir) {
-            sh"""
-            cp libtiflash_proxy.${suffix} ${cache_source}
-            """
-        }
+        sh"""
+        cp '${install_dir}/libtiflash_proxy.${suffix}' ${cache_source}
+        """
     } else {
         echo "skip because proxy cache refresh is disabled"
     }
