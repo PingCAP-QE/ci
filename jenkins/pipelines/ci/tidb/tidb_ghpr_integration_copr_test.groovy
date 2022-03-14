@@ -53,11 +53,11 @@ GO_IMAGE_MAP = [
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
 ]
-POD_LABEL_MAP = {
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-}
+POD_LABEL_MAP = [
+    "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
+    "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
+    "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
+]
 
 node("master") {
     deleteDir()
