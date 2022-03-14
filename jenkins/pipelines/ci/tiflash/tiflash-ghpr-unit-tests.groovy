@@ -124,7 +124,7 @@ node(GO_TEST_SLAVE) {
                 parameters: parameters
             )
             echo "built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${task.number}/pipeline"
-            if (built.getResult() != 'SUCCESS') {
+            if (task.getResult() != 'SUCCESS') {
                 error "build failed"
             }
             built = task.number
