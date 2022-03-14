@@ -80,17 +80,19 @@ def dispatchRunEnv(toolchain, identifier, Closure body) {
 
 
 def existsBuildCache() {
-    def status = true
+    def status = ""
     try {
-        def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TESTS%22%20and%20value=%22true%22]]])[1]"
+        def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,number,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TESTS%22%20and%20value=%22true%22]]])[1]"
         def response = httpRequest api
         def content = response.getContent()
-        if (!content.contains('<building>false</building>') || !content.contains('<result>SUCCESS</result>')) {
-            status = false
+        if (content.contains('<building>false</building>') && content.contains('<result>SUCCESS</result>')) {
+            def match = (content =~ /<number>(\d+)<\/number>/)
+            match.find()
+            status = match.group(1)
         }
     } catch (Exception e) {
         println "error: ${e}"
-        status = false
+        status = ""
     }
     return status
 }
@@ -100,22 +102,12 @@ def prepareArtifacts(built, get_toolchain) {
     if (get_toolchain) {
         filter = "toolchain"
     }
-    if (built != null) {
-        copyArtifacts(
-            projectName: 'tiflash-build-common',
-            selector: specific("${built.number}"),
-            filter: filter,
-            optional: false
-        )
-    } else {
-        copyArtifacts(
-            projectName: 'tiflash-build-common',
-            parameters: "TARGET_BRANCH=${ghprbTargetBranch},TARGET_PULL_REQUEST=${ghprbPullId},TARGET_COMMIT_HASH=${ghprbActualCommit},BUILD_TESTS=true",
-            filter: filter,
-            selector: lastSuccessful(),
-            optional: false
-        )
-    }
+    copyArtifacts(
+        projectName: 'tiflash-build-common',
+        selector: specific("${built}"),
+        filter: filter,
+        optional: false
+    )
 }
 
 
@@ -123,19 +115,22 @@ node(GO_TEST_SLAVE) {
     def toolchain = null
     def built = null
     stage('Build') {
-        if (!existsBuildCache()) {
-            built = build(
+        def cache = existsBuildCache()
+        if (!cache) {
+            def task = build(
                 job: "tiflash-build-common",
                 wait: true,
                 propagate: false,
                 parameters: parameters
             )
-            echo "built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${built.number}/pipeline"
+            echo "built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${task.number}/pipeline"
             if (built.getResult() != 'SUCCESS') {
                 error "build failed"
             }
+            built = task.number
         } else {
-            echo "Using cached build"
+            echo "Using cached build: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${cache}/pipeline"
+            built = cache.toInteger()
         }
         prepareArtifacts(built, true)
         toolchain = readFile(file: 'toolchain').trim()
