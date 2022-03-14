@@ -138,7 +138,7 @@ node(GO_TEST_SLAVE) {
     }
     dispatchRunEnv(toolchain, IDENTIFIER) {
         def cwd = pwd()
-        def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tics"
+        def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
         def build_path = "/home/jenkins/agent/workspace/tiflash-build-common/build"
         def binary_path = "/tiflash"
         def prallelism = 8
@@ -163,7 +163,7 @@ node(GO_TEST_SLAVE) {
                     ],
                     userRemoteConfigs                : [
                             [
-                                    url          : "git@github.com:pingcap/tics.git",
+                                    url          : "git@github.com:pingcap/tiflash.git",
                                     refspec      : "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                     credentialsId: "github-sre-bot-ssh",
                             ]
@@ -287,7 +287,7 @@ node(GO_TEST_SLAVE) {
                         cut -d" " -f2- | sed -e 's/^[[:space:]]*//' | sed -e 's/Missed\\ /Missed/g' | column -t >> ${cwd}/diff-coverage
                     echo '```' >> ${cwd}/diff-coverage
                     echo '' >> ${cwd}/diff-coverage
-                    echo "[full coverage report](https://ci-internal.pingcap.net/job/tics_ghpr_unit_test/${BUILD_NUMBER}/artifact/coverage-report.tar.gz) (for internal network access only)" >> ${cwd}/diff-coverage
+                    echo "[full coverage report](https://ci-internal.pingcap.net/job/tiflash-ghpr-unit-tests/${BUILD_NUMBER}/artifact/coverage-report.tar.gz) (for internal network access only)" >> ${cwd}/diff-coverage
                     """
                 }
             } else {
@@ -324,7 +324,7 @@ node(GO_TEST_SLAVE) {
                     /home/jenkins/agent/dependency/comment-pr \\
                         --token="\$TOKEN" \\
                         --owner=pingcap \\
-                        --repo=tics \\
+                        --repo=tiflash \\
                         --number=${ghprbPullId} \\
                         --comment='${ut_coverage_result}'
                     set -x

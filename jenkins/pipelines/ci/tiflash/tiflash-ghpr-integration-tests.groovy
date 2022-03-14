@@ -66,7 +66,7 @@ def checkoutTiFlash() {
                     branches                         : [[name: ghprbActualCommit]],
                 userRemoteConfigs : [
                     [
-                        url           : "git@github.com:pingcap/tics.git",
+                        url           : "git@github.com:pingcap/tiflash.git",
                         refspec       : "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                         credentialsId : "github-sre-bot-ssh",
                     ]
@@ -108,7 +108,7 @@ def checkoutTiFlash() {
 node(GO_TEST_SLAVE) {
     def toolchain = null
     def identifier = "tiflash-integration-test-${ghprbTargetBranch}-${ghprbPullId}"
-    def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tics"
+    def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
     def tidb_branch = ({
         def m = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
         if (m) {

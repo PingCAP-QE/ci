@@ -187,7 +187,7 @@ def getCheckoutTarget() {
     }
     if (params.TARGET_BRANCH) {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-        return sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${params.TARGET_BRANCH} -s=${FILE_SERVER_URL}").trim()
+        return sh(returnStdout: true, script: "python gethash.py -repo=tiflash -source=github -version=${params.TARGET_BRANCH} -s=${FILE_SERVER_URL}").trim()
     }
     error "no checkout target found, please provide branch or commit hash"
 }
@@ -206,7 +206,7 @@ def checkoutTiFlash(target, enable_submodules) {
             ],
             userRemoteConfigs                : [
                     [
-                            url          : "git@github.com:pingcap/tics.git",
+                            url          : "git@github.com:pingcap/tiflash.git",
                             refspec      : refspec,
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -699,7 +699,7 @@ def staticAnalysis(repo_path, build_dir) {
         python3 ${fix_compile_commands} ${include_flag} \\
             --file_path=compile_commands.json \\
             --load_diff_files_from "/tmp/tiflash-diff-files.json"
-        python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tics/dbms/*"
+        python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
         """
     }
 }
@@ -834,7 +834,7 @@ def postBuildStage(repo_path, build_dir, install_dir) {
 
 node("${GO_TEST_SLAVE}") {
     def checkout_target = getCheckoutTarget()
-    def repo_path = "${pwd()}/tics"
+    def repo_path = "${pwd()}/tiflash"
     def build_dir = "${pwd()}/build"
     def install_dir = "${pwd()}/tiflash"
     def error_msg = ""
