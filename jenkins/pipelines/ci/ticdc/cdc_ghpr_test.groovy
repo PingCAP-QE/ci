@@ -8,73 +8,59 @@ if (ghprbPullId == null || ghprbPullId == "") {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
-@NonCPS
-boolean isMoreRecentOrEqual(String a, String b) {
-    if (a == b) {
-        return true
-    }
-
-    [a, b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-        Integer result = [u, v].transpose().findResult { x, y -> x <=> y ?: null } ?: u.size() <=> v.size()
-        return (result == 1)
-    }
+GO_VERSION = "go1.18"
+POD_GO_IMAGE = ""
+GO_IMAGE_MAP = [
+    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
+    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+]
+POD_LABEL_MAP = {
+    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
 }
 
-string trimPrefix = {
-    it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
+node("master") {
+    deleteDir()
+    def ws = pwd()
+    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    def script_path = "${ws}/goversion-select-lib.groovy"
+    def goversion_lib = load script_path
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    println "go version: ${GO_VERSION}"
+    println "go image: ${POD_GO_IMAGE}"
 }
 
-def boolean isBranchMatched(List<String> branches, String targetBranch) {
-    for (String item : branches) {
-        if (targetBranch.startsWith(item)) {
-            println "targetBranch=${targetBranch} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
-isNeedGo1160 = false
-releaseBranchUseGo1160 = "release-5.1"
-
-if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "release-multi-source"], ghprbTargetBranch)
-}
-if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-    if (isNeedGo1160) {
-        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-    }
-}
 
 def run_with_pod(Closure body) {
-    def label = "cdc_ghpr_unit_test_1.13_${BUILD_NUMBER}"
-    pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
-    if (isNeedGo1160) {
-        println "Use go1.16.4"
-        pod_go_docker_image = "hub.pingcap.net/pingcap/centos7_golang-1.16:latest"
-        label = "cdc_ghpr_unit_test_1.16_${BUILD_NUMBER}"
-    } else {
-        println "Use go1.13.7"
-    }
+    def label = POD_LABEL_MAP[GO_VERSION]
+    def cloud = "kubernetes"
+    def namespace = "jenkins-tidb"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
-            instanceCap: 5,
-            containers: [containerTemplate(
-                    name: 'golang', alwaysPullImage: true,
-                    image: "${pod_go_docker_image}", ttyEnabled: true,
-                    resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                    resourceLimitCpu: '16000m', resourceLimitMemory: "30Gi",
-                    command: '/bin/sh -c', args: 'cat',
-                    envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-            )],
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
             volumes: [
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-            ],
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
     ) {
         node(label) {
-            println("${NODE_NAME}")
-            println "current pod use CPU 4000m & Memory 8Gi"
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
             body()
         }
     }
@@ -84,7 +70,7 @@ catchError {
     run_with_pod() {
         stage('Prepare') {
             container("golang") {
-            def ws = pwd()
+                def ws = pwd()
                 deleteDir()
 
                 dir("${ws}/go/src/github.com/pingcap/tiflow") {
@@ -131,7 +117,6 @@ catchError {
                 stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
             }
         }
-
 
         stage("Unit Test") {
             container("golang") {
