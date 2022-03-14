@@ -118,9 +118,10 @@ node(GO_TEST_SLAVE) {
     }).call()
 
     stage('Wait for Build') {
-        waitUntil {
-            def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TIFLASH%22%20and%20value=%22true%22]]])[1]"
-            def response = httpRequest api
+        def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TIFLASH%22%20and%20value=%22true%22]]])[1]"
+        echo "poll status from: ${api}"
+        waitUntil(quiet: true) {
+            def response = httpRequest(url: api, validResponseCodes: "100:399,404", quiet: true)
             def content = response.getContent()
             if (content.contains('<result>FAILURE</result>')) {
                 error "build failure"
