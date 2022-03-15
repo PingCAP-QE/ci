@@ -180,16 +180,7 @@ catchError {
     }
 
     stage('Compatibility Tests') {
-        def label = "dm-ghprb-compatibility-test-${BUILD_NUMBER}"
-        if (GO_VERSION == "go1.13") {
-            label = "dm-ghprb-compatibility-test-go1130-${BUILD_NUMBER}"
-        }
-        if (GO_VERSION = "go1.16") {
-            label = "dm-ghprb-compatibility-test-go1160-${BUILD_NUMBER}"
-        }
-        if (GO_VERSION = "go1.18") {
-            label = "dm-ghprb-compatibility-test-go1180-${BUILD_NUMBER}"
-        }
+        def label = POD_LABEL_MAP[GO_VERSION]
         podTemplate(label: label,
                 nodeSelector: 'role_type=slave',
                 namespace: "jenkins-tidb",

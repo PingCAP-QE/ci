@@ -86,6 +86,7 @@ POD_LABEL_MAP = [
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
 ]
+POD_NAMESPACE = "jenkins-dm"
 
 node("master") {
     deleteDir()
@@ -101,13 +102,13 @@ node("master") {
 
 def run_test_with_pod(Closure body) {
     def label = "dm-integration-test-${BUILD_NUMBER}"
-    if (GO_VERSION == "go1.13") ={
+    if (GO_VERSION == "go1.13") {
         label = "dm-integration-test-go1130-${BUILD_NUMBER}"
     }
-    if (GO_VERSION == "go1.16") ={
+    if (GO_VERSION == "go1.16") {
         label = "dm-integration-test-go1160-${BUILD_NUMBER}"
     }
-    if (GO_VERSION == "go1.18") ={
+    if (GO_VERSION == "go1.18") {
         label = "dm-integration-test-go1180-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes"
@@ -153,13 +154,13 @@ def run_test_with_pod(Closure body) {
 
 def run_build_with_pod(Closure body) {
     def label = "dm-integration-test-build-${BUILD_NUMBER}"
-    if (GO_VERSION == "go1.13") ={
+    if (GO_VERSION == "go1.13") {
         label = "dm-integration-test-build-go1130-${BUILD_NUMBER}"
     }
-    if (GO_VERSION == "go1.16") ={
+    if (GO_VERSION == "go1.16") {
         label = "dm-integration-test-build-go1160-${BUILD_NUMBER}"
     }
-    if (GO_VERSION == "go1.18") ={
+    if (GO_VERSION == "go1.18") {
         label = "dm-integration-test-build-go1180-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes"
