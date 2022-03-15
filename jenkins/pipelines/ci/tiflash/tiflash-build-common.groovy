@@ -501,9 +501,7 @@ def buildClusterManage(repo_path, install_dir) {
     }
     if (!output.contains("cluster_manager is deprecated")) {
         sh "mkdir -p ${install_dir}"
-        dir("${install_dir}") {
-            sh "cp -rf ${repo_path}/cluster_manage/dist/flash_cluster_manager ./flash_cluster_manager"
-        }
+        sh "cp -rf ${repo_path}/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager"
     } else {
         echo "cluster_manager is deprecated"
     }
