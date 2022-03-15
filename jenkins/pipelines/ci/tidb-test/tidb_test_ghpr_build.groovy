@@ -19,67 +19,12 @@ def downRef = { name ->
 def downUrl = "https://api.github.com/repos/pingcap/tidb/tarball/${downRef(TIDB_BRANCH)}"
 
 println "TIDB_BRANCH=${TIDB_BRANCH} DOWNLOAD_URL=${downUrl}"
-
-GO_VERSION = "go1.18"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-]
-
-node("master") {
-    deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
-    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
-    println "go version: ${GO_VERSION}"
-    println "go image: ${POD_GO_IMAGE}"
-}
-
-def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
-    podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
-            idleMinutes: 0,
-            containers: [
-                    containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
-                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                        command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
-                    )
-            ],
-            volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
-    ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
-        }
-    }
-}
-
-
+def build_node = "build_go1130"
 try {
-    run_with_pod {
+    if(ghprbTargetBranch in ["release-2.0"]) {
+        build_node = "build_go1130"
+    }
+    node(build_node) {
         def ws = pwd()
 
         stage("Checkout") {
