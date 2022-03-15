@@ -241,6 +241,8 @@ def runBuilderClosure(label, image, Closure body) {
                     serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/ccache', readOnly: !params.UPDATE_CCACHE),
             nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
+            nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/rust', readOnly: false),
     ],
     hostNetwork: false
     ) {
