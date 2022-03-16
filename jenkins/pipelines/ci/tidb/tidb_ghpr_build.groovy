@@ -12,12 +12,6 @@ if (params.containsKey("release_test")) {
 def slackcolor = 'good'
 def githash
 
-// TODO debug
-ghprbActualCommit = "11ae94d0c1f61a1a2e2081f4ce9e972f3a59c8b5"
-ghprbPullId = "31849"
-ghprbTargetBranch = "master"
-ghprbCommentBody = ""
-
 def PLUGIN_BRANCH = ghprbTargetBranch
 
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
