@@ -1,6 +1,6 @@
 // choose which go version to use. 
 def String selectGoVersion(String branchORTag) {
-    goVersion="go1.18"
+    def goVersion="go1.18"
     if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
         return "go1.13"
     }
@@ -19,16 +19,16 @@ def String selectGoVersion(String branchORTag) {
     return "go1.18"
 }
 
-println "This build use ${goVersion}"
-
 def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
-goVersion = selectGoVersion(env.BRANCH_NAME)
+def goVersion = selectGoVersion(env.BRANCH_NAME)
 if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
     GO_BUILD_SLAVE = GO_BUILD_SLAVE
 }
+
+println "This build use ${goVersion}"
 
 def BUILD_URL = 'git@github.com:tikv/pd.git'
 def slackcolor = 'good'
