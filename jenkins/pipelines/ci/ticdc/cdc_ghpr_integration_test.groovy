@@ -55,17 +55,85 @@ POD_LABEL_MAP = [
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
 ]
 
-node("master") {
-    deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
-    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
-    println "go version: ${GO_VERSION}"
-    println "go image: ${POD_GO_IMAGE}"
+feature_branch_use_go13 = []
+feature_branch_use_go16 = ["hz-poc", "ft-data-inconsistency", "br-stream", "release-multi-source"]
+feature_branch_use_go18 = []
+
+// Version Selector
+// branch or tag
+// == branch
+//  master use go1.18
+//  release branch >= release-6.0 use go1.18
+//  release branch >= release-5.1 use go1.16
+//  release branch < release-5.0 use go1.13
+//  other feature use corresponding go version
+//  the default go version is go1.18
+// == tag
+// any tag greater or eqaul to v6.0.xxx use go1.18
+// any tag smaller than v6.0.0 and graeter or equal to v5.1.xxx use go1.16
+// any tag smaller than v5.1.0 use go1.13
+
+
+def selectGoVersion(branchNameOrTag) {
+    if (branchNameOrTag.startsWith("v")) {
+        println "This is a tag"
+        if (branchNameOrTag >= "v6.0") {
+            println "tag ${branchNameOrTag} use go 1.18"
+            return "go1.18"
+        }
+        if (branchNameOrTag >= "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.16"
+            return "go1.16"
+        }
+        if (branchNameOrTag < "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.13"
+            return "go1.13"
+        }
+        println "tag ${branchNameOrTag} use default version go 1.18"
+        return "go1.18"
+    } else { 
+        println "this is a branch"
+        if (branchNameOrTag in feature_branch_use_go13) {
+            println "feature branch ${branchNameOrTag} use go 1.13"
+            return "go1.13"
+        }
+        if (branchNameOrTag in feature_branch_use_go16) {
+            println "feature branch ${branchNameOrTag} use go 1.16"
+            return "go1.16"
+        }
+        if (branchNameOrTag in feature_branch_use_go18) {
+            println "feature branch ${branchNameOrTag} use go 1.18"
+            return "go1.18"
+        }
+        if (branchNameOrTag == "master") {
+            println("branchNameOrTag: master  use go1.18")
+            return "go1.18"
+        }
+
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.0") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.0" && branchNameOrTag >= "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.16")
+            return "go1.16"
+        }
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
+            return "go1.13"
+        }
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
+        return "go1.18"
+    }
 }
+
+GO_VERSION = selectGoVersion(ghprbTargetBranch)
+POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+println "go version: ${GO_VERSION}"
+println "go image: ${POD_GO_IMAGE}"
+
 
 
 def run_with_pod(Closure body) {
