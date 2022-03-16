@@ -164,7 +164,7 @@ node(GO_TEST_SLAVE) {
                     userRemoteConfigs                : [
                             [
                                     url          : "git@github.com:pingcap/tiflash.git",
-                                    refspec      : "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                    refspec      : "+refs/heads/*:refs/remotes/origin/*:refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                     credentialsId: "github-sre-bot-ssh",
                             ]
                     ],
