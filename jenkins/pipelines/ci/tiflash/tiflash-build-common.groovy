@@ -640,6 +640,11 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
             sh "cp '${target}' '${install_dir}/'"
         }
     }
+    if (params.ENABLE_CCACHE) {
+        sh """
+        ccache -s
+        """        
+    }
 }
 
 def clangFormat(repo_path) {
