@@ -243,6 +243,17 @@ node("${GO_TEST_SLAVE}") {
                           }'
                         """
                     }
+                    withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                        sh """
+                          curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                          -d '{
+                            "msg_type": "text",
+                            "content": {
+                              "text": "$feishumsg"
+                            }
+                          }'
+                        """
+                    }
                 }
             }
         }
