@@ -232,18 +232,7 @@ node("${GO_TEST_SLAVE}") {
                         "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/activity/"
                 print feishumsg
                 node("master") {
-                    withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                        sh """
-                          curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
-                          -d '{
-                            "msg_type": "text",
-                            "content": {
-                              "text": "$feishumsg"
-                            }
-                          }'
-                        """
-                    }
-                    withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                    withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
                         sh """
                           curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
                           -d '{
