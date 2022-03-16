@@ -192,11 +192,15 @@ def getCheckoutTarget() {
     error "no checkout target found, please provide branch or commit hash"
 }
 
-def checkoutTiFlash(target, enable_submodules) {
+def checkoutTiFlash(target, full) {
     def refspec = "+refs/heads/*:refs/remotes/origin/*"
 
     if (params.TARGET_PULL_REQUEST) {
-        refspec += " +refs/pull/${params.TARGET_PULL_REQUEST}/*:refs/remotes/origin/pr/${params.TARGET_PULL_REQUEST}/*"
+        if (full) {
+            refspec += " +refs/pull/${params.TARGET_PULL_REQUEST}/*:refs/remotes/origin/pr/${params.TARGET_PULL_REQUEST}/*"
+        } else {
+            refspec = " +refs/pull/${params.TARGET_PULL_REQUEST}/*:refs/remotes/origin/pr/${params.TARGET_PULL_REQUEST}/*"
+        }
     }
 
     checkout(changelog: false, poll: false, scm: [
@@ -213,7 +217,7 @@ def checkoutTiFlash(target, enable_submodules) {
             ],
             extensions                       : [
                     [$class             : 'SubmoduleOption',
-                     disableSubmodules  : !enable_submodules,
+                     disableSubmodules  : !full,
                      parentCredentials  : true,
                      recursiveSubmodules: true,
                      trackingSubmodules : false,
