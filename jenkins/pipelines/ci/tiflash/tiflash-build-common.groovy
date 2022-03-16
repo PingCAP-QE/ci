@@ -196,7 +196,7 @@ def checkoutTiFlash(target, enable_submodules) {
     def refspec = "+refs/heads/*:refs/remotes/origin/*"
 
     if (params.TARGET_PULL_REQUEST) {
-        refspec = "+refs/pull/${params.TARGET_PULL_REQUEST}/*:refs/remotes/origin/pr/${params.TARGET_PULL_REQUEST}/*"
+        refspec += " +refs/pull/${params.TARGET_PULL_REQUEST}/*:refs/remotes/origin/pr/${params.TARGET_PULL_REQUEST}/*"
     }
 
     checkout(changelog: false, poll: false, scm: [
