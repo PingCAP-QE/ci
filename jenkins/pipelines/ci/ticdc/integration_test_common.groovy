@@ -55,56 +55,57 @@ def prepare_binaries() {
         def prepares = [:]
 
         prepares["build binaries"] = {
-            container("golang") {
-                def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
-                def cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
-                if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
-                    println "cache binary existed"
-                    println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
-                    def ws = pwd()
-                    deleteDir()
-                    unstash 'ticdc'
-                    sh """
-                    cd go/src/github.com/pingcap/tiflow
-                    ls -alh
-                    curl -O ${FILE_SERVER_URL}/download/${cacheBinaryPath}
-                    tar -xvf ticdc_bin.tar.gz
-                    rm -rf ticdc_bin.tar.gz
-                    """
-                } else {
-                    println "start to build binary"
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    def ws = pwd()
-                    deleteDir()
-                    unstash 'ticdc'
-                    dir("go/src/github.com/pingcap/tiflow") {
+            node("${GO_TEST_SLAVE}") {
+                container("golang") {
+                    def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
+                    def cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
+                    if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
+                        println "cache binary existed"
+                        println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
+                        def ws = pwd()
+                        deleteDir()
+                        unstash 'ticdc'
                         sh """
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
-                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
-                            tar czvf ticdc_bin.tar.gz bin/*
-                            curl -F ${cacheBinaryPath}=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
-                            touch done
-                            curl -F ${cacheBinaryDonePath}=@done http://fileserver.pingcap.net/upload
+                        cd go/src/github.com/pingcap/tiflow
+                        ls -alh
+                        curl -O ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                        tar -xvf ticdc_bin.tar.gz
+                        rm -rf ticdc_bin.tar.gz
                         """
+                    } else {
+                        println "start to build binary"
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        def ws = pwd()
+                        deleteDir()
+                        unstash 'ticdc'
+                        dir("go/src/github.com/pingcap/tiflow") {
+                            sh """
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
+                                GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
+                                tar czvf ticdc_bin.tar.gz bin/*
+                                curl -F ${cacheBinaryPath}=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
+                                touch done
+                                curl -F ${cacheBinaryDonePath}=@done http://fileserver.pingcap.net/upload
+                            """
+                        }
                     }
+                    dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
+                        println "hello world"
+                        sh """
+                        pwd 
+                        ls -alh .
+                        
+                        """
+                        def cases_name = sh(
+                                script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
+                                returnStdout: true
+                        ).trim().split().join(" ")
+                        sh "echo ${cases_name} > CASES"
+                    }
+                    stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
                 }
-                dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
-                    println "hello world"
-                    sh """
-                    pwd 
-                    ls -alh .
-                    
-                    """
-                    def cases_name = sh(
-                            script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
-                            returnStdout: true
-                    ).trim().split().join(" ")
-                    sh "echo ${cases_name} > CASES"
-                }
-                stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
-            
             }
         }
 
@@ -113,7 +114,7 @@ def prepare_binaries() {
 }
 
 /**
- * Start preparesning tests.
+ * Start running tests.
  * @param sink_type Type of Sink, optional value: mysql/kafaka.
  * @param node_label
  */
