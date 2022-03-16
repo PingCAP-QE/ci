@@ -598,7 +598,7 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
     }
 
     sh """
-    cmake --build '${build_dir}' --target ${targets} --parallel 8
+    cmake --build '${build_dir}' --target ${targets} --parallel 12
     """
     if (params.BUILD_TIFLASH) {
         if (toolchain == 'llvm') {

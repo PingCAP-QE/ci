@@ -141,7 +141,7 @@ node(GO_TEST_SLAVE) {
         def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
         def build_path = "/home/jenkins/agent/workspace/tiflash-build-common/build"
         def binary_path = "/tiflash"
-        def prallelism = 8
+        def parallelism = 12
         stage('Checkout') {
             dir(repo_path) {
                 def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
@@ -212,9 +212,9 @@ node(GO_TEST_SLAVE) {
                 sh """
                 mkdir -p /root/.cache
                 source /tests/docker/util.sh
-                export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${prallelism}m.profraw"
+                export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
                 show_env
-                ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${prallelism} /tests/run-gtest.sh
+                ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${parallelism} /tests/run-gtest.sh
                 """
             }
         }
@@ -310,7 +310,7 @@ node(GO_TEST_SLAVE) {
                     -e "${repo_path}/contrib/*" \\
                     -e "${repo_path}/dbms/src/Debug/*" \\
                     -e "${repo_path}/dbms/src/Client/*" \\
-                    --object-directory=${build_path} -o ${cwd}/tiflash_gcovr_coverage.xml -j ${prallelism} -s >${cwd}/diff-coverage
+                    --object-directory=${build_path} -o ${cwd}/tiflash_gcovr_coverage.xml -j ${parallelism} -s >${cwd}/diff-coverage
                 """
             }
         }
