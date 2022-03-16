@@ -495,15 +495,11 @@ def prepareStage(repo_path) {
 }
 
 def buildClusterManage(repo_path, install_dir) {
-    def output = null
-    dir("${repo_path}/cluster_manage"){
-        output = sh(returnStdout: true, script: "sh -c ./release.sh")
-    }
-    if (!output.contains("cluster_manager is deprecated")) {
-        sh "mkdir -p ${install_dir}"
-        sh "cp -rf ${repo_path}/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager"
-    } else {
+    if (!fileExists("${repo_path}/cluster_manage/release.sh")) {
         echo "cluster_manager is deprecated"
+    } else {
+        sh "cd ${repo_path}/cluster_manage && sh release.sh"
+        sh "mkdir -p ${install_dir} && cp -rf ${repo_path}/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager"        
     }
 }
 
