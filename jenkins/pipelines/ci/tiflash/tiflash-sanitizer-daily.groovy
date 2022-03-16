@@ -246,7 +246,7 @@ node("${GO_TEST_SLAVE}") {
                     }
                     withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
                         sh """
-                          curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                          curl -X POST \$TOKEN -H 'Content-Type: application/json' \
                           -d '{
                             "msg_type": "text",
                             "content": {
