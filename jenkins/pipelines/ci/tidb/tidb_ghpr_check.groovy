@@ -14,63 +14,69 @@ def notRun = 1
 def slackcolor = 'good'
 def githash
 
-@NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
-    if (a == b) {
-        return true
-    }
-
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
-}
-
-string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
-
-def boolean isBranchMatched(List<String> branches, String targetBranch) {
-    for (String item : branches) {
-        if (targetBranch.startsWith(item)) {
-            println "targetBranch=${targetBranch} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
-def isNeedGo1160 = false
-releaseBranchUseGo1160 = "release-5.1"
-
-if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency", "br-stream"], ghprbTargetBranch)
-}
-if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-    if (isNeedGo1160) {
-        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-    }
-}
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-} else {
-    println "This build use go1.13"
-}
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
-
 def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
+GO_VERSION = "go1.18"
+POD_GO_IMAGE = ""
+GO_IMAGE_MAP = [
+    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
+    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+]
+
+node("master") {
+    deleteDir()
+    def ws = pwd()
+    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    def script_path = "${ws}/goversion-select-lib.groovy"
+    def goversion_lib = load script_path
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    println "go version: ${GO_VERSION}"
+    println "go image: ${POD_GO_IMAGE}"
+}
+
+
+def run_with_pod(Closure body) {
+    def label = "tidb-ghpr-check-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-tidb"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "go image: ${POD_GO_IMAGE}"
+            body()
+        }
+    }
+}
+
 try {
     stage("Pre-check") {
         if (!params.force) {
-            node("${GO_BUILD_SLAVE}") {
+            run_with_pod {
                 container("golang") {
                     notRun = sh(returnStatus: true, script: """
     			    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
@@ -78,20 +84,14 @@ try {
                 }
             }
         }
-
         if (notRun == 0) {
             println "the ${ghprbActualCommit} has been tested"
             throw new RuntimeException("hasBeenTested")
         }
     }
-    // def buildSlave = "test_go_heavy"
-    def buildSlave = "${GO_BUILD_SLAVE}"
-    def testSlave = "${GO_TEST_SLAVE}"
-    node(buildSlave) {
 
+    run_with_pod {
         def ws = pwd()
-        //deleteDir()
-
         stage("debuf info") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             println "work space path:\n${ws}"
@@ -108,10 +108,10 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
-                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
-                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
                                 mkdir -p ${ws}/go/src/github.com/pingcap/tidb
                                 tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                             """
@@ -129,7 +129,7 @@ try {
                             sh """
                                 rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                                 rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz-q --show-progress
                                 tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
                             """
                         }
@@ -192,7 +192,7 @@ try {
         }
     }
     currentBuild.result = "SUCCESS"
-    node("${GO_BUILD_SLAVE}") {
+    run_with_pod {
         container("golang") {
             sh """
 		    echo "done" > done

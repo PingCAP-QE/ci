@@ -43,55 +43,25 @@ if (m2) {
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
 
-@NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
-    if (a == b) {
-        return true
-    }
+GO_VERSION = "go1.18"
+POD_GO_IMAGE = ""
+GO_IMAGE_MAP = [
+    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
+    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+]
 
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
+node("master") {
+    deleteDir()
+    def ws = pwd()
+    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    def script_path = "${ws}/goversion-select-lib.groovy"
+    def goversion_lib = load script_path
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    println "go version: ${GO_VERSION}"
+    println "go image: ${POD_GO_IMAGE}"
 }
-
-string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
-
-def boolean isBranchMatched(List<String> branches, String targetBranch) {
-    for (String item : branches) {
-        if (targetBranch.startsWith(item)) {
-            println "targetBranch=${targetBranch} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
-def isNeedGo1160 = false
-releaseBranchUseGo1160 = "release-5.1"
-pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
-
-if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency", "br-stream"], ghprbTargetBranch)
-}
-if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-    if (isNeedGo1160) {
-        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-    }
-}
-if (isNeedGo1160) {
-    println "This build use go1.16"
-    pod_go_docker_image = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
-} else {
-    println "This build use go1.13"
-}
-println "use image=${pod_go_docker_image}"
-
-// def buildSlave = "${GO_BUILD_SLAVE}"
-// def testSlave = "${GO_TEST_SLAVE}"
 
 def sessionTestSuitesString = "testPessimisticSuite"
 
@@ -108,7 +78,7 @@ def run_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
-                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             privileged: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             resourceLimitCpu: '30000m', resourceLimitMemory: "100Gi",
@@ -123,12 +93,11 @@ def run_with_pod(Closure body) {
             volumes: [
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    nfsVolume(mountPath: '/nfs/cache', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs', readOnly: false),
             ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "go image: ${POD_GO_IMAGE}"
             body()
         }
     }
@@ -199,7 +168,7 @@ def test_suites = { suites,option ->
                         cd session
                         export log_level=error
                         # export GOPROXY=http://goproxy.pingcap.net
-                        go get gotest.tools/gotestsum
+                        go install gotest.tools/gotestsum@latest
                         gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off ${option} '${suites}'
                         #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 20m -vet=off
                         """
@@ -256,10 +225,10 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
-                    if(fileExists("/nfs/cache/git-test/src-tidb.tar.gz")){
+                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
-                                cp -R /nfs/cache/git-test/src-tidb.tar.gz*  ./
+                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
                                 mkdir -p ${ws}/go/src/github.com/pingcap/tidb
                                 tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                             """
@@ -276,7 +245,7 @@ try {
                                 sh """
                                     rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                                     rm -rf /home/jenkins/agent/code-archive/tidb
-                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q --show-progress
+                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz -q --show-progress
                                     tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
                                 """
                             }
