@@ -11,20 +11,14 @@ stage("Get Hash") {
     }
 }
 
-def release_amd64(repo,hash,mode) {
-    def filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
+def release_amd64(repo, hash) {
+    def filepath = "builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
 
-    if (mode == "nightly") {
-        filepath = "builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
+    if ("master" != "${env.BRANCH_NAME}") {
+        filepath = "builds/pingcap/tiflash/${env.BRANCH_NAME}/${hash}/centos7/tiflash.tar.gz"
     }
 
     echo "release filepath: ${FILE_SERVER_URL}/download/${filepath}"
-
-    def update_cache = false
-
-    if (env.TAG_NAME == null && mode != "nightly") {
-        update_cache = true
-    }
 
     def paramsBuild = [
         string(name: "ARCH", value: "amd64"),
@@ -36,7 +30,6 @@ def release_amd64(repo,hash,mode) {
         string(name: "GIT_HASH", value: hash),
         string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
         [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
-        [$class: 'BooleanParameterValue', name: 'UPDATE_TIFLASH_CACHE', value: update_cache],
     ]
     build job: "build-common",
             wait: true,
@@ -73,16 +66,20 @@ def docker_amd64(repo, hash) {
 }
 
 try {
-    parallel(
-        "nightly build": {
-            if ("master" == "${env.BRANCH_NAME}") {
-                release_amd64("tics", "${githash}", "nightly")
+    stage("Nightly Build") {
+        release_amd64("tics", "${githash}")
+        if ("master" == "${env.BRANCH_NAME}") {
+            node("${GO_TEST_SLAVE}") {
+                container("golang") {
+                    sh """
+                    cd /tmp/
+                    curl -o /tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz
+                    curl -F builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz=@tiflash.tar.gz ${FILE_SERVER_URL}/upload
+                    """
+                }
             }
-        },
-        "normal build": {
-            release_amd64("tics", "${githash}", "normal")
-        },
-    )
+        }
+    }
 
     stage("Docker") {
         docker_amd64("tics", "${githash}")
