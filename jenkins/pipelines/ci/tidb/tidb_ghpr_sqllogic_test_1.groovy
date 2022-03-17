@@ -52,7 +52,7 @@ def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${
 
 
 def run_with_pod(Closure body) {
-    def pod_name = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL_MAP[GO_VERSION]
     def cloud = "kubernetes"
     podTemplate(label: label,
             cloud: cloud,

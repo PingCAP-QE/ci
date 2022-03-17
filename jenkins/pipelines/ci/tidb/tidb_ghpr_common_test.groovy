@@ -110,7 +110,7 @@ def run_test_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
-                            image: POD_GO_DOCKER_IMAGE, ttyEnabled: true,
+                            image: POD_GO_IMAGE, ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
