@@ -25,9 +25,9 @@ GO_IMAGE_MAP = [
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
 ]
 POD_LABEL_MAP = [
-    "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
-    "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
-    "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
+    "go1.13": "tidb-ghpr-unit-test-go1130-${BUILD_NUMBER}",
+    "go1.16": "tidb-ghpr-unit-test-go1160-${BUILD_NUMBER}",
+    "go1.18": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
 ]
 
 node("master") {
