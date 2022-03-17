@@ -93,6 +93,7 @@ def run_with_pod(Closure body) {
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "go image: ${POD_GO_IMAGE}"
             body()
         }
     }
