@@ -74,13 +74,13 @@ POD_NAMESPACE = "jenkins-tidb"
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-integration-common-test"
-    if (GO_VERSION = "go1.13") {
+    if (GO_VERSION == "go1.13") {
         label = "tidb-ghpr-integration-common-test-go1130-${BUILD_NUMBER}"
     }
-    if (GO_VERSION = "go1.16") {
+    if (GO_VERSION == "go1.16") {
         label = "tidb-ghpr-integration-common-test-go1160-${BUILD_NUMBER}"
     }
-    if (GO_VERSION = "go1.18") {
+    if (GO_VERSION == "go1.18") {
         label = "tidb-ghpr-integration-common-test-go1180-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes"
