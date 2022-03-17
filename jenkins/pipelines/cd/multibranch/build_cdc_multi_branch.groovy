@@ -1,29 +1,3 @@
-@NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
-    if (a == b) {
-        return true
-    }
-
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
-}
-
-string trimPrefix = {
-    it.startsWith('release-') ? it.minus('release-') : it 
-}
-
-def boolean isBranchMatched(List<String> branches, String targetBranch) {
-    for (String item : branches) {
-        if (targetBranch.startsWith(item)) {
-            println "targetBranch=${targetBranch} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
 def release_tiup_patch(filepath, binary, patch_path) {
     echo "binary ${FILE_SERVER_URL}/download/${filepath}"
     echo "tiup patch ${FILE_SERVER_URL}/download/${patch_path}"
@@ -59,30 +33,38 @@ def release_docker_image(product, filepath, tag) {
 }
 
 
-def isNeedGo1160 = false
-releaseBranchUseGo1160 = "release-5.1"
-
-if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc"], env.BRANCH_NAME)
-}
-if (!isNeedGo1160 && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.1") {
-    isNeedGo1160 = true
-}
-if (!isNeedGo1160 && env.BRANCH_NAME.startsWith("release-")) {
-    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchUseGo1160))
-    if (isNeedGo1160) {
-        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchUseGo1160}"
+// choose which go version to use. 
+def String selectGoVersion(String branchORTag) {
+    def goVersion="go1.18"
+    if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
+        return "go1.13"
     }
+    if (branchORTag.startsWith("v") && branchORTag > "v5.1" && branchORTag < "v6.0") {
+        return "go1.16"
+    }
+    if (branchORTag.startsWith("release-") && branchORTag < "release-5.1"){
+        return "go1.13"
+    }
+    if (branchORTag.startsWith("release-") && branchORTag >= "release-5.1" && branchORTag < "release-6.0"){
+        return "go1.16"
+    }
+    if (branchORTag.startsWith("hz-poc") || branchORTag.startsWith("arm-dup") ) {
+        return "go1.16"
+    }
+    return "go1.18"
 }
-if (isNeedGo1160) {
-    println "This build use go1.16"
+
+
+def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
+def goVersion = selectGoVersion(env.BRANCH_NAME)
+if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = GO1160_TEST_SLAVE
-} else {
-    println "This build use go1.13"
 }
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
+if ( goVersion == "go1.13" ) {
+    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+}
+
+println "This build use ${goVersion}"
 
 def BUILD_URL = 'git@github.com:pingcap/tiflow.git'
 
