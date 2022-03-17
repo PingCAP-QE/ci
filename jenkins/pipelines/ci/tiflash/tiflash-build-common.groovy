@@ -248,7 +248,7 @@ def runBuilderClosure(label, image, Closure body) {
             nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/rust', readOnly: false),
     ],
-    hostNetwork: false
+    hostNetwork: true
     ) {
         node(label) {
             container('builder') {
