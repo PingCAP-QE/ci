@@ -83,6 +83,7 @@ POD_LABEL_MAP = [
     "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
 ]
+POD_NAMESPACE = "jenkins-tidb"
 
 node("master") {
     deleteDir()
