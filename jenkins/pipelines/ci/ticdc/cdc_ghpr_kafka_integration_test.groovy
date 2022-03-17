@@ -294,7 +294,7 @@ catchError {
                     containers: [
                             containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_IMAGE}",
                                     resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                    ttyEnabled: true, command: 'cat'),
+                                    ttyEnabled: true, command: '/bin/sh -c', args: 'cat'),
                             containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                                     resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
                                     ttyEnabled: true),
