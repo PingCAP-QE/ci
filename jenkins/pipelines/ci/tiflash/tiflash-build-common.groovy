@@ -643,6 +643,7 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
     if (params.ENABLE_CCACHE) {
         sh """
         ccache -s
+        ls -lha ${install_dir}
         """        
     }
 }
