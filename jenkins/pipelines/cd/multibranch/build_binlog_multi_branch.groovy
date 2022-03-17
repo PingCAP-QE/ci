@@ -7,10 +7,10 @@ def String selectGoVersion(String branchORTag) {
     if (branchORTag.startsWith("v") && branchORTag > "v5.1" && branchORTag < "v6.0") {
         return "go1.16"
     }
-    if (branchORTag.startsWith("release-") && branchORTag <= "release-5.1"){
+    if (branchORTag.startsWith("release-") && branchORTag < "release-5.1"){
         return "go1.13"
     }
-    if (branchORTag.startsWith("release-") && branchORTag > "release-5.1" && branchORTag < "release-6.0"){
+    if (branchORTag.startsWith("release-") && branchORTag >= "release-5.1" && branchORTag < "release-6.0"){
         return "go1.16"
     }
     if (branchORTag.startsWith("hz-poc") || branchORTag.startsWith("arm-dup") ) {
