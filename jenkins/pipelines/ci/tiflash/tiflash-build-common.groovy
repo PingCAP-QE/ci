@@ -324,21 +324,6 @@ def fetchTiFlashProxy(repo_path, target_dir) {
     } else {
         echo "proxy cache not found"
         status = false
-        if (params.OS != 'darwin') {
-            sh """
-            mkdir -p ~/.cargo/registry
-            mkdir -p ~/.cargo/git
-            mkdir -p /home/jenkins/agent/rust/registry/cache
-            mkdir -p /home/jenkins/agent/rust/registry/index 
-            mkdir -p /home/jenkins/agent/rust/git/db
-            mkdir -p /home/jenkins/agent/rust/git/checkouts
-            
-            rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-            rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index 
-            rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-            rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-            """
-        }
     }
 
     return status
@@ -492,6 +477,21 @@ def prepareStage(repo_path) {
             },
             "Proxy Cache" : {
                 proxy_cache_ready = fetchTiFlashProxy(repo_path, "${repo_path}/libs/libtiflash-proxy")
+                if (params.OS != 'darwin') {
+                    sh """
+                    mkdir -p ~/.cargo/registry
+                    mkdir -p ~/.cargo/git
+                    mkdir -p /home/jenkins/agent/rust/registry/cache
+                    mkdir -p /home/jenkins/agent/rust/registry/index 
+                    mkdir -p /home/jenkins/agent/rust/git/db
+                    mkdir -p /home/jenkins/agent/rust/git/checkouts
+                    
+                    rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
+                    rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index 
+                    rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
+                    rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
+                    """
+                }                
             }
         )
     }
