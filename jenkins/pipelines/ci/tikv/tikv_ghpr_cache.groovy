@@ -93,6 +93,7 @@ RUN cd tikv-src \
         }
         
         build_branch("master")
+        build_branch("release-6.0")
         build_branch("release-5.4")
         build_branch("release-5.3")
         build_branch("release-5.2")
