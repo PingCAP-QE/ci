@@ -4,7 +4,7 @@ stage("Build") {
 
         def checkAndBuild = { ghBranch, content, tag, args, allowStaleCache ->
             container("dind"){
-                docker.withRegistry("https://hub.pingcap.net", "harbor-jenkins") {
+                docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
                     // 2 means no image, 1 means stale, 0 means uptodate.
                     def cacheState = 2
                     if (!params.skip_sha_check) {
