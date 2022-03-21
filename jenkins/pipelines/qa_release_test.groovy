@@ -128,8 +128,8 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                     Group2: {
                         build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params)
                         build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params)
-                        build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params)
                         build(job: "tidb_ghpr_mybatis", parameters: default_params)
+                        build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params)
                     },
                     Group3: {
                         if (release_info.importer_commit) {
@@ -157,8 +157,8 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                                     string(name: 'ghprbPullTitle', value: "QA Release Test"),
                                     string(name: 'ghprbPullDescription', value: "This build is triggered by qa for release testing."),
                             ]
-                            build(job: "tics_ghpr_build", parameters: params)
-                            build(job: "tics_ghpr_test", parameters: params)
+                            build(job: "tiflash-ghpr-build", parameters: params)
+                            build(job: "tiflash-ghpr-integration-tests", parameters: params)
                         }
                     },
                     Group6: {
@@ -168,7 +168,7 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                         }
                     },
                     Group7: {
-                        build(job: "pd_test", parameters: default_params)
+                     //   build(job: "pd_test", parameters: default_params)
                     },
                     Group8: {
                         def params = [
@@ -182,7 +182,7 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                                 string(name: 'TIFLASH_BRANCH_AND_COMMIT', value: release_info.release_branch + "/" + release_info.tiflash_commit),
                         ]
                         if (release_info.release_branch >= "release-4.0") {
-                            build(job: "tidb_and_tools_e2e_test", parameters: params)
+                        //    build(job: "tidb_and_tools_e2e_test", parameters: params)
                         }
                     },
                     Group9: { // TiKV
