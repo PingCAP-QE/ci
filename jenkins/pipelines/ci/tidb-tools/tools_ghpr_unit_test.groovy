@@ -103,7 +103,7 @@ catchError {
             def label = "test-${UUID.randomUUID().toString()}"
             podTemplate(label: label, containers: [
                     containerTemplate(name: 'golang',alwaysPullImage: false,
-                            image: "${POD_GO_DOCKER_IMAGE}",
+                            image: "${POD_GO_IMAGE}",
                             ttyEnabled: true, command: 'cat'),
                     containerTemplate(
                             name: 'mysql',
