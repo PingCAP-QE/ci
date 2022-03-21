@@ -131,6 +131,10 @@ def build_product(build_para, product) {
         repo = "tics"
         product = "tics"
     }
+    if (product == "enterprise-plugin") {
+        force_rebuild = true
+    }
+
 
     def paramsBuild = [
         string(name: "ARCH", value: arch),
