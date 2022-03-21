@@ -327,7 +327,7 @@ def download_binaries() {
     }
     def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
     def sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
-    if (ghprbTargetBranch.startsWith("release-")) {
+    if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch < "release-6.0" ) {
         println "release branch detected, use the other sync_diff version"
         sync_diff_download_url = "http://fileserver.pingcap.net/download/builds/pingcap/cdc/new_sync_diff_inspector.tar.gz"
     }
