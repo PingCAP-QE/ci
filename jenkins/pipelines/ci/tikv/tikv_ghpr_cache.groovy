@@ -1,10 +1,13 @@
+env.DOCKER_HOST = "tcp://localhost:2375"
+env.DOCKER_REGISTRY = "docker.io"
+
 stage("Build") {
     node("delivery") {
         println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
         def checkAndBuild = { ghBranch, content, tag, args, allowStaleCache ->
-            container("dind"){
-                docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
+            container("delivery"){
+                
                     // 2 means no image, 1 means stale, 0 means uptodate.
                     def cacheState = 2
                     if (!params.skip_sha_check) {
@@ -29,8 +32,15 @@ EOF""")
 ${content}
 EOF
     """
-                        docker.build("jenkins/tikv-cached-${ghBranch}:${tag}", "${args} .").push()
+                        sh"""
+                        docker build -t hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:${tag} ${args}  .
+                        """
                     }
+                
+                docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
+                    sh """ 
+                    docker push hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:${tag}
+                    """
                 }
             }
         }
