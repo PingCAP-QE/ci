@@ -181,7 +181,7 @@ cp ${SRCPATH}/build-${CMAKE_BUILD_TYPE}/libs/libcommon/src/tests/gtests_libcommo
 cp ${SRCPATH}/build-${CMAKE_BUILD_TYPE}/libs/libdaemon/src/tests/gtests_libdaemon /tiflash
 source /tests/docker/util.sh
 show_env
-UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/tests/sanitize/asan.suppression ENV_VARS_PATH=/tests/docker/_env.sh NPROC=${NPROC} /tests/run-gtest.sh
+UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/tests/sanitize/asan.suppression ENV_VARS_PATH=/tests/docker/_env.sh NPROC=12 /tests/run-gtest.sh
         '''
         container("builder") {
             writeFile(file: 'run.sh', text: RUN_SCRIPT)
