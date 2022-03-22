@@ -14,8 +14,8 @@ properties([
     ]),
     pipelineTriggers([
         parameterizedCron('''
-            H 2 * * * % UPDATE_CCACHE=true SANITIZER=ASan
-            H 2 * * * % UPDATE_CCACHE=true SANITIZER=TSan
+            H 2 * * * % UPDATE_CCACHE=true; SANITIZER=ASan
+            H 2 * * * % UPDATE_CCACHE=true; SANITIZER=TSan
         ''')
     ])
 ])
