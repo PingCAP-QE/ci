@@ -146,7 +146,7 @@ def runWithCache(type, cwd) {
         container("builder") {
             dir("${cwd}/tiflash/build-${type}") {
                 sh "cmake ${cwd}/tiflash -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=${type} -DUSE_CCACHE=ON -DRUN_HAVE_STD_REGEX=0 -DCMAKE_PREFIX_PATH=/usr/local -GNinja"
-                sh "ninja gtests_dbms gtests_libcommon gtests_libdaemon"
+                sh "ninja -j12 gtests_dbms gtests_libcommon gtests_libdaemon"
             }
         }
     }
