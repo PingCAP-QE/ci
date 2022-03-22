@@ -298,7 +298,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 """
-                            else if (ghprbTargetBranch in ["release-6.0"]) {
+                            } else if (ghprbTargetBranch in ["release-6.0"]) {
                                 sh """
                                 set +e
                                 killall -9 -r tidb-server
@@ -320,8 +320,6 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 """
-                            }
-                            //
                             } else if (ghprbTargetBranch.startsWith("release-") ) {
                                 sh """
                                 set +e
