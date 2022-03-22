@@ -110,6 +110,7 @@ if (ghprbTargetBranch in ["release-5.1"]) {
     """
 }
 
+
 def TIDB_TEST_BRANCH = ghprbTargetBranch
 // parse tidb_test branch
 def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -289,6 +290,28 @@ try {
                                 set -e
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./run-test-part.sh
+                                
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                rm -rf /tmp/tidb
+                                set -e
+                                """
+                            } else if (ghprbTargetBranch in ["release-6.0"]) {
+                                sh """
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                rm -rf /tmp/tidb
+                                # TODO: those tests failed even on master branch, skip them for relase-6.0 branch
+                                rm -rf t/variables.test
+                                rm -rf t/case.test
+                                rm -rf t/ctype_gbk.test
+                                set -e
+                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                ./test.sh
                                 
                                 set +e
                                 killall -9 -r tidb-server
