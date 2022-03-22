@@ -306,9 +306,9 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 # TODO: those tests failed even on master branch, skip them for relase-6.0 branch
-                                rm -rf t/variables
-                                rm -rf t/case
-                                rm -rf t/ctype_gbk
+                                rm -rf t/variables.test
+                                rm -rf t/case.test
+                                rm -rf t/ctype_gbk.test
                                 set -e
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./test.sh
