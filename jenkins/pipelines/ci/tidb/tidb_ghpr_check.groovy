@@ -73,6 +73,39 @@ def run_with_pod(Closure body) {
     }
 }
 
+def run_with_heavy_pod(Closure body) {
+    def label = "tidb-ghpr-check-heavy-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-tidb"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        resourceRequestCpu: '6000m', resourceRequestMemory: '12Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "go image: ${POD_GO_IMAGE}"
+            body()
+        }
+    }
+}
+
 try {
     stage("Pre-check") {
         if (!params.force) {
@@ -150,54 +183,63 @@ try {
                     sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
+            stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
         }
 
-        stage("Build & Test") {
-            container("golang") {
-                dir("go/src/github.com/pingcap/tidb") {
-                    timeout(30) {
+        def tests = [:]
+        tests["fmt & lint"] = { 
+            run_with_heavy_pod {
+                deleteDir()
+                unstash 'tidb'
+                container("golang") {
+                    dir("go/src/github.com/pingcap/tidb") {  
                         sh """
-                        git checkout -f ${ghprbActualCommit}
+                        go version
+                        make check
                         """
-                    }
-                    try {
-                        if (ghprbTargetBranch == "master") {
-                            def builds = [:]
-                            builds["check"] = {
-                                sh "make check"
-                            }
-                            builds["test_part_1"] = {
-                                try {
-                                    sh "make test_part_1"
-                                } catch (err) {
-                                    throw err
-                                } finally {
-                                    sh "cat cmd/explaintest/explain-test.out || true"
-                                }
-                            }
-                            parallel builds
-                        } else {
-                            sh """
-                                make check
-                                make test
-                            """
-                        }
-                    } catch (err) {
-                        throw err
-                    } finally {
-                        sh "cat cmd/explaintest/explain-test.out || true"
                     }
                 }
             }
         }
-    }
-    currentBuild.result = "SUCCESS"
-    run_with_pod {
-        container("golang") {
+        tests["explaintest"] = {
+            run_with_pod {
+                deleteDir()
+                unstash 'tidb'
+                container("golang") {
+                    dir("go/src/github.com/pingcap/tidb") {  
+                        sh """
+                        go version
+                        make checklist
+                        make explaintest
+                        """
+                    }
+                }
+            }
+        }
+        tests["gogenerate & test_part_parser"] = {
+            run_with_pod {
+                deleteDir()
+                unstash 'tidb'
+                container("golang") {
+                    dir("go/src/github.com/pingcap/tidb") {  
+                        sh """
+                        go version
+                        make test_part_parser
+                        make gogenerate
+                        """
+                    }
+                }
+            }
+        }
+
+        parallel tests
+
+        currentBuild.result = "SUCCESS"
+        container("golang"){ 
             sh """
-		    echo "done" > done
-		    curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
+            echo "done" > done
+            curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+            """
         }
     }
 }
@@ -228,12 +270,6 @@ catch (Exception e) {
     }
 }
 
-stage("upload status") {
-    node("master") {
-        println currentBuild.result
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
-    }
-}
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
