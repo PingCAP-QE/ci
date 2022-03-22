@@ -114,13 +114,6 @@ def upload_test_result(reportDir) {
 }
 
 try {
-
-    if (ghprbTargetBranch != "master") {
-        println "targetBranch=${ghprbTargetBranch}"
-        println "This CI only run in targetBranch master, skip this build"
-        println "UT test has been tested in ci tidb_ghpr_check in other targetBranch"
-        return
-    }
     run_with_pod {
         def ws = pwd()
 
