@@ -1,0 +1,7 @@
+##
+## hub.pingcap.net/tiflash/centos:7.9.2009-aarch64
+##
+FROM arm64v8/centos:7.9.2009
+RUN yum update -y nss expat nss-sysinit nss-tools
+
+
