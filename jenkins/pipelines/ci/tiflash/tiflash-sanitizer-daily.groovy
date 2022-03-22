@@ -1,4 +1,5 @@
 
+// TODO: Migrate this to use tiflash-build-common
 properties([
         parameters([
             booleanParam(
@@ -13,8 +14,8 @@ properties([
     ]),
     pipelineTriggers([
         parameterizedCron('''
-            H 2 * * * % UPDATE_CCACHE=true SANITIZER=ASan
-            H 2 * * * % UPDATE_CCACHE=true SANITIZER=TSan
+            H 2 * * * % UPDATE_CCACHE=true; SANITIZER=ASan
+            H 2 * * * % UPDATE_CCACHE=true; SANITIZER=TSan
         ''')
     ])
 ])
@@ -28,7 +29,7 @@ def checkout() {
             ],
             userRemoteConfigs                : [
                     [
-                            url          : "git@github.com:pingcap/tics.git",
+                            url          : "git@github.com:pingcap/tiflash.git",
                             refspec      : refspec,
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -71,7 +72,7 @@ def runBuilderClosure(label, Closure body) {
 
 def runCheckoutAndBuilderClosure(label, curws, Closure body) {
     runBuilderClosure(label) {
-        dir("${curws}/tics") {
+        dir("${curws}/tiflash") {
             stage("Checkout") {
                 container("docker") {
                     def repoDailyCache = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
@@ -130,7 +131,7 @@ fi
 ccache -z
 '''
     container("builder") {
-        dir("${cwd}/tics") {
+        dir("${cwd}/tiflash") {
             writeFile(file: 'prepare.sh', text: CI_PREPARE_SCRIPT)
             sh "env UPDATE_CCACHE=${params.UPDATE_CCACHE} CMAKE_BUILD_TYPE=${type} bash prepare.sh"
         }
@@ -143,9 +144,9 @@ def runWithCache(type, cwd) {
     }
     stage("build") {
         container("builder") {
-            dir("${cwd}/tics/build-${type}") {
-                sh "cmake ${cwd}/tics -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=${type} -DUSE_CCACHE=ON -DRUN_HAVE_STD_REGEX=0 -DCMAKE_PREFIX_PATH=/usr/local -GNinja"
-                sh "ninja gtests_dbms gtests_libcommon gtests_libdaemon"
+            dir("${cwd}/tiflash/build-${type}") {
+                sh "cmake ${cwd}/tiflash -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=${type} -DUSE_CCACHE=ON -DRUN_HAVE_STD_REGEX=0 -DCMAKE_PREFIX_PATH=/usr/local -GNinja"
+                sh "ninja -j12 gtests_dbms gtests_libcommon gtests_libdaemon"
             }
         }
     }
@@ -161,7 +162,7 @@ curl -F builds/pingcap/tiflash/ci-cache/${CCACHE_REMOTE_TAR}=@ccache.tar http://
         '''
         if (params.UPDATE_CCACHE) {
             container("builder") {
-                dir("${cwd}/tics") {
+                dir("${cwd}/tiflash") {
                     writeFile(file: 'upload.sh', text: UPLOAD_CCACHE_SCRIPT)
                     sh "env CMAKE_BUILD_TYPE=${type} bash upload.sh"
                 }
@@ -170,7 +171,7 @@ curl -F builds/pingcap/tiflash/ci-cache/${CCACHE_REMOTE_TAR}=@ccache.tar http://
     }
     stage("run") {
         def RUN_SCRIPT='''
-SRCPATH=${SRCPATH:-/tics}
+SRCPATH=${SRCPATH:-/tiflash}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Debug}
 NPROC=${NPROC:-$(nproc || grep -c ^processor /proc/cpuinfo)}
 rm -rf /tests && ln -s ${SRCPATH}/tests /tests
@@ -180,11 +181,11 @@ cp ${SRCPATH}/build-${CMAKE_BUILD_TYPE}/libs/libcommon/src/tests/gtests_libcommo
 cp ${SRCPATH}/build-${CMAKE_BUILD_TYPE}/libs/libdaemon/src/tests/gtests_libdaemon /tiflash
 source /tests/docker/util.sh
 show_env
-UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 ENV_VARS_PATH=/tests/docker/_env.sh NPROC=${NPROC} /tests/run-gtest.sh
+UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/tests/sanitize/asan.suppression ENV_VARS_PATH=/tests/docker/_env.sh NPROC=12 /tests/run-gtest.sh
         '''
         container("builder") {
             writeFile(file: 'run.sh', text: RUN_SCRIPT)
-            sh "env CMAKE_BUILD_TYPE=${type} SRCPATH='${cwd}/tics' bash run.sh"
+            sh "env CMAKE_BUILD_TYPE=${type} SRCPATH='${cwd}/tiflash' bash run.sh"
         }
     }
 }
@@ -198,13 +199,13 @@ node("${GO_TEST_SLAVE}") {
         def target_branch = "master"
         echo "Target Branch: ${target_branch}"
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-        githash = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
+        githash = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
     }
     
     try {
         def cwd = pwd()
         def sanitizer = params.SANITIZER
-        runCheckoutAndBuilderClosure("tics-sanitizer-daily-regression-${sanitizer}", cwd) {
+        runCheckoutAndBuilderClosure("tiflash-sanitizer-daily-regression-${sanitizer}", cwd) {
             runWithCache(sanitizer, cwd)
         }
     } catch (Exception e) {
@@ -234,7 +235,7 @@ node("${GO_TEST_SLAVE}") {
                 node("master") {
                     withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
                         sh """
-                          curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                          curl -X POST \$TOKEN -H 'Content-Type: application/json' \
                           -d '{
                             "msg_type": "text",
                             "content": {
@@ -245,7 +246,7 @@ node("${GO_TEST_SLAVE}") {
                     }
                     withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
                         sh """
-                          curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
+                          curl -X POST \$TOKEN -H 'Content-Type: application/json' \
                           -d '{
                             "msg_type": "text",
                             "content": {
