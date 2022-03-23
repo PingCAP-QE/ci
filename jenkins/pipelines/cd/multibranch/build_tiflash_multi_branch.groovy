@@ -29,6 +29,7 @@ def release_amd64(repo, hash) {
         string(name: "PRODUCT", value: repo),
         string(name: "GIT_HASH", value: hash),
         string(name: "TARGET_BRANCH", value: env.BRANCH_NAME),
+        string(name: "USE_TIFLASH_RUST_CACHE", value: "true"),
         [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
     ]
     build job: "build-common",
