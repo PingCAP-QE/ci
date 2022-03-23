@@ -208,7 +208,7 @@ def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, p
     }
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {)  {
+    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
     def imageName = product
@@ -246,7 +246,7 @@ def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, p
             parameters: paramsDocker
 }
 
-def release_online_image(product, sha1, plugin_hash, arch, os, platform, tag, enterprise, preRelease) {
+def release_tidb_online_image(product, sha1, plugin_hash, arch, os, platform, tag, enterprise, preRelease) {
     // build tidb enterprise image with plugin
     def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     def plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${tag}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}.tar.gz"
@@ -256,7 +256,7 @@ def release_online_image(product, sha1, plugin_hash, arch, os, platform, tag, en
     }
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {)  {
+    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
     def imageName = product
