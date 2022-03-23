@@ -1,4 +1,4 @@
-if (params.containsKey("release_test")) {
+if (params.containsKey("release_test") && params.get("release_test") == "true") {
     echo "this build is triggered by qa for release testing"
     ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
     ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
