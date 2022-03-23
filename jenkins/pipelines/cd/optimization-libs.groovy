@@ -87,21 +87,42 @@ def create_enterprise_builds(build_para) {
     builds["Build tiflash ${arch}"] = {
         build_product(build_para, "tiflash")
     }
+    if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
+        builds["Build Plugin"] = {
+            build_product(build_para, "enterprise-plugin")
+        }
+    }
     return builds
 }
 
-def retag_enterprise_docker(product, release_tag) {
-    def community_image = "pingcap/${product}:${release_tag}"
-    def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
+def retag_enterprise_docker(product, release_tag, pre_release) {
+    
+    if (pre_release) {
+        def community_image = "pingcap/${product}:${release_tag}"
+        def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
 
-    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-        sh """
-        docker pull ${community_image}
-        docker tag ${community_image} ${enterprise_image}
-        docker push ${enterprise_image}
-        """
+        withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+            sh """
+            docker pull ${community_image}
+            docker tag ${community_image} ${enterprise_image}
+            docker push ${enterprise_image}
+            """
+        }
+    } else {
+        def community_image_for_pre_replease = "hub.pingcap.net/qa/${product}:${release_tag}"
+        def enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${release_tag}"
+
+        def default_params = [
+            string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
+            string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
+        ]
+        build(job: "jenkins-image-syncer", 
+            parameters: default_params, 
+            wait: true, propagate: false)
     }
+
 }
+
 
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
@@ -167,7 +188,7 @@ def build_product(build_para, product) {
         parameters: paramsBuild
 }
 
-def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
+def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, preRelease) {
     def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     if (product == "tidb-lightning") {
         binary = "builds/pingcap/br/optimization/${tag}/${sha1}/${platform}/br-${os}-${arch}.tar.gz"
@@ -190,6 +211,9 @@ def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
     }
 
     def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
+    if (preRelease) {
+        image = "hub.pingcap.net/qa/${imageName}:${tag}"
+    }
 
     def paramsDocker = [
         string(name: "ARCH", value: arch),
