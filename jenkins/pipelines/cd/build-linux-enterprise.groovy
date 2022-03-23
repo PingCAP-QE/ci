@@ -40,9 +40,6 @@ properties([
         ])
 ])
 
-
-
-
 def libs
 
 def PLATFORM = "centos7"

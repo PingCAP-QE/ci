@@ -20,6 +20,12 @@ properties([
                 ),
                 string(
                         defaultValue: '',
+                        name: 'PRE_RELEASE',
+                        description: '', 
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
                         name: 'TIDB_HASH',
                         description: '', 
                         trim: true
