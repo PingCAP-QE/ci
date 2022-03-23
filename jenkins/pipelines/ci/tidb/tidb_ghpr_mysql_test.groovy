@@ -275,13 +275,7 @@ try {
                     try {
                         timeout(10) {
                             if (ghprbTargetBranch in ["master"]) {
-                                sh """
-                                curl -o run-test-part.sh ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part.sh
-                                chmod +x run-test-part.sh
-                                """
-                                sh """
-                                export CI_RUN_PART_TEST_CASES=\"${CI_RUN_PART_TEST_CASES}\"
-                                
+                                sh """ 
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
@@ -289,8 +283,8 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./run-test-part.sh
-                                
+                                ./test.sh   
+
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
