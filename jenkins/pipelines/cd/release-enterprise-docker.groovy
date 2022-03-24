@@ -57,8 +57,7 @@ properties([
                 string(
                         defaultValue: '',
                         name: 'TIDB_TAG',
-                        description: '如果选择了 PRE_RELEASE，需要输入 tag 之前的封板 githash，下同。\n
-                            如果没有选择 PRE_RELEASE，则认为是正式发版，需要输入 repo 上打好的对应 tag 名称', 
+                        description: '如果选择了 PRE_RELEASE,需要输入 tag 之前的封板 githash,下同。如果没有选择 PRE_RELEASE,则认为是正式发版,需要输入 repo 上打好的对应 tag 名称', 
                         trim: true
                 ),
                 string(
