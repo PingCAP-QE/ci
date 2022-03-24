@@ -1,6 +1,45 @@
 /*
 * @RELEASE_TAG
 */
+properties([
+        parameters([
+                string(
+                        defaultValue: '',
+                        name: 'RELEASE_TAG',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIDB_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'PD_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIFLASH_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'ENTERPRISE_PLUGIN_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'RELEASE_TAG',
+                        trim: true
+                ),
+                booleanParam(
+                        defaultValue: true,
+                        name: 'FORCE_REBUILD'
+                ),
+        ])
+])
+
 def libs
 
 def PLATFORM = "centos7"
@@ -13,12 +52,7 @@ try {
             deleteDir()
             checkout scm
             libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
-            sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-            TIDB_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            TIKV_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            PD_HASH = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            TIFLASH_HASH = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-        }
+            }
     }
 
     stage("Build") {
@@ -27,7 +61,8 @@ try {
         build_para_arm["tikv"] = TIKV_HASH
         build_para_arm["pd"] = PD_HASH
         build_para_arm["tiflash"] = TIFLASH_HASH
-        build_para_arm["FORCE_REBUILD"] = true
+        build_para_arm["enterprise-plugin"] = ENTERPRISE_PLUGIN_HASH
+        build_para_arm["FORCE_REBUILD"] = FORCE_REBUILD
         build_para_arm["RELEASE_TAG"] = RELEASE_TAG
         build_para_arm["PLATFORM"] = PLATFORM
         build_para_arm["OS"] = OS
@@ -43,7 +78,8 @@ try {
         build_para_amd["tikv"] = TIKV_HASH
         build_para_amd["pd"] = PD_HASH
         build_para_amd["tiflash"] = TIFLASH_HASH
-        build_para_amd["FORCE_REBUILD"] = true
+        build_para_amd["enterprise-plugin"] = ENTERPRISE_PLUGIN_HASH
+        build_para_amd["FORCE_REBUILD"] = FORCE_REBUILD
         build_para_amd["RELEASE_TAG"] = RELEASE_TAG
         build_para_amd["PLATFORM"] = PLATFORM
         build_para_amd["OS"] = OS

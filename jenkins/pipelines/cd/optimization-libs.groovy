@@ -21,6 +21,17 @@ def check_file_exists(build_para, product) {
     return false
 }
 
+def test_binary_already_build(binary_url) {
+    def cacheExisted = sh(returnStatus: true, script: """
+    if curl --output /dev/null --silent --head --fail ${binary_url}; then exit 0; else exit 1; fi
+    """)
+    if (cacheExisted == 0) {
+        return true
+    } else {
+        return false
+    }
+}
+
 def create_builds(build_para) {
     builds = [:]
 
@@ -87,21 +98,41 @@ def create_enterprise_builds(build_para) {
     builds["Build tiflash ${arch}"] = {
         build_product(build_para, "tiflash")
     }
+    builds["Build Plugin ${arch}"] = {
+        build_product(build_para, "enterprise-plugin")
+    }
+    
     return builds
 }
 
-def retag_enterprise_docker(product, release_tag) {
-    def community_image = "pingcap/${product}:${release_tag}"
-    def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
+def retag_enterprise_docker(product, release_tag, pre_release) {
+    
+    if (pre_release) {
+        def community_image = "pingcap/${product}:${release_tag}"
+        def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
 
-    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-        sh """
-        docker pull ${community_image}
-        docker tag ${community_image} ${enterprise_image}
-        docker push ${enterprise_image}
-        """
+        withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+            sh """
+            docker pull ${community_image}
+            docker tag ${community_image} ${enterprise_image}
+            docker push ${enterprise_image}
+            """
+        }
+    } else {
+        def community_image_for_pre_replease = "hub.pingcap.net/qa/${product}:${release_tag}"
+        def enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${release_tag}"
+
+        def default_params = [
+            string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
+            string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
+        ]
+        build(job: "jenkins-image-syncer", 
+            parameters: default_params, 
+            wait: true, propagate: false)
     }
+
 }
+
 
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
@@ -167,7 +198,7 @@ def build_product(build_para, product) {
         parameters: paramsBuild
 }
 
-def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
+def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, preRelease) {
     def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     if (product == "tidb-lightning") {
         binary = "builds/pingcap/br/optimization/${tag}/${sha1}/${platform}/br-${os}-${arch}.tar.gz"
@@ -175,7 +206,11 @@ def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
     if (enterprise) {
         binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
     }
+
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
+        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
+    }
     def imageName = product
     def repo = product
 
@@ -190,6 +225,10 @@ def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
     }
 
     def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
+    // pre release stage, only push to harbor registry
+    if (preRelease) {
+        image = "hub.pingcap.net/qa/${imageName}:${tag}"
+    }
 
     def paramsDocker = [
         string(name: "ARCH", value: arch),
@@ -201,6 +240,55 @@ def release_online_image(product, sha1, arch,  os , platform,tag, enterprise) {
         string(name: "DOCKERFILE", value: dockerfile),
         string(name: "RELEASE_DOCKER_IMAGES", value: image),
     ]
+    println "release_online_image: ${paramsDocker}"
+    build job: "docker-common",
+            wait: true,
+            parameters: paramsDocker
+}
+
+def release_tidb_online_image(product, sha1, plugin_hash, arch, os, platform, tag, enterprise, preRelease) {
+    // build tidb enterprise image with plugin
+    def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    def plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${tag}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}.tar.gz"
+    if (enterprise) {
+        binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+        plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${tag}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
+    }
+
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
+        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
+    }
+    def imageName = product
+    def repo = product
+
+    if (repo == "monitoring") {
+        imageName = "tidb-monitor-initializer"
+    }
+    if (enterprise) {
+        imageName = imageName + "-enterprise"
+    }
+    if (arch == "arm64") {
+        imageName = imageName + "-arm64"
+    }
+
+    def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
+    // pre release stage, only push to harbor registry
+    if (preRelease) {
+        image = "hub.pingcap.net/qa/${imageName}:${tag}"
+    }
+
+    def paramsDocker = [
+        string(name: "ARCH", value: arch),
+        string(name: "OS", value: "linux"),
+        string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
+        string(name: "REPO", value: repo),
+        string(name: "PRODUCT", value: repo),
+        string(name: "RELEASE_TAG", value: RELEASE_TAG),
+        string(name: "DOCKERFILE", value: dockerfile),
+        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+    ]
+    println "release_online_image: ${paramsDocker}"
     build job: "docker-common",
             wait: true,
             parameters: paramsDocker
