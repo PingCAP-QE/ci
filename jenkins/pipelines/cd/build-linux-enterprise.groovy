@@ -30,7 +30,7 @@ properties([
                 ),
                 string(
                         defaultValue: '',
-                        name: 'RELEASE_TAG',
+                        name: 'TIKV_HASH',
                         trim: true
                 ),
                 booleanParam(
