@@ -51,55 +51,26 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
-@NonCPS
-boolean isMoreRecentOrEqual( String a, String b ) {
-    if (a == b) {
-        return true
-    }
 
-    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-       return (result == 1)
-    } 
+GO_VERSION = "go1.18"
+POD_GO_IMAGE = ""
+GO_NODE_MAP = [
+    "go1.13": GO_BUILD_SLAVE,
+    "go1.16": GO1160_BUILD_SLAVE,
+    "go1.18": GO1180_BUILD_SLAVE,
+]
+
+node("master") {
+    deleteDir()
+    def ws = pwd()
+    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    def script_path = "${ws}/goversion-select-lib.groovy"
+    def goversion_lib = load script_path
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    GO_BUILD_SLAVE = GO_NODE_MAP[GO_VERSION]
+    println "go version: ${GO_VERSION}"
+    println "go node: ${GO_BUILD_SLAVE}"
 }
-
-string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-    }
-
-def boolean isBranchMatched(List<String> branches, String targetBranch) {
-    for (String item : branches) {
-        if (targetBranch.startsWith(item)) {
-            println "targetBranch=${targetBranch} matched in ${branches}"
-            return true
-        }
-    }
-    return false
-}
-
-def isNeedGo1160 = false
-releaseBranchUseGo1160 = "release-5.1"
-
-if (!isNeedGo1160) {
-    isNeedGo1160 = isBranchMatched(["master", "hz-poc"], ghprbTargetBranch)
-}
-if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-    isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-    if (isNeedGo1160) {
-        println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-    }
-}
-
-if (isNeedGo1160) {
-    println "This build use go1.16 because ghprTargetBranch=master"
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_TEST_SLAVE = "test_heavy_go1160_memvolume"
-} else {
-    println "This build use go1.13"
-    GO_TEST_SLAVE = "test_tikv_go1130_memvolume"
-}
-println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
-println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 try {
     stage('Build') {
@@ -136,7 +107,7 @@ try {
     }
 
 
-    node("${GO_TEST_SLAVE}") {
+    node("${GO_BUILD_SLAVE}") {
         def ws = pwd()
         
         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
