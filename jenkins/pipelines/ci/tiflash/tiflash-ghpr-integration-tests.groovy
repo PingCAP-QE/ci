@@ -67,6 +67,13 @@ def checkoutTiFlash() {
                 set -x
                 """
             }
+            
+            def refspec = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+            
+            if (!ghprbPullId) {
+                refspec = "+refs/heads/*:refs/remotes/origin/*"
+            }
+            
             checkout(changelog: false, poll: false, 
                 scm: [
                     $class                           : "GitSCM",
@@ -74,7 +81,7 @@ def checkoutTiFlash() {
                 userRemoteConfigs : [
                     [
                         url           : "git@github.com:pingcap/tiflash.git",
-                        refspec       : "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                        refspec       : refspec,
                         credentialsId : "github-sre-bot-ssh",
                     ]
                 ],
