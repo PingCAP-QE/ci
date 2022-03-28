@@ -182,6 +182,7 @@ try {
                         mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         """
                     }catch (Exception e) {
+                        archiveArtifacts artifacts: '**/core.*'
                         throw e
                     } finally {
                         junit testResults: "**/*-junit-report.xml"
