@@ -182,6 +182,41 @@ def update_ctl = { version, os, arch ->
     """
 }
 
+
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-cd"
+    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: true,
+                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            
+                    )
+            ],
+            volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+
+
 node("build_go1130") {
     container("golang") {
         timeout(360) {
@@ -348,42 +383,56 @@ node("build_go1130") {
             multi_os_update = [:]
             if (params.ARCH_X86) {
                 multi_os_update["TiUP build tidb on linux/amd64"] = {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
-                    update_ctl HOTFIX_TAG, "linux", "amd64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                    run_with_pod {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
+                        update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
+                        update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
+                        update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
+                        update_ctl HOTFIX_TAG, "linux", "amd64"
+                        update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                    }
                 }
             }
             if (params.ARCH_ARM) {
                 multi_os_update["TiUP build tidb on linux/arm64"] = {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
-                    update_ctl HOTFIX_TAG, "linux", "arm64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                    run_with_pod {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
+                        update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
+                        update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
+                        update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+                        update_ctl HOTFIX_TAG, "linux", "arm64"
+                        update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                    }
+
                 }
             }
             if (params.ARCH_MAC) {
                 multi_os_update["TiUP build tidb on macos/amd64"] = {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                    update_ctl HOTFIX_TAG, "darwin", "amd64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                    run_with_pod {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                        update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
+                        update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
+                        update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                        update_ctl HOTFIX_TAG, "darwin", "amd64"
+                        update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                    }
+
                 }
             }
             if (params.ARCH_MAC_ARM) {
                 multi_os_update["TiUP build tidb on macos/arm64"] = {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "arm64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    // update_ctl HOTFIX_TAG, "darwin", "arm64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
+                    run_with_pod {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                        update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
+                        update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
+                        update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                        // update_ctl HOTFIX_TAG, "darwin", "arm64"
+                        update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
+                    }
                 }
             }
             parallel multi_os_update
