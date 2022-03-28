@@ -183,6 +183,7 @@ try {
                         """
                     }catch (Exception e) {
                         archiveArtifacts artifacts: '**/core.*'
+                        archiveArtifacts artifacts: '**/*.test.bin'
                         throw e
                     } finally {
                         junit testResults: "**/*-junit-report.xml"
