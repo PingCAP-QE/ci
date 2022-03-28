@@ -39,7 +39,7 @@ def get_sha() {
             rm -f githash.toml
         fi
         echo "[tidbPrmIssue]" >> githash.toml
-        echo 'issue_id = "5"' >> githash.toml
+        echo 'issue_id = "${TIDB_PRM_ISSUE}"' >> githash.toml
         echo "[commitHash]" >> githash.toml
         """
     }
