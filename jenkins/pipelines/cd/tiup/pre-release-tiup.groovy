@@ -45,6 +45,7 @@ def get_sha() {
     if (RELEASE_TAG >= "v5.3.0") {
         dumpling_sha1 = tidb_sha1
         ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+        println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
     } else {
         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     }
@@ -63,6 +64,18 @@ def get_sha() {
     if (TIKV_BUMPVERION_HASH.length() == 40) {
         return tikv_sha1 = TIKV_BUMPVERION_HASH
     }
+
+    println "tidb_sha1: ${tidb_sha1}"
+    println "br_sha1: ${br_sha1}"
+    println "lightning_sha1: ${lightning_sha1}"
+    println "dumpling_sha1: ${dumpling_sha1}"
+    println "tikv_sha1: ${tikv_sha1}"
+    println "pd_sha1: ${pd_sha1}"
+    println "tiflash_sha1: ${tiflash_sha1}"
+    println "tools_sha1: ${tools_sha1}"
+    println "cdc_sha1: ${cdc_sha1}"
+    println "tidb_ctl_hash: ${tidb_ctl_githash}"
+    println "binlog_sha1: ${binlog_sha1}"
 }
 
 node("build_go1130") {
