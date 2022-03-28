@@ -32,6 +32,18 @@ def PLATFORM_DARWIN = "darwin"
 def PLATFORM_DARWINARM = "darwin-arm64"
 
 def get_sha() {
+    if ( TIDB_PRM_ISSUE != "") {
+        println "tidb_prm issue ${TIDB_PRM_ISSUE}  --> ${RELEASE_TAG}"
+        sh """
+        if [ -f githash.toml ]; then
+            rm -f githash.toml
+        fi
+        echo "[tidbPrmIssue]" >> githash.toml
+        echo 'issue_id = "5"' >> githash.toml
+        echo "[commitHash]" >> githash.toml
+        """
+    }
+
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
     tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
@@ -45,7 +57,6 @@ def get_sha() {
     if (RELEASE_TAG >= "v5.3.0") {
         dumpling_sha1 = tidb_sha1
         ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-        println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
     } else {
         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
     }
@@ -76,6 +87,31 @@ def get_sha() {
     println "cdc_sha1: ${cdc_sha1}"
     println "tidb_ctl_hash: ${tidb_ctl_githash}"
     println "binlog_sha1: ${binlog_sha1}"
+    println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
+    withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_TOKEN')]) { 
+        if ( TIDB_PRM_ISSUE != "") {
+            sh """
+            echo 'tidb = "${tidb_sha1}"' >> githash.toml
+            echo 'br = "${br_sha1}"' >> githash.toml
+            echo 'lightning = "${lightning_sha1}"' >> githash.toml
+            echo 'dumpling = "${dumpling_sha1}"' >> githash.toml
+            echo 'tikv = "${tikv_sha1}"' >> githash.toml
+            echo 'pd = "${pd_sha1}"' >> githash.toml
+            echo 'tiflash = "${tiflash_sha1}"' >> githash.toml
+            echo 'tools = "${tools_sha1}"' >> githash.toml
+            echo 'cdc = "${cdc_sha1}"' >> githash.toml
+            echo 'tidb_ctl = "${tidb_ctl_githash}"' >> githash.toml
+            echo 'binlog = "${binlog_sha1}"' >> githash.toml
+            echo 'ng_monitoring = "${ng_monitoring_sha1}"' >> githash.toml
+
+            cat githash.toml
+            curl -O ${FILE_SERVER_URL}/download/cicd/tools/update-prm-issue
+            chmod +x update-prm-issue
+            ./update-prm-issue
+            """
+        }
+    }
+
 }
 
 node("build_go1130") {
