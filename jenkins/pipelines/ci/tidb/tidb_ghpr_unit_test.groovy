@@ -171,6 +171,8 @@ try {
                 container("golang") {
                     try {
                         sh """
+                        ulimit -c unlimited
+                        export GOBACTRACE=crash
                         export log_level=warn
                         make br_unit_test_in_verify_ci
                         mv test_coverage/br_cov.unit_test.out br.coverage
