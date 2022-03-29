@@ -182,6 +182,41 @@ def update_ctl = { version, os, arch ->
     """
 }
 
+
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-cd"
+    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: true,
+                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            
+                    )
+            ],
+            volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+
+
 node("build_go1130") {
     container("golang") {
         timeout(360) {
@@ -243,155 +278,171 @@ node("build_go1130") {
             //     upload "package"
             // }
 
-            def paramsCDC = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${CDC_TAG}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-                    
-            ]
+            stage("TiUP build") {
+                builds = [:]
+                def paramsCDC = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${CDC_TAG}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                        
+                ]
+                builds["TiUP build cdc"] = {
+                    build(job: "cdc-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsCDC)
+                }
+                def paramsBR = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                ]
+                builds["TiUP build br"] = {
+                    build(job: "br-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsBR)
+                }
+                def paramsDUMPLING = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${DUMPLING_TAG}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                ]
+                builds["TiUP build dumpling"] = {
+                    build(job: "dumpling-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsDUMPLING)
+                }
+                // since 4.0.12 the same as br
+                def paramsLIGHTNING = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                ]
+                builds["TiUP build lightning"] = {
+                    build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
+                }
+                def paramsTIFLASH = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                ]
+                builds["TiUP build tiflash"] = {
+                    build(job: "tiflash-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsTIFLASH)
+                }
+                def paramsGRANFANA = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                        string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                ]
+                builds["TiUP build granfana"] = {
+                    build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
+                }
+                def paramsPROMETHEUS = [
+                        string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
+                        string(name: "TIDB_VERSION", value: "${tidb_version}"),
+                        string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                        string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
+                        string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
+                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
+                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
+                ]
+                builds["TiUP build prometheus"] = {
+                    build(job: "prometheus-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
+                }
+                parallel builds
 
-            stage("TiUP build cdc") {
-                build(job: "cdc-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsCDC)
             }
+            
 
-            def paramsBR = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            stage("TiUP build br") {
-                build(job: "br-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsBR)
-            }
-
-            def paramsDUMPLING = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${DUMPLING_TAG}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            stage("TiUP build dumpling") {
-                build(job: "dumpling-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsDUMPLING)
-            }
-
-            // since 4.0.12 the same as br
-            def paramsLIGHTNING = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${BR_TAG}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            stage("TiUP build lightning") {
-                build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
-            }
-
-            def paramsTIFLASH = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            stage("TiUP build tiflash") {
-                build(job: "tiflash-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsTIFLASH)
-            }
-
-            def paramsGRANFANA = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
-                    string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            stage("TiUP build grafana") {
-                build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
-            }
-
-            def paramsPROMETHEUS = [
-                    string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
-                    string(name: "TIDB_VERSION", value: "${tidb_version}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    string(name: "ORIGIN_TAG", value: "${TIFLASH_TAG}"),
-                    string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-            ]
-
-            stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
-            }
-
+            multi_os_update = [:]
             if (params.ARCH_X86) {
-                stage("TiUP build tidb on linux/amd64") {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
-                    update_ctl HOTFIX_TAG, "linux", "amd64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                multi_os_update["TiUP build tidb on linux/amd64"] = {
+                    run_with_pod {
+                        container("golang") {
+                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                            update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "amd64"
+                            update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
+                            update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
+                            update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
+                            update_ctl HOTFIX_TAG, "linux", "amd64"
+                            update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
+                        }
+                    }
                 }
             }
             if (params.ARCH_ARM) {
-                stage("TiUP build tidb on linux/arm64") {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
-                    update_ctl HOTFIX_TAG, "linux", "arm64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                multi_os_update["TiUP build tidb on linux/arm64"] = {
+                    run_with_pod {
+                        container("golang") {
+                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                            update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "linux", "arm64"
+                            update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
+                            update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
+                            update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+                            update_ctl HOTFIX_TAG, "linux", "arm64"
+                            update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
+                        }
+                    }
+
                 }
             }
             if (params.ARCH_MAC) {
-                stage("TiUP build tidb on darwin/amd64") {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                    update_ctl HOTFIX_TAG, "darwin", "amd64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                multi_os_update["TiUP build tidb on macos/amd64"] = {
+                    run_with_pod {
+                        container("golang") {
+                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                            update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                            update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
+                            update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
+                            update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                            update_ctl HOTFIX_TAG, "darwin", "amd64"
+                            update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
+                        }
+                    }
                 }
             }
             if (params.ARCH_MAC_ARM) {
-                stage("TiUP build tidb on darwin/arm64") {
-                    update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "arm64"
-                    update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
-                    update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
-                    update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    // update_ctl HOTFIX_TAG, "darwin", "arm64"
-                    update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
+                multi_os_update["TiUP build tidb on macos/arm64"] = {
+                    run_with_pod {
+                        container("golang") {
+                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                            update "tidb-ctl", HOTFIX_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                            update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
+                            update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
+                            update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                            // update_ctl HOTFIX_TAG, "darwin", "arm64"
+                            update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
+                        }
+                    }
                 }
             }
+            parallel multi_os_update
         }
     }
 }
