@@ -349,7 +349,7 @@ node("build_go1130") {
             ]
 
             stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
+                build(job: "prometheus-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
             }
 
             if (params.ARCH_X86) {
