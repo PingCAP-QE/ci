@@ -1,4 +1,4 @@
-def checkoutTiCS(branch) {
+def checkoutTiflash(branch) {
     checkout(changelog: false, poll: true, scm: [
             $class                           : "GitSCM",
             branches                         : [
@@ -6,7 +6,7 @@ def checkoutTiCS(branch) {
             ],
             userRemoteConfigs                : [
                     [
-                            url          : "git@github.com:pingcap/tics.git",
+                            url          : "git@github.com:pingcap/tiflash.git",
                             refspec      : "+refs/heads/*:refs/remotes/origin/*",
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -24,7 +24,6 @@ def checkoutTiCS(branch) {
             ],
             doGenerateSubmoduleConfigurations: false,
     ])
-    // checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/heads/*:refs/remotes/origin/*", url: 'git@github.com:pingcap/tics.git']]]
 }
 
 def download = { version, os, arch ->
@@ -99,6 +98,38 @@ def update = { version, os, arch ->
 
 }
 
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-cd"
+    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: true,
+                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            
+                    )
+            ],
+            volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
 node("build_go1130") {
     container("golang") {
         stage("Prepare") {
@@ -113,34 +144,56 @@ node("build_go1130") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
-        stage("Checkout tics") {
+        stage("Checkout tiflash") {
             def tag = RELEASE_TAG
             if (RELEASE_BRANCH != "") {
                 tag = RELEASE_BRANCH
             }
-            checkoutTiCS(tag)
+            checkoutTiflash(tag)
         }
 
+        multi_os_update = [:]
         if (params.ARCH_X86) {
-            stage("tiup build grafana on linux/amd64") {
-                update VERSION, "linux", "amd64"
+            multi_os_update["tiup build grafana on linux/amd64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "linux", "amd64"
+                    }
+                }
             }
         }
         if (params.ARCH_ARM) {
-            stage("TiUP build grafana on linux/arm64") {
-                update VERSION, "linux", "arm64"
+            multi_os_update["TiUP build grafana on linux/arm64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "linux", "arm64"
+                    }
+                }
             }
         }
         if (params.ARCH_MAC) {
-            stage("TiUP build grafana on darwin/amd64") {
-                update VERSION, "darwin", "amd64"
+            multi_os_update["TiUP build grafana on darwin/amd64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "darwin", "amd64"
+                    }
+                }
             }
         }
         if (params.ARCH_MAC_ARM) {
-            stage("TiUP build grafana on darwin/arm64") {
-                // grafana did not provide the binary we need so we upgrade it.
-                update "7.5.10", "darwin", "arm64"
+            multi_os_update["TiUP build grafana on darwin/arm64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        // grafana did not provide the binary we need so we upgrade it.
+                        update "7.5.10", "darwin", "arm64"
+                    }
+                }
             }
         }
+        parallel multi_os_update
     }
 }
