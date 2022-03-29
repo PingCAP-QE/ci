@@ -88,7 +88,7 @@ def get_sha() {
     println "tidb_ctl_hash: ${tidb_ctl_githash}"
     println "binlog_sha1: ${binlog_sha1}"
     println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
-    withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_TOKEN')]) { 
+    withCredentials([string(credentialsId: 'token-update-prm-issue', variable: 'GITHUB_TOKEN')]) { 
         if ( TIDB_PRM_ISSUE != "") {
             sh """
             echo 'tidb = "${tidb_sha1}"' >> githash.toml
