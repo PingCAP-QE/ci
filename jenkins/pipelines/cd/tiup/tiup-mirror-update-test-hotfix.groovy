@@ -359,7 +359,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
                 builds["TiUP build granfana"] = {
-                    build(job: "granfana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
+                    build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
                 }
                 def paramsPROMETHEUS = [
                         string(name: "RELEASE_TAG", value: "${HOTFIX_TAG}"),
