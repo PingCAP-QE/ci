@@ -60,9 +60,9 @@ def package_enterprise = { arch ->
     def comps = ["tidb", "tikv", "pd"]
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     def hashes = [:]
-    comps.each {
-        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
-    }
+    hashes["tidb"] = "6f28ac47fa43565d57e47fd23946389cac4e3fd2"
+    hashes["tikv"] = "769a997e4f42d5eea6c607a6ed82a1f7b9dcb61a"
+    hashes["pd"] = "942b6422c2329d91f0fefa0cff17e27791a5ad3f"
     def os = "linux"
     def dst = "tidb-enterprise-server-" + VERSION + "-pre" + "-linux-" + arch
     def descs = [
@@ -93,7 +93,7 @@ def package_enterprise = { arch ->
         """
     }
 
-    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+    def tiflash_hash = "25545c452b21a5e545f7d8237364076ed2a057ec"
     sh """
     wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${VERSION}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
     rm -rf tiflash
