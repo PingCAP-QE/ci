@@ -141,19 +141,30 @@ def package_tools = { plat, arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${VERSION}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${VERSION}/${br_hash}/centos7/br-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz
+        if [ ${arch} == 'amd64' ]; then
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
+        fi;
+        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-${arch}.tar.gz
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
         tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
-        tar xf mydumper-linux-${arch}.tar.gz 
-        tar xf etcd-v3.3.10-linux-amd64.tar.gz
+        if [ ${arch} == 'amd64' ]; then
+            tar xf mydumper-linux-${arch}.tar.gz 
+        fi;
+        tar xf etcd-v3.3.10-linux-${arch}.tar.gz
 
         
-        cp bin/binlogctl bin/sync_diff_inspector bin/reparo bin/arbiter mydumper-linux-amd64/bin/mydumper etcd/etcd-v3.3.10-linux-amd64/etcdctl ${toolkit_dir}/
+        cp bin/binlogctl ${toolkit_dir}/
+        cp bin/sync_diff_inspector ${toolkit_dir}/
+        cp bin/reparo ${toolkit_dir}/
+        cp bin/arbiter ${toolkit_dir}/
+        if [ ${arch} == 'amd64' ]; then
+            cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
+        fi;
+        cp etcd-v3.3.10-linux-${arch}/etcdctl ${toolkit_dir}/
         
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         curl -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload
