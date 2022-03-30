@@ -140,7 +140,7 @@ def package_tools = { plat, arch ->
         if [ ${arch} == 'amd64' ]; then
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
         fi;
-        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-${arch}.tar.gz
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
@@ -150,7 +150,7 @@ def package_tools = { plat, arch ->
         if [ ${arch} == 'amd64' ]; then
             tar xf mydumper-linux-${arch}.tar.gz 
         fi;
-        tar xf etcd-v3.3.10-linux-amd64.tar.gz
+        tar xf etcd-v3.3.10-linux-${arch}.tar.gz
 
         
         cp bin/binlogctl ${toolkit_dir}/
@@ -160,7 +160,7 @@ def package_tools = { plat, arch ->
         if [ ${arch} == 'amd64' ]; then
             cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
         fi;
-        cp etcd/etcd-v3.3.10-linux-${arch}/etcdctl ${toolkit_dir}/
+        cp etcd-v3.3.10-linux-${arch}/etcdctl ${toolkit_dir}/
         
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         curl -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload
