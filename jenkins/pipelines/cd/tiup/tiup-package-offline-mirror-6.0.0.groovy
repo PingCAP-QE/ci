@@ -179,16 +179,13 @@ node("delivery") {
             deleteDir()
             package_community("amd64")
             if(VERSION >= "v4") {
-                deleteDir()
                 package_tools "community", "amd64"
             }
         }
 
         stage("build community tarball linux/arm64") {
-            deleteDir()
             package_community("arm64")
             if(VERSION >= "v4") {
-                deleteDir()
                 package_tools "community", "arm64"
             }
         }
@@ -196,16 +193,12 @@ node("delivery") {
         def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
         if(VERSION >= "v4" && !noEnterpriseList.contains(VERSION)) {
             stage("build enterprise tarball linux/amd64") {
-                deleteDir()
                 package_enterprise("amd64")
-                deleteDir()
                 package_tools "enterprise", "amd64"
             }
 
             stage("build enterprise tarball linux/arm64") {
-                deleteDir()
                 package_enterprise("arm64")
-                deleteDir()
                 package_tools "enterprise", "arm64"
             }
         }
