@@ -121,7 +121,7 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                             this_params.add(string(name: 'release_test__tidb_old_commit', value: release_info.tidb_old_commits[i]))
                             build(job: "tidb_ghpr_integration_campatibility_test", parameters: this_params)
                         }
-                        build(job: "tidb_ghpr_unit_test", parameters: default_params)
+                        //build(job: "tidb_ghpr_unit_test", parameters: default_params)
                         build(job: "tidb_ghpr_common_test", parameters: default_params)
                         build(job: "tidb_ghpr_integration_common_test", parameters: default_params)
                     },
