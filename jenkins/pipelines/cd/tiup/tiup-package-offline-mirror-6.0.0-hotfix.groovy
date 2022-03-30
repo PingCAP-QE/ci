@@ -157,6 +157,7 @@ def package_tools = { plat, arch ->
         cp bin/sync_diff_inspector ${toolkit_dir}/
         cp bin/reparo ${toolkit_dir}/
         cp bin/arbiter ${toolkit_dir}/
+        cp bin/tidb-lightning-ctl ${toolkit_dir}/
         if [ ${arch} == 'amd64' ]; then
             cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
         fi;
