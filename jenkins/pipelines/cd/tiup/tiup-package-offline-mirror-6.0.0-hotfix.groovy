@@ -1,19 +1,4 @@
-
-
-def cloned = [
-        "amd64": "",
-        "arm64": "",
-]
-
 def clone_server_package = { arch, dst ->
-    if(cloned[arch] != "") {
-        sh """
-        mv ${cloned[arch]} ${dst}
-        """
-        cloned[arch] = dst
-        return
-    }
-
     sh """
     tiup mirror set http://staging.tiup-server.pingcap.net
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
@@ -22,18 +7,9 @@ def clone_server_package = { arch, dst ->
     --tiup v1.9.2 --cluster v1.9.2  --insight v0.4.1 --diag v0.6.0 --influxdb v1.8.9 \
     --playground v1.9.2
     """
-    cloned[arch] = dst
 }
 
 def clone_toolkit_package = { arch, dst ->
-    if(cloned[arch] != "") {
-        sh """
-        mv ${cloned[arch]} ${dst}
-        """
-        cloned[arch] = dst
-        return
-    }
-
     sh """
     tiup mirror set http://staging.tiup-server.pingcap.net
     tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
@@ -42,7 +18,6 @@ def clone_toolkit_package = { arch, dst ->
     --tispark v2.4.1 --package v0.0.9  --bench v1.9.2 --errdoc v4.0.7 --dba v1.0.4 \
     --PCC 1.0.1 --pump $VERSION --drainer $VERSION 
     """
-    cloned[arch] = dst
 }
 
 def package_community = { arch ->
@@ -189,15 +164,19 @@ node("delivery") {
         }
 
         stage("build community tarball linux/amd64") {
+            deleteDir()
             package_community("amd64")
             if(VERSION >= "v4") {
+                deleteDir()
                 package_tools "community", "amd64"
             }
         }
 
         stage("build community tarball linux/arm64") {
+            deleteDir()
             package_community("arm64")
             if(VERSION >= "v4") {
+                deleteDir()
                 package_tools "community", "arm64"
             }
         }
@@ -205,12 +184,16 @@ node("delivery") {
         def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
         if(VERSION >= "v4" && !noEnterpriseList.contains(VERSION)) {
             stage("build enterprise tarball linux/amd64") {
+                deleteDir()
                 package_enterprise("amd64")
+                deleteDir()
                 package_tools "enterprise", "amd64"
             }
 
             stage("build enterprise tarball linux/arm64") {
+                deleteDir()
                 package_enterprise("arm64")
+                deleteDir()
                 package_tools "enterprise", "arm64"
             }
         }
