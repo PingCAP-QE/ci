@@ -175,6 +175,9 @@ println "TIKV_IMPORTER_BRANCH=${TIKV_IMPORTER_BRANCH}"
 
 @NonCPS
 boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == "master") {
+        return true
+    }
     if (a == b) {
         return true
     }
@@ -254,9 +257,9 @@ def boolean isBRMergedIntoTiDB() {
     if (params.getOrDefault("triggered_by_upstream_pr_ci", "Origin") == "tidb-br") {
         return true
     }
-    // if in release_test and release branch >= release-5.2
+    // if branch >= release-5.2
     // we use br in tidb by default
-    if (params.containsKey("release_test") && (isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix("release-5.2")))) {
+    if (isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix("release-5.2"))) {
         return true
     }
     return false
