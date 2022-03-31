@@ -50,12 +50,6 @@ def test_file_existed(file_url) {
 
 cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
 cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
-// we use the cache binary build from multiple branches cd pipeline: https://cd.pingcap.net/job/build_cdc_multi_branch/job/master/
-if (params.containsKey("triggered_by_upstream_pr_ci")) {
-    println "skip build binaries, current ci triggered by upstream pr ci [tidb|tikv|pd], download from fileserver"
-    cacheBinaryPath = "builds/pingcap/tiflow/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tiflow-linux-amd64.tar.gz"
-    cacheBinaryDonePath = "builds/pingcap/tiflow/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tiflow-linux-amd64.tar.gz"
-}
 
 /**
  * Prepare the binary file for testing.
@@ -102,11 +96,9 @@ def prepare_binaries() {
                     }
                 }
                 dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
-                    println "hello world"
                     sh """
                     pwd 
                     ls -alh .
-                    
                     """
                     def cases_name = sh(
                             script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
