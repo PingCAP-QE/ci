@@ -66,7 +66,8 @@ def prepare_binaries() {
 
         prepares["build binaries"] = {
             container("golang") {
-                if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
+                // if this ci triggered by upstream ci, build binary every time
+                if (!params.containsKey("triggered_by_upstream_pr_ci") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
                     println "cache binary existed"
                     println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
                     def ws = pwd()
