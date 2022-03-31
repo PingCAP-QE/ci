@@ -218,7 +218,7 @@ try {
     echo "${e}"
 }
 
-if (params.containsKey("triggered_by_upstream_ci")) {
+if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_upstream_ci") == "tidb_integration_test_ci") {
     stage("update commit status") {
         node("master") {
             if (currentBuild.result == "ABORTED") {
