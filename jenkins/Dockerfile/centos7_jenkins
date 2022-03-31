@@ -11,7 +11,7 @@ RUN yum makecache \
 	&& yum install --nogpgcheck -y tar wget git2u which file unzip python-pip lsof mariadb \
 	&& yum install --nogpgcheck -y make gcc gcc-c++ libstdc++-static pkg-config psmisc \
 	&& yum install --nogpgcheck -y libzstd-devel lz4-devel zlib-devel bzip2-devel snappy-devel libdwarf-devel elfutils-libelf-devel elfutils-devel binutils-devel \
-	&& yum install --nogpgcheck -y sudo openssl-devel gdb jq \
+	&& yum install --nogpgcheck -y sudo openssl-devel gdb jq libasan \
 	&& yum install -y libssl-dev pkg-config cmake zlib1g-dev openssl* glibc* \
 	&& yum install --nogpgcheck -y https://repo.percona.com/testing/centos/7/RPMS/x86_64/percona-toolkit-3.0.12-1.el7.x86_64.rpm \
 	&& yum install --nogpgcheck -y https://github.com/github/gh-ost/releases/download/v1.0.47/gh-ost-1.0.47-1.x86_64.rpm \
