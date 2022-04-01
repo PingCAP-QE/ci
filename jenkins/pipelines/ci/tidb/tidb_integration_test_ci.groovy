@@ -333,9 +333,13 @@ export COMMIT_ID=${TIDB_COMMIT_ID}
 EOF
                 """
                 }
-                sh "cat env_param.conf"
-                sh "curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tidb_integration_test_ci_alert_v2.py"
-
+                sh ""
+                sh """
+                cat env_param.conf
+                curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tidb_integration_test_ci_alert_v2.py
+                curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tidb_integration_test_ci_inspector.py
+                """
+                sh ""
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
                                  string(credentialsId: 'break-mergeci-github-token', variable: 'BREAK_MERGE_CI_GITHUB_API_TOKEN'),
                                  string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL",
