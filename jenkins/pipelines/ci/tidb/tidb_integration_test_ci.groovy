@@ -337,16 +337,19 @@ EOF
                 sh "curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tidb_integration_test_ci_alert_v2.py"
 
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
-                                 string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL")
+                                 string(credentialsId: 'break-mergeci-github-token', variable: 'BREAK_MERGE_CI_GITHUB_API_TOKEN'),
+                                 string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL",
+                                 string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
                 ]) {
                     sh '''#!/bin/bash
                 set +x
                 export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
                 export FEISHU_ALERT_URL=${FEISHU_ALERT_URL}
+                export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
+                export FEISHU_BREAK_IT_ALERT_URL=${FEISHU_BREAK_IT_ALERT_URL}
                 source env_param.conf
                 python3 tidb_integration_test_ci_alert_v2.py > alert_feishu.log
-                set -x
-                cat alert_feishu.log
+                python3 tidb_integration_test_ci_inspector.py
                 '''
                 }
             }
