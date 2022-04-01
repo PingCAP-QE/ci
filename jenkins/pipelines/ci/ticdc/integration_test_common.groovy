@@ -47,6 +47,10 @@ def test_file_existed(file_url) {
     }
 }
 
+
+cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
+cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
+
 /**
  * Prepare the binary file for testing.
  */
@@ -56,9 +60,8 @@ def prepare_binaries() {
 
         prepares["build binaries"] = {
             container("golang") {
-                def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
-                def cacheBinaryDonePath = "test/cdc/ci/integration_test/${ghprbActualCommit}/done"
-                if (test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
+                // if this ci triggered by upstream ci, build binary every time
+                if (!params.containsKey("triggered_by_upstream_pr_ci") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryDonePath}") && test_file_existed("${FILE_SERVER_URL}/download/${cacheBinaryPath}")) {
                     println "cache binary existed"
                     println "binary download url: ${FILE_SERVER_URL}/download/${cacheBinaryPath}"
                     def ws = pwd()
@@ -67,8 +70,10 @@ def prepare_binaries() {
                     sh """
                     cd go/src/github.com/pingcap/tiflow
                     ls -alh
-                    curl -O ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                    curl -o ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
                     tar -xvf ticdc_bin.tar.gz
+                    chmod +x bin/cdc
+                    ./bin/cdc version
                     rm -rf ticdc_bin.tar.gz
                     """
                 } else {
@@ -91,11 +96,9 @@ def prepare_binaries() {
                     }
                 }
                 dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
-                    println "hello world"
                     sh """
                     pwd 
                     ls -alh .
-                    
                     """
                     def cases_name = sh(
                             script: 'find . -maxdepth 2 -mindepth 2 -name \'run.sh\' | awk -F/ \'{print $2}\'',
@@ -322,15 +325,18 @@ def download_binaries() {
             tidb_url = tidb_download_link
             // Because the tidb archive is packaged differently on pr than on the branch build,
             // we have to use a different unzip path.
-            tidb_archive_path = "./bin/tidb-server"
+            tidb_archive_path = "bin/tidb-server"
             break;
     }
-    def cacheBinaryPath = "test/cdc/ci/integration_test/${ghprbActualCommit}/ticdc_bin.tar.gz"
     def sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
     if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch < "release-6.0" ) {
         println "release branch detected, use the other sync_diff version"
         sync_diff_download_url = "http://fileserver.pingcap.net/download/builds/pingcap/cdc/new_sync_diff_inspector.tar.gz"
     }
+
+    println "tidb_url: ${tidb_url}"
+    println "cacheBinaryPath: ${cacheBinaryPath}"
+    println "sync_diff_download_url: ${sync_diff_download_url}"
     sh """
         mkdir -p third_bin
         mkdir -p tmp
@@ -342,6 +348,7 @@ def download_binaries() {
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
         curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
+        # tar -xvf tidb.tar.gz -C ./tmp bin/tidb-server
         curl \${pd_url} | tar xz -C ./tmp bin/*
         curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
         curl \${minio_url} | tar xz -C ./tmp/bin minio

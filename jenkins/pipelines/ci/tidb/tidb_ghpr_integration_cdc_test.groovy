@@ -13,6 +13,14 @@ if (params.containsKey("release_test")) {
 }
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+// dailyci or mergeci trigger this ci, use different binary download url
+if (ghprbPullId == null || ghprbPullId == "") {
+    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+}
+def tiflowGhprbActualCommit = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflow/${ghprbTargetBranch}/sha1").trim()
+println("tiflow latest commit on ${ghprbTargetBranch}: ${tiflowGhprbActualCommit}")
+println "tidb binary url: ${tidb_url}"
+
 
 result = ""
 triggered_job_name = "cdc_ghpr_integration_test"
@@ -33,8 +41,8 @@ node("${GO_TEST_SLAVE}") {
                             booleanParam(name: 'force', value: true),
                             string(name: 'triggered_by_upstream_pr_ci', value: "tidb"),
                             string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
-                            // We use the target branch here because it will be used to download the corresponding branch code for TiCDC.
-                            string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${ghprbTargetBranch}"),
+                            // We use the latest commit build binary which cached in file server to run test.
+                            string(name: 'upstream_pr_ci_ghpr_actual_commit', value: "${tiflowGhprbActualCommit}"),
                             // We set the pull id to empty string here because we download the code with the specified commit.
                             string(name: 'upstream_pr_ci_ghpr_pull_id', value: ""),
                             string(name: 'upstream_pr_ci_ghpr_pull_title', value: "${ghprbPullTitle}"),
