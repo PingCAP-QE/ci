@@ -179,7 +179,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb") {
                     deleteDir()
                     def filepath = "builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar"
-                    timeout(5) {
+                    timeout(15) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         curl ${tidb_url} | tar xz -C ./
