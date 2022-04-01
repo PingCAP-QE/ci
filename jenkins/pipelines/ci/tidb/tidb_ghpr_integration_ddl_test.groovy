@@ -179,7 +179,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb") {
                     deleteDir()
                     def filepath = "builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar"
-                    timeout(5) {
+                    timeout(15) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         curl ${tidb_url} | tar xz -C ./
@@ -419,7 +419,7 @@ finally {
     }
 }
 
-if (params.containsKey("triggered_by_upstream_ci")) {
+if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_upstream_ci") == "tidb_integration_test_ci") {
     stage("update commit status") {
         node("master") {
             if (currentBuild.result == "ABORTED") {
