@@ -33,6 +33,11 @@ properties([
                         name: 'TIKV_HASH',
                         trim: true
                 ),
+                string(
+                        defaultValue: '',
+                        name: 'TIKV_PRID',
+                        trim: true
+                ),
                 booleanParam(
                         defaultValue: true,
                         name: 'FORCE_REBUILD'
@@ -68,7 +73,7 @@ try {
         build_para_arm["OS"] = OS
         build_para_arm["ARCH"] = "arm64"
         build_para_arm["FILE_SERVER_URL"] = FILE_SERVER_URL
-        build_para_arm["GIT_PR"] = ""
+        build_para_arm["GIT_PR"] = TIKV_PRID
         
         builds_arm = libs.create_enterprise_builds(build_para_arm)
 
@@ -85,7 +90,7 @@ try {
         build_para_amd["OS"] = OS
         build_para_amd["ARCH"] = "amd64"
         build_para_amd["FILE_SERVER_URL"] = FILE_SERVER_URL
-        build_para_amd["GIT_PR"] = ""
+        build_para_amd["GIT_PR"] = TIKV_PRID
 
 
         builds_amd = libs.create_enterprise_builds(build_para_amd)
