@@ -17,10 +17,6 @@ def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActual
 if (ghprbPullId == null || ghprbPullId == "") {
     tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 }
-def tiflowGhprbActualCommit = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflow/${ghprbTargetBranch}/sha1").trim()
-println("tiflow latest commit on ${ghprbTargetBranch}: ${tiflowGhprbActualCommit}")
-println "tidb binary url: ${tidb_url}"
-
 
 result = ""
 triggered_job_name = "cdc_ghpr_integration_test"
@@ -36,7 +32,9 @@ node("${GO_TEST_SLAVE}") {
                         while ! curl --output /dev/null --silent --head --fail "${tidb_url}"; do sleep 5; done
                         """
                     }
-
+                    def tiflowGhprbActualCommit = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflow/${ghprbTargetBranch}/sha1").trim()
+                    println("tiflow latest commit on ${ghprbTargetBranch}: ${tiflowGhprbActualCommit}")
+                    println "tidb binary url: ${tidb_url}"
                     def default_params = [
                             booleanParam(name: 'force', value: true),
                             string(name: 'triggered_by_upstream_pr_ci', value: "tidb"),
