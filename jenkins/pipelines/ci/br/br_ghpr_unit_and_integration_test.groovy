@@ -797,6 +797,9 @@ try {
 
         println test_cases
         test_cases.failFast = true
+        if (params.containsKey("ENABLE_FAIL_FAST") && params.get("ENABLE_FAIL_FAST") == "false") {
+            test_cases.failFast = false
+        }
         parallel test_cases
     }
 
