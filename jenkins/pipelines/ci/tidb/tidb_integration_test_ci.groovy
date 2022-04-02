@@ -351,7 +351,7 @@ EOF
                 export FEISHU_BREAK_IT_ALERT_URL=${FEISHU_BREAK_IT_ALERT_URL}
                 source env_param.conf
                 python3 tidb_integration_test_ci_alert_v2.py > alert_feishu.log
-                python3 tidb_integration_test_ci_inspector.py
+                python3 tidb_integration_test_ci_inspector.py FEISHU_BREAK_IT_ALERT_URL
                 '''
                 }
             }
