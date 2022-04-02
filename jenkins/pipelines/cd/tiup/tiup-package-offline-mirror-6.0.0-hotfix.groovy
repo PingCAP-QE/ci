@@ -4,7 +4,7 @@ def clone_server_package = { arch, dst ->
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
     --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager v0.17.0 \
     --blackbox_exporter v0.12.0 --prometheus $VERSION --node_exporter v0.17.0 \
-    --tiup v1.9.2 --cluster v1.9.2  --insight v0.4.1 --diag v0.6.0 --influxdb v1.8.9 \
+    --tiup v1.9.2 --cluster v1.9.2  --insight v0.4.1 --diag v0.7.0 --influxdb v1.8.9 \
     --playground v1.9.2
     """
 }
