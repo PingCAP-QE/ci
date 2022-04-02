@@ -97,13 +97,16 @@ try {
                     dir("tics") {
                         stage("Checkout") {
                             container("docker") {
-                            
-                                sh """
-                                archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
-                                if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
-                                echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
-                                apk add --update --no-cache lcov
-                                """
+                                retry(3) {
+                                    sh """
+                                    archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
+                                    if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
+                                    echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+                                    apk add --update --no-cache lcov
+                                    """
+                                    sleep(time:5,unit:"SECONDS")
+                                }
+
                                 sh "chown -R 1000:1000 ./"
                                 sh """
                                 # if ! grep -q hub.pingcap.net /etc/hosts ; then echo '172.16.10.5 hub.pingcap.net' >> /etc/hosts; fi
