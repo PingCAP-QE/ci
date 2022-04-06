@@ -3,7 +3,6 @@ RUN set -e && \
     curl -O 'http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/centos-gpg-keys-8-3.el8.noarch.rpm' && \
     rpm -i 'centos-gpg-keys-8-3.el8.noarch.rpm' && \
     yum install -y curl nc
-RUN 
 COPY tidb-server /tidb-server
 EXPOSE 4000
 ENTRYPOINT ["/tidb-server"]
