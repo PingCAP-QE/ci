@@ -42,6 +42,10 @@ def unpack = { version, os, arch ->
     sh """
     tar -zxf grafana-${version}.${os}-${arch}.tar.gz
     """
+    // rm node cache for tiup.
+    if (os == "darwin" && arch == "arm64") {
+        sh "rm -rf grafana-${version}/plugins-bundled/internal/input-datasource/node_modules"
+    }
 }
 
 def pack = { version, os, arch ->
