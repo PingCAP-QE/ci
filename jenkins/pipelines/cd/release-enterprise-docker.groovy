@@ -104,12 +104,6 @@ properties([
                 ),
                 string(
                         defaultValue: '',
-                        name: 'CDC_TAG',
-                        description: '', 
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
                         name: 'DUMPLING_TAG',
                         description: '', 
                         trim: true
