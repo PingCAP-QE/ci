@@ -1,5 +1,6 @@
 def clone_server_package = { arch, dst ->
     sh """
+    tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
     --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager v0.17.0 \
     --blackbox_exporter v0.12.0 --prometheus $VERSION --node_exporter v0.17.0 \
@@ -10,6 +11,7 @@ def clone_server_package = { arch, dst ->
 
 def clone_toolkit_package = { arch, dst ->
     sh """
+    tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
     --tiup v1.9.3 --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
     --dm-master $VERSION --dmctl $VERSION --dm v1.9.3 --br $VERSION --spark v2.4.3 \
