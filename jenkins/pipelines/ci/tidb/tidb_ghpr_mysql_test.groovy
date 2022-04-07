@@ -346,6 +346,9 @@ try {
                         rm -rf /tmp/tidb
                         set -e
                         """
+                        if (ghprbTargetBranch == "master") {
+                            junit testResults: "**/results.xml"
+                        }
                         throw err
                     }
                 }
