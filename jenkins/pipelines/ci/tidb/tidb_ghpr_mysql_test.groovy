@@ -274,7 +274,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                     try {
                         timeout(10) {
-                            if (ghprbTargetBranch in ["master"]) {
+                            if (ghprbTargetBranch in ["master", "release-6.0", "release-5.4", "release-5.3"]) {
                                 sh """ 
                                 set +e
                                 killall -9 -r tidb-server
@@ -292,47 +292,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 """
-                            } else if (ghprbTargetBranch in ["release-6.0"]) {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                # TODO: those tests failed even on master branch, skip them for relase-6.0 branch
-                                rm -rf t/variables.test
-                                rm -rf t/case.test
-                                rm -rf t/ctype_gbk.test
-                                set -e
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh
-                                
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
-                            } else if (ghprbTargetBranch.startsWith("release-") ) {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh
-                                
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
-                            } else {
+                            } else if (ghprbTargetBranch in ["release-5.2", "release-5.1"] ) {
                                 sh """
                                 curl -o run-test-part.sh ${FILE_SERVER_URL}/download/cicd/tidb-mysql-test-ci/run-test-part-without-all-arg.sh 
                                 chmod +x run-test-part.sh
@@ -349,6 +309,24 @@ try {
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./run-test-part.sh
                                 
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                rm -rf /tmp/tidb
+                                set -e
+                                """
+                            } else {
+                                sh """ 
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                rm -rf /tmp/tidb
+                                set -e
+                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                ./test.sh   
+
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
