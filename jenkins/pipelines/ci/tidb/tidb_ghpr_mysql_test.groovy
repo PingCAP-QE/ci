@@ -346,10 +346,11 @@ try {
                         rm -rf /tmp/tidb
                         set -e
                         """
+                        throw err
+                    } finally {
                         if (ghprbTargetBranch == "master") {
                             junit testResults: "**/result.xml"
                         }
-                        throw err
                     }
                 }
             }
