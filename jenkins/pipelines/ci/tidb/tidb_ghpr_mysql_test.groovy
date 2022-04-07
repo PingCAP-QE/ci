@@ -347,7 +347,7 @@ try {
                         set -e
                         """
                         if (ghprbTargetBranch == "master") {
-                            junit testResults: "**/results.xml"
+                            junit testResults: "**/result.xml"
                         }
                         throw err
                     }
