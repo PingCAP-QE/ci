@@ -189,7 +189,7 @@ try {
 
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            timeout(10) {
+                            timeout(20) {
                                 retry(3){
                                     deleteDir()
                                     sh """
@@ -201,7 +201,7 @@ try {
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test") {
-                            timeout(10) {
+                            timeout(20) {
                                 def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                 sh """
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
@@ -241,7 +241,7 @@ try {
 
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            timeout(10) {
+                            timeout(20) {
                                 retry(3){
                                     deleteDir()
                                     sh """
@@ -254,7 +254,7 @@ try {
 
                         dir("go/src/github.com/pingcap/tidb-test") {
                             container("golang") {
-                                timeout(10) {
+                                timeout(20) {
                                     def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                     sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
@@ -309,7 +309,7 @@ try {
                             // def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
                             // pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
 
-                            timeout(10) {
+                            timeout(20) {
                                 retry(3){
                                     sh """
 	                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
@@ -337,7 +337,7 @@ try {
                             }
 
                             try {
-                                timeout(10) {
+                                timeout(20) {
                                     sh """
                                 ps aux
                                 set +e
@@ -399,7 +399,7 @@ try {
                     dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                         container("golang") {
 
-                            timeout(10) {
+                            timeout(20) {
                                 retry(3){
                                     sh """
 	                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
@@ -425,7 +425,7 @@ try {
                             }
 
                             try {
-                                timeout(10) {
+                                timeout(20) {
                                     sh """
                                 set +e
                                 killall -9 -r tidb-server
@@ -591,7 +591,7 @@ try {
                         dir("go/src/github.com/pingcap/tidb") {
                             container("golang") {
                                 try {
-                                    timeout(10) {
+                                    timeout(20) {
                                         retry(3){
                                             deleteDir()
                                             sh """
