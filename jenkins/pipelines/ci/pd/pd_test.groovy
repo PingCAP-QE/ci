@@ -96,7 +96,6 @@ try {
                         curl ${pd_url} | tar xz
                         rm -rf ./bin
                         export GOPATH=${ws}/go
-                        # export GOPROXY=http://goproxy.pingcap.net
                         go list ./...
                         go list ./... | grep -v -E  "github.com/tikv/pd/server/api|github.com/tikv/pd/tests/client|github.com/tikv/pd/tests/server/tso|github.com/tikv/pd/server/schedule" > packages.list
                         cat packages.list

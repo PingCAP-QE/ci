@@ -142,7 +142,7 @@ try {
 
                     dir("go/src/github.com/pingcap/tidb") {
                         sh """
-                        #GOPROXY=https://proxy.golang.org GO111MODULE=on go mod vendor -v || true
+                        #GO111MODULE=on go mod vendor -v || true
                         GO111MODULE=on go mod vendor -v || true
                         """
                     }
@@ -171,7 +171,6 @@ try {
                                 rm -rf /tmp/tidb
                                 rm -rf ./tikv ./pd
                                 set -e
-                                #export GOPROXY=https://proxy.golang.org
 
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 10
