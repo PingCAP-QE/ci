@@ -69,7 +69,7 @@ def checkout_and_stash_dm_code() {
             }
 
             dir('go/src/github.com/pingcap/dm') {
-                sh """export GOPROXY=https://goproxy.cn
+                sh """
                     archive=dm-go-mod-cache_latest_\$(go version | awk '{ print \$3; }').tar.gz
                     archive_url=${FILE_SERVER_URL}/download/builds/pingcap/dm/cache/\$archive
                     if [ ! -f /tmp/\$archive ]; then

@@ -212,7 +212,7 @@ try {
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
                         curl ${tidb_test_url} | tar xz
                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                        # export GOPROXY=http://goproxy.pingcap.net
+                        
                         cd tidb_test && ./build.sh && cd ..
                         cd mysql_test && ./build.sh && cd ..
                         cd randgen-test && ./build.sh && cd ..
