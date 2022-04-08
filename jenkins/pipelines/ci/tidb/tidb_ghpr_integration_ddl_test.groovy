@@ -255,7 +255,6 @@ try {
                             mv ${dir}/../tidb/bin/tidb-server ./bin/ddltest_tidb-server
 
                             cd ${dir}/../tidb/
-                            export GOPROXY=https://goproxy.cn
                             GO111MODULE=on go mod vendor -v || true
 
                             mkdir -p ${dir}/../tidb_gopath/src
@@ -292,7 +291,6 @@ try {
                                     export DDLTEST_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/ddltest
                                 fi
                                 export log_level=debug
-                                export GOPROXY=https://goproxy.cn
                                 TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
                                 GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
                                 """
