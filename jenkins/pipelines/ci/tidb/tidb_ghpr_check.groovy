@@ -224,8 +224,12 @@ try {
                     dir("go/src/github.com/pingcap/tidb") {  
                         sh """
                         go version
-                        make test_part_parser
-                        make gogenerate
+                        if grep -q "test_part_parser" Makefile; then
+                            make test_part_parser
+                        fi
+                        if grep -q "gogenerate" Makefile; then
+                            make gogenerate
+                        fi
                         """
                     }
                 }
