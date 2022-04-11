@@ -174,37 +174,49 @@ try {
                         ulimit -c unlimited
                         export GOBACTRACE=crash
                         export log_level=warn
-                        make br_unit_test_in_verify_ci
-                        mv test_coverage/br_cov.unit_test.out br.coverage
-                        make dumpling_unit_test_in_verify_ci
-                        mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
-                        make gotest_in_verify_ci
-                        mv test_coverage/tidb_cov.unit_test.out tidb.coverage
+                        if grep -q "br_unit_test_in_verify_ci" Makefile; then
+                            make br_unit_test_in_verify_ci
+                            mv test_coverage/br_cov.unit_test.out br.coverage
+                        fi
+                        if grep -q "dumpling_unit_test_in_verify_ci" Makefile; then
+                            make dumpling_unit_test_in_verify_ci
+                            mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                        fi
+                        if grep -q "go_test_in_verify_ci" Makefile; then
+                            make gotest_in_verify_ci
+                            mv test_coverage/tidb_cov.unit_test.out tidb.coverage
+                        else
+                            make gotest
+                        fi
+
                         """
                     }catch (Exception e) {
-                        archiveArtifacts artifacts: '**/core.*'
-                        archiveArtifacts artifacts: '**/*.test.bin'
+                        archiveArtifacts artifacts: '**/core.*', allowEmptyArchive: true
+                        archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
                         junit testResults: "**/*-junit-report.xml"
+
                         upload_test_result("test_coverage/tidb-junit-report.xml")
                         upload_test_result("test_coverage/br-junit-report.xml")
                         upload_test_result("test_coverage/dumpling-junit-report.xml")
                     }
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(5) {
-                            if (ghprbPullId != null && ghprbPullId != "") {
-                                sh """
-                                curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                chmod +x codecov
-                                ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage"  -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
-                                """
-                            } else {
-                                sh """
-                                curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                chmod +x codecov
-                                ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                                """
+                            if (fileExists("dumpling.coverage") && fileExists("br.coverage") && fileExists("tidb.coverage")) {
+                                if (ghprbPullId != null && ghprbPullId != "") {
+                                    sh """
+                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                                    chmod +x codecov
+                                    ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage"  -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
+                                    """
+                                } else {
+                                    sh """
+                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                                    chmod +x codecov
+                                    ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
+                                    """
+                                }
                             }
                         }
                     }
