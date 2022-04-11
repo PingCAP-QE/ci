@@ -195,7 +195,7 @@ try {
                         archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
-                        junit testResults: "**/*-junit-report.xml"
+                        junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
 
                         upload_test_result("test_coverage/tidb-junit-report.xml")
                         upload_test_result("test_coverage/br-junit-report.xml")
