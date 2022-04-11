@@ -191,8 +191,8 @@ try {
 
                         """
                     }catch (Exception e) {
-                        archiveArtifacts artifacts: '**/core.*'
-                        archiveArtifacts artifacts: '**/*.test.bin'
+                        archiveArtifacts artifacts: '**/core.*', allowEmptyArchive: true
+                        archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
                         junit testResults: "**/*-junit-report.xml"
