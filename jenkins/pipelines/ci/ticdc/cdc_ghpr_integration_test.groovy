@@ -238,7 +238,7 @@ catchError {
                     checkout(changelog: false, poll: false, scm: [
                             $class                           : "GitSCM",
                             branches                         : [
-                                    [name: ghprbTargetBranch],
+                                    [name: ghprbActualCommit],
                             ],
                             userRemoteConfigs                : [
                                     [
@@ -269,7 +269,7 @@ catchError {
                         checkout(changelog: false, poll: false, scm: [
                             $class                           : "GitSCM",
                             branches                         : [
-                                    [name: ghprbTargetBranch],
+                                    [name: ghprbActualCommit],
                             ],
                             userRemoteConfigs                : [
                                     [
@@ -292,7 +292,6 @@ catchError {
                         ])
                     }
                 }
-                sh "git checkout -f ${ghprbActualCommit}"
             }
 
             dir("${ws}/go/src/github.com/pingcap/ci") {
