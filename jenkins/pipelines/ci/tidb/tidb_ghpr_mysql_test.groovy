@@ -237,24 +237,6 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 """
-                            } else if (ghprbTargetBranch in ["release-5.2", "release-5.1"] ) {
-                                sh """ 
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh   
-
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
                             } else {
                                 sh """ 
                                 set +e
