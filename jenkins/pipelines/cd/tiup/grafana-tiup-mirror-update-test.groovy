@@ -80,7 +80,7 @@ def pack = { version, os, arch ->
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
     fi
-    cp ../metrics/grafana/* . || true;
+    cp ../tiflash/metrics/grafana/* . || true;
     cd ..
     tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
     tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
@@ -145,11 +145,14 @@ node("build_go1130") {
         }
 
         stage("Checkout tiflash") {
-            def tag = RELEASE_TAG
-            if (RELEASE_BRANCH != "") {
-                tag = RELEASE_BRANCH
+            dir("tiflash") {
+                def tag = RELEASE_TAG
+                if (RELEASE_BRANCH != "") {
+                    tag = RELEASE_BRANCH
+                }
+                checkoutTiflash(tag)
             }
-            checkoutTiflash(tag)
+            stash includes: "tiflash/**", name: "tiflash"
         }
 
         multi_os_update = [:]
@@ -158,6 +161,7 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        unstash "tiflash"
                         update VERSION, "linux", "amd64"
                     }
                 }
@@ -168,6 +172,7 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        unstash "tiflash"
                         update VERSION, "linux", "arm64"
                     }
                 }
@@ -178,6 +183,7 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        unstash "tiflash"
                         update VERSION, "darwin", "amd64"
                     }
                 }
@@ -188,6 +194,7 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        unstash "tiflash"
                         // grafana did not provide the binary we need so we upgrade it.
                         update "7.5.10", "darwin", "arm64"
                     }
