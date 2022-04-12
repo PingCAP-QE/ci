@@ -343,6 +343,7 @@ EOF
                                  string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
                                  string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
                 ]) {
+                    println "base branch : ${TIDB_BRANCH}"
                     if (TIDB_BRANCH == "master") {
                         sh '''#!/bin/bash
                         set +x
