@@ -80,7 +80,7 @@ def pack = { version, os, arch ->
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
     fi
-    cp ../tiflash/metrics/grafana/* . || true;
+    cp ../tiflash/metrics/grafana/* . ;
     cd ..
     tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
     tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
