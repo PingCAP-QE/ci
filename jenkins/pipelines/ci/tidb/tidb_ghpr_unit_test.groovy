@@ -182,7 +182,7 @@ try {
                             make dumpling_unit_test_in_verify_ci
                             mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
                         fi
-                        if grep -q "go_test_in_verify_ci" Makefile; then
+                        if grep -q "gotest_in_verify_ci" Makefile; then
                             make gotest_in_verify_ci
                             mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         else
