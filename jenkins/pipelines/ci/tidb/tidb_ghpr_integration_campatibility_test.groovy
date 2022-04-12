@@ -117,6 +117,7 @@ def run_with_pod(Closure body) {
 }
 
 all_task_result = []
+def notRun = 1
 
 try {
     stage("Pre-check"){
