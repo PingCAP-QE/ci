@@ -325,7 +325,8 @@ def download_binaries() {
             tidb_url = tidb_download_link
             // Because the tidb archive is packaged differently on pr than on the branch build,
             // we have to use a different unzip path.
-            tidb_archive_path = "bin/tidb-server"
+            tidb_archive_path = "./bin/tidb-server"
+            println "tidb_archive_path=${tidb_archive_path}"
             break;
     }
     def sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
@@ -335,6 +336,7 @@ def download_binaries() {
     }
 
     println "tidb_url: ${tidb_url}"
+    println "tidb_archive_path: ${tidb_archive_path}"
     println "cacheBinaryPath: ${cacheBinaryPath}"
     println "sync_diff_download_url: ${sync_diff_download_url}"
     sh """
