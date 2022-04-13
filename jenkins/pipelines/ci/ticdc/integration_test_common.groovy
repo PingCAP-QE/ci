@@ -164,17 +164,20 @@ def tests(sink_type, node_label) {
                         dir("go/src/github.com/pingcap/tiflow") {
                             download_binaries()
                             try {
-                                sh """
-                                    s3cmd --version
-                                    rm -rf /tmp/tidb_cdc_test
-                                    mkdir -p /tmp/tidb_cdc_test
-                                    echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
-                                    GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
-                                    rm -rf cov_dir
-                                    mkdir -p cov_dir
-                                    ls /tmp/tidb_cdc_test
-                                    cp /tmp/tidb_cdc_test/cov*out cov_dir || touch cov_dir/dummy_file_${step_name}
-                                """
+                                timeout(time: 60, unit: 'MINUTES') { 
+                                    sh """
+                                        s3cmd --version
+                                        rm -rf /tmp/tidb_cdc_test
+                                        mkdir -p /tmp/tidb_cdc_test
+                                        echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
+                                        GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
+                                        rm -rf cov_dir
+                                        mkdir -p cov_dir
+                                        ls /tmp/tidb_cdc_test
+                                        cp /tmp/tidb_cdc_test/cov*out cov_dir || touch cov_dir/dummy_file_${step_name}
+                                    """
+                                }
+
                                 // cyclic tests do not run on kafka sink, so there is no cov* file.
                                 sh """
                                 tail /tmp/tidb_cdc_test/cov* || true
