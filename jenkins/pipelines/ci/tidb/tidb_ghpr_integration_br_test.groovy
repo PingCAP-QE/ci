@@ -110,6 +110,7 @@ if (params.containsKey("triggered_by_upstream_ci") && params.get("triggered_by_u
                 PARAM_STATUS = 'error'
             }
             def default_params = [
+                    booleanParam(name: 'ENABLE_FAIL_FAST', value: false),
                     string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
                     string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/integration-br-test'),
                     string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),

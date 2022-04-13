@@ -800,6 +800,7 @@ try {
         if (params.containsKey("ENABLE_FAIL_FAST") && params.get("ENABLE_FAIL_FAST") == "false") {
             test_cases.failFast = false
         }
+        println "failFast: ${test_cases.failFast}"
         parallel test_cases
     }
 

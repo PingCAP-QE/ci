@@ -130,6 +130,7 @@ def tests(sink_type, node_label) {
             if (params.containsKey("ENABLE_FAIL_FAST") && params.get("ENABLE_FAIL_FAST") == "false") {
                 test_cases.failFast = false
             }
+            println "failFast: ${test_cases.failFast}"
 
             // Start running integration tests.
             def run_integration_test = { step_name, case_names ->
