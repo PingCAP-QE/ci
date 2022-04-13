@@ -309,16 +309,20 @@ node("github-status-updater") {
                 ]) { 
                     if (TIDB_BRANCH == "master") { 
                         sh """
+                        export LC_CTYPE="en_US.UTF-8"
                         export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
                         export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
                         export COMMENT_PR_GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+                        rm -rf agent-tidb-mergeci.py
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
                         python3 agent-tidb-mergeci.py ciResult.json ${FEISHU_BREAK_IT_ALERT_URL} ${FEISHU_ALERT_URL}
                         """
                     } else {
                         sh """
+                        export LC_CTYPE="en_US.UTF-8"
                         export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
                         export COMMENT_PR_GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+                        rm -rf agent-tidb-mergeci.py
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
                         python3 agent-tidb-mergeci.py ciResult.json
                         """
