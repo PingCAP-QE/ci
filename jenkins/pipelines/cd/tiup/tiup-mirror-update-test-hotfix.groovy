@@ -4,6 +4,7 @@
 * @PD_TAG
 * @BINLOG_TAG
 * @CDC_TAG
+* @DM_TAG
 * @BR_TAG
 * @DUMPLING_TAG
 * @TIFLASH_TAG
@@ -30,6 +31,10 @@ def pump_desc = "The pump componet of TiDB binlog service"
 def drainer_desc = "The drainer componet of TiDB binlog service"
 def pd_recover_desc = "PD Recover is a disaster recovery tool of PD, used to recover the PD cluster which cannot start or provide services normally"
 
+def dm_master_desc = "dm-master component of Data Migration Platform"
+def dm_worker_desc = "dm-worker component of Data Migration Platform"
+def dmctl_desc = "dmctl component of Data Migration Platform"
+
 
 def download = { name, hash, os, arch ->
     if (os == "linux") {
@@ -48,12 +53,18 @@ def download = { name, hash, os, arch ->
     
     if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v4.0.0") {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${hash}/${platform}/${tarball_name}
-    """
+        wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${hash}/${platform}/${tarball_name}
+        """
+        if (${name} == "dm") {
+            def dm_ansible_tarball_name = "dm-ansible-${os}-${arch}.tar.gz"
+            sh """
+            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${hash}/${platform}/${dm_ansible_tarball_name}
+            """
+        }
     } else {
         sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${tarball_name}
-    """
+        wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${tarball_name}
+        """
     }
 }
 
@@ -62,6 +73,12 @@ def unpack = { name, os, arch ->
     sh """
     tar -zxf ${tarball_name}
     """
+    if (${name} == "dm") {
+        def dm_ansible_tarball_name = "dm-ansible-${os}-${arch}.tar.gz"
+        sh """
+        tar -zxf ${dm_ansible_tarball_name}
+        """
+    }
 }
 
 def pack = { name, version, os, arch ->
@@ -102,13 +119,54 @@ def pack = { name, version, os, arch ->
         sh """
         mv bin/${name} ctls/
         """
+    } else if (name == "dm") { 
+        sh """
+        [ -d package ] || mkdir package
+        """
+
+        sh """
+        echo "package dm-master"    
+        mkdir ${name}-master
+        mkdir ${name}-master/conf
+        mkdir ${name}-master/scripts
+        cp ${name}-${os}-${arch}/bin/dm-master ${name}-master
+        cp -r dm-ansible/conf/* ${name}-master/conf
+        cp dm-ansible/scripts/* ${name}-master/scripts
+        tar -czvf package/${name}-master-${version}-${os}-${arch}.tar.gz ${name}-master
+        rm -rf ${name}-master
+
+        echo "package dm-worker"
+        mkdir ${name}-worker
+        mkdir ${name}-worker/conf
+        mkdir ${name}-worker/scripts
+        cp ${name}-${os}-${arch}/bin/dm-worker ${name}-worker
+        cp -r dm-ansible/conf/* ${name}-worker/conf
+        cp dm-ansible/scripts/* ${name}-worker/scripts
+        tar -czvf package/${name}-worker-${version}-${os}-${arch}.tar.gz ${name}-worker
+        rm -rf ${name}-worker
+
+        echo "package dmctl"
+        mkdir ${name}ctl
+        mkdir ${name}ctl/conf
+        mkdir ${name}ctl/scripts
+        cp ${name}-${os}-${arch}/bin/dmctl ${name}ctl
+        cp -r dm-ansible/conf/* ${name}ctl/conf
+        cp dm-ansible/scripts/* ${name}ctl/scripts
+        tar -czvf package/${name}ctl-${version}-${os}-${arch}.tar.gz ${name}ctl
+        rm -rf ${name}ctl
+        """
+
+        sh """
+        tiup mirror publish ${name}-master ${tidb_version} package/${name}-master-${version}-${os}-${arch}.tar.gz ${name}-master/${name}-master --arch ${arch} --os ${os} --desc="${dm_master_desc}"
+        tiup mirror publish ${name}-worker ${tidb_version} package/${name}-worker-${version}-${os}-${arch}.tar.gz ${name}-worker/${name}-worker --arch ${arch} --os ${os} --desc="${dm_worker_desc}"
+        tiup mirror publish ${name}ctl ${tidb_version} package/${name}ctl-${version}-${os}-${arch}.tar.gz ${name}ctl/${name}ctl --arch ${arch} --os ${os} --desc="${dmctl_desc}"
+        """
     } else {
         sh """
         tiup package ${name} -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
         """
     }
-    
 
     sh """
     rm -rf ${name}*.tar.gz
@@ -252,6 +310,7 @@ node("build_go1130") {
                 } else {
                     lightning_sha1 = get_hash(BR_TAG,"br")
                 }
+                dm_sha1 = get_hash(DM_TAG, "dm")
             }
 
             if (HOTFIX_TAG == "nightly") {
@@ -382,6 +441,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
                     update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
+                    update "dm", HOTFIX_TAG, dm_sha1, "linux", "amd64"
                     update_ctl HOTFIX_TAG, "linux", "amd64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
                 }
@@ -392,6 +452,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
                     update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
+                    update "dm", HOTFIX_TAG, dm_sha1, "linux", "arm64"
                     update_ctl HOTFIX_TAG, "linux", "arm64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
                 }
@@ -402,6 +463,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                    update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
                     update_ctl HOTFIX_TAG, "darwin", "amd64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
                 }
@@ -412,6 +474,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                    update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
                     // update_ctl HOTFIX_TAG, "darwin", "arm64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
                 }
