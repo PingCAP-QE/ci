@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def checkoutTiCS(commit, pullId) {
+def checkoutTiflash(commit, pullId) {
     def refspec = "+refs/heads/*:refs/remotes/origin/*"
     if (pullId) {
         refspec += " +refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*"
@@ -29,6 +29,8 @@ def checkoutTiCS(commit, pullId) {
             extensions: [
                     [$class: 'PruneStaleBranch'],
                     [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CheckoutOption', timeout: 30],
+                    [$class: 'CloneOption', timeout: 30],
             ],
     ])
 }
@@ -118,7 +120,7 @@ try {
                                 """
                             }
                             retry(3) {
-                                checkoutTiCS("${TICS_BRANCH}", null)
+                                checkoutTiflash("${TICS_BRANCH}", null)
                             }
                         }
                         stage("Test") {
