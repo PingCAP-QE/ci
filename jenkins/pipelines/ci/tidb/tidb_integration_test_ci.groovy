@@ -157,13 +157,15 @@ node("github-status-updater") {
                                 throw new Exception("tidb_ghpr_integration_campatibility_test failed")
                             }
                         },
-                        tidb_ghpr_integration_copr_test: {
-                            def result = build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_integration_copr_test", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_integration_copr_test failed")
-                            }
-                        },
+                        // TODO: enable this job when copr-test fixed (currently unstable)
+                        // ichn-hu is working on it
+                        // tidb_ghpr_integration_copr_test: {
+                        //     def result = build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true, propagate: false)
+                        //     triggered_job_result << ["name": "tidb_ghpr_integration_copr_test", "type": "tidb-merge-ci-checker" , "result": result]
+                        //     if (result.getResult() != "SUCCESS") {
+                        //         throw new Exception("tidb_ghpr_integration_copr_test failed")
+                        //     }
+                        // },
                         tidb_ghpr_integration_ddl_test: {
                             def result = build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params, wait: true, propagate: false)
                             triggered_job_result << ["name": "tidb_ghpr_integration_ddl_test", "type": "tidb-merge-ci-checker" , "result": result]
