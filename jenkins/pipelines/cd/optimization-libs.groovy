@@ -66,6 +66,10 @@ def create_builds(build_para) {
         builds["Build NGMonitoring"] = {
             build_product(build_para, "ng-monitoring")
         }
+        // dm merged into tiflow from 5.3.0, only support build dm from v5.3.0
+        build["Build dm"] = {
+            build_product(build_para, "dm")
+        }
     }
 
     if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
@@ -151,6 +155,9 @@ def build_product(build_para, product) {
         repo = "tidb"
     }
     if (product == "ticdc") {
+        repo = "tiflow"
+    }
+    if (product == "dm") {
         repo = "tiflow"
     }
 
