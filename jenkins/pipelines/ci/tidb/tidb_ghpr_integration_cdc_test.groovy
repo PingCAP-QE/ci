@@ -38,6 +38,7 @@ node("${GO_TEST_SLAVE}") {
                     println "tidb binary url: ${tidb_url}"
                     def default_params = [
                             booleanParam(name: 'force', value: true),
+                            booleanParam(name: 'ENABLE_FAIL_FAST', value: false),
                             string(name: 'triggered_by_upstream_pr_ci', value: "tidb"),
                             string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
                             // We use the latest commit build binary which cached in file server to run test.
