@@ -180,31 +180,31 @@ try {
 
                                 // wait until codecov upload finish
                                 sleep(time:100,unit:"SECONDS")
-                                    retry(3) {
-                                        def response = httpRequest Authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
-                                        println('Status: '+response.status)
-                                        def obj = readJSON text:response.content
-                                        if (response.status == 200) {
-                                            println(obj.commit.totals)
-                                            currentBuild.description = "Lines coverage: ${obj.commit.totals.c.toFloat().round(2)}%"
-                                            println('Coverage: '+obj.commit.totals.c)
-                                            println("Files count: "+ obj.commit.totals.f)
-                                            println("Lines count: "+obj.commit.totals.n)
-                                            println("Hits count: "+obj.commit.totals.h)
-                                            println("Misses count: "+obj.commit.totals.m)
-                                            println("Paritials count: "+obj.commit.totals.p)
+                                retry(3) {
+                                    def response = httpRequest Authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
+                                    println('Status: '+response.status)
+                                    def obj = readJSON text:response.content
+                                    if (response.status == 200) {
+                                        println(obj.commit.totals)
+                                        currentBuild.description = "Lines coverage: ${obj.commit.totals.c.toFloat().round(2)}%"
+                                        println('Coverage: '+obj.commit.totals.c)
+                                        println("Files count: "+ obj.commit.totals.f)
+                                        println("Lines count: "+obj.commit.totals.n)
+                                        println("Hits count: "+obj.commit.totals.h)
+                                        println("Misses count: "+obj.commit.totals.m)
+                                        println("Paritials count: "+obj.commit.totals.p)
 
-                                            println('Coverage: '+obj.commit.totals.diff[5])
-                                            println("Files count: "+ obj.commit.totals.diff[0])
-                                            println("Lines count: "+obj.commit.totals.diff[1])
-                                            println("Hits count: "+obj.commit.totals.diff[2])
-                                            println("Misses count: "+obj.commit.totals.diff[3])
-                                            println("Paritials count: "+obj.commit.totals.diff[4])
-                                        } else {
-                                            println('Error: '+response.content)
-                                            println('Status not 200: '+response.status)
-                                        }
+                                        println('Coverage: '+obj.commit.totals.diff[5])
+                                        println("Files count: "+ obj.commit.totals.diff[0])
+                                        println("Lines count: "+obj.commit.totals.diff[1])
+                                        println("Hits count: "+obj.commit.totals.diff[2])
+                                        println("Misses count: "+obj.commit.totals.diff[3])
+                                        println("Paritials count: "+obj.commit.totals.diff[4])
+                                    } else {
+                                        println('Error: '+response.content)
+                                        println('Status not 200: '+response.status)
                                     }
+                                }
                             }
                         }
                     }
