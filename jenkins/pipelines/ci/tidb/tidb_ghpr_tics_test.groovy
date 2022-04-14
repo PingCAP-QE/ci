@@ -21,7 +21,7 @@ def checkoutTiCS(commit, pullId) {
             ],
             userRemoteConfigs: [
                     [
-                            url: "git@github.com:pingcap/tics.git",
+                            url: "git@github.com:pingcap/tiflash.git",
                             refspec: refspec,
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -117,8 +117,9 @@ try {
                                 fi
                                 """
                             }
-                            //checkoutTiCS("${TICS_BRANCH}", "${ghprbPullId}")
-                            checkoutTiCS("${TICS_BRANCH}", null)
+                            retry(3) {
+                                checkoutTiCS("${TICS_BRANCH}", null)
+                            }
                         }
                         stage("Test") {
                             timeout(time: 10, unit: 'MINUTES') {
