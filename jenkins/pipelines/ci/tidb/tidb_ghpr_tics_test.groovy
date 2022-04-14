@@ -9,7 +9,7 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def checkoutTiCS(commit, pullId) {
+def checkoutTiflash(commit, pullId) {
     def refspec = "+refs/heads/*:refs/remotes/origin/*"
     if (pullId) {
         refspec += " +refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*"
@@ -21,7 +21,7 @@ def checkoutTiCS(commit, pullId) {
             ],
             userRemoteConfigs: [
                     [
-                            url: "git@github.com:pingcap/tics.git",
+                            url: "git@github.com:pingcap/tiflash.git",
                             refspec: refspec,
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -29,6 +29,8 @@ def checkoutTiCS(commit, pullId) {
             extensions: [
                     [$class: 'PruneStaleBranch'],
                     [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CheckoutOption', timeout: 30],
+                    [$class: 'CloneOption', timeout: 30],
             ],
     ])
 }
@@ -117,8 +119,9 @@ try {
                                 fi
                                 """
                             }
-                            //checkoutTiCS("${TICS_BRANCH}", "${ghprbPullId}")
-                            checkoutTiCS("${TICS_BRANCH}", null)
+                            retry(3) {
+                                checkoutTiflash("${TICS_BRANCH}", null)
+                            }
                         }
                         stage("Test") {
                             timeout(time: 10, unit: 'MINUTES') {
