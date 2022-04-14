@@ -87,7 +87,7 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
-            idleMinutes: 0,
+            idleMinutes: 100,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -126,7 +126,7 @@ def run_with_memory_volume_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
-            idleMinutes: 0,
+            idleMinutes: 100,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
