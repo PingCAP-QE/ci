@@ -209,14 +209,16 @@ node("github-status-updater") {
                             }
                         },
 
+                        // TODO : enable this job when tidb unit test more stable
+                        // bb7133 is working on it
                         // coverage
-                        tidb_ghpr_coverage: {
-                            def result = build(job: "tidb_ghpr_coverage", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_coverage", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_coverage failed")
-                            }
-                        },
+                        // tidb_ghpr_coverage: {
+                        //     def result = build(job: "tidb_ghpr_coverage", parameters: default_params, wait: true, propagate: false)
+                        //     triggered_job_result << ["name": "tidb_ghpr_coverage", "type": "tidb-merge-ci-checker" , "result": result]
+                        //     if (result.getResult() != "SUCCESS") {
+                        //         throw new Exception("tidb_ghpr_coverage failed")
+                        //     }
+                        // },
                         // unit test
                         // tidb_ghpr_unit_test: {
                         //     build(job: "tidb_ghpr_unit_test", parameters: default_params, wait: true, propagate: false)
