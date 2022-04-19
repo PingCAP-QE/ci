@@ -463,7 +463,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                    update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
+                    // update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
                     update_ctl HOTFIX_TAG, "darwin", "amd64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
                 }
@@ -474,7 +474,7 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
+                    // update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
                     // update_ctl HOTFIX_TAG, "darwin", "arm64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
                 }
