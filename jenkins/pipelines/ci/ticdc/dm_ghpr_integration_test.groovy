@@ -226,7 +226,11 @@ def build_dm_bin() {
                 sh 'make dm_integration_test_build'
 
                 // tidb
-                def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", ghprbTargetBranch)
+                def TIDB_BRANCH = ghprbTargetBranch
+                if (!TIDB_BRANCH.startsWith("release-") || TIDB_BRANCH == "release-multi-source" ) {
+                    TIDB_BRANCH = "master"
+                }
+                TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", TIDB_BRANCH)
                 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
 
