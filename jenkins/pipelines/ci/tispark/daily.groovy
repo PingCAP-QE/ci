@@ -19,11 +19,11 @@ def test_master(commitID, version) {
     println "tispark master"
     parallel(
             test1: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-flash=true")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1 test-flash=true")
             },
     )
 }
@@ -32,20 +32,13 @@ def test_release2_5(commitID, version) {
     println "tispark release-2.5"
     parallel(
             test1: {
-                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-spark-catalog=true")
+                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-flash=true")
             },
 
-//            test2: {
-//                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-spark-catalog=false")
-//            },
 
             test3: {
-                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1 test-spark-catalog=true")
+                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1 test-flash=true")
             },
-
-//            test4: {
-//                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1 test-spark-catalog=false")
-//            },
     )
 }
 
@@ -53,15 +46,15 @@ def test_release2_4(commitID, version) {
     println "tispark release-2.4"
     parallel(
             test5: {
-                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11 profile=spark-2.3")
+                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11 profile=spark-2.3 test-flash=true")
             },
 
             test6: {
-                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11")
+                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11 test-flash=true")
             },
 
             test7: {
-                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.12")
+                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.12 test-flash=true")
             },
     )
 }
@@ -85,7 +78,6 @@ node("lightweight_pod") {
             def now = new Date().getDay()
             switch (now) {
                 case 1:
-                    test_master(master, "master")
                     test_release2_5(release_2_5, "v5.3.0")
                 //    test_release2_4(release_2_4, "v5.3.0")
                     break
@@ -95,7 +87,6 @@ node("lightweight_pod") {
              //       test_release2_4(release_2_4, "v5.2.2")
                     break
                 case 3:
-                    test_master(master, "master")
              //       test_release2_5(release_2_5, "v5.1.2")
                     test_release2_4(release_2_4, "v5.1.2")
                     break
@@ -105,7 +96,6 @@ node("lightweight_pod") {
                     test_release2_4(release_2_4, "v5.0.6")
                     break
                 case 5:
-                    test_master(master, "master")
                     test_release2_5(release_2_5, "release-4.0")
                     test_release2_4(release_2_4, "release-4.0")
                     break
@@ -114,7 +104,6 @@ node("lightweight_pod") {
                     test_release2_4(release_2_4, "master")
                     break;
                 case 7:
-                    test_master(master, "master")
                     test_release2_5(release_2_5, "master")
                     break;
             }
