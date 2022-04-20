@@ -113,6 +113,38 @@ def pack = { name, version, os, arch ->
         sh """
         [ -d package ] || mkdir package
         """
+        // release version <= v6.0.0 exists dir dm-ansible and monitoring
+        if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v5.3.0" && HOTFIX_TAG <= "v6.0.0") {
+            sh """
+            if [[ -d "${name}-${os}-${arch}/dm-ansible" ]]; then
+                echo "dm-ansible dir exists"
+            else
+                echo "dm-ansible dir not exists, is something wrong? (dm version >= 5.3.0 and < 6.0.0 need dm-ansible dir)"
+                exit 1
+            fi;
+            if [[ -d "${name}-${os}-${arch}/monitoring" ]]; then
+                echo "monitoring dir exists"
+            else
+                echo "monitoring dir not exists, is something wrong? dm version >= 5.3.0 and < 6.0.0 need monitoring dir"
+                exit 1
+            fi;
+            """
+        } else {
+            sh """
+            if [[ -d "${name}-${os}-${arch}/monitoring" ]]; then
+                echo "monitoring dir exists, is something wrong? dm version >= 6.0.0 not exist monitoring dir"
+                exit 1
+            else
+                echo "monitoring dir not exists, it is expected"
+            fi;
+            if [[ -d "${name}-${os}-${arch}/dm-ansible" ]]; then
+                echo "dm-ansible dir exists, is something wrong? dm version >= 6.0.0 not exist dm-ansible dir"
+                exit 1
+            else
+                echo "dm-ansible dir not exists, it is expected"
+            fi;
+            """
+        }
         // TODO: dm-ansible has been remove from the repo since v6.0.0.
         sh """
         echo "package dm-master"    
@@ -120,8 +152,10 @@ def pack = { name, version, os, arch ->
         mkdir ${name}-master/conf
         mkdir ${name}-master/scripts
         cp ${name}-${os}-${arch}/bin/dm-master ${name}-master
-        cp -r dm-ansible/conf/* ${name}-master/conf
-        cp dm-ansible/scripts/* ${name}-master/scripts
+        if [[ -d "${name}-${os}-${arch}/dm-ansible" ]]; then
+            cp -r ${name}-${os}-${arch}/dm-ansible/conf/* ${name}-master/conf
+            cp ${name}-${os}-${arch}/dm-ansible/scripts/* ${name}-master/scripts
+        fi;
         tar -czvf package/${name}-master-${version}-${os}-${arch}.tar.gz ${name}-master
         rm -rf ${name}-master
 
@@ -130,8 +164,10 @@ def pack = { name, version, os, arch ->
         mkdir ${name}-worker/conf
         mkdir ${name}-worker/scripts
         cp ${name}-${os}-${arch}/bin/dm-worker ${name}-worker
-        cp -r dm-ansible/conf/* ${name}-worker/conf
-        cp dm-ansible/scripts/* ${name}-worker/scripts
+        if [[ -d "${name}-${os}-${arch}/dm-ansible" ]]; then
+            cp -r ${name}-${os}-${arch}/dm-ansible/conf/* ${name}-worker/conf
+            cp ${name}-${os}-${arch}/dm-ansible/scripts/* ${name}-worker/scripts
+        fi;
         tar -czvf package/${name}-worker-${version}-${os}-${arch}.tar.gz ${name}-worker
         rm -rf ${name}-worker
 
@@ -140,8 +176,10 @@ def pack = { name, version, os, arch ->
         mkdir ${name}ctl/conf
         mkdir ${name}ctl/scripts
         cp ${name}-${os}-${arch}/bin/dmctl ${name}ctl
-        cp -r dm-ansible/conf/* ${name}ctl/conf
-        cp dm-ansible/scripts/* ${name}ctl/scripts
+        if [[ -d "${name}-${os}-${arch}/dm-ansible" ]]; then
+            cp -r ${name}-${os}-${arch}/dm-ansible/conf/* ${name}ctl/conf
+            cp ${name}-${os}-${arch}/dm-ansible/scripts/* ${name}ctl/scripts
+        fi;
         tar -czvf package/${name}ctl-${version}-${os}-${arch}.tar.gz ${name}ctl
         rm -rf ${name}ctl
         """
