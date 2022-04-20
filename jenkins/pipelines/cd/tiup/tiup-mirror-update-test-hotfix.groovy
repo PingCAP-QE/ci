@@ -342,7 +342,9 @@ node("build_go1130") {
                 } else {
                     lightning_sha1 = get_hash(BR_TAG,"br")
                 }
-                dm_sha1 = get_hash(DM_TAG, "dm")
+                if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {
+                    dm_sha1 = get_hash(DM_TAG, "dm")
+                }
             }
 
             if (HOTFIX_TAG == "nightly") {
