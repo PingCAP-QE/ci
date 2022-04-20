@@ -264,6 +264,7 @@ def download_binaries() {
     } else {
         dependencyBranch = "master"
         tidbDependencyBranch = "release-6.0"
+        println "target branch is not release branch, dependency tidb use release-6.0 branch to download binaries"
         println "target branch is not release branch, dependency use master branch instead"
     }
     match = null
