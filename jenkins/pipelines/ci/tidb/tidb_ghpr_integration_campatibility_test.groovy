@@ -92,7 +92,7 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
-            idleMinutes: 0,
+            idleMinutes: 120,
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
