@@ -51,17 +51,13 @@ def download = { name, hash, os, arch ->
 
     tarball_name = "${name}-${os}-${arch}.tar.gz"
     
+    // pre-release && release build binary cached in fileserver in the following format:
     if (HOTFIX_TAG != "nightly" && HOTFIX_TAG >= "v4.0.0") {
         sh """
         wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${hash}/${platform}/${tarball_name}
         """
-        if (${name} == "dm") {
-            def dm_ansible_tarball_name = "dm-ansible-${os}-${arch}.tar.gz"
-            sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${HOTFIX_TAG}/${hash}/${platform}/${dm_ansible_tarball_name}
-            """
-        }
     } else {
+        // nightly build binary cached in file server in the following format:
         sh """
         wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${hash}/${platform}/${tarball_name}
         """
@@ -73,12 +69,6 @@ def unpack = { name, os, arch ->
     sh """
     tar -zxf ${tarball_name}
     """
-    if (${name} == "dm") {
-        def dm_ansible_tarball_name = "dm-ansible-${os}-${arch}.tar.gz"
-        sh """
-        tar -zxf ${dm_ansible_tarball_name}
-        """
-    }
 }
 
 def pack = { name, version, os, arch ->
@@ -123,7 +113,7 @@ def pack = { name, version, os, arch ->
         sh """
         [ -d package ] || mkdir package
         """
-
+        // TODO: dm-ansible has been remove from the repo since v6.0.0.
         sh """
         echo "package dm-master"    
         mkdir ${name}-master
@@ -210,12 +200,16 @@ def update_ctl = { version, os, arch ->
     lightning_tarball_name = "br-${os}-${arch}.tar.gz"
     lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
     
+
     if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v4.0.0") {
+        // release and pre-release version
         if (HOTFIX_TAG != "nightly") {
+            // download cdc and lightning cached tar.gz to get ctl binary
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${HOTFIX_TAG}/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
             wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${HOTFIX_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
+        // nightly version
         } else {
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
