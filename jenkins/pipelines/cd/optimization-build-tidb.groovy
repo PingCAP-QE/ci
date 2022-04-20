@@ -6,6 +6,7 @@
 * @LIGHTNING_HASH
 * @TOOLS_HASH
 * @CDC_HASH
+* @DM_HASH
 * @BR_HASH
 * @TIFLASH_HASH
 * @RELEASE_TAG
@@ -39,6 +40,7 @@ try {
         build_para["tidb-tools"] = TOOLS_HASH
         build_para["pd"] = PD_HASH
         build_para["ticdc"] = CDC_HASH
+        build_para["dm"] = DM_HASH
         build_para["br"] = BR_HASH
         build_para["dumpling"] = DUMPLING_HASH
         build_para["ng-monitoring"] = NGMonitoring_HASH
