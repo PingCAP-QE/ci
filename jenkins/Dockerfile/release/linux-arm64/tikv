@@ -1,4 +1,4 @@
-FROM centos:8
+FROM pingcap/alpine-glibc:alpine-3.14.3-gcompat
 ENV TZ=/etc/localtime
 ENV TZDIR=/usr/share/zoneinfo
 COPY tikv-server /tikv-server

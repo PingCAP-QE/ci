@@ -1,4 +1,4 @@
-FROM centos:8
+FROM pingcap/alpine-glibc:alpine-3.14.3-gcompat
 COPY zoneinfo.zip  /usr/local/go/lib/time/zoneinfo.zip
 COPY ng-monitoring-server /ng-monitoring-server
 EXPOSE 12020

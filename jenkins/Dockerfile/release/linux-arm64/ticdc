@@ -1,4 +1,4 @@
-FROM alpine:3.12
+FROM pingcap/alpine-glibc:alpine-3.14.3-gcompat
 RUN apk add --no-cache tzdata bash curl socat
 COPY cdc /cdc
 EXPOSE 8300
