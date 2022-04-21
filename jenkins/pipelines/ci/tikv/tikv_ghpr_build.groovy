@@ -15,7 +15,7 @@ def githash
 
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
 // def release="dist_release"
-def release="release"
+def release="build"
 
 def ghprbCommentBody = params.ghprbCommentBody ?: null
 
