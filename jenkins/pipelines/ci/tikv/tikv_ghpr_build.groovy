@@ -14,8 +14,8 @@ def slackcolor = 'good'
 def githash
 
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
-def release="dist_release"
-
+// def release="dist_release"
+def release="release"
 
 def ghprbCommentBody = params.ghprbCommentBody ?: null
 
@@ -63,7 +63,6 @@ try {
                             echo using gcc 8
                             source /opt/rh/devtoolset-8/enable
                             CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
-                            # use make release
                             mkdir -p bin
                             cp /home/jenkins/agent/.target/release/tikv-server bin/
                             cp /home/jenkins/agent/.target/release/tikv-ctl bin
