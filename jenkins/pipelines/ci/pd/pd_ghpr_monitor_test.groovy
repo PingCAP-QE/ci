@@ -100,12 +100,12 @@ try {
                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                     curl \${tikv_url} | tar xz
 
-                    while ! curl --output /dev/null --silent --head --fail \${pd_done_url}; do sleep 1; done
-                    curl \${pd_url} | tar xz
+                    while ! curl --output /dev/null --silent --head --fail ${pd_done_url}; do sleep 1; done
+                    curl ${pd_url} | tar xz
 
                     mkdir -p ./tidb-src
-                    while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                    curl ${tidb_url} | tar xz -C ./tidb-src
+                    while ! curl --output /dev/null --silent --head --fail \${tidb_url}; do sleep 1; done
+                    curl \${tidb_url} | tar xz -C ./tidb-src
 
                     mv tidb-src/bin/tidb-server ./bin/tidb-server
 
