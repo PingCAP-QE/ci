@@ -32,7 +32,7 @@ println "TIKV_BRANCH=${TIKV_BRANCH}"
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
-    def namespace = "jenkins-pd"
+    def namespace = "jenkins-tidb"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached-pigz'
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -87,7 +87,7 @@ try {
                 }
 
                 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
-                def pd_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/done"
+                def pd_sha1_file = "${FILE_SERVER_URL}/download/refs/pingcap/pd/pr/${ghprbPullId}/sha1"
                 timeout(10) {
                     sh """
                     tidb_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"`
@@ -100,7 +100,7 @@ try {
                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                     curl \${tikv_url} | tar xz
 
-                    while ! curl --output /dev/null --silent --head --fail ${pd_done_url}; do sleep 1; done
+                    while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 1; done
                     curl ${pd_url} | tar xz
 
                     mkdir -p ./tidb-src
@@ -212,23 +212,23 @@ spec:
   - protocol: TCP
     port: 3000
   selector:
-    jenkins/label: "test_pd_monitor"
+    jenkins/label: "${label}"
     pr: "pd-${ghprbPullId}"
   sessionAffinity: None
   type: NodePort
 EOF
                     """
                     sh """
-                    ./kubectl -n jenkins-pd get service | grep "grafana-expose-pd-pr-${ghprbPullId} " > /dev/null && ./kubectl -n jenkins-pd delete service grafana-expose-pd-pr-${ghprbPullId}
-                    ./kubectl -n jenkins-pd label pod ${NODE_NAME} --overwrite pr="pd-${ghprbPullId}"
-                    ./kubectl -n jenkins-pd apply -f service.yaml
+                    ./kubectl -n jenkins-tidb get service | grep "grafana-expose-pd-pr-${ghprbPullId} " > /dev/null && ./kubectl -n jenkins-tidb delete service grafana-expose-pd-pr-${ghprbPullId}
+                    ./kubectl -n jenkins-tidb label pod ${NODE_NAME} --overwrite pr="pd-${ghprbPullId}"
+                    ./kubectl -n jenkins-tidb apply -f service.yaml
                     sleep 3
                     """
                     withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                         sh"""
                         port=`./kubectl -n jenkins-tidb get service | grep  "grafana-expose-pd-pr-${ghprbPullId} " | awk '{print \$5}' | cut -d: -f2 | cut -d/ -f1`
                         echo service port: \${port}
-                        ./comment-pr --token=$TOKEN --owner=pingcap --repo=pr --number=${ghprbPullId} --comment="Visit the grafana server at: http://172.16.5.5:\${port}, it will last for 5 hours"
+                        ./comment-pr --token=$TOKEN --owner=tikv --repo=pd --number=${ghprbPullId} --comment="Visit the grafana server at: http://172.16.5.5:\${port}, it will last for 5 hours"
                         """
                     }
                     sh "sleep 18000"
@@ -245,7 +245,7 @@ EOF
                 } finally {
                     sh """
                     set +e
-                    ./kubectl -n jenkins-pd delete service grafana-expose-pd-pr-${ghprbPullId}
+                    ./kubectl -n jenkins-tidb delete service grafana-expose-pd-pr-${ghprbPullId}
                     killall -9 -r tidb-server
                     killall -9 -r tikv-server
                     killall -9 -r pd-server
