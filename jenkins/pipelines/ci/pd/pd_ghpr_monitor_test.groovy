@@ -119,10 +119,10 @@ try {
     - targets:
       - 127.0.0.1:2379
 EOF
-                    cat <<EOF > grafana-6.4.5/conf/provisioning/dashboards/tidb.yaml
+                    cat <<EOF > grafana-6.4.5/conf/provisioning/dashboards/pd.yaml
 apiVersion: 1
 providers:
-  - name: 'tidb'
+  - name: 'pd'
     orgId: 1
     folder: ''
     folderUid: ''
@@ -135,7 +135,7 @@ EOF
                     cd prometheus-2.15.2.linux-amd64
                     ./prometheus > ../prometheus.log &
                     cd ../grafana-6.4.5
-                    cat <<EOF > conf/provisioning/datasources/tidb.yaml
+                    cat <<EOF > conf/provisioning/datasources/pd.yaml
 apiVersion: 1
 datasources:
   - access: proxy
