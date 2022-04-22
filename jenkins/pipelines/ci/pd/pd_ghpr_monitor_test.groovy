@@ -61,6 +61,10 @@ def run_with_pod(Closure body) {
     }
 }
 
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
+if (ghprbPullId != null && ghprbPullId != "") {
+    specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
+}
 
 try {
     stage('PD Monitor Test') {
@@ -75,8 +79,10 @@ try {
                         if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/pd.git']]]
-                        sh "git checkout -f ${ghprbActualCommit}"
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: ghprbActualCommit ]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/pd.git']]]
+                        sh """
+                        git status
+                        """
                     }
                 }
 
