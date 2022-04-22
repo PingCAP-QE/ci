@@ -14,8 +14,8 @@ def TIDB_BRANCH = ghprbTargetBranch
 
 // parse tidb branch
 def m3 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m1) {
-    TIDB_BRANCH = "${m1[0][1]}"
+if (m3) {
+    TIDB_BRANCH = "${m3[0][1]}"
 }
 m3 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
