@@ -29,15 +29,56 @@ m1 = null
 println "TIKV_BRANCH=${TIKV_BRANCH}"
 
 
+label = "${JOB_NAME}-${BUILD_NUMBER}"
+def run_with_pod(Closure body) {
+    def cloud = "kubernetes"
+    def namespace = "jenkins-pd"
+    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 10,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
 
 try {
-    stage('TiDB Monitor Test') {
-        node("test_tidb_monitor") {
+    stage('PD Monitor Test') {
+        run_with_pod {
             container("golang") {
                 def ws = pwd()
                 deleteDir()
 
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
+                stage("Checkout") {
+                    // fetch source
+                    dir("/home/jenkins/agent/git/pd") {
+                        if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                            deleteDir()
+                        }
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:tikv/pd.git']]]
+                        sh "git checkout -f ${ghprbActualCommit}"
+                    }
+                }
 
                 def pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/pd-server.tar.gz"
                 def pd_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/pr/${ghprbActualCommit}/centos7/done"
@@ -61,6 +102,9 @@ try {
                     curl ${tidb_url} | tar xz -C ./tidb-src
 
                     mv tidb-src/bin/tidb-server ./bin/tidb-server
+
+                    rm -rf metrics
+                    cp -R /home/jenkins/agent/git/pd/metrics .
 
                     curl ${FILE_SERVER_URL}/download/bin/prometheus-2.15.2.linux-amd64.tar.gz | tar xz
                     curl ${FILE_SERVER_URL}/download/bin/grafana-6.4.5.linux-amd64.tar.gz | tar xz
@@ -128,7 +172,7 @@ providers:
     folderUid: ''
     type: file
     options:
-      path: ${ws}/tidb-src/metrics/grafana
+      path: ${ws}/metrics/grafana
 EOF
                     """
                     sh """
