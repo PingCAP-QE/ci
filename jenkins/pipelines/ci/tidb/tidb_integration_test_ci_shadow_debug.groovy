@@ -227,13 +227,14 @@ run_with_pod {
                 }
 
                 pipeline_result << [
-                    name: "tidb-merge-ci",
+                    name: "tidb-merge-ci-shadow",
                     result: currentBuild.result,
                     type: "mergeci-pipeline",
                     buildNumber: BUILD_NUMBER,
                     commitID: TIDB_COMMIT_ID,
                     branch: TIDB_BRANCH,
                     prID: GEWT_PULL_ID.replaceAll("#", ""),
+                    prAuthor: GEWT_AUTHOR,
                     repo: "tidb",
                     org: "pingcap",
                     url: RUN_DISPLAY_URL,
