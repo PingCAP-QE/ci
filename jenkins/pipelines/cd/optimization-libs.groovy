@@ -199,7 +199,7 @@ def build_product(build_para, product) {
         paramsBuild.push(string(name: "EDITION", value: "community"))
     }
 
-
+    println "paramsBuild: ${paramsBuild}"
     build job: "build-common", 
         wait: true, 
         parameters: paramsBuild
