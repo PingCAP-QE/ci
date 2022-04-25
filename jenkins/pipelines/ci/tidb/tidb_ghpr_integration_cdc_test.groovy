@@ -15,7 +15,8 @@ if (params.containsKey("release_test")) {
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 // dailyci or mergeci trigger this ci, use different binary download url
 if (ghprbPullId == null || ghprbPullId == "") {
-    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+    // builds/pingcap/tidb-check/pr/f5c2710cd493de9ad99ca79a652d64f349d05425/centos7/tidb-server.tar.gz
+    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 }
 
 result = ""
@@ -27,7 +28,7 @@ node("${GO_TEST_SLAVE}") {
                 container("golang") {
                     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     // Wait build finish.
-                    timeout(60) {
+                    timeout(3) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail "${tidb_url}"; do sleep 5; done
                         """
@@ -37,6 +38,7 @@ node("${GO_TEST_SLAVE}") {
                     println "tidb binary url: ${tidb_url}"
                     def default_params = [
                             booleanParam(name: 'force', value: true),
+                            booleanParam(name: 'ENABLE_FAIL_FAST', value: false),
                             string(name: 'triggered_by_upstream_pr_ci', value: "tidb"),
                             string(name: 'upstream_pr_ci_ghpr_target_branch', value: "${ghprbTargetBranch}"),
                             // We use the latest commit build binary which cached in file server to run test.

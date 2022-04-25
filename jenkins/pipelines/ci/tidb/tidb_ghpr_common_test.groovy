@@ -258,10 +258,12 @@ try {
                             }
                         }
                         dir("go/src/github.com/pingcap") {
-                            sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            retry(3){
+                                sh """
+                                    echo "unstash tidb"
+                                    curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
+                                """
+                            }
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {

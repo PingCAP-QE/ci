@@ -129,13 +129,13 @@ node("github-status-updater") {
             container("github-status-updater") {
                 parallel(
                         // integration test
-                        tidb_ghpr_integration_br_test: {
-                            def result = build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_integration_br_test", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_integration_br_test failed")
-                            }
-                        },
+                        // tidb_ghpr_integration_br_test: {
+                        //     def result = build(job: "tidb_ghpr_integration_br_test", parameters: default_params, wait: true, propagate: false)
+                        //     triggered_job_result << ["name": "tidb_ghpr_integration_br_test", "type": "tidb-merge-ci-checker" , "result": result]
+                        //     if (result.getResult() != "SUCCESS") {
+                        //         throw new Exception("tidb_ghpr_integration_br_test failed")
+                        //     }
+                        // },
                         tidb_ghpr_common_test: {
                             def result = build(job: "tidb_ghpr_common_test", parameters: default_params, wait: true, propagate: false)
                             triggered_job_result << ["name": "tidb_ghpr_common_test", "type": "tidb-merge-ci-checker" , "result": result]
@@ -157,13 +157,15 @@ node("github-status-updater") {
                                 throw new Exception("tidb_ghpr_integration_campatibility_test failed")
                             }
                         },
-                        tidb_ghpr_integration_copr_test: {
-                            def result = build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_integration_copr_test", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_integration_copr_test failed")
-                            }
-                        },
+                        // TODO: enable this job when copr-test fixed (currently unstable)
+                        // ichn-hu is working on it
+                        // tidb_ghpr_integration_copr_test: {
+                        //     def result = build(job: "tidb_ghpr_integration_copr_test", parameters: default_params, wait: true, propagate: false)
+                        //     triggered_job_result << ["name": "tidb_ghpr_integration_copr_test", "type": "tidb-merge-ci-checker" , "result": result]
+                        //     if (result.getResult() != "SUCCESS") {
+                        //         throw new Exception("tidb_ghpr_integration_copr_test failed")
+                        //     }
+                        // },
                         tidb_ghpr_integration_ddl_test: {
                             def result = build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params, wait: true, propagate: false)
                             triggered_job_result << ["name": "tidb_ghpr_integration_ddl_test", "type": "tidb-merge-ci-checker" , "result": result]
@@ -199,22 +201,24 @@ node("github-status-updater") {
                                 throw new Exception("tidb_ghpr_tics_test failed")
                             }
                         },
-                        tidb_ghpr_integration_cdc_test: {
-                            def result = build(job: "tidb_ghpr_integration_cdc_test", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_integration_cdc_test", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_integration_cdc_test failed")
-                            }
-                        },
+                        // tidb_ghpr_integration_cdc_test: {
+                        //     def result = build(job: "tidb_ghpr_integration_cdc_test", parameters: default_params, wait: true, propagate: false)
+                        //     triggered_job_result << ["name": "tidb_ghpr_integration_cdc_test", "type": "tidb-merge-ci-checker" , "result": result]
+                        //     if (result.getResult() != "SUCCESS") {
+                        //         throw new Exception("tidb_ghpr_integration_cdc_test failed")
+                        //     }
+                        // },
 
+                        // TODO : enable this job when tidb unit test more stable
+                        // bb7133 is working on it
                         // coverage
-                        tidb_ghpr_coverage: {
-                            def result = build(job: "tidb_ghpr_coverage", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_coverage", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_coverage failed")
-                            }
-                        },
+                        // tidb_ghpr_coverage: {
+                        //     def result = build(job: "tidb_ghpr_coverage", parameters: default_params, wait: true, propagate: false)
+                        //     triggered_job_result << ["name": "tidb_ghpr_coverage", "type": "tidb-merge-ci-checker" , "result": result]
+                        //     if (result.getResult() != "SUCCESS") {
+                        //         throw new Exception("tidb_ghpr_coverage failed")
+                        //     }
+                        // },
                         // unit test
                         // tidb_ghpr_unit_test: {
                         //     build(job: "tidb_ghpr_unit_test", parameters: default_params, wait: true, propagate: false)
@@ -302,57 +306,31 @@ node("github-status-updater") {
                 writeJSON file: 'ciResult.json', json: json, pretty: 4
                 sh 'cat ciResult.json'
                 archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-
-                if (currentBuild.result != "SUCCESS") {
-                    sh """
-                    wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-mergeci.py
-                    python3 agent-mergeci.py ciResult.json
-                    """
-                }
-
-            }
-        }
-
-        stage("alert") {
-            container("python3") {
-                if ( env.REF != '' ) {
-                    sh """
-                cat > env_param.conf <<EOF
-export BRANCH=${TIDB_BRANCH}
-export COMMIT_ID=${TIDB_COMMIT_ID}
-export AUTHOR=${GEWT_AUTHOR}
-export AUTHOR_EMAIL=${GEWT_AUTHOR_EMAIL}
-export PULL_ID=${GEWT_PULL_ID}
-EOF
-                """
-                }  else {
-                    sh """
-                cat > env_param.conf <<EOF
-export BRANCH=${TIDB_BRANCH}
-export COMMIT_ID=${TIDB_COMMIT_ID}
-EOF
-                """
-                }
-                sh """
-                cat env_param.conf
-                curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tidb_integration_test_ci_alert_v2.py
-                curl -LO ${FILE_SERVER_URL}/download/cicd/scripts/tidb_integration_test_ci_inspector.py
-                """
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
                                  string(credentialsId: 'break-mergeci-github-token', variable: 'BREAK_MERGE_CI_GITHUB_API_TOKEN'),
                                  string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
                                  string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
-                ]) {
-                    sh '''#!/bin/bash
-                set +x
-                export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
-                export FEISHU_ALERT_URL=${FEISHU_ALERT_URL}
-                export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
-                export FEISHU_BREAK_IT_ALERT_URL=${FEISHU_BREAK_IT_ALERT_URL}
-                source env_param.conf
-                python3 tidb_integration_test_ci_alert_v2.py > alert_feishu.log
-                python3 tidb_integration_test_ci_inspector.py ${PULL_ID}
-                '''
+                ]) { 
+                    if (TIDB_BRANCH == "master") { 
+                        sh """
+                        export LC_CTYPE="en_US.UTF-8"
+                        export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+                        export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
+                        export COMMENT_PR_GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+                        rm -rf agent-tidb-mergeci.py
+                        wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
+                        python3 agent-tidb-mergeci.py ciResult.json ${FEISHU_BREAK_IT_ALERT_URL} ${FEISHU_ALERT_URL}
+                        """
+                    } else {
+                        sh """
+                        export LC_CTYPE="en_US.UTF-8"
+                        export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
+                        export COMMENT_PR_GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+                        rm -rf agent-tidb-mergeci.py
+                        wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
+                        python3 agent-tidb-mergeci.py ciResult.json
+                        """
+                    }
                 }
             }
         }

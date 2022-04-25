@@ -235,7 +235,30 @@ catchError {
                     deleteDir()
                 }
                 try {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
+                    checkout(changelog: false, poll: false, scm: [
+                            $class                           : "GitSCM",
+                            branches                         : [
+                                    [name: ghprbActualCommit],
+                            ],
+                            userRemoteConfigs                : [
+                                    [
+                                            url          : "git@github.com:pingcap/tiflow.git",
+                                            refspec      : specStr,
+                                            credentialsId: "github-sre-bot-ssh",
+                                    ]
+                            ],
+                            extensions                       : [
+                                    [$class             : 'SubmoduleOption',
+                                    disableSubmodules  : false,
+                                    parentCredentials  : true,
+                                    recursiveSubmodules: true,
+                                    trackingSubmodules : false,
+                                    reference          : ''],
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                            ],
+                            doGenerateSubmoduleConfigurations: false,
+                    ])
                 } catch (info) {
                     retry(2) {
                         echo "checkout failed, retry.."
@@ -243,10 +266,32 @@ catchError {
                         if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
                         }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
+                        checkout(changelog: false, poll: false, scm: [
+                            $class                           : "GitSCM",
+                            branches                         : [
+                                    [name: ghprbActualCommit],
+                            ],
+                            userRemoteConfigs                : [
+                                    [
+                                            url          : "git@github.com:pingcap/tiflow.git",
+                                            refspec      : specStr,
+                                            credentialsId: "github-sre-bot-ssh",
+                                    ]
+                            ],
+                            extensions                       : [
+                                    [$class             : 'SubmoduleOption',
+                                    disableSubmodules  : false,
+                                    parentCredentials  : true,
+                                    recursiveSubmodules: true,
+                                    trackingSubmodules : false,
+                                    reference          : ''],
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                            ],
+                            doGenerateSubmoduleConfigurations: false,
+                        ])
                     }
                 }
-                sh "git checkout -f ${ghprbActualCommit}"
             }
 
             dir("${ws}/go/src/github.com/pingcap/ci") {

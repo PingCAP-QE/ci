@@ -2,9 +2,13 @@
 * @ARCH_ARM
 * @ARCH_X86
 * @ARCH_MAC
-* @RELEASE_BRANCH
+* @ARCH_MAC_ARM
+
+* @FORCE_REBUILD 是否需要强制重新构建（false 则按照hash检查文件服务器上是否存在对应二进制，存在则不构建）
+* @RELEASE_BRANCH 预发布分支，所有构建代码基于这个分支拉取
 * @RELEASE_TAG
-* @FORCE_REBUILD
+* @TIDB_PRM_ISSUE 默认为空，当填写了 issue id 的时候，sre-bot 会自动更新各组件 hash 到 issue 上
+
 * @TIUP_MIRRORS
 * @TIKV_BUMPVERION_HASH
 * @TIKV_BUMPVERSION_PRID
@@ -19,6 +23,7 @@ binlog_sha1=""
 lightning_sha1=""
 tools_sha1=""
 cdc_sha1=""
+dm_sha1=""
 dumpling_sha1=""
 ng_monitoring_sha1=""
 tidb_ctl_githash=""
@@ -70,6 +75,11 @@ def get_sha() {
     }
 
     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    if (RELEASE_TAG >= "v5.3.0") {
+        dm_sha1 = cdc_sha1
+    } else {
+        println "dm is not supported in ${RELEASE_TAG}, support dm release from v5.3.0(include v5.3.0)"
+    }
     tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=master -s=${FILE_SERVER_URL}").trim()
 
     if (TIKV_BUMPVERION_HASH.length() == 40) {
@@ -85,6 +95,7 @@ def get_sha() {
     println "tiflash_sha1: ${tiflash_sha1}"
     println "tools_sha1: ${tools_sha1}"
     println "cdc_sha1: ${cdc_sha1}"
+    println "dm_sha1: ${dm_sha1}"
     println "tidb_ctl_hash: ${tidb_ctl_githash}"
     println "binlog_sha1: ${binlog_sha1}"
     println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
@@ -100,6 +111,7 @@ def get_sha() {
             echo 'tiflash = "${tiflash_sha1}"' >> githash.toml
             echo 'tools = "${tools_sha1}"' >> githash.toml
             echo 'cdc = "${cdc_sha1}"' >> githash.toml
+            echo 'dm = "${dm_sha1}"' >> githash.toml
             echo 'tidb_ctl = "${tidb_ctl_githash}"' >> githash.toml
             echo 'binlog = "${binlog_sha1}"' >> githash.toml
             echo 'ng_monitoring = "${ng_monitoring_sha1}"' >> githash.toml
@@ -125,7 +137,7 @@ stage('Build') {
 
     builds = [:]
     if (params.ARCH_ARM) {
-        builds["Build on linux/arm64"] = {
+        builds["Build linux/arm64"] = {
             build job: "optimization-build-tidb",
                     wait: true,
                     parameters: [
@@ -136,6 +148,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                            [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -153,7 +166,7 @@ stage('Build') {
         }
     }
     if (params.ARCH_MAC) {
-        builds["Build on darwin/amd64"] = {
+        builds["Build darwin/amd64"] = {
             build job: "optimization-build-tidb",
                     wait: true,
                     parameters: [
@@ -164,6 +177,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                            [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -182,7 +196,7 @@ stage('Build') {
     }
 
     if (params.ARCH_X86) {
-        builds["Build on linux/amd64"] = {
+        builds["Build linux/amd64"] = {
             build job: "optimization-build-tidb",
                     wait: true,
                     parameters: [
@@ -193,6 +207,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                            [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -211,7 +226,7 @@ stage('Build') {
     }
 
     if (params.ARCH_MAC_ARM) {
-        builds["Build on darwin/arm64"] = {
+        builds["Build darwin/arm64"] = {
             build job: "optimization-build-tidb",
                     wait: true,
                     parameters: [
@@ -222,6 +237,7 @@ stage('Build') {
                             [$class: 'StringParameterValue', name: 'LIGHTNING_HASH', value: lightning_sha1],
                             [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tools_sha1],
                             [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                            [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                             [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
                             [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -250,6 +266,7 @@ stage('releaese tiup') {
                 [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
                 [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
                 [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
+                [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
                 [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
                 [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
                 [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],

@@ -174,15 +174,26 @@ try {
                         ulimit -c unlimited
                         export GOBACTRACE=crash
                         export log_level=warn
+                        
                         if grep -q "br_unit_test_in_verify_ci" Makefile; then
                             make br_unit_test_in_verify_ci
                             mv test_coverage/br_cov.unit_test.out br.coverage
+                        elif grep -q "br_unit_test" Makefile; then
+                            make br_unit_test
+                        else
+                            echo "not found br_unit_test or br_unit_test_in_verify_ci"
                         fi
+
                         if grep -q "dumpling_unit_test_in_verify_ci" Makefile; then
                             make dumpling_unit_test_in_verify_ci
                             mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                        elif grep -q "dumpling_unit_test" Makefile; then
+                            make dumpling_unit_test
+                        else
+                            echo "not found dumpling_unit_test or dumpling_unit_test_in_verify_ci"
                         fi
-                        if grep -q "go_test_in_verify_ci" Makefile; then
+
+                        if grep -q "gotest_in_verify_ci" Makefile; then
                             make gotest_in_verify_ci
                             mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         else
@@ -195,7 +206,7 @@ try {
                         archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
-                        junit testResults: "**/*-junit-report.xml"
+                        junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
 
                         upload_test_result("test_coverage/tidb-junit-report.xml")
                         upload_test_result("test_coverage/br-junit-report.xml")

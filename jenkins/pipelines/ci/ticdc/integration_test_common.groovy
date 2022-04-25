@@ -127,6 +127,10 @@ def tests(sink_type, node_label) {
             def test_cases = [:]
             // Set to fail fast.
             test_cases.failFast = true
+            if (params.containsKey("ENABLE_FAIL_FAST") && params.get("ENABLE_FAIL_FAST") == "false") {
+                test_cases.failFast = false
+            }
+            println "failFast: ${test_cases.failFast}"
 
             // Start running integration tests.
             def run_integration_test = { step_name, case_names ->
@@ -160,17 +164,20 @@ def tests(sink_type, node_label) {
                         dir("go/src/github.com/pingcap/tiflow") {
                             download_binaries()
                             try {
-                                sh """
-                                    s3cmd --version
-                                    rm -rf /tmp/tidb_cdc_test
-                                    mkdir -p /tmp/tidb_cdc_test
-                                    echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
-                                    GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
-                                    rm -rf cov_dir
-                                    mkdir -p cov_dir
-                                    ls /tmp/tidb_cdc_test
-                                    cp /tmp/tidb_cdc_test/cov*out cov_dir || touch cov_dir/dummy_file_${step_name}
-                                """
+                                timeout(time: 60, unit: 'MINUTES') { 
+                                    sh """
+                                        s3cmd --version
+                                        rm -rf /tmp/tidb_cdc_test
+                                        mkdir -p /tmp/tidb_cdc_test
+                                        echo "${env.KAFKA_VERSION}" > /tmp/tidb_cdc_test/KAFKA_VERSION
+                                        GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_${sink_type} CASE="${case_names}"
+                                        rm -rf cov_dir
+                                        mkdir -p cov_dir
+                                        ls /tmp/tidb_cdc_test
+                                        cp /tmp/tidb_cdc_test/cov*out cov_dir || touch cov_dir/dummy_file_${step_name}
+                                    """
+                                }
+
                                 // cyclic tests do not run on kafka sink, so there is no cov* file.
                                 sh """
                                 tail /tmp/tidb_cdc_test/cov* || true
@@ -250,15 +257,18 @@ def tests(sink_type, node_label) {
  */
 def download_binaries() {
     def dependencyBranch = ghprbTargetBranch
+    def tidbDependencyBranch = ghprbTargetBranch
     def match = ghprbTargetBranch =~ /^release\-(\d+)\.(\d+)/
     if (match.matches()) {
         println "target branch is release branch, dependency use release branch to download binaries"
     } else {
         dependencyBranch = "master"
+        tidbDependencyBranch = "release-6.0"
+        println "target branch is not release branch, dependency tidb use release-6.0 branch to download binaries"
         println "target branch is not release branch, dependency use master branch instead"
     }
     match = null
-    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", dependencyBranch)
+    def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", tidbDependencyBranch)
     def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", dependencyBranch)
     def PD_BRANCH = params.getOrDefault("release_test__pd_commit", dependencyBranch)
     def TIFLASH_BRANCH = params.getOrDefault("release_test__release_branch", dependencyBranch)
@@ -325,7 +335,8 @@ def download_binaries() {
             tidb_url = tidb_download_link
             // Because the tidb archive is packaged differently on pr than on the branch build,
             // we have to use a different unzip path.
-            tidb_archive_path = "bin/tidb-server"
+            tidb_archive_path = "./bin/tidb-server"
+            println "tidb_archive_path=${tidb_archive_path}"
             break;
     }
     def sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
@@ -335,6 +346,7 @@ def download_binaries() {
     }
 
     println "tidb_url: ${tidb_url}"
+    println "tidb_archive_path: ${tidb_archive_path}"
     println "cacheBinaryPath: ${cacheBinaryPath}"
     println "sync_diff_download_url: ${sync_diff_download_url}"
     sh """

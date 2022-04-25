@@ -146,12 +146,6 @@ podTemplate(name: label, label: label, instanceCap: 12, namespace: 'jenkins-tisp
                     if (TEST_TIFLASH != "false") {
                         def tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
                         sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz | tar xz"
-                        sh """
-                        cd tiflash
-                        tar -zcvf flash_cluster_manager.tgz flash_cluster_manager/
-                        rm ./flash_cluster_manager.tgz
-                        cd ..
-                        """
                         stash includes: "tiflash/**", name: "tiflash_binary"
                     }
                     // alter-primary-key
@@ -198,7 +192,7 @@ podTemplate(name: label, label: label, instanceCap: 12, namespace: 'jenkins-tisp
                         }
 
                         if (TEST_TIFLASH != "false") {
-                            wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tispark/tidb_config-for-tiflash-test.properties
+                            sh "wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tispark/tidb_config-for-tiflash-test.properties"
                             sh "cp tidb_config-for-tiflash-test.properties core/src/test/resources/tidb_config.properties"
                         }
 

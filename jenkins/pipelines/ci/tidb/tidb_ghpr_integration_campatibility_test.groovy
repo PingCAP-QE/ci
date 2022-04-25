@@ -92,7 +92,7 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
-            idleMinutes: 0,
+            idleMinutes: 120,
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -117,6 +117,7 @@ def run_with_pod(Closure body) {
 }
 
 all_task_result = []
+def notRun = 1
 
 try {
     stage("Pre-check"){
