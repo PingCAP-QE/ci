@@ -256,14 +256,14 @@ run_with_pod {
                 writeJSON file: 'ciResult.json', json: json, pretty: 4
                 sh 'cat ciResult.json'
                 archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-                withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
-                                 string(credentialsId: 'break-mergeci-github-token', variable: 'BREAK_MERGE_CI_GITHUB_API_TOKEN'),
-                                 string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
+                withCredentials([string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
                                  string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
                 ]) { 
                     if (TIDB_BRANCH == "master") { 
                         sh """
                         export LC_CTYPE="en_US.UTF-8"
+                        wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci-shadow.py
+                        python3 agent-tidb-mergeci-shadow.py ciResult.json ${FEISHU_BREAK_IT_ALERT_URL}
                         """
                     } else {
                         println "current branch is not master, skip ci-notify"
