@@ -67,7 +67,7 @@ def create_builds(build_para) {
             build_product(build_para, "ng-monitoring")
         }
         // dm merged into tiflow from 5.3.0, only support build dm from v5.3.0
-        build["Build dm"] = {
+        builds["Build dm"] = {
             build_product(build_para, "dm")
         }
     }
