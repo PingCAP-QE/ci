@@ -884,7 +884,7 @@ finally {
                     sh "cat ciResult.json"
                     archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
                     sh """
-                    curl -F cicd/ci-pipeline-artifacts/result-br_ghpr_unit_and_integration_test_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
+                    curl -F cicd/ci-pipeline-artifacts/result-br_ghpr_unit_and_integration_test_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload  || true
                     """
                 }
             }
