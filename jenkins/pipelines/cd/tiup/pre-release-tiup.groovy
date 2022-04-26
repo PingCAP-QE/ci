@@ -83,7 +83,7 @@ def get_sha() {
     tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=master -s=${FILE_SERVER_URL}").trim()
 
     if (TIKV_BUMPVERION_HASH.length() == 40) {
-        return tikv_sha1 = TIKV_BUMPVERION_HASH
+        tikv_sha1 = TIKV_BUMPVERION_HASH
     }
 
     println "tidb_sha1: ${tidb_sha1}"
