@@ -21,7 +21,7 @@ def get_hash = { hash_or_branch, repo ->
     return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${hash_or_branch} -s=${FILE_SERVER_URL}").trim()
 }
 
-def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version
+def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, dm_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version
 def tidb_desc = "TiDB is an open source distributed HTAP database compatible with the MySQL protocol"
 def tikv_desc = "Distributed transactional key-value database, originally created to complement TiDB"
 def pd_desc = "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster"
@@ -343,8 +343,17 @@ node("build_go1130") {
                     lightning_sha1 = get_hash(BR_TAG,"br")
                 }
                 if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") {
-                    dm_sha1 = get_hash(DM_TAG, "dm")
+                    dm_sha1 = get_hash(DM_TAG, "ticdc")
                 }
+
+                println "tidb_sha1: ${tidb_sha1}"
+                println "tidb_ctl_sha1: ${tidb_ctl_sha1}"
+                println "tikv_sha1: ${tikv_sha1}"
+                println "pd_sha1: ${pd_sha1}"
+                println "tidb_binlog_sha1: ${tidb_binlog_sha1}"
+                println "ticdc_sha1: ${ticdc_sha1}"
+                println "lightning_sha1: ${lightning_sha1}"
+                println "dm_sha1: ${dm_sha1}"
             }
 
             if (HOTFIX_TAG == "nightly") {
@@ -475,7 +484,9 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "amd64"
                     update "pd", HOTFIX_TAG, pd_sha1, "linux", "amd64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "amd64"
-                    update "dm", HOTFIX_TAG, dm_sha1, "linux", "amd64"
+                    if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") { 
+                        update "dm", HOTFIX_TAG, dm_sha1, "linux", "amd64"
+                    }
                     update_ctl HOTFIX_TAG, "linux", "amd64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "amd64"
                 }
@@ -486,7 +497,9 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "linux", "arm64"
                     update "pd", HOTFIX_TAG, pd_sha1, "linux", "arm64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "linux", "arm64"
-                    update "dm", HOTFIX_TAG, dm_sha1, "linux", "arm64"
+                    if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") { 
+                        update "dm", HOTFIX_TAG, dm_sha1, "linux", "arm64"
+                    }
                     update_ctl HOTFIX_TAG, "linux", "arm64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "linux", "arm64"
                 }
@@ -497,7 +510,10 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "amd64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "amd64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                    // update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
+                    // if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") { 
+                    //     update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"  
+                    // }
+                   
                     update_ctl HOTFIX_TAG, "darwin", "amd64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "amd64"
                 }
@@ -508,7 +524,9 @@ node("build_go1130") {
                     update "tikv", HOTFIX_TAG, tikv_sha1, "darwin", "arm64"
                     update "pd", HOTFIX_TAG, pd_sha1, "darwin", "arm64"
                     update "tidb-binlog", HOTFIX_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    // update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64"
+                    // if (HOTFIX_TAG == "nightly" || HOTFIX_TAG >= "v5.3.0") { 
+                    //     update "dm", HOTFIX_TAG, dm_sha1, "darwin", "amd64" 
+                    // }
                     // update_ctl HOTFIX_TAG, "darwin", "arm64"
                     update "tidb", HOTFIX_TAG, tidb_sha1, "darwin", "arm64"
                 }

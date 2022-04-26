@@ -5,7 +5,7 @@ def slackcolor = 'good'
 def githash
 def tidb_githash, tikv_githash, pd_githash, tools_githash
 def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_githash
-def cdc_githash, lightning_githash
+def cdc_githash, lightning_githash, dm_githash
 
 def taskStartTimeInMillis = System.currentTimeMillis()
 def RELEASE_BRANCH = "master"
@@ -44,9 +44,11 @@ try {
                     tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                     ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
-                    println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}\ntiflow hash:${cdc_sha1}\ntidb-ctl hash:${tidb_ctl_githash}\nng_monitoring hash:${ng_monitoring_sha1}"
+                    println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}"
+                    println "tiflow hash:${cdc_sha1}\ntidb-ctl hash:${tidb_ctl_githash}\nng_monitoring hash:${ng_monitoring_sha1}"
 
                     sh """
                 echo ${tidb_sha1} > sha1
@@ -101,6 +103,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                 [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -125,6 +128,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                 [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -148,6 +152,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                 [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -172,6 +177,7 @@ try {
                                 [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
                                 [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                 [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                 [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                 [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],

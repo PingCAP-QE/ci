@@ -797,8 +797,8 @@ try {
 
         println test_cases
         test_cases.failFast = true
-        if (params.containsKey("ENABLE_FAIL_FAST") && params.get("ENABLE_FAIL_FAST") == "false") {
-            test_cases.failFast = false
+        if (params.containsKey("ENABLE_FAIL_FAST")) {
+            test_cases.failFast = params.get("ENABLE_FAIL_FAST")
         }
         println "failFast: ${test_cases.failFast}"
         parallel test_cases
@@ -876,15 +876,17 @@ catch (Exception e) {
 }
 finally {
     node("lightweight_pod") {
-        stage("task summary") {
-            if (all_task_result) {
-                def json = groovy.json.JsonOutput.toJson(all_task_result)
-                writeJSON file: 'ciResult.json', json: json, pretty: 4
-                sh "cat ciResult.json"
-                archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-                sh """
-                curl -F cicd/ci-pipeline-artifacts/result-br_ghpr_unit_and_integration_test_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
-                """
+        container("golang") {
+            stage("task summary") {
+                if (all_task_result) {
+                    def json = groovy.json.JsonOutput.toJson(all_task_result)
+                    writeJSON file: 'ciResult.json', json: json, pretty: 4
+                    sh "cat ciResult.json"
+                    archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
+                    sh """
+                    curl -F cicd/ci-pipeline-artifacts/result-br_ghpr_unit_and_integration_test_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload  || true
+                    """
+                }
             }
         }
     } 
