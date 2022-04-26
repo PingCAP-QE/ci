@@ -21,7 +21,7 @@ catchError {
                     """
                     withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                         sh"""
-                        ./pull-monitoring  --config=monitoring.yaml --auto-push --tag=${version} --token=$TOKEN
+                        ./pull-monitoring  --config=monitoring.yaml --tag=${version} --token=$TOKEN
                         ls monitor-snapshot/
                         ls monitor-snapshot/${version}/
                         ls monitor-snapshot/${version}/operator
