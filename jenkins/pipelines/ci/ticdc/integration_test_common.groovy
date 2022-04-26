@@ -234,21 +234,23 @@ def tests(sink_type, node_label) {
         println "Error: ${err}"
         throw err
     } finally {
-        if (all_task_result) {
-            def json = groovy.json.JsonOutput.toJson(all_task_result)
-            def ci_pipeline_name = ""
-            if (sink_type == "kafka") {
-                ci_pipeline_name = "cdc_ghpr_kafka_integration_test"
-            } else if (sink_type == "mysql") {
-                ci_pipeline_name = "cdc_ghpr_integration_test"
-            }
-            writeJSON file: 'ciResult.json', json: json, pretty: 4
-            sh "cat ciResult.json"
-            archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-            sh """
-            curl -F cicd/ci-pipeline-artifacts/result-${ci_pipeline_name}_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
-            """
-        }         
+        container("golang") {
+            if (all_task_result) {
+                def json = groovy.json.JsonOutput.toJson(all_task_result)
+                def ci_pipeline_name = ""
+                if (sink_type == "kafka") {
+                    ci_pipeline_name = "cdc_ghpr_kafka_integration_test"
+                } else if (sink_type == "mysql") {
+                    ci_pipeline_name = "cdc_ghpr_integration_test"
+                }
+                writeJSON file: 'ciResult.json', json: json, pretty: 4
+                sh "cat ciResult.json"
+                archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
+                sh """
+                curl -F cicd/ci-pipeline-artifacts/result-${ci_pipeline_name}_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
+                """
+            } 
+        }
     }
 }
 
