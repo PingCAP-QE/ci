@@ -249,7 +249,7 @@ def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, p
         string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "release_online_image: ${paramsDocker}"
-    build job: "docker-common-atom",
+    build job: "docker-common-check",
             wait: true,
             parameters: paramsDocker
 }
@@ -298,7 +298,7 @@ def release_tidb_online_image(product, sha1, plugin_hash, arch, os, platform, ta
         string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "release_online_image: ${paramsDocker}"
-    build job: "docker-common-atom",
+    build job: "docker-common-check",
             wait: true,
             parameters: paramsDocker
 }

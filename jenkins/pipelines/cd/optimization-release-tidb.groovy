@@ -81,6 +81,81 @@ catchError {
 
             }
 
+            def push_binary = { release_tag, ws ->
+                def push_bin = { target ->
+                    dir("${target}") {
+                        sh """
+                           mkdir bin
+                           [ -f ${ws}/centos7/bin/goyacc ] && cp ${ws}/centos7/bin/goyacc ./bin
+                           cp ${ws}/centos7/bin/pd-ctl ./bin
+                           cp ${ws}/centos7/bin/pd-recover ./bin
+                           cp ${ws}/centos7/bin/pd-server ./bin
+                           cp ${ws}/centos7/bin/tidb-ctl ./bin
+                           cp ${ws}/centos7/bin/tidb-server ./bin
+                           cp ${ws}/centos7/bin/tikv-ctl ./bin
+                           cp ${ws}/centos7/bin/tikv-server ./bin
+                           cp ${ws}/etcd/etcd-v3.3.10-linux-amd64/etcdctl ./bin
+                           cp ${ws}/centos7/bin/pump ./bin
+                           cp ${ws}/centos7/bin/drainer ./bin
+                           cp ${ws}/centos7/bin/reparo ./bin
+                           cp ${ws}/centos7/bin/binlogctl ./bin
+                           cp ${ws}/centos7/bin/arbiter ./bin
+
+                           wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
+                           md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
+                           curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
+                           md5sum --check /tmp/chinese.check
+
+                           wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
+                           md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
+                           curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
+                           md5sum --check /tmp/english.check
+                        """
+                    }
+
+                    sh """
+                        tar czvf ${target}.tar.gz ${target}
+                        sha256sum ${target}.tar.gz > ${target}.sha256
+                        md5sum ${target}.tar.gz > ${target}.md5
+                    """
+
+                    def filepath = "builds/pingcap/release/${target}.tar.gz"
+                    sh """
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    echo  ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
+                    """
+
+                    sh """
+                        export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+                        upload.py ${target}.tar.gz ${target}.tar.gz
+                        upload.py ${target}.sha256 ${target}.sha256
+                        upload.py ${target}.md5 ${target}.md5
+                        """
+
+                    sh """
+                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
+                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
+                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
+                        """
+                }
+
+
+
+                push_bin("tidb-${release_tag}-linux-amd64")
+                push_toolkit("tidb-toolkit-${release_tag}-linux-amd64")
+                push_arm_bin("tidb-${release_tag}-linux-arm64")
+                push_arm_toolkit("tidb-toolkit-${release_tag}-linux-arm64")
+                if (RELEASE_TAG >= "v3.1") {
+                    push_tiflash("tiflash-${release_tag}-linux-amd64")
+                    push_arm_tiflash("tiflash-${release_tag}-linux-arm64")
+                }
+            }
+
+            def builds = [:]
+            builds["Push Centos7 Binary"] = {
+                def ws = pwd()
+                push_binary(RELEASE_TAG, ws)
+            }
             def os = "linux"
             def arch = "amd64"
             def platform = "centos7"
