@@ -239,7 +239,7 @@ try {
         result["notify_message"] = "TiUP release tidb master nightly aborted"
     }
     
-    result["notify_receiver"] = ["zhouqiang-cl", "purelind", "VelocityLight"]
+    result["notify_receiver"] = ["zhouqiang-cl", "purelind", "VelocityLight","heibaijian"]
 
     node("lightweight_pod") {
         container("golang") {
