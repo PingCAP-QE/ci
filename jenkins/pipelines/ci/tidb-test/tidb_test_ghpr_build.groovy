@@ -82,33 +82,35 @@ try {
         def ws = pwd()
 
         stage("Checkout") {
-            // update cache
-            parallel 'tidb-test': {
-                dir("go/src/github.com/pingcap/tidb-test") {
-                    checkout(changelog: false, poll: false, scm: [
-                        $class: "GitSCM",
-                        branches: [
-                            [name: "${ghprbActualCommit}"],
-                        ],
-                        userRemoteConfigs: [
-                            [
-                                url: "git@github.com:pingcap/tidb-test.git",
-                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                credentialsId: 'github-sre-bot-ssh',
-                            ]
-                        ],
-                        extensions: [
-                            [$class: 'PruneStaleBranch'],
-                            [$class: 'CleanBeforeCheckout'],
-                        ],
-                    ])
+            container("golang") {
+                // update cache
+                parallel 'tidb-test': {
+                    dir("go/src/github.com/pingcap/tidb-test") {
+                        checkout(changelog: false, poll: false, scm: [
+                            $class: "GitSCM",
+                            branches: [
+                                [name: "${ghprbActualCommit}"],
+                            ],
+                            userRemoteConfigs: [
+                                [
+                                    url: "git@github.com:pingcap/tidb-test.git",
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                    credentialsId: 'github-sre-bot-ssh',
+                                ]
+                            ],
+                            extensions: [
+                                [$class: 'PruneStaleBranch'],
+                                [$class: 'CleanBeforeCheckout'],
+                            ],
+                        ])
+                    }
+                }, 'tidb': {
+                    dir("go/src/github.com/pingcap/tidb") {
+                        deleteDir()
+                        sh("wget -O- ${downUrl} | tar xz --strip=1")
+                    }
                 }
-            }, 'tidb': {
-                dir("go/src/github.com/pingcap/tidb") {
-                    deleteDir()
-                    sh("wget -O- ${downUrl} | tar xz --strip=1")
-                }
-            }
+            }     
         }
 
         stage("Build") {
