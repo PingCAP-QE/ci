@@ -25,7 +25,7 @@ if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -132,11 +132,12 @@ try {
                     release_one("pd","${githash}")
                     timeout(10) {
                         sh """
-                        echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         tar --exclude=pd-server.tar.gz -czvf pd-server.tar.gz *
                         curl -F ${filepath}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
+
+                        echo "${githash}" > sha1
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
