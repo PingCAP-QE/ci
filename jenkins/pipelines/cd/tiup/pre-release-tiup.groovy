@@ -134,7 +134,7 @@ def get_sha() {
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
+    def namespace = "jenkins-cd"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -303,28 +303,70 @@ run_with_pod {
             }
             parallel builds
         }
-        stage('tiup staging publish') {
-            build job: "tiup-mirror-update-test-hotfix",
-                wait: true,
-                parameters: [
-                        [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
-                        [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
-                        [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
-                        [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
-                        [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
-                        [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
-                        [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
-                        [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
-                        [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
-                        [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
-                        [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
-                        [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
-                        [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
-                        [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
-                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
-                        [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: ARCH_MAC_ARM],
-                        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                ]
+
+        publishs = [:]
+        stage("publish to staging") {
+            publishs["publish tiup staging"] = {
+                build job: "tiup-mirror-update-test-hotfix",
+                    wait: true,
+                    parameters: [
+                            [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
+                            [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
+                            [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
+                            [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
+                            [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
+                            [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
+                            [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
+                            [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
+                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
+                            [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
+                            [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: ARCH_MAC_ARM],
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                    ]
+            }
+            publishs["publish community image"] = {
+                build job: "pre-release-docker",
+                    wait: true,
+                    parameters: [
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                            [$class: 'StringParameterValue', name: 'TIKV_BUMPVERION_HASH', value: TIKV_BUMPVERION_HASH],
+                            [$class: 'StringParameterValue', name: 'TIKV_BUMPVERSION_PRID', value: TIKV_BUMPVERSION_PRID],
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                            [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
+                        ]
+            }
+
+            publishs["publish enterprise image"] = {
+                build job: "release-enterprise-docker",
+                    wait: true,
+                    parameters: [
+                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                        ]
+            }
         }
     }
 }
