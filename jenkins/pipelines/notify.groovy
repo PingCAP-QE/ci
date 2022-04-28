@@ -17,7 +17,7 @@ def send_notify(jobname, job_result, build_number, run_dispaly_url, task_start_t
         result["notify_message"] = JOB_NAME + " aborted"
     }
 
-    result["notify_receiver"] = ["purelind", "heibaijian"]
+    result["notify_receiver"] = ["heibaijian"]
 
     node("lightweight_pod") {
         container("golang") {
