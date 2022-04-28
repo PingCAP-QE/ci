@@ -338,6 +338,21 @@ run_with_pod {
                             ]
                 }
             }
+
+            builds["build enterprise binary"] = {
+                build job: "build-linux-enterprise",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'ENTERPRISE_PLUGIN_HASH', value: enterprise_plugin_sha1],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                            ]
+            }
             parallel builds
         }
     }
