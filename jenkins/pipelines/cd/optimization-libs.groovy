@@ -11,7 +11,7 @@ def check_file_exists(build_para, product) {
     def FILE_SERVER_URL = build_para["FILE_SERVER_URL"]
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
-    
+
     result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${filepath} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
     // result equal 0 mean cache file exists
     if (result == 0) {
@@ -105,12 +105,12 @@ def create_enterprise_builds(build_para) {
     builds["Build Plugin ${arch}"] = {
         build_product(build_para, "enterprise-plugin")
     }
-    
+
     return builds
 }
 
 def retag_enterprise_docker(product, release_tag, pre_release) {
-    
+
     if (pre_release) {
         def community_image = "pingcap/${product}:${release_tag}"
         def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
@@ -127,12 +127,12 @@ def retag_enterprise_docker(product, release_tag, pre_release) {
         def enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${release_tag}"
 
         def default_params = [
-            string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
-            string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
+                string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
+                string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
         ]
-        build(job: "jenkins-image-syncer", 
-            parameters: default_params, 
-            wait: true, propagate: false)
+        build(job: "jenkins-image-syncer",
+                parameters: default_params,
+                wait: true, propagate: false)
     }
 
 }
@@ -175,17 +175,17 @@ def build_product(build_para, product) {
 
 
     def paramsBuild = [
-        string(name: "ARCH", value: arch),
-        string(name: "OS", value: os),
-        string(name: "OUTPUT_BINARY", value: filepath),
-        string(name: "REPO", value: repo),
-        string(name: "PRODUCT", value: product),
-        string(name: "GIT_HASH", value: sha1),
-        string(name: "RELEASE_TAG", value: release_tag),
-        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: os),
+            string(name: "OUTPUT_BINARY", value: filepath),
+            string(name: "REPO", value: repo),
+            string(name: "PRODUCT", value: product),
+            string(name: "GIT_HASH", value: sha1),
+            string(name: "RELEASE_TAG", value: release_tag),
+            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
     ]
     if (product in ["tidb", "tikv", "pd"]) {
-        paramsBuild.push(booleanParam(name: 'NEED_SOURCE_CODE', value: true))   
+        paramsBuild.push(booleanParam(name: 'NEED_SOURCE_CODE', value: true))
     }
     if (git_pr != "" && repo == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
@@ -200,12 +200,12 @@ def build_product(build_para, product) {
     }
 
     println "paramsBuild: ${paramsBuild}"
-    build job: "build-common", 
-        wait: true, 
-        parameters: paramsBuild
+    build job: "build-common",
+            wait: true,
+            parameters: paramsBuild
 }
 
-def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, preRelease) {
+def release_online_image(product, sha1, arch, os, platform, tag, enterprise, preRelease) {
     def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     if (product == "tidb-lightning") {
         binary = "builds/pingcap/br/optimization/${tag}/${sha1}/${platform}/br-${os}-${arch}.tar.gz"
@@ -238,15 +238,15 @@ def release_online_image(product, sha1, arch,  os , platform, tag, enterprise, p
     }
 
     def paramsDocker = [
-        string(name: "ARCH", value: arch),
-        string(name: "OS", value: "linux"),
-        string(name: "INPUT_BINARYS", value: binary),
-        string(name: "REPO", value: repo),
-        string(name: "PRODUCT", value: repo),
-        string(name: "RELEASE_TAG", value: RELEASE_TAG),
-        string(name: "DOCKERFILE", value: dockerfile),
-        string(name: "RELEASE_DOCKER_IMAGES", value: image),
-        string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "INPUT_BINARYS", value: binary),
+            string(name: "REPO", value: repo),
+            string(name: "PRODUCT", value: repo),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "DOCKERFILE", value: dockerfile),
+            string(name: "RELEASE_DOCKER_IMAGES", value: image),
+            string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "release_online_image: ${paramsDocker}"
     build job: "docker-common-check",
@@ -287,15 +287,15 @@ def release_tidb_online_image(product, sha1, plugin_hash, arch, os, platform, ta
     }
 
     def paramsDocker = [
-        string(name: "ARCH", value: arch),
-        string(name: "OS", value: "linux"),
-        string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
-        string(name: "REPO", value: repo),
-        string(name: "PRODUCT", value: repo),
-        string(name: "RELEASE_TAG", value: RELEASE_TAG),
-        string(name: "DOCKERFILE", value: dockerfile),
-        string(name: "RELEASE_DOCKER_IMAGES", value: image),
-        string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
+            string(name: "REPO", value: repo),
+            string(name: "PRODUCT", value: repo),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "DOCKERFILE", value: dockerfile),
+            string(name: "RELEASE_DOCKER_IMAGES", value: image),
+            string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "release_online_image: ${paramsDocker}"
     build job: "docker-common-check",

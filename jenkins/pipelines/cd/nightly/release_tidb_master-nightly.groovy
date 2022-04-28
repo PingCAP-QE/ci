@@ -1,37 +1,39 @@
 env.DOCKER_HOST = "tcp://localhost:2375"
 def tidb_sha1, tikv_sha1, pd_sha1
 def IMPORTER_BRANCH = "master"
-catchError {
-    node("${GO_BUILD_SLAVE}") {
-        def ws = pwd()
-        container("golang") {
-            stage('Build Monitor') {
-                println { NODE_NAME }
-                dir("go/src/github.com/pingcap/monitoring") {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/monitoring.git']]]
-                    sh """
+def taskStartTimeInMillis = System.currentTimeMillis()
+try {
+    catchError {
+        node("${GO_BUILD_SLAVE}") {
+            def ws = pwd()
+            container("golang") {
+                stage('Build Monitor') {
+                    println { NODE_NAME }
+                    dir("go/src/github.com/pingcap/monitoring") {
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/*', url: 'git@github.com:pingcap/monitoring.git']]]
+                        sh """
                     # git checkout -f master
                     mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
                     GOPATH=${ws}/go go build -o pull-monitoring  cmd/monitoring.go
                     """
-                    withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                        retry(3) {
-                            sh """
+                        withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+                            retry(3) {
+                                sh """
                             ./pull-monitoring  --config=monitoring.yaml --tag=${TIDB_VERSION} --token=$TOKEN
                             ls monitor-snapshot/${TIDB_VERSION}/operator
                             """
+                            }
                         }
                     }
+                    stash includes: "go/src/github.com/pingcap/monitoring/**", name: "monitoring"
                 }
-                stash includes: "go/src/github.com/pingcap/monitoring/**", name: "monitoring"
             }
         }
-    }
 
-    node('delivery') {
-        container("delivery") {
-            def wss = pwd()
-            sh """
+        node('delivery') {
+            container("delivery") {
+                def wss = pwd()
+                sh """
             rm -rf *
             cd /home/jenkins
             mkdir -p .docker
@@ -39,108 +41,108 @@ catchError {
             cp -R /etc/.aws ./
             cd $wss
             """
-            stage('Prepare') {
-                dir('centos7') {
-                    sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz && rm -f bin/ddltest"
+                stage('Prepare') {
+                    dir('centos7') {
+                        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+                        tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz && rm -f bin/ddltest"
 
-                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
+                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${TIKV_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
 
-                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
+                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${PD_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
 
-                    tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
+                        tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/${tidb_ctl_sha1}/centos7/tidb-ctl.tar.gz | tar xz"
 
-                    def importer_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/importer/${IMPORTER_BRANCH}/sha1").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/${importer_sha1}/centos7/importer.tar.gz | tar xz"
+                        def importer_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/importer/${IMPORTER_BRANCH}/sha1").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/${importer_sha1}/centos7/importer.tar.gz | tar xz"
 
-                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${TIDB_BINLOG_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
+                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${TIDB_BINLOG_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${tidb_binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz"
 
-                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TIDB_TOOLS_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
+                        tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${TIDB_TOOLS_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
 //lightning 要迁移到 br 仓库，br 打包的时候会包含 lightning ，这会导致 br 覆盖 tidb-lightning 包中的二进制。临时调整顺序来解决
 // 后续等正式迁移后改造
-                    if ((TIDB_BR_VERSION.startsWith("release-") && TIDB_BR_VERSION >= "release-5.2") || (TIDB_BR_VERSION == "master")) {
-                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    } else {
-                        tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    }
-                    if ((TIDB_BR_VERSION.startsWith("release-") && TIDB_BR_VERSION >= "release-5.3") || (TIDB_BR_VERSION == "master")) {
-                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    } else {
-                        dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_VERSION} -s=${FILE_SERVER_URL}").trim()
-                    }
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${TIDB_BR_VERSION}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
+                        if ((TIDB_BR_VERSION.startsWith("release-") && TIDB_BR_VERSION >= "release-5.2") || (TIDB_BR_VERSION == "master")) {
+                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        } else {
+                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        }
+                        if ((TIDB_BR_VERSION.startsWith("release-") && TIDB_BR_VERSION >= "release-5.3") || (TIDB_BR_VERSION == "master")) {
+                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${TIDB_BR_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        } else {
+                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${DUMPLING_VERSION} -s=${FILE_SERVER_URL}").trim()
+                        }
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/br/${TIDB_BR_VERSION}/${tidb_br_sha1}/centos7/br.tar.gz | tar xz"
 
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
+                        sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
+                    }
+
+
+                    dir('etcd') {
+                        sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz | tar xz"
+                    }
                 }
 
-
-                dir('etcd') {
-                    sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz | tar xz"
-                }
-            }
-
-            stage("Publish Monitor Docker Image") {
-                dir("monitoring_docker_build") {
-                    deleteDir()
-                    unstash 'monitoring'
-                    dir("go/src/github.com/pingcap/monitoring") {
-                        withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                            docker.build("pingcap/tidb-monitor-initializer:${RELEASE_TAG}", "monitor-snapshot/${TIDB_VERSION}/operator").push()
+                stage("Publish Monitor Docker Image") {
+                    dir("monitoring_docker_build") {
+                        deleteDir()
+                        unstash 'monitoring'
+                        dir("go/src/github.com/pingcap/monitoring") {
+                            withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                                docker.build("pingcap/tidb-monitor-initializer:${RELEASE_TAG}", "monitor-snapshot/${TIDB_VERSION}/operator").push()
+                            }
                         }
                     }
                 }
-            }
 
-            stage('Push tidb Docker') {
-                dir('tidb_docker_build') {
-                    sh """
+                stage('Push tidb Docker') {
+                    dir('tidb_docker_build') {
+                        sh """
                 cp ../centos7/bin/tidb-server ./
                 wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tidb/Dockerfile
                 """
+                    }
+
+                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                        docker.build("pingcap/tidb:${RELEASE_TAG}", "tidb_docker_build").push()
+                    }
                 }
 
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb:${RELEASE_TAG}", "tidb_docker_build").push()
-                }
-            }
-
-            stage('Push tikv Docker') {
-                dir('tikv_docker_build') {
-                    sh """
+                stage('Push tikv Docker') {
+                    dir('tikv_docker_build') {
+                        sh """
                 cp ../centos7/bin/tikv-server ./
                 cp ../centos7/bin/tikv-ctl ./
                 wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tikv/Dockerfile
                 """
+                    }
+
+                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                        docker.build("pingcap/tikv:${RELEASE_TAG}", "tikv_docker_build").push()
+                    }
                 }
 
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tikv:${RELEASE_TAG}", "tikv_docker_build").push()
-                }
-            }
-
-            stage('Push pd Docker') {
-                dir('pd_docker_build') {
-                    sh """
+                stage('Push pd Docker') {
+                    dir('pd_docker_build') {
+                        sh """
                 cp ../centos7/bin/pd-server ./
                 cp ../centos7/bin/pd-ctl ./
                 wget ${FILE_SERVER_URL}/download/script/release-dockerfile/pd/Dockerfile
                 """
+                    }
+
+                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                        docker.build("pingcap/pd:${RELEASE_TAG}", "pd_docker_build").push()
+                    }
                 }
 
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/pd:${RELEASE_TAG}", "pd_docker_build").push()
-                }
-            }
-
-            stage('Push lightning Docker') {
-                dir('lightning_docker_build') {
-                    sh """
+                stage('Push lightning Docker') {
+                    dir('lightning_docker_build') {
+                        sh """
                 cp ../centos7/bin/tidb-lightning ./
                 cp ../centos7/bin/tidb-lightning-ctl ./
                 cp ../centos7/bin/tikv-importer ./
@@ -155,16 +157,16 @@ COPY tikv-importer /tikv-importer
 COPY br /br
 __EOF__
                 """
+                    }
+
+                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                        docker.build("pingcap/tidb-lightning:${RELEASE_TAG}", "lightning_docker_build").push()
+                    }
                 }
 
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-lightning:${RELEASE_TAG}", "lightning_docker_build").push()
-                }
-            }
-
-            stage('Push tidb-binlog Docker') {
-                dir('tidb_binlog_docker_build') {
-                    sh """
+                stage('Push tidb-binlog Docker') {
+                    dir('tidb_binlog_docker_build') {
+                        sh """
                 cp ../centos7/bin/pump ./
                 cp ../centos7/bin/drainer ./
                 cp ../centos7/bin/reparo ./
@@ -182,16 +184,29 @@ EXPOSE 8249 8250
 CMD ["/pump"]
 __EOF__
                 """
-                }
+                    }
 
-                withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                    docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
+                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                        docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
+                    }
                 }
             }
         }
-    }
 
-    currentBuild.result = "SUCCESS"
+        currentBuild.result = "SUCCESS"
+    }
+}catch(Exception e){
+    currentBuild.result = "FAILURE"
+}finally{
+    build job: 'send_notify',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'RESULT_JOB_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_RESULT', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"]
+            ]
 }
 
 stage('Summary') {
