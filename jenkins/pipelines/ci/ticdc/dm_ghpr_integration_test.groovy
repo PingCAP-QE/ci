@@ -213,6 +213,8 @@ def checkout_and_stash_dm_code() {
     }
 }
 
+dm_feature_branch = ["release-multi-source", "refactor-syncer"]
+
 def build_dm_bin() {
     run_build_with_pod {
         container('golang') {
@@ -227,7 +229,7 @@ def build_dm_bin() {
 
                 // tidb
                 def TIDB_BRANCH = ghprbTargetBranch
-                if (!TIDB_BRANCH.startsWith("release-") || TIDB_BRANCH == "release-multi-source" ) {
+                if (!TIDB_BRANCH.startsWith("release-") || TIDB_BRANCH in dm_feature_branch) {
                     TIDB_BRANCH = "master"
                 }
                 TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", TIDB_BRANCH)
