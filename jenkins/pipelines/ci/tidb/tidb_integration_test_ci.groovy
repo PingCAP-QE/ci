@@ -201,13 +201,13 @@ node("github-status-updater") {
                                 throw new Exception("tidb_ghpr_tics_test failed")
                             }
                         },
-                        // tidb_ghpr_integration_cdc_test: {
-                        //     def result = build(job: "tidb_ghpr_integration_cdc_test", parameters: default_params, wait: true, propagate: false)
-                        //     triggered_job_result << ["name": "tidb_ghpr_integration_cdc_test", "type": "tidb-merge-ci-checker" , "result": result]
-                        //     if (result.getResult() != "SUCCESS") {
-                        //         throw new Exception("tidb_ghpr_integration_cdc_test failed")
-                        //     }
-                        // },
+                        tidb_ghpr_integration_cdc_test: {
+                            def result = build(job: "tidb_ghpr_integration_cdc_test", parameters: default_params, wait: true, propagate: false)
+                            triggered_job_result << ["name": "tidb_ghpr_integration_cdc_test", "type": "tidb-merge-ci-checker" , "result": result]
+                            if (result.getResult() != "SUCCESS") {
+                                throw new Exception("tidb_ghpr_integration_cdc_test failed")
+                            }
+                        },
 
                         // TODO : enable this job when tidb unit test more stable
                         // bb7133 is working on it
