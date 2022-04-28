@@ -516,9 +516,6 @@ catchError {
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]
             }
-            stage("send notify"){
-
-            }
         }
     }
 
