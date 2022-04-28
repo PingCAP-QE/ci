@@ -43,6 +43,18 @@ def get_sha(repo,branch) {
     return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
 }
 
+def test_binary_already_build(binary_url) {
+    cacheExisted = sh(returnStatus: true, script: """
+    if curl --output /dev/null --silent --head --fail ${binary_url}; then exit 0; else exit 1; fi
+    """)
+    if (cacheExisted == 0) {
+        return true
+    } else {
+        return false
+    }
+}
+
+
 IMAGE_TAG = RELEASE_TAG + "-pre"
 
 def release_one(repo,arch,failpoint) {
@@ -90,9 +102,18 @@ def release_one(repo,arch,failpoint) {
     if (repo == "monitoring") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_BRANCH])
     }
-    build job: "build-common",
+    if (test_binary_already_build("${FILE_SERVER_URL}/download/${binary}") && !params.FORCE_REBUILD) {
+            echo "binary already build: ${binary}"
+            echo "forece rebuild: ${params.FORCE_REBUILD}"
+            echo "skip build" 
+    } else {
+        echo "force rebuild: ${params.FORCE_REBUILD}"
+        echo "binary not existed or forece_rebuild is true"
+        build job: "build-common",
             wait: true,
             parameters: paramsBuild
+    }
+
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${repo}"
     def imageName = repo
