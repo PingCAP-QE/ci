@@ -304,8 +304,9 @@ run_with_pod {
             parallel builds
         }
 
-        publishs = [:]
+
         stage("publish to staging") {
+            publishs = [:]
             publishs["publish tiup staging"] = {
                 build job: "tiup-mirror-update-test-hotfix",
                     wait: true,
@@ -356,6 +357,8 @@ run_with_pod {
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                         ]
             }
+
+            parallel publishs
         }
     }
 }

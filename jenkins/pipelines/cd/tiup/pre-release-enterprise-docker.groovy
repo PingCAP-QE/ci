@@ -230,6 +230,8 @@ run_with_pod {
         builds["ng-monitoring image"] = {
             retag_enterprise_image("ng-monitoring")
         }
+
+        parallel builds
     }
 }
 
