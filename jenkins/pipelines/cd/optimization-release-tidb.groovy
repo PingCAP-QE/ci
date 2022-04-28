@@ -20,12 +20,12 @@ catchError {
 
                     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    
+
                     tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     if (RELEASE_TAG >= "v5.2.0") {
-                        tidb_br_sha1 = tidb_sha1 
+                        tidb_br_sha1 = tidb_sha1
                     } else {
                         tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     }
@@ -49,7 +49,7 @@ catchError {
         }
     }
 
-    
+
     node('delivery') {
         container("delivery") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -68,7 +68,7 @@ catchError {
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${RELEASE_TAG}/${pd_sha1}/centos7/pd-linux-amd64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-ctl/optimization/${RELEASE_TAG}/${tidb_ctl_sha1}/centos7/tidb-ctl-linux-amd64.tar.gz | tar xz"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${RELEASE_TAG}/${tikv_sha1}/centos7/tikv-linux-amd64.tar.gz | tar xz"
-                    
+
 
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${RELEASE_TAG}/${tidb_tools_sha1}/centos7/tidb-tools-linux-amd64.tar.gz | tar xz && rm -f bin/checker && rm -f bin/importer && rm -f bin/dump_region"
                     sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${RELEASE_TAG}/${tidb_binlog_sha1}/centos7/tidb-binlog-linux-amd64.tar.gz | tar xz"
@@ -116,12 +116,10 @@ catchError {
                            cp ${ws}/centos7/bin/reparo ./bin
                            cp ${ws}/centos7/bin/binlogctl ./bin
                            cp ${ws}/centos7/bin/arbiter ./bin
-
                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
                            md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
                            md5sum --check /tmp/chinese.check
-
                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
                            md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
@@ -173,12 +171,10 @@ catchError {
                            cp ${ws}/arm/bin/reparo ./bin
                            cp ${ws}/arm/bin/binlogctl ./bin
                            cp ${ws}/arm/bin/arbiter ./bin
-
                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
                            md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
                            md5sum --check /tmp/chinese.check
-
                            wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
                            md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
                            curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
@@ -301,7 +297,6 @@ catchError {
                             md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
                             curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
                             md5sum --check /tmp/chinese.check
-
                             wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
                             md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
                             curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
@@ -330,7 +325,6 @@ catchError {
                             md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
                             curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
                             md5sum --check /tmp/chinese.check
-
                             wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
                             md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
                             curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
@@ -426,8 +420,8 @@ catchError {
                 build job: 'release-monitor',
                         wait: true,
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
                         ]
 
                 docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
@@ -502,9 +496,9 @@ catchError {
                 build job: 'build-arm-image',
                         wait: true,
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-                        ]          
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+                        ]
             }
         }
     }

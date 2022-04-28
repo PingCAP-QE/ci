@@ -17,14 +17,14 @@ def download = { name, hash, os, arch ->
         platform = "darwin"
     } else if (os == "darwin" && arch == "arm64") {
         platform = "darwin-arm64"
-    }  else {
+    } else {
         sh """
         exit 1
         """
     }
 
     tarball_name = "${name}-${os}-${arch}.tar.gz"
-    
+
     sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${tarball_name}
     """
@@ -170,7 +170,7 @@ node("build_go1130") {
             stage("Install tiup") {
                 util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
             }
-            
+
             stage("Get component hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
@@ -232,36 +232,52 @@ node("build_go1130") {
             ]
 
             stage("TiUP build cdc") {
-                build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: params1)
+                }
             }
 
             stage("TiUP build br") {
-                build(job: "br-tiup-mirror-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "br-tiup-mirror-update-test", wait: true, parameters: params1)
+                }
             }
 
             stage("TiUP build dumpling") {
-                build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: params1)
+                }
             }
 
             stage("TiUP build lightning") {
-                build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
+                }
             }
 
             stage("TiUP build tiflash") {
-                build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: params1)
+                }
             }
 
             stage("TiUP build grafana") {
-                build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                }
             }
 
             stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                retry(3) {
+                    build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                }
             }
 
             if (RELEASE_TAG == "v6.1.0-alpha") {
                 stage("TiUP build dm") {
-                    build(job: "dm-tiup-mirror-update-test", wait: true, parameters: params1)
+                    retry(3) {
+                        build(job: "dm-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
             }
 
@@ -271,46 +287,54 @@ node("build_go1130") {
             ]
 
             stage("TiUP build tidb on linux/amd64") {
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
-                update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "amd64"
-                update_ctl RELEASE_TAG, "linux", "amd64"
-                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
+                retry(3) {
+                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
+                    update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
+                    update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
+                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "amd64"
+                    update_ctl RELEASE_TAG, "linux", "amd64"
+                    update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
+                }
             }
 
             deleteDir()
 
             stage("TiUP build tidb on linux/arm64") {
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
-                update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "arm64"
-                update_ctl RELEASE_TAG, "linux", "arm64"
-                update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
+                retry(3) {
+                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
+                    update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
+                    update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
+                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "linux", "arm64"
+                    update_ctl RELEASE_TAG, "linux", "arm64"
+                    update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
+                }
             }
 
             deleteDir()
 
             stage("TiUP build tidb on darwin/amd64") {
-                update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
-                update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
-                update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
-                update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
-                update_ctl RELEASE_TAG, "darwin", "amd64"
-                update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
+                retry(3) {
+                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
+                    update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
+                    update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
+                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "amd64"
+                    update_ctl RELEASE_TAG, "darwin", "amd64"
+                    update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
+                }
             }
 
             deleteDir()
 
-            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") {
                 stage("TiUP build tidb on darwin/arm64") {
-                    update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
-                    update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
-                    update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
-                    update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
-                    // update_ctl RELEASE_TAG, "darwin", "arm64"
-                    update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
+                    retry(3) {
+                        update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
+                        update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
+                        update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
+                        update "tidb-binlog", RELEASE_TAG, tidb_binlog_sha1, "darwin", "arm64"
+                        // update_ctl RELEASE_TAG, "darwin", "arm64"
+                        update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
+                    }
                 }
             }
         }
