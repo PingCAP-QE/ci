@@ -8,6 +8,7 @@
 env.DOCKER_HOST = "tcp://localhost:2375"
 
 ng_monitoring_sha1 = ""
+dm_sha1 = ""
 def libs
 catchError {
     stage('Prepare') {
@@ -35,6 +36,7 @@ catchError {
 
                     if (RELEASE_TAG >= "v5.3.0") {
                         dumpling_sha1 = tidb_sha1
+                        dm_sha1 = cdc_sh1
                         ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     } else {
                         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -361,6 +363,9 @@ catchError {
                 push_toolkit("tidb-toolkit-${release_tag}-linux-amd64")
                 push_arm_bin("tidb-${release_tag}-linux-arm64")
                 push_arm_toolkit("tidb-toolkit-${release_tag}-linux-arm64")
+                if (RELEASE_TAG >= "v5.3.0") {
+                    lib.release_dm_ansible_amd64(dm_sha1, RELEASE_TAG)
+                }
                 if (RELEASE_TAG >= "v3.1") {
                     push_tiflash("tiflash-${release_tag}-linux-amd64")
                     push_arm_tiflash("tiflash-${release_tag}-linux-arm64")
@@ -406,7 +411,11 @@ catchError {
             builds["Push cdc Docker"] = {
                 libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
-
+            if (RELEASE_TAG >= "v5.3.0") {
+                builds["Push dm Docker"] = {
+                    libs.release_online_image("dm", dm_sha1, arch,  os , platform, RELEASE_TAG, false, false)
+                }
+            }
             builds["Push tiflash Docker"] = {
                 libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
@@ -439,6 +448,13 @@ catchError {
                         parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
             }
 
+            builds["Publish dm tiup offline package"] = {
+                // publish dm offline package (include linux amd64 and arm64)
+                build job: 'tiup-package-offline-mirror-dm',
+                        wait: true,
+                        parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
+            }
+
             stage("Push tarbll/image") {
                 parallel builds
             }
@@ -448,43 +464,43 @@ catchError {
             arch = "arm64"
             platform = "centos7"
 
-            build_arms["Push tidb Docker"] = {
+            build_arms["arm64 tidb Docker"] = {
                 libs.release_online_image("tidb", tidb_sha1, arch, os , platform, RELEASE_TAG, false, false)
             }
 
-            build_arms["Push tikv Docker"] = {
+            build_arms["arm64 tikv Docker"] = {
                 libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 
-            build_arms["Push pd Docker"] = {
+            build_arms["arm64 pd Docker"] = {
                 libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 
-            build_arms["Push br Docker"] = {
+            build_arms["arm64 br Docker"] = {
                 libs.release_online_image("br", tidb_br_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 
-            build_arms["Push dumpling Docker"] = {
+            build_arms["arm64 dumpling Docker"] = {
                 libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 
-            build_arms["Push tidb-binlog Docker"] = {
+            build_arms["arm64 tidb-binlog Docker"] = {
                 libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
-
-            build_arms["Push cdc Docker"] = {
-                libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false, false)
+            if (RELEASE_TAG >= "v5.3.0") {
+                build_arms["arm64 dm Docker"] = {
+                    libs.release_online_image("dm", dm_sha1, arch,  os , platform, RELEASE_TAG, false, false)
+                }
             }
-
-            build_arms["Push tiflash Docker"] = {
+            build_arms["arm64 tiflash Docker"] = {
                 libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 
-            build_arms["Lightning Docker"] = {
+            build_arms["arm64 Lightning Docker"] = {
                 libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 
-            build_arms["NG Monitoring Docker"] = {
+            build_arms["arm64 NG Monitoring Docker"] = {
                 libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
 

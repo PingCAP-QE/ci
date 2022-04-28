@@ -303,4 +303,86 @@ def release_tidb_online_image(product, sha1, plugin_hash, arch, os, platform, ta
             parameters: paramsDocker
 }
 
+
+def release_dm_ansible_amd64(sha1, release_tag) {
+    node('delivery') {
+        container("delivery") {
+            stage('Prepare') {
+                def wss = pwd()
+                def dm_file = "${FILE_SERVER_URL}/builds/pingcap/dm/optimization/${release_tag}/${sha1}/centos7/dm-linux-amd64.tar.gz}"
+                sh """
+                    rm -rf *
+                    cd /home/jenkins
+                    mkdir -p .docker
+                    cp /etc/dockerconfig.json .docker/config.json
+                    cp -R /etc/.aws ./
+                    cd $wss
+                """
+                dir ('centos7') {
+                    sh "curl ${dm_file} | tar xz"
+                    // do not release dm-ansible after v6.0.0
+                    // if (release_tag.startsWith("v") && release_tag <"v6.0.0") {
+                    //   sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dm/${dm_sha1}/centos7/dm-ansible.tar.gz | tar xz"
+                    // }
+                }
+            }
+
+            stage('Push dm binary') {
+                def target = "dm-${release_tag}-linux-amd64"
+                dir("${target}") {
+                    sh "cp -R ../centos7/* ./"
+                }
+                sh """
+                    tar czvf ${target}.tar.gz ${target}
+                    sha256sum ${target}.tar.gz > ${target}.sha256
+                    md5sum ${target}.tar.gz > ${target}.md5
+                """
+                sh """
+                    export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+                    upload.py ${target}.tar.gz ${target}.tar.gz
+                    upload.py ${target}.sha256 ${target}.sha256
+                    upload.py ${target}.md5 ${target}.md5
+                """
+                sh """
+                    aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
+                    aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
+                    aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
+                """
+            }
+
+            // do not release dm-ansible after v6.0.0
+            if (release_tag.startsWith("v") && release_tag < "v6.0.0") {
+                stage('Push dm-ansible package') {
+                  def target = "dm-ansible-${release_tag}"
+                    sh """
+                    if [ ! -d "centos7/dm-ansible" ]; then
+                        echo "not found dm-ansible, is something wrong?"
+                        exit 1
+                    fi
+                    """  
+                    dir("${target}") {
+                        sh "cp -R ../centos7/dm-ansible/* ./"
+                    }
+                    sh """
+                        tar czvf ${target}.tar.gz ${target}
+                        sha256sum ${target}.tar.gz > ${target}.sha256
+                        md5sum ${target}.tar.gz > ${target}.md5
+                    """
+                    sh """
+                        export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+                        upload.py ${target}.tar.gz ${target}.tar.gz
+                        upload.py ${target}.sha256 ${target}.sha256
+                        upload.py ${target}.md5 ${target}.md5
+                    """
+                    sh """
+                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
+                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
+                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
+                    """
+              }
+            }
+        }
+    }
+}
+
 return this
