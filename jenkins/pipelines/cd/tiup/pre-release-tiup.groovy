@@ -343,27 +343,16 @@ run_with_pod {
             }
 
             publishs["publish enterprise image"] = {
-                build job: "release-enterprise-docker",
+                build job: "pre-release-enterprise-docker",
                     wait: true,
                     parameters: [
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
-                            [$class: 'StringParameterValue', name: '', value: ],
+                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                            [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                         ]
             }
