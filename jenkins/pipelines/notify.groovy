@@ -1,33 +1,38 @@
-def send_notify(jobname, job_result, build_number, run_dispaly_url, task_start_ts) {
-    def result = [:]
+/*
+@RESULT_JOB_NAME
+@RESULT_BUILD_RESULT
+@RESULT_BUILD_NUMBER
+@RESULT_RUN_DISPLAY_URL
+@RESULT_TASK_START_TS
+ */
 
-    result["name"] = jobname
-    result["result"] = job_result.toLowerCase()
-    result["build_num"] = build_number
-    result["type"] = "jenkinsci"
-    result["url"] = run_dispaly_url
-    result["duration"] = System.currentTimeMillis() - task_start_ts
-    result["start_time"] = task_start_ts
-    result["trigger"] = "tiup nightly build"
-    if (job_result == "SUCCESS") {
-        result["notify_message"] = JOB_NAME + " success"
-    } else if (currentBuild.result == "FAILURE") {
-        result["notify_message"] = JOB_NAME + " failed"
-    } else {
-        result["notify_message"] = JOB_NAME + " aborted"
-    }
+def result = [:]
+result["name"] = RESULT_JOB_NAME
+result["result"] = RESULT_BUILD_RESULT.toLowerCase()
+result["build_num"] = RESULT_BUILD_NUMBER
+result["type"] = "jenkinsci"
+result["url"] = RESULT_RUN_DISPLAY_URL
+result["duration"] = System.currentTimeMillis() - RESULT_TASK_START_TS.toLong()
+result["start_time"] = RESULT_TASK_START_TS.toLong()
+result["trigger"] = RESULT_JOB_NAME
+if (RESULT_BUILD_RESULT == "SUCCESS") {
+    result["notify_message"] = RESULT_JOB_NAME + " success"
+} else if (RESULT_BUILD_RESULT == "FAILURE") {
+    result["notify_message"] = RESULT_JOB_NAME + " failed"
+} else {
+    result["notify_message"] = RESULT_JOB_NAME + " aborted"
+}
 
-    result["notify_receiver"] = ["heibaijian"]
+result["notify_receiver"] = ["heibaijian"]
 
-    node("lightweight_pod") {
-        container("golang") {
-            writeJSON file: 'result.json', json: result, pretty: 4
-            sh 'cat result.json'
-            archiveArtifacts artifacts: 'result.json', fingerprint: true
-            sh """
+node("lightweight_pod") {
+    container("golang") {
+        writeJSON file: 'result.json', json: result, pretty: 4
+        sh 'cat result.json'
+        archiveArtifacts artifacts: 'result.json', fingerprint: true
+        sh """
                 wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci.py
                 python3 agent-jenkinsci.py result.json || true
             """
-        }
     }
 }
