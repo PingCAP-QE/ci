@@ -119,7 +119,7 @@ def get_sha() {
             echo 'tidb_ctl = "${tidb_ctl_githash}"' >> githash.toml
             echo 'binlog = "${binlog_sha1}"' >> githash.toml
             echo 'ng_monitoring = "${ng_monitoring_sha1}"' >> githash.toml
-            echo 'enterprise_plugin_sha1 = "${enterprise_plugin_sha1}"' >> githash.toml
+            echo 'enterprise_plugin = "${enterprise_plugin_sha1}"' >> githash.toml
 
             cat githash.toml
             curl -O ${FILE_SERVER_URL}/download/cicd/tools/update-prm-issue
