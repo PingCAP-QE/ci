@@ -69,34 +69,21 @@ arch = "amd64"
 platform = "centos7"
 
 def pre_build_image(product, sha1) {
-    def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
+    def binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
     if (product == "tidb-lightning") {
-        binary = "builds/pingcap/br/optimization/${tag}/${sha1}/${platform}/br-${os}-${arch}.tar.gz"
+        binary = "builds/pingcap/br/optimization/${RELEASE_TAG}/${sha1}/${platform}/br-${os}-${arch}-enterprise.tar.gz"
     }
-    if (enterprise) {
-        binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
-    }
-
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
-    }
     def imageName = product
     def repo = product
-
     if (repo == "monitoring") {
         imageName = "tidb-monitor-initializer"
     }
-
     imageName = imageName + "-enterprise"
-
     if (arch == "arm64") {
         imageName = imageName + "-arm64"
     }
-
-    def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
-    // pre release stage, only push to harbor registry
-    image = "hub.pingcap.net/qa/${imageName}:${tag}-pre"
+    def image = "hub.pingcap.net/qa/${imageName}:${RELEASE_TAG}-pre"
 
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -117,17 +104,17 @@ def pre_build_image(product, sha1) {
 
 def pre_build_tidb_image(product, sha1, plugin_hash) {
     // build tidb enterprise image with plugin
-    binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
-    plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${tag}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
+    binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
+    if (product == "tidb" && os == "linux" && arch == "amd64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
     def imageName = product
     def repo = product
     imageName = imageName + "-enterprise"
-    image = "hub.pingcap.net/qa/${imageName}:${tag}-pre"
+    image = "hub.pingcap.net/qa/${imageName}:${RELEASE_TAG}-pre"
     def paramsDocker = [
             string(name: "ARCH", value: arch),
             string(name: "OS", value: "linux"),
