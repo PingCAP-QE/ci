@@ -15,6 +15,58 @@
 */
 
 
+properties([
+        parameters([
+                string(
+                        defaultValue: '',
+                        name: 'RELEASE_TAG',
+                        trim: true,
+                        description: '预发布 tag, example v5.2.0'
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'RELEASE_BRANCH',
+                        trim: true,
+                        description: '预发布分支, 构建基于这个分支最新代码, example release-5.0'
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIDB_PRM_ISSUE',
+                        trim: true，
+                        description: '预发布 issue id, 当填写了 issue id 的时候，sre-bot 会自动更新各组件 hash 到 issue 上'
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIKV_BUMPVERION_HASH',
+                        trim: true,
+                        description: 'tikv 的version 升级需要修改代码，所以我们通过一个pr提前bump version ，这里填写pr commit hash, pr 示例:https://github.com/tikv/tikv/pull/10406'
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIKV_BUMPVERSION_PRID',
+                        trim: true,
+                        description: 'tikv 的version 升级需要修改代码，所以我们通过一个pr提前bump version ，这里填写pr id, pr 示例: https://github.com/tikv/tikv/pull/10406'
+                ),
+                booleanParam(
+                        defaultValue: false,
+                        name: 'FORCE_REBUILD',
+                        description: '是否需要强制重新构建（false 则按照hash检查文件服务器上是否存在对应二进制，存在则不构建）'
+                ),
+                booleanParam(
+                        defaultValue: true,
+                        name: 'ARCH_ARM'
+                ),
+                booleanParam(
+                        defaultValue: true,
+                        name: 'ARCH_X86'
+                ),
+                booleanParam(
+                        defaultValue: true,
+                        name: 'ARCH_MAC'
+                ),
+])
+
+
 tidb_sha1=""
 tikv_sha1=""
 pd_sha1=""
@@ -119,7 +171,7 @@ def get_sha() {
             echo 'tidb_ctl = "${tidb_ctl_githash}"' >> githash.toml
             echo 'binlog = "${binlog_sha1}"' >> githash.toml
             echo 'ng_monitoring = "${ng_monitoring_sha1}"' >> githash.toml
-            echo 'enterprise_plugin = "${enterprise_plugin_sha1}"' >> githash.toml
+            echo 'enterprise_plugin_sha1 = "${enterprise_plugin_sha1}"' >> githash.toml
 
             cat githash.toml
             curl -O ${FILE_SERVER_URL}/download/cicd/tools/update-prm-issue
@@ -134,7 +186,7 @@ def get_sha() {
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
-    def namespace = "jenkins-cd"
+    def namespace = "jenkins-tidb"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -303,64 +355,8 @@ run_with_pod {
             }
             parallel builds
         }
-
-
-        stage("publish to staging") {
-            publishs = [:]
-            publishs["publish tiup staging"] = {
-                build job: "tiup-mirror-update-test-hotfix",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
-                            [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
-                            [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: ARCH_MAC_ARM],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                    ]
-            }
-            publishs["publish community image"] = {
-                build job: "pre-release-docker",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_BUMPVERION_HASH', value: TIKV_BUMPVERION_HASH],
-                            [$class: 'StringParameterValue', name: 'TIKV_BUMPVERSION_PRID', value: TIKV_BUMPVERSION_PRID],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
-                        ]
-            }
-
-            publishs["publish enterprise image"] = {
-                build job: "pre-release-enterprise-docker",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                        ]
-            }
-
-            parallel publishs
-        }
     }
 }
+
 
 
