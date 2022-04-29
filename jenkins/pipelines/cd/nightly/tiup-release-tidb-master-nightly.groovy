@@ -223,7 +223,7 @@ try {
     echo "${e}"
 } finally {
     def result = [:]
-    result["name"] = JOB_NAME
+    result["name"] = "【"+currentBuild.result+"】"+JOB_NAME
     result["result"] = currentBuild.result.toLowerCase()
     result["build_num"] = BUILD_NUMBER
     result["type"] = "jenkinsci"
@@ -232,14 +232,14 @@ try {
     result["start_time"] = taskStartTimeInMillis
     result["trigger"] = "tiup nightly build"
     if (currentBuild.result == "SUCCESS") {
-        result["notify_message"] = "TiUP release tidb master nightly success"
+        result["notify_message"] = "【SUCCESS】TiUP release tidb master nightly success"
     } else if (currentBuild.result == "FAILURE") {
-        result["notify_message"] = "TiUP release tidb master nightly failed"
+        result["notify_message"] = "【FAILURE】TiUP release tidb master nightly failed"
     } else {
-        result["notify_message"] = "TiUP release tidb master nightly aborted"
+        result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
     }
     
-    result["notify_receiver"] = ["zhouqiang-cl", "purelind", "VelocityLight","heibaijian"]
+    result["notify_receiver"] = ["purelind", "heibaijian"]
 
     node("lightweight_pod") {
         container("golang") {
