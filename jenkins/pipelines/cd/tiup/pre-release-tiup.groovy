@@ -15,20 +15,20 @@
 */
 
 
-tidb_sha1=""
-tikv_sha1=""
-pd_sha1=""
-tiflash_sha1="" 
-br_sha1=""
-binlog_sha1=""
-lightning_sha1=""
-tools_sha1=""
-cdc_sha1=""
-dm_sha1=""
-dumpling_sha1=""
-ng_monitoring_sha1=""
-tidb_ctl_githash=""
-enterprise_plugin_sha1=""
+tidb_sha1 = ""
+tikv_sha1 = ""
+pd_sha1 = ""
+tiflash_sha1 = ""
+br_sha1 = ""
+binlog_sha1 = ""
+lightning_sha1 = ""
+tools_sha1 = ""
+cdc_sha1 = ""
+dm_sha1 = ""
+dumpling_sha1 = ""
+ng_monitoring_sha1 = ""
+tidb_ctl_githash = ""
+enterprise_plugin_sha1 = ""
 
 def OS_LINUX = "linux"
 def OS_DARWIN = "darwin"
@@ -39,7 +39,7 @@ def PLATFORM_DARWIN = "darwin"
 def PLATFORM_DARWINARM = "darwin-arm64"
 
 def get_sha() {
-    if ( TIDB_PRM_ISSUE != "") {
+    if (TIDB_PRM_ISSUE != "") {
         println "tidb_prm issue ${TIDB_PRM_ISSUE}  --> ${RELEASE_TAG}"
         sh """
         if [ -f githash.toml ]; then
@@ -70,7 +70,7 @@ def get_sha() {
     }
     binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} ").trim()
     lightning_sha1 = br_sha1
-    
+
     if (RELEASE_TAG >= "v5.3.0") {
         tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master ").trim()
     } else {
@@ -103,8 +103,8 @@ def get_sha() {
     println "binlog_sha1: ${binlog_sha1}"
     println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
     println "enterprise_plugin_sha1: ${enterprise_plugin_sha1}"
-    withCredentials([string(credentialsId: 'token-update-prm-issue', variable: 'GITHUB_TOKEN')]) { 
-        if ( TIDB_PRM_ISSUE != "") {
+    withCredentials([string(credentialsId: 'token-update-prm-issue', variable: 'GITHUB_TOKEN')]) {
+        if (TIDB_PRM_ISSUE != "") {
             sh """
             echo 'tidb = "${tidb_sha1}"' >> githash.toml
             echo 'br = "${br_sha1}"' >> githash.toml
@@ -132,6 +132,7 @@ def get_sha() {
 }
 
 label = "${JOB_NAME}-${BUILD_NUMBER}"
+
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
     def namespace = "jenkins-cd"
@@ -148,13 +149,13 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '8000m', resourceRequestMemory: '12Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+            ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -253,7 +254,7 @@ run_with_pod {
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                     [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
                                     [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
-                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],    
+                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
                             ]
                 }
             }
@@ -289,62 +290,65 @@ run_with_pod {
 
             builds["build enterprise binary"] = {
                 build job: "build-linux-enterprise",
-                            wait: true,
-                            parameters: [
-                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
-                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                    [$class: 'StringParameterValue', name: 'ENTERPRISE_PLUGIN_HASH', value: enterprise_plugin_sha1],
-                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            ]
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_PRID', value: TIKV_BUMPVERSION_PRID],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                [$class: 'StringParameterValue', name: 'ENTERPRISE_PLUGIN_HASH', value: enterprise_plugin_sha1],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                        ]
             }
             parallel builds
         }
 
 
-        stage("publish to staging") {
+        stage("publish tiup staging & publish community image") {
             publishs = [:]
             publishs["publish tiup staging"] = {
                 build job: "tiup-mirror-update-test-hotfix",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
-                            [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
-                            [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
-                            [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
-                            [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
-                            [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
-                            [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
-                            [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
-                            [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
-                            [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
-                            [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
-                            [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
-                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: ARCH_MAC_ARM],
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                    ]
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
+                                [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
+                                [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
+                                [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
+                                [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
+                                [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
+                                [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
+                                [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: ARCH_MAC_ARM],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                        ]
             }
             publishs["publish community image"] = {
                 build job: "pre-release-docker",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                            [$class: 'StringParameterValue', name: 'TIKV_BUMPVERION_HASH', value: TIKV_BUMPVERION_HASH],
-                            [$class: 'StringParameterValue', name: 'TIKV_BUMPVERSION_PRID', value: TIKV_BUMPVERSION_PRID],
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                            [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIKV_BUMPVERION_HASH', value: TIKV_BUMPVERION_HASH],
+                                [$class: 'StringParameterValue', name: 'TIKV_BUMPVERSION_PRID', value: TIKV_BUMPVERSION_PRID],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
                         ]
             }
 
-            publishs["publish enterprise image"] = {
-                build job: "pre-release-enterprise-docker",
+            parallel publishs
+        }
+
+        stage("publish enterprise image") {
+            build job: "pre-release-enterprise-docker",
                     wait: true,
                     parameters: [
                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -355,10 +359,7 @@ run_with_pod {
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                        ]
-            }
-
-            parallel publishs
+                    ]
         }
     }
 }
