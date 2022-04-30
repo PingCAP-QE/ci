@@ -532,6 +532,7 @@ def cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready) 
     def coverage_flag = ""
     def diagnostic_flag = ""
     def compatible_flag = "-DENABLE_EMBEDDED_COMPILER=OFF -DENABLE_ICU=OFF -DENABLE_MYSQL=OFF"
+    def openssl_root_dir = ""
 
     if (toolchain == 'llvm') {
         generator = 'Ninja'
@@ -542,6 +543,7 @@ def cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready) 
             sh "cp ${repo_path}/libs/libtiflash-proxy/libtiflash_proxy.so ${repo_path}/contrib/tiflash-proxy/target/release"
         }
     } else {
+        openssl_root_dir = "-DOPENSSL_ROOT_DIR='/usr/local/opt/openssl'"
         dir("${repo_path}/contrib/tipb/") {
             sh "sh generate-cpp.sh"
         }
@@ -567,7 +569,7 @@ def cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready) 
     """
     dir(build_dir) {
         sh """
-            cmake '${repo_path}' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} \\
+            cmake '${repo_path}' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                 -G '${generator}' \\
                 -DENABLE_FAILPOINTS=${params.ENABLE_FAILPOINTS} \\
                 -DCMAKE_BUILD_TYPE=${params.CMAKE_BUILD_TYPE} \\
