@@ -11,6 +11,23 @@
 //         ])
 // ])
 
+def need_tests() {
+        for (i in ['release-4.0']) {
+                if (ghprbTargetBranch.contains(i)) {
+                        return true
+                }
+        }
+        return false
+}
+
+def disable_lint_or_format() {
+        for (i in ['release-4.0', 'release-5.0', 'release-5.1', 'release-5.2']) {
+                if (ghprbTargetBranch.contains(i)) {
+                        return true
+                }
+        }
+        return false
+}
 
 def parameters = [
         string(name: "ARCH", value: "amd64"),
@@ -21,14 +38,14 @@ def parameters = [
         string(name: "TARGET_COMMIT_HASH", value: ghprbActualCommit),
         [$class: 'BooleanParameterValue', name: 'BUILD_TIFLASH', value: true],
         [$class: 'BooleanParameterValue', name: 'BUILD_PAGE_TOOLS', value: false],
-        [$class: 'BooleanParameterValue', name: 'BUILD_TESTS', value: false],
+        [$class: 'BooleanParameterValue', name: 'BUILD_TESTS', value: need_tests()],
         [$class: 'BooleanParameterValue', name: 'ENABLE_CCACHE', value: true],
         [$class: 'BooleanParameterValue', name: 'ENABLE_PROXY_CACHE', value: true],
         [$class: 'BooleanParameterValue', name: 'UPDATE_CCACHE', value: false],
         [$class: 'BooleanParameterValue', name: 'UPDATE_PROXY_CACHE', value: false],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_STATIC_ANALYSIS', value: true],
+        [$class: 'BooleanParameterValue', name: 'ENABLE_STATIC_ANALYSIS', value: !disable_lint_or_format()],
         [$class: 'BooleanParameterValue', name: 'ENABLE_FORMAT_CHECK', value: true],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_COVERAGE', value: false],
+        [$class: 'BooleanParameterValue', name: 'ENABLE_COVERAGE', value:  !disable_lint_or_format()],
         [$class: 'BooleanParameterValue', name: 'PUSH_MESSAGE', value: false],
         [$class: 'BooleanParameterValue', name: 'DEBUG_WITHOUT_DEBUG_INFO', value: true],
         [$class: 'BooleanParameterValue', name: 'ARCHIVE_ARTIFACTS', value: true],
