@@ -45,7 +45,7 @@ def parameters = [
         [$class: 'BooleanParameterValue', name: 'UPDATE_PROXY_CACHE', value: false],
         [$class: 'BooleanParameterValue', name: 'ENABLE_STATIC_ANALYSIS', value: !disable_lint_or_format()],
         [$class: 'BooleanParameterValue', name: 'ENABLE_FORMAT_CHECK', value: !disable_lint_or_format()],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_COVERAGE', value:  false],
+        [$class: 'BooleanParameterValue', name: 'ENABLE_COVERAGE', value: false],
         [$class: 'BooleanParameterValue', name: 'PUSH_MESSAGE', value: false],
         [$class: 'BooleanParameterValue', name: 'DEBUG_WITHOUT_DEBUG_INFO', value: true],
         [$class: 'BooleanParameterValue', name: 'ARCHIVE_ARTIFACTS', value: true],
