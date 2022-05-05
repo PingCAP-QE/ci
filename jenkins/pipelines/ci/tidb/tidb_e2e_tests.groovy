@@ -13,22 +13,6 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def PLUGIN_BRANCH = ghprbTargetBranch
-// parse enterprise-plugin branch
-def m1 = ghprbCommentBody =~ /plugin\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m1) {
-    PLUGIN_BRANCH = "${m1[0][1]}"
-}
-pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
-// transfer plugin branch from pr/28 to origin/pr/28/head
-if (PLUGIN_BRANCH.startsWith("pr/")) {
-    pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
-    PLUGIN_BRANCH = "origin/${PLUGIN_BRANCH}/head"
-}
-
-m1 = null
-println "ENTERPRISE_PLUGIN_BRANCH=${PLUGIN_BRANCH}"
-
 def specStr = "+refs/heads/*:refs/remotes/origin/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
