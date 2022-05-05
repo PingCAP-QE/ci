@@ -1,21 +1,17 @@
 def slackcolor = 'good'
 def githash
 
-def PLUGIN_BRANCH = ghprbTargetBranch
-// parse enterprise-plugin branch
-def m1 = ghprbCommentBody =~ /plugin\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m1) {
-    PLUGIN_BRANCH = "${m1[0][1]}"
-}
-pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
-// transfer plugin branch from pr/28 to origin/pr/28/head
-if (PLUGIN_BRANCH.startsWith("pr/")) {
-    pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
-    PLUGIN_BRANCH = "origin/${PLUGIN_BRANCH}/head"
-}
 
-m1 = null
-println "ENTERPRISE_PLUGIN_BRANCH=${PLUGIN_BRANCH}"
+echo "release test: ${params.containsKey("release_test")}"
+if (params.containsKey("release_test")) {
+    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
+    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
+    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tidb_commit)
+    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
+    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
+    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
+    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
+}
 
 def specStr = "+refs/heads/*:refs/remotes/origin/*"
 if (ghprbPullId != null && ghprbPullId != "") {
