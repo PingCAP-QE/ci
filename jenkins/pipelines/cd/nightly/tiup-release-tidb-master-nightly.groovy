@@ -247,6 +247,7 @@ try {
             sh 'cat result.json'
             archiveArtifacts artifacts: 'result.json', fingerprint: true
             sh """
+                export LC_CTYPE="en_US.UTF-8"
                 wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci.py
                 python3 agent-jenkinsci.py result.json || true
             """  
