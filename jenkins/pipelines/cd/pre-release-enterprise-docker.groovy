@@ -143,7 +143,7 @@ def retag_enterprise_image(product) {
     println "retag enterprise image from community image: ${default_params}"
     build(job: "jenkins-image-syncer",
             parameters: default_params,
-            wait: true, propagate: false)
+            wait: true)
 
 }
 
