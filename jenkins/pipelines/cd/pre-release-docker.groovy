@@ -68,6 +68,9 @@ def release_one(repo,arch,failpoint) {
     if (repo == "ticdc") {
         actualRepo = "tiflow"
     }
+    if (repo == "dm") {
+        actualRepo = "tiflow"
+    }
     def sha1 = get_sha(actualRepo,RELEASE_BRANCH)
     if (TIKV_BUMPVERION_HASH.length() > 1 && repo == "tikv") {
         sha1 = TIKV_BUMPVERION_HASH
@@ -109,6 +112,8 @@ def release_one(repo,arch,failpoint) {
     } else {
         echo "force rebuild: ${params.FORCE_REBUILD}"
         echo "binary not existed or forece_rebuild is true"
+        println "start build binary ${repo} ${arch}"
+        println "pramas: ${paramsBuild}"
         build job: "build-common",
             wait: true,
             parameters: paramsBuild
@@ -143,6 +148,8 @@ def release_one(repo,arch,failpoint) {
         string(name: "DOCKERFILE", value: dockerfile),
         string(name: "RELEASE_DOCKER_IMAGES", value: image),
     ]
+    println "start build image ${repo} ${arch}"
+    println "pramas: ${paramsDocker}"
     build job: "docker-common",
             wait: true,
             parameters: paramsDocker
@@ -165,12 +172,39 @@ def release_one(repo,arch,failpoint) {
             string(name: "RELEASE_DOCKER_IMAGES", value: imageForDebug),
         ]
         if (repo in ["dumpling","ticdc","tidb-binlog","tidb","tikv","pd"]) {
+            println "start build debug image ${repo} ${arch}"
+            println "pramas: ${paramsDockerForDebug}"
             build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerForDebug
+        }  else {
+            println "only support amd64 for debug image, only the following repo can build debug image: [dumpling,ticdc,tidb-binlog,tidb,tikv,pd]"
         }
     }
     
+    // dm version >= v5.3.0 && < v6.0.0 need build image pingcap/dm-monitor-initializer
+    if (repo == "dm" && RELEASE_TAG < "v6.0.0") {
+        def dockerfileForDmMonitorInitializer = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/dm-monitor-initializer"
+        def imageNameForDmMonitorInitializer = "dm-monitor-initializer"
+        if (arch == "arm64") {
+            imageNameForDmMonitorInitializer = imageNameForDmMonitorInitializer + "-arm64"
+        }
+        imageNameForDmMonitorInitializer = "hub.pingcap.net/qa/${imageNameForDmMonitorInitializer}:${IMAGE_TAG},pingcap/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
+        def paramsDockerDmMonitorInitializer = [
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "INPUT_BINARYS", value: binary),
+            string(name: "REPO", value: "dm"),
+            string(name: "PRODUCT", value: "dm_monitor_initializer"),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "DOCKERFILE", value: dockerfileForDmMonitorInitializer),
+            string(name: "RELEASE_DOCKER_IMAGES", value: imageNameForDmMonitorInitializer),
+        ]
+        build job: "docker-common",
+                wait: true,
+                parameters: paramsDockerDmMonitorInitializer
+
+    }
 
     if (repo == "br") {
         def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
@@ -216,7 +250,7 @@ def release_one(repo,arch,failpoint) {
 stage ("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling","br","ticdc","tidb-binlog","tics","tidb","tikv","pd","monitoring"]
+            releaseRepos = ["dumpling","br","ticdc","tidb-binlog","tics","tidb","tikv","pd","monitoring","dm"]
             builds = [:]
             for (item in releaseRepos) {
                 def product = "${item}"
