@@ -210,15 +210,15 @@ def pattern_match_all_files(pattern, files_list) {
 
 if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) {
     def pr_diff_files = list_pr_diff_files()
-    def pattern = /^dm\/.*$/
+    def pattern = /(^dm\/|^engine\/).*$/
     // if all diff files start with dm/, skip cdc integration test
     def matched = pattern_match_all_files(pattern, pr_diff_files)
     if (matched) {
-        echo "matched, all diff files full path start with dm/, current pr is dm's pr(not related to ticdc), skip cdc integration test"
+        echo "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
         currentBuild.result = 'SUCCESS'
         return 0
     } else {
-        echo "not matched, some diff files not start with dm/, need run the cdc integration test"
+        echo "not matched, some diff files not start with dm/ or engine/, need run the cdc integration test"
     }
 }
 
