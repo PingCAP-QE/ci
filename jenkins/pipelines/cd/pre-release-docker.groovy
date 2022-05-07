@@ -274,7 +274,7 @@ stage ("release") {
                 }
             }
 
-            if (RELEASE_BRANCH == "release-5.1") {
+            if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH == "release-5.4") {
                 for (item in releaseRepos) {
                     def product = "${item}"
                     builds["build ${item} arm64"] = {
