@@ -80,7 +80,7 @@ def release_one(repo,arch,failpoint) {
     }
 
     println "${repo}: ${sha1}"
-    def binary = "builds/pingcap/${repo}/test/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
+    def binary = "builds/pingcap/${repo}/optimization/${release_tag}/${sha1}/centos7/${repo}-linux-${arch}.tar.gz"
     if (failpoint) {
         binary = "builds/pingcap/${repo}/test/failpoint/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
