@@ -191,6 +191,7 @@ def run_with_pod(Closure body) {
 }
 
 def libs
+def taskStartTimeInMillis = System.currentTimeMillis()
 
 try {
     stage('Prepare') {
