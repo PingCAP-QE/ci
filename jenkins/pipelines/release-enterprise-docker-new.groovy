@@ -140,14 +140,14 @@ try {
         node('delivery') {
             container("delivery") {
                 def arch_amd64 = "amd64"
-                libs.parallel_enterprise_docker(libs, arch_amd64, true)
+                libs.parallel_enterprise_docker(arch_amd64, true)
 
             }
         }
 
         node('arm') {
             def arch_arm64 = "arm64"
-            libs.parallel_enterprise_docker(libs, arch_arm64, true)
+            libs.parallel_enterprise_docker(arch_arm64, true)
         }
 
         currentBuild.result = "SUCCESS"
