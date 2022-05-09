@@ -128,8 +128,6 @@ try {
                         mv dm/dm/master/dm-master.toml ${target}/conf/
                         mv dm/dm/worker/dm-worker.toml ${target}/conf/
                         mv LICENSE ${target}/
-                        curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
-                        mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                         tar -czvf ${target}.tar.gz ${target}
 
                         # setup upload tools
@@ -151,37 +149,6 @@ try {
         }
         // do not release dm-ansible  after v6.0.0
         if ((branch.startsWith("release-") && branch <"release-6.0") || (branch.startsWith("v") && branch <"v6.0.0")) {
-            stage("package dm-ansible") {
-                dir(build_path) {
-                    container("golang") {
-                        timeout(10) {
-                            sh """
-                            cp -r dm/dm/dm-ansible ./
-                            tar -czvf dm-ansible.tar.gz dm-ansible
-                            """
-                        }
-                    }
-                }
-            }
-
-            stage("Upload dm-ansible") {
-                dir(build_path) {
-                    container("golang") {
-                        def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/dm-ansible-sha1"
-                        def filepath = "builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz"
-
-                        writeFile file: 'dm-ansible-sha1', text: "${githash}"
-                        sh """
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
-                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
-
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
-                        curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-
             stage("Generate monitoring") {
                 dir(build_path) {
                     container("golang") {
@@ -201,42 +168,7 @@ try {
                 }
                 stash includes: "go/src/github.com/pingcap/dm/dm/monitoring/**", name: "monitoring"
             }
-        } else {
-            stage("package dm-ansible") {
-                dir(build_path) {
-                    container("golang") {
-                        timeout(10) {
-                            sh """
-                            mkdir -p dm-ansible
-                            mkdir -p dm-ansible/conf
-                            mkdir -p dm-ansible/scripts
-                            cp dm/metrics/alertmanager/dm_worker.rules.yml dm-ansible/conf
-                            cp dm/metrics/grafana/* dm-ansible/scripts
-                            tar -czvf dm-ansible.tar.gz dm-ansible
-                            """
-                        }
-                    }
-                }
-            }
-
-            stage("Upload dm-ansible") {
-                dir(build_path) {
-                    container("golang") {
-                        def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/dm-ansible-sha1"
-                        def filepath = "builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz"
-
-                        writeFile file: 'dm-ansible-sha1', text: "${githash}"
-                        sh """
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
-                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
-
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
-                        curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
-                        """
-                    }
-                }
-            }
-        }
+        } 
     }
     
     node("arm") {
@@ -322,8 +254,6 @@ try {
                     mv dm/dm/master/dm-master.toml ${target}/conf/
                     mv dm/dm/worker/dm-worker.toml ${target}/conf/
                     mv LICENSE ${target}/
-                    # curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
-                    # mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                     tar -czvf ${target}.tar.gz ${target}
 
                     # setup upload tools
@@ -339,40 +269,6 @@ try {
 
                     // cleanup
                     sh "rm -rf sha1 ${target}.tar.gz"
-                }
-            }
-        }
-    }
-
-    // we Build and Push monitoring image here, because no source code in `release_dm` job.
-    if (branch != "release-1.0" && !branch.startsWith("v1.")) {
-        RELEASE_TAG = branch
-        if (env.TAG_NAME != null) {
-            RELEASE_TAG = "${env.TAG_NAME}"
-        } else if (RELEASE_TAG == "master") {
-            RELEASE_TAG = "nightly"
-        } else {
-            RELEASE_TAG = "${RELEASE_TAG}-nightly"
-        }
-        // do not release dm-monitor-initializer after v6.0.0
-        if ((branch.startsWith("release-") && branch <"release-6.0") || (branch.startsWith("v") && branch <"v6.0.0")) {
-            stage("Publish Monitor Docker Image") {
-                node("delivery") {
-                    container("delivery") {
-                        deleteDir()
-                        unstash 'monitoring'
-                        dir("go/src/github.com/pingcap/dm/dm/monitoring") {
-                            withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                                docker.build("pingcap/dm-monitor-initializer:${RELEASE_TAG}").push()
-                            }
-                            docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                                sh """
-                                    docker tag pingcap/dm-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/dm-monitor-initializer:${RELEASE_TAG}
-                                    docker push uhub.service.ucloud.cn/pingcap/dm-monitor-initializer:${RELEASE_TAG}
-                                """
-                            }
-                        }
-                    }
                 }
             }
         }

@@ -80,7 +80,7 @@ def release_one(repo,arch,failpoint) {
     }
 
     println "${repo}: ${sha1}"
-    def binary = "builds/pingcap/${repo}/test/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
+    def binary = "builds/pingcap/${repo}/optimization/${RELEASE_TAG}/${sha1}/centos7/${repo}-linux-${arch}.tar.gz"
     if (failpoint) {
         binary = "builds/pingcap/${repo}/test/failpoint/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
@@ -122,10 +122,6 @@ def release_one(repo,arch,failpoint) {
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${repo}"
     def imageName = repo
-    if (repo == "tics") {
-        imageName = "tiflash"
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tiflash"
-    }
     if (repo == "monitoring") {
         imageName = "tidb-monitor-initializer"
     }
@@ -250,7 +246,7 @@ def release_one(repo,arch,failpoint) {
 stage ("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling","br","ticdc","tidb-binlog","tics","tidb","tikv","pd","monitoring","dm"]
+            releaseRepos = ["dumpling","br","ticdc","tidb-binlog","tiflash","tidb","tikv","pd","monitoring","dm"]
             builds = [:]
             for (item in releaseRepos) {
                 def product = "${item}"
