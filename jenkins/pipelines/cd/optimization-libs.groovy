@@ -72,7 +72,7 @@ def create_builds(build_para) {
         }
     }
 
-    if (build_para["OS"] == "linux" && build_para["ARCH"] == "amd64") {
+    if (build_para["OS"] == "linux") {
         builds["Build Plugin"] = {
             build_product(build_para, "enterprise-plugin")
         }
