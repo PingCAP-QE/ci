@@ -194,31 +194,33 @@ def libs
 def taskStartTimeInMillis = System.currentTimeMillis()
 
 try {
-    stage('Prepare') {
-        node('delivery') {
-            container('delivery') {
-                dir('centos7') {
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    checkout scm
-                    libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
+    catchError {
+        stage('Prepare') {
+            node('delivery') {
+                container('delivery') {
+                    dir('centos7') {
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        checkout scm
+                        libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
+                    }
                 }
             }
         }
-    }
 
-    stage("enterprise docker image amd64 build") {
-        run_with_pod {
-            container("golang") {
-                def arch_amd64 = "amd64"
-                libs.parallel_enterprise_docker(libs, arch_amd64, false)
+        stage("enterprise docker image amd64 build") {
+            node("delivery") {
+                container("delivery") {
+                    def arch_amd64 = "amd64"
+                    libs.parallel_enterprise_docker(arch_amd64, false)
+                }
             }
         }
-    }
 
-    stage("enterprise docker image arm64 build") {
-        node("arm") {
-            def arch_arm64 = "arm64"
-            libs.parallel_enterprise_docker(libs, arch_arm64, false)
+        stage("enterprise docker image arm64 build") {
+            node("arm") {
+                def arch_arm64 = "arm64"
+                libs.parallel_enterprise_docker(arch_arm64, false)
+            }
         }
     }
 } catch (Exception e) {
