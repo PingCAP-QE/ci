@@ -121,6 +121,7 @@ def libs
 
 def os = "linux"
 def platform = "centos7"
+def taskStartTimeInMillis = System.currentTimeMillis()
 
 try {
     catchError {
