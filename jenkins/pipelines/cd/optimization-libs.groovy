@@ -109,6 +109,172 @@ def create_enterprise_builds(build_para) {
     return builds
 }
 
+//new
+def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release) {
+    // build tidb enterprise image with plugin
+    binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
+
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    if (product == "tidb" && os == "linux" && arch == "amd64") {
+        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
+    }
+    if (product == "tidb" && os == "linux" && arch == "arm64") {
+        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
+    }
+    def imageName = product
+    def repo = product
+    if (arch == "amd64") {
+        imageName = imageName + "-enterprise"
+    } else {
+        imageName = imageName + "-enterprise-arm64"
+    }
+    def image
+    if (!if_release) {
+        image = "hub.pingcap.net/qa/${imageName}:${RELEASE_TAG}-pre"
+    } else {
+        image = "uhub.service.ucloud.cn/pingcap/${imageName}:${RELEASE_TAG},pingcap/${imageName}:${RELEASE_TAG}"
+    }
+
+    def paramsDocker = [
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
+            string(name: "REPO", value: repo),
+            string(name: "PRODUCT", value: repo),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "DOCKERFILE", value: dockerfile),
+            string(name: "RELEASE_DOCKER_IMAGES", value: image),
+            string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
+    ]
+    println "build tidb enterprise image: ${paramsDocker}.if_release:${if_release}"
+    build job: "docker-common-check",
+            wait: true,
+            parameters: paramsDocker
+}
+
+//new
+def parallel_enterprise_docker(arch, if_release) {
+    def builds = [:]
+
+    builds["Push tidb Docker"] = {
+        build_tidb_enterprise_image("tidb", TIDB_HASH, PLUGIN_HASH, arch, if_release)
+    }
+
+    builds["Push tikv Docker"] = {
+        build_enterprise_image("tikv", TIKV_HASH, arch, if_release)
+    }
+
+    builds["Push pd Docker"] = {
+        build_enterprise_image("pd", PD_HASH, arch, if_release)
+    }
+
+    builds["Push tiflash Docker"] = {
+        build_enterprise_image("tiflash", TIFLASH_HASH, arch, if_release)
+    }
+
+    builds["Push lightning Docker"] = {
+        retag_enterprise_image("tidb-lightning", arch, if_release)
+    }
+
+    builds["Push tidb-binlog Docker"] = {
+        retag_enterprise_image("tidb-binlog", arch, if_release)
+    }
+
+    builds["Push cdc Docker"] = {
+        retag_enterprise_image("ticdc", arch, if_release)
+    }
+
+    builds["Push br Docker"] = {
+        retag_enterprise_image("br", arch, if_release)
+    }
+
+    builds["Push dumpling Docker"] = {
+        retag_enterprise_image("dumpling", arch, if_release)
+    }
+
+    builds["Push NG monitoring Docker"] = {
+        retag_enterprise_image("ng-monitoring", arch, if_release)
+    }
+
+    builds["Push dm Docker"] = {
+        retag_enterprise_image("dm", arch, false)
+    }
+
+    stage("Push ${arch} enterprise image") {
+        parallel builds
+    }
+}
+
+//new
+def retag_enterprise_image(product, arch, if_release) {
+    def community_image_for_pre_replease
+    def enterprise_image_for_pre_replease
+    if (arch == 'amd64' && if_release) {
+        community_image_for_pre_replease = "pingcap/${product}:${RELEASE_TAG}"
+        enterprise_image_for_pre_replease = "pingcap/${product}-enterprise:${RELEASE_TAG}"
+    } else if (arch == 'arm64' && if_release) {
+        community_image_for_pre_replease = "pingcap/${product}-arm64:${RELEASE_TAG}"
+        enterprise_image_for_pre_replease = "pingcap/${product}-enterprise-arm64:${RELEASE_TAG}"
+    } else if (arch == 'amd64' && (!if_release)) {
+        community_image_for_pre_replease = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
+        enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
+    } else {
+        community_image_for_pre_replease = "hub.pingcap.net/qa/${product}-arm64:${RELEASE_TAG}-pre"
+        enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise-arm64:${RELEASE_TAG}-pre"
+    }
+
+
+    def default_params = [
+            string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
+            string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
+    ]
+    println "retag enterprise image from community image: ${default_params}"
+    build(job: "jenkins-image-syncer",
+            parameters: default_params,
+            wait: true)
+
+}
+
+//new
+def build_enterprise_image(product, sha1, arch, if_release) {
+    def binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    if (product == "tidb-lightning") {
+        binary = "builds/pingcap/br/optimization/${RELEASE_TAG}/${sha1}/${platform}/br-${os}-${arch}-enterprise.tar.gz"
+    }
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    def imageName = product
+    def repo = product
+    if (repo == "monitoring") {
+        imageName = "tidb-monitor-initializer"
+    }
+    imageName = imageName + "-enterprise"
+    if (arch == "arm64") {
+        imageName = imageName + "-arm64"
+    }
+
+    def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${RELEASE_TAG},pingcap/${imageName}:${RELEASE_TAG}"
+    if (!if_release) {
+        image = "hub.pingcap.net/qa/${imageName}:${RELEASE_TAG}-pre"
+    }
+
+    def paramsDocker = [
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "INPUT_BINARYS", value: binary),
+            string(name: "REPO", value: repo),
+            string(name: "PRODUCT", value: repo),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "DOCKERFILE", value: dockerfile),
+            string(name: "RELEASE_DOCKER_IMAGES", value: image),
+            string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
+    ]
+    println "build enterprise image: ${paramsDocker}.if_release:${if_release}"
+    build job: "docker-common-check",
+            wait: true,
+            parameters: paramsDocker
+}
+
 def retag_enterprise_docker(product, release_tag, pre_release) {
 
     if (pre_release) {
@@ -136,7 +302,6 @@ def retag_enterprise_docker(product, release_tag, pre_release) {
     }
 
 }
-
 
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
@@ -318,7 +483,7 @@ def release_dm_ansible_amd64(sha1, release_tag) {
                     cp -R /etc/.aws ./
                     cd $wss
                 """
-                dir ('centos7') {
+                dir('centos7') {
                     sh "curl ${dm_file} | tar xz"
                     // do not release dm-ansible after v6.0.0
                     // if (release_tag.startsWith("v") && release_tag <"v6.0.0") {
@@ -353,13 +518,13 @@ def release_dm_ansible_amd64(sha1, release_tag) {
             // do not release dm-ansible after v6.0.0
             if (release_tag.startsWith("v") && release_tag < "v6.0.0") {
                 stage('Push dm-ansible package') {
-                  def target = "dm-ansible-${release_tag}"
+                    def target = "dm-ansible-${release_tag}"
                     sh """
                     if [ ! -d "centos7/dm-ansible" ]; then
                         echo "not found dm-ansible, is something wrong?"
                         exit 1
                     fi
-                    """  
+                    """
                     dir("${target}") {
                         sh "cp -R ../centos7/dm-ansible/* ./"
                     }
@@ -379,7 +544,7 @@ def release_dm_ansible_amd64(sha1, release_tag) {
                         aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
                         aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
                     """
-              }
+                }
             }
         }
     }
