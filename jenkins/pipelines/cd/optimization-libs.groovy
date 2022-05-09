@@ -298,7 +298,7 @@ def retag_enterprise_docker(product, release_tag, pre_release) {
         ]
         build(job: "jenkins-image-syncer",
                 parameters: default_params,
-                wait: true, propagate: false)
+                wait: true, propagate: true)
     }
 
 }
