@@ -37,8 +37,7 @@ properties([
 ])
 
 
-
-def get_sha(repo,branch) {
+def get_sha(repo, branch) {
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
     return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
 }
@@ -57,7 +56,7 @@ def test_binary_already_build(binary_url) {
 
 IMAGE_TAG = RELEASE_TAG + "-pre"
 
-def release_one(repo,arch,failpoint) {
+def release_one(repo, arch, failpoint) {
     def actualRepo = repo
     if (repo == "br" && RELEASE_TAG >= "v5.2.0") {
         actualRepo = "tidb"
@@ -71,12 +70,12 @@ def release_one(repo,arch,failpoint) {
     if (repo == "dm") {
         actualRepo = "tiflow"
     }
-    def sha1 = get_sha(actualRepo,RELEASE_BRANCH)
+    def sha1 = get_sha(actualRepo, RELEASE_BRANCH)
     if (TIKV_BUMPVERION_HASH.length() > 1 && repo == "tikv") {
         sha1 = TIKV_BUMPVERION_HASH
     }
     if (repo == "monitoring") {
-        sha1 =  get_sha(actualRepo,RELEASE_BRANCH)
+        sha1 = get_sha(actualRepo, RELEASE_BRANCH)
     }
 
     println "${repo}: ${sha1}"
@@ -85,16 +84,16 @@ def release_one(repo,arch,failpoint) {
         binary = "builds/pingcap/${repo}/test/failpoint/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
     def paramsBuild = [
-        string(name: "ARCH", value: arch),
-        string(name: "OS", value: "linux"),
-        string(name: "EDITION", value: "community"),
-        string(name: "OUTPUT_BINARY", value: binary),
-        string(name: "REPO", value: actualRepo),
-        string(name: "PRODUCT", value: repo),
-        string(name: "GIT_HASH", value: sha1),
-        string(name: "RELEASE_TAG", value: RELEASE_TAG),
-        string(name: "TARGET_BRANCH", value: RELEASE_BRANCH),
-        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "EDITION", value: "community"),
+            string(name: "OUTPUT_BINARY", value: binary),
+            string(name: "REPO", value: actualRepo),
+            string(name: "PRODUCT", value: repo),
+            string(name: "GIT_HASH", value: sha1),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "TARGET_BRANCH", value: RELEASE_BRANCH),
+            [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
     ]
     if (failpoint) {
         paramsBuild.push([$class: 'BooleanParameterValue', name: 'FAILPOINT', value: true])
@@ -106,17 +105,17 @@ def release_one(repo,arch,failpoint) {
         paramsBuild.push([$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_BRANCH])
     }
     if (test_binary_already_build("${FILE_SERVER_URL}/download/${binary}") && !params.FORCE_REBUILD) {
-            echo "binary already build: ${binary}"
-            echo "forece rebuild: ${params.FORCE_REBUILD}"
-            echo "skip build" 
+        echo "binary already build: ${binary}"
+        echo "forece rebuild: ${params.FORCE_REBUILD}"
+        echo "skip build"
     } else {
         echo "force rebuild: ${params.FORCE_REBUILD}"
         echo "binary not existed or forece_rebuild is true"
         println "start build binary ${repo} ${arch}"
         println "pramas: ${paramsBuild}"
         build job: "build-common",
-            wait: true,
-            parameters: paramsBuild
+                wait: true,
+                parameters: paramsBuild
     }
 
 
@@ -135,14 +134,14 @@ def release_one(repo,arch,failpoint) {
     }
 
     def paramsDocker = [
-        string(name: "ARCH", value: arch),
-        string(name: "OS", value: "linux"),
-        string(name: "INPUT_BINARYS", value: binary),
-        string(name: "REPO", value: repo),
-        string(name: "PRODUCT", value: repo),
-        string(name: "RELEASE_TAG", value: RELEASE_TAG),
-        string(name: "DOCKERFILE", value: dockerfile),
-        string(name: "RELEASE_DOCKER_IMAGES", value: image),
+            string(name: "ARCH", value: arch),
+            string(name: "OS", value: "linux"),
+            string(name: "INPUT_BINARYS", value: binary),
+            string(name: "REPO", value: repo),
+            string(name: "PRODUCT", value: repo),
+            string(name: "RELEASE_TAG", value: RELEASE_TAG),
+            string(name: "DOCKERFILE", value: dockerfile),
+            string(name: "RELEASE_DOCKER_IMAGES", value: image),
     ]
     println "start build image ${repo} ${arch}"
     println "pramas: ${paramsDocker}"
@@ -158,26 +157,26 @@ def release_one(repo,arch,failpoint) {
             imageForDebug = "hub.pingcap.net/qa/${repo}:${IMAGE_TAG}-failpoint-debug"
         }
         def paramsDockerForDebug = [
-            string(name: "ARCH", value: "amd64"),
-            string(name: "OS", value: "linux"),
-            string(name: "INPUT_BINARYS", value: binary),
-            string(name: "REPO", value: repo),
-            string(name: "PRODUCT", value: repo),
-            string(name: "RELEASE_TAG", value: RELEASE_TAG),
-            string(name: "DOCKERFILE", value: dockerfileForDebug),
-            string(name: "RELEASE_DOCKER_IMAGES", value: imageForDebug),
+                string(name: "ARCH", value: "amd64"),
+                string(name: "OS", value: "linux"),
+                string(name: "INPUT_BINARYS", value: binary),
+                string(name: "REPO", value: repo),
+                string(name: "PRODUCT", value: repo),
+                string(name: "RELEASE_TAG", value: RELEASE_TAG),
+                string(name: "DOCKERFILE", value: dockerfileForDebug),
+                string(name: "RELEASE_DOCKER_IMAGES", value: imageForDebug),
         ]
-        if (repo in ["dumpling","ticdc","tidb-binlog","tidb","tikv","pd"]) {
+        if (repo in ["dumpling", "ticdc", "tidb-binlog", "tidb", "tikv", "pd"]) {
             println "start build debug image ${repo} ${arch}"
             println "pramas: ${paramsDockerForDebug}"
             build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerForDebug
-        }  else {
+        } else {
             println "only support amd64 for debug image, only the following repo can build debug image: [dumpling,ticdc,tidb-binlog,tidb,tikv,pd]"
         }
     }
-    
+
     // dm version >= v5.3.0 && < v6.0.0 need build image pingcap/dm-monitor-initializer
     if (repo == "dm" && RELEASE_TAG < "v6.0.0") {
         def dockerfileForDmMonitorInitializer = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/dm-monitor-initializer"
@@ -187,14 +186,14 @@ def release_one(repo,arch,failpoint) {
         }
         imageNameForDmMonitorInitializer = "hub.pingcap.net/qa/${imageNameForDmMonitorInitializer}:${IMAGE_TAG},pingcap/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
         def paramsDockerDmMonitorInitializer = [
-            string(name: "ARCH", value: arch),
-            string(name: "OS", value: "linux"),
-            string(name: "INPUT_BINARYS", value: binary),
-            string(name: "REPO", value: "dm"),
-            string(name: "PRODUCT", value: "dm_monitor_initializer"),
-            string(name: "RELEASE_TAG", value: RELEASE_TAG),
-            string(name: "DOCKERFILE", value: dockerfileForDmMonitorInitializer),
-            string(name: "RELEASE_DOCKER_IMAGES", value: imageNameForDmMonitorInitializer),
+                string(name: "ARCH", value: arch),
+                string(name: "OS", value: "linux"),
+                string(name: "INPUT_BINARYS", value: binary),
+                string(name: "REPO", value: "dm"),
+                string(name: "PRODUCT", value: "dm_monitor_initializer"),
+                string(name: "RELEASE_TAG", value: RELEASE_TAG),
+                string(name: "DOCKERFILE", value: dockerfileForDmMonitorInitializer),
+                string(name: "RELEASE_DOCKER_IMAGES", value: imageNameForDmMonitorInitializer),
         ]
         build job: "docker-common",
                 wait: true,
@@ -210,14 +209,14 @@ def release_one(repo,arch,failpoint) {
         }
         def imageLightling = "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
         def paramsDockerLightning = [
-            string(name: "ARCH", value: arch),
-            string(name: "OS", value: "linux"),
-            string(name: "INPUT_BINARYS", value: binary),
-            string(name: "REPO", value: "lightning"),
-            string(name: "PRODUCT", value: "lightning"),
-            string(name: "RELEASE_TAG", value: RELEASE_TAG),
-            string(name: "DOCKERFILE", value: dockerfileLightning),
-            string(name: "RELEASE_DOCKER_IMAGES", value: imageLightling),
+                string(name: "ARCH", value: arch),
+                string(name: "OS", value: "linux"),
+                string(name: "INPUT_BINARYS", value: binary),
+                string(name: "REPO", value: "lightning"),
+                string(name: "PRODUCT", value: "lightning"),
+                string(name: "RELEASE_TAG", value: RELEASE_TAG),
+                string(name: "DOCKERFILE", value: dockerfileLightning),
+                string(name: "RELEASE_DOCKER_IMAGES", value: imageLightling),
         ]
         build job: "docker-common",
                 wait: true,
@@ -227,67 +226,59 @@ def release_one(repo,arch,failpoint) {
             def dockerfileLightningForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/tidb-lightning"
             def imageLightlingForDebug = "hub.pingcap.net/qa/tidb-lightning:${IMAGE_TAG}-debug"
             def paramsDockerLightningForDebug = [
-                string(name: "ARCH", value: "amd64"),
-                string(name: "OS", value: "linux"),
-                string(name: "INPUT_BINARYS", value: binary),
-                string(name: "REPO", value: "lightning"),
-                string(name: "PRODUCT", value: "lightning"),
-                string(name: "RELEASE_TAG", value: RELEASE_TAG),
-                string(name: "DOCKERFILE", value: dockerfileLightningForDebug),
-                string(name: "RELEASE_DOCKER_IMAGES", value: imageLightlingForDebug),
+                    string(name: "ARCH", value: "amd64"),
+                    string(name: "OS", value: "linux"),
+                    string(name: "INPUT_BINARYS", value: binary),
+                    string(name: "REPO", value: "lightning"),
+                    string(name: "PRODUCT", value: "lightning"),
+                    string(name: "RELEASE_TAG", value: RELEASE_TAG),
+                    string(name: "DOCKERFILE", value: dockerfileLightningForDebug),
+                    string(name: "RELEASE_DOCKER_IMAGES", value: imageLightlingForDebug),
             ]
             build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerLightningForDebug
         }
-    }     
+    }
 }
 
-stage ("release") {
+stage("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling","br","ticdc","tidb-binlog","tiflash","tidb","tikv","pd","monitoring","dm"]
+            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
             builds = [:]
-            for (item in releaseRepos) {
-                def product = "${item}"
-                builds["build ${item} amd64"] = {
-                    release_one(product,"amd64",false)
-                }
-            }
-            if (RELEASE_TAG >= "v5.3.0") { 
-                builds["build ng-monitoring amd64"] = {
-                    release_one("ng-monitoring","amd64",false)
-                }
-            } else {
-                println("skip build ng-monitoring because only v5.3.0+ support")
-            }
-                
-            failpointRepos = ["tidb","pd","tikv"]
-            for (item in failpointRepos) {
-                def product = "${item}"
-                builds["build ${item} failpoint"] = {
-                    release_one(product,"amd64",true)
-                }
-            }
+            release_docker(releaseRepos, builds, "amd64")
 
             if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH == "release-5.4") {
-                for (item in releaseRepos) {
-                    def product = "${item}"
-                    builds["build ${item} arm64"] = {
-                        release_one(product,"arm64",false)
-                    }
-                }
-                failpointRepos = ["tidb","pd","tikv"]
-                    for (item in failpointRepos) {
-                        def product = "${item}"
-                        builds["build ${item} arm64 failpoint"] = {
-                            release_one(product,"arm64",true)
-                        }
-                    }
+                release_docker(releaseRepos, builds, "arm64")
             }
 
-        
+
             parallel builds
+        }
+    }
+}
+
+private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object, Object> builds, arch) {
+    for (item in releaseRepos) {
+        def product = "${item}"
+        builds["build ${item} " + arch] = {
+            release_one(product, arch, false)
+        }
+    }
+    if (RELEASE_TAG >= "v5.3.0") {
+        builds["build ng-monitoring " + arch] = {
+            release_one("ng-monitoring", arch, false)
+        }
+    } else {
+        println("skip build ng-monitoring because only v5.3.0+ support")
+    }
+
+    failpointRepos = ["tidb", "pd", "tikv"]
+    for (item in failpointRepos) {
+        def product = "${item}"
+        builds["build ${item} failpoint" + arch] = {
+            release_one(product, arch, true)
         }
     }
 }
