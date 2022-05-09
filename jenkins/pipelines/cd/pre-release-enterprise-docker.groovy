@@ -15,43 +15,43 @@ properties([
                 string(
                         defaultValue: '',
                         name: 'RELEASE_TAG',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 string(
                         defaultValue: '',
                         name: 'RELEASE_BRANCH',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 string(
                         defaultValue: '',
                         name: 'TIDB_HASH',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 string(
                         defaultValue: '',
                         name: 'TIKV_HASH',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 string(
                         defaultValue: '',
                         name: 'PD_HASH',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 string(
                         defaultValue: '',
                         name: 'TIFLASH_HASH',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 string(
                         defaultValue: '',
                         name: 'PLUGIN_HASH',
-                        description: '', 
+                        description: '',
                         trim: true
                 ),
                 booleanParam(
@@ -63,12 +63,10 @@ properties([
 ])
 
 
-
 os = "linux"
-arch = "amd64"
 platform = "centos7"
 
-def pre_build_image(product, sha1) {
+def pre_build_image(product, sha1, arch) {
     def binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
     if (product == "tidb-lightning") {
         binary = "builds/pingcap/br/optimization/${RELEASE_TAG}/${sha1}/${platform}/br-${os}-${arch}-enterprise.tar.gz"
@@ -102,7 +100,7 @@ def pre_build_image(product, sha1) {
             parameters: paramsDocker
 }
 
-def pre_build_tidb_image(product, sha1, plugin_hash) {
+def pre_build_tidb_image(product, sha1, plugin_hash, arch) {
     // build tidb enterprise image with plugin
     binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
     plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
@@ -111,9 +109,17 @@ def pre_build_tidb_image(product, sha1, plugin_hash) {
     if (product == "tidb" && os == "linux" && arch == "amd64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
+    if (product == "tidb" && os == "linux" && arch == "arm64") {
+        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
+    }
     def imageName = product
     def repo = product
-    imageName = imageName + "-enterprise"
+    if (arch == "amd64") {
+        imageName = imageName + "-enterprise"
+    } else {
+        imageName = imageName + "-enterprise-arm64"
+    }
+
     image = "hub.pingcap.net/qa/${imageName}:${RELEASE_TAG}-pre"
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -132,9 +138,13 @@ def pre_build_tidb_image(product, sha1, plugin_hash) {
             parameters: paramsDocker
 }
 
-def retag_enterprise_image(product) {
+def retag_enterprise_image(product, arch) {
     def community_image_for_pre_replease = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
     def enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
+    if(arch=='arm64'){
+        community_image_for_pre_replease = "hub.pingcap.net/qa/${product}-arm64:${RELEASE_TAG}-pre"
+        enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise-arm64:${RELEASE_TAG}-pre"
+    }
 
     def default_params = [
             string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
@@ -148,6 +158,7 @@ def retag_enterprise_image(product) {
 }
 
 label = "${JOB_NAME}-${BUILD_NUMBER}"
+
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
     def namespace = "jenkins-cd"
@@ -164,13 +175,13 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+            ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -180,45 +191,59 @@ def run_with_pod(Closure body) {
 }
 
 
-run_with_pod {
-    container("golang") {
-        def builds = [:]
-        builds["tidb image"] = {
-            pre_build_tidb_image("tidb", TIDB_HASH, PLUGIN_HASH)
+stage("enterprise docker image amd64 build") {
+    run_with_pod {
+        container("golang") {
+            def arch_amd64 = "amd64"
+            docker_product(arch_amd64)
         }
-        builds["tikv image"] = {
-            pre_build_image("tikv", TIKV_HASH)
-        }
-        builds["tiflash image"] = {
-            pre_build_image("tiflash", TIFLASH_HASH)
-        }
-        builds["pd image"] = {
-            pre_build_image("pd", PD_HASH)
-        }
-
-        builds["tidb-lightning image"] = {
-            retag_enterprise_image("tidb-lightning")
-        }
-        builds["dm"] = {
-            retag_enterprise_image("dm")
-        }
-        builds["tidb-binlog image"] = {
-            retag_enterprise_image("tidb-binlog")
-        }
-        builds["ticdc image"] = {
-            retag_enterprise_image("ticdc")
-        }
-        builds["br image"] = {
-            retag_enterprise_image("br")
-        }
-        builds["dumpling image"] = {
-            retag_enterprise_image("dumpling")
-        }
-        builds["ng-monitoring image"] = {
-            retag_enterprise_image("ng-monitoring")
-        }
-
-        parallel builds
     }
+}
+
+stage("enterprise docker image arm64 build"){
+    node("arm"){
+        def arch_arm64 = "arm64"
+        docker_product(arch_arm64)
+    }
+}
+
+private void docker_product(arch) {
+    def builds = [:]
+    builds["tidb image"] = {
+        pre_build_tidb_image("tidb", TIDB_HASH, PLUGIN_HASH, arch)
+    }
+    builds["tikv image"] = {
+        pre_build_image("tikv", TIKV_HASH, arch)
+    }
+    builds["tiflash image"] = {
+        pre_build_image("tiflash", TIFLASH_HASH, arch)
+    }
+    builds["pd image"] = {
+        pre_build_image("pd", PD_HASH, arch)
+    }
+
+    builds["tidb-lightning image"] = {
+        retag_enterprise_image("tidb-lightning", arch)
+    }
+    builds["dm"] = {
+        retag_enterprise_image("dm", arch)
+    }
+    builds["tidb-binlog image"] = {
+        retag_enterprise_image("tidb-binlog", arch)
+    }
+    builds["ticdc image"] = {
+        retag_enterprise_image("ticdc", arch)
+    }
+    builds["br image"] = {
+        retag_enterprise_image("br", arch)
+    }
+    builds["dumpling image"] = {
+        retag_enterprise_image("dumpling", arch)
+    }
+    builds["ng-monitoring image"] = {
+        retag_enterprise_image("ng-monitoring", arch)
+    }
+
+    parallel builds
 }
 
