@@ -168,7 +168,7 @@ def test_suites = { suites ->
                             cd ${suites}
                             export log_level=error
                             go install gotest.tools/gotestsum@latest
-                            gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off
+                            gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-real-tikv -timeout 20m -vet=off
                         else
                             echo "directory not exist: ${suites}"
                         fi
