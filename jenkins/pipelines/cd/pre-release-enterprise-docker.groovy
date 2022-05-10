@@ -131,7 +131,9 @@ try {
                 libs.parallel_enterprise_docker(arch_arm64, false)
             }
         }
+        currentBuild.result = "SUCCESS"
     }
+
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
 } finally {
