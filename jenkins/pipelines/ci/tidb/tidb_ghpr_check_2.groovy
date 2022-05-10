@@ -163,14 +163,14 @@ def test_suites = { suites ->
                         bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                         bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
             
-                        if [ -d "tests/${suites}" ]
+                        if [ -d "${suites}" ]
                         then
-                            cd tests/${suites}
+                            cd ${suites}
                             export log_level=error
                             go install gotest.tools/gotestsum@latest
                             gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off
                         else
-                            echo "directory not exist: tests/${suites}"
+                            echo "directory not exist: ${suites}"
                         fi
                         """
                     }catch (Exception e){
@@ -295,10 +295,13 @@ try {
 
         if (ghprbTargetBranch == "master"){
             tests["test session with real tikv suites pessimistictest"] = {
-                test_suites("pessimistictest")
+                test_suites("tests/pessimistictest")
             }
             tests["test session with real tikv suites realtikvtest"] = {
-                test_suites("realtikvtest")
+                test_suites("tests/realtikvtest")
+            }
+            tests["test session with real tikv suites sessiontest"] = {
+                test_suites("session")
             }
 
             tests["New Collation Enabled"] = {
