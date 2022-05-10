@@ -130,7 +130,7 @@ def upload_test_result(reportDir) {
     }
 }
 
-def test_suites = { suites ->
+def test_suites = { suites, option ->
     run_with_pod {
         deleteDir()
         unstash 'tidb'
@@ -168,7 +168,7 @@ def test_suites = { suites ->
                             cd ${suites}
                             export log_level=error
                             go install gotest.tools/gotestsum@latest
-                            gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-real-tikv -timeout 20m -vet=off
+                            gotestsum --format standard-verbose --junitfile "junit-report.xml" -- ${option} -timeout 20m -vet=off
                         else
                             echo "directory not exist: ${suites}"
                         fi
@@ -295,13 +295,13 @@ try {
 
         if (ghprbTargetBranch == "master"){
             tests["test session with real tikv suites pessimistictest"] = {
-                test_suites("tests/pessimistictest")
+                test_suites("tests/pessimistictest", "-with-real-tikv")
             }
             tests["test session with real tikv suites realtikvtest"] = {
-                test_suites("tests/realtikvtest")
+                test_suites("tests/realtikvtest", "-with-real-tikv")
             }
             tests["test session with real tikv suites sessiontest"] = {
-                test_suites("session")
+                test_suites("session", "-with-tikv")
             }
 
             tests["New Collation Enabled"] = {
