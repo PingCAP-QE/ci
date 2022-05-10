@@ -63,8 +63,6 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
-def sessionTestSuitesString = "testPessimisticSuite"
-
 def run_with_pod(Closure body) {
     def label = "jenkins-check-2-${BUILD_NUMBER}"
     def cloud = "kubernetes"
@@ -132,7 +130,7 @@ def upload_test_result(reportDir) {
     }
 }
 
-def test_suites = { suites,option ->
+def test_suites = { suites ->
     run_with_pod {
         deleteDir()
         unstash 'tidb'
@@ -165,11 +163,15 @@ def test_suites = { suites,option ->
                         bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                         bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
             
-                        cd session
-                        export log_level=error
-                        go install gotest.tools/gotestsum@latest
-                        gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off ${option} '${suites}'
-                        #go test -with-tikv -pd-addrs=127.0.0.1:2379 -timeout 20m -vet=off
+                        if [ -d "tests/${suites}" ]
+                        then
+                            cd tests/${suites}
+                            export log_level=error
+                            go install gotest.tools/gotestsum@latest
+                            gotestsum --format standard-verbose --junitfile "junit-report.xml" -- -with-tikv -pd-addrs=127.0.0.1:2379,127.0.0.1:2389,127.0.0.1:2399 -timeout 20m -vet=off
+                        else
+                            echo "directory not exist: tests/${suites}"
+                        fi
                         """
                     }catch (Exception e){
                         sh "cat ${ws}/go/src/github.com/pingcap/tidb/pd1.log || true"
@@ -292,11 +294,11 @@ try {
 
 
         if (ghprbTargetBranch == "master"){
-            tests["test session with real tikv suites ${sessionTestSuitesString}"] = {
-                test_suites(sessionTestSuitesString, "-check.f")
+            tests["test session with real tikv suites pessimistictest"] = {
+                test_suites("pessimistictest")
             }
-            tests["test session with real tikv exclude suites ${sessionTestSuitesString}"] = {
-                test_suites(sessionTestSuitesString, "-check.exclude")
+            tests["test session with real tikv suites realtikvtest"] = {
+                test_suites("realtikvtest")
             }
 
             tests["New Collation Enabled"] = {
