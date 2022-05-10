@@ -322,17 +322,8 @@ catchError {
         catchError {
             common.prepare_binaries()
 
-            def label = "cdc-integration-test"
-            if (GO_VERSION == "1.13") {
-                label = "cdc-integration-test-go1130-${BUILD_NUMBER}"
-            }
-            if (GO_VERSION == "1.16") {
-                label = "cdc-integration-test-go1160-${BUILD_NUMBER}"
-            }
-            if (GO_VERSION == "1.18") {
-                label = "cdc-integration-test-go1180-${BUILD_NUMBER}"
-            }
-            podTemplate(label: label,
+            podTemplate(
+                    label: POD_LABEL_MAP[GO_VERSION],
                     idleMinutes: 0,
                     namespace: "jenkins-ticdc",
                     containers: [
