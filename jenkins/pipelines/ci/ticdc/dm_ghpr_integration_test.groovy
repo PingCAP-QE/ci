@@ -319,15 +319,24 @@ def run_tls_source_it_test(String case_name) {
                             cp /tmp/dm_test/cov*out cov_dir
                             """
                 }catch (Exception e) {
+                    def log_tar_name = "${case_name}"
                     sh """
-                                echo "${case_name} test faild print all log..."
-                                for log in `ls /tmp/dm_test/*/*/log/*.log`; do
-                                    echo "____________________________________"
-                                    echo "\$log"
-                                    cat "\$log"
-                                    echo "____________________________________"
-                                done
-                                """
+                        echo "${case_name} test faild, archive all log"
+                        echo "archive logs"
+                        ls /tmp/dm_test/
+                        tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
+                        ls -alh  log-${log_tar_name}.tar.gz   
+                    """
+                    // sh """
+                    // echo "${case_name} test faild print all log..."
+                    // for log in `ls /tmp/dm_test/*/*/log/*.log`; do
+                    //     echo "____________________________________"
+                    //     echo "\$log"
+                    //     cat "\$log"
+                    //     echo "____________________________________"
+                    // done
+                    // """
+                    archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
                     throw e
                 }
             }
