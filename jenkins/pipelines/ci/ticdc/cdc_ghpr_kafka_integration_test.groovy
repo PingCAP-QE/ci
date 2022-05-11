@@ -278,16 +278,7 @@ catchError {
 
             common.prepare_binaries()
 
-            def label = "cdc-kafka-integration-test"
-            if (GO_VERSION == "go1.13") {
-                label = "cdc-kafka-integration-test-go1130-${BUILD_NUMBER}"
-            }
-            if (GO_VERSION == "go1.16") {
-                label = "cdc-kafka-integration-test-go1160-${BUILD_NUMBER}"
-            }
-            if (GO_VERSION == "go1.18") {
-                label = "cdc-kafka-integration-test-go1180-${BUILD_NUMBER}"
-            }
+            def label = POD_LABEL_MAP[GO_VERSION]
             podTemplate(label: label,
                     idleMinutes: 0,
                     namespace: "jenkins-ticdc",
