@@ -321,9 +321,9 @@ catchError {
         def common = load script_path
         catchError {
             common.prepare_binaries()
-
+            def label = POD_LABEL_MAP[GO_VERSION]
             podTemplate(
-                    label: POD_LABEL_MAP[GO_VERSION],
+                    label: label,
                     idleMinutes: 0,
                     namespace: "jenkins-ticdc",
                     containers: [
