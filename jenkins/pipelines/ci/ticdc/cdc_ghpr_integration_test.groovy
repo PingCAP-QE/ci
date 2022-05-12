@@ -50,9 +50,14 @@ GO_IMAGE_MAP = [
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
 ]
 POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
+    "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-build-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-build-${BUILD_NUMBER}",
+]
+TEST_POD_LABEL_MAP = [
+    "go1.13": "${JOB_NAME}-go1130-test-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-test-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-test-${BUILD_NUMBER}",
 ]
 
 feature_branch_use_go13 = []
@@ -321,7 +326,7 @@ catchError {
         def common = load script_path
         catchError {
             common.prepare_binaries()
-            def label = POD_LABEL_MAP[GO_VERSION]
+            def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(
                     label: label,
                     idleMinutes: 0,
