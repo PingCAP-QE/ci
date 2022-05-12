@@ -117,7 +117,7 @@ println "go image: ${POD_GO_IMAGE}"
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-ticdc"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -285,6 +285,7 @@ catchError {
 
             def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(label: label,
+                    cloud: "kubernetes-ng",
                     idleMinutes: 0,
                     namespace: "jenkins-ticdc",
                     containers: [
