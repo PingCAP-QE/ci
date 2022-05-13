@@ -55,7 +55,7 @@ catchError {
                             # buildx build --platform=linux/arm64,linux/amd64 --push -t pingcap/tidb-monitor-reloader:v1.0.1 -f reload/Dockerfile_buildx .
                             
                             buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-initializer:${RELEASE_TAG} monitor-snapshot/${version}/operator
-                            buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-reloader:v1.0.1 -f reload/Dockerfile_buildx .
+                            # buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-reloader:v1.0.1 -f reload/Dockerfile_buildx .
                             """   
                             }
                         }
@@ -69,14 +69,14 @@ catchError {
                         ]
                         build(job: "jenkins-image-syncer", parameters: sync_image_params_initializer, wait: true, propagate: true)
                         
-                        harbor_tmp_image_name_reloader = "hub.pingcap.net/qa/tidb-monitor-reloader:${RELEASE_TAG}"
-                        sync_dest_image_name_reloader = "pingcap/tidb-monitor-reloader:${RELEASE_TAG}"
-                        sync_image_params_reloader = [
-                                string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
-                                string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name_reloader),
-                                string(name: 'TARGET_IMAGE', value: harbor_tmp_image_name_reloader),
-                        ]
-                        build(job: "jenkins-image-syncer", parameters: sync_image_params_reloader, wait: true, propagate: true)
+                        // harbor_tmp_image_name_reloader = "hub.pingcap.net/qa/tidb-monitor-reloader:${RELEASE_TAG}"
+                        // sync_dest_image_name_reloader = "pingcap/tidb-monitor-reloader:${RELEASE_TAG}"
+                        // sync_image_params_reloader = [
+                        //         string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
+                        //         string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name_reloader),
+                        //         string(name: 'TARGET_IMAGE', value: harbor_tmp_image_name_reloader),
+                        // ]
+                        // build(job: "jenkins-image-syncer", parameters: sync_image_params_reloader, wait: true, propagate: true)
                     }
                 }
             }
