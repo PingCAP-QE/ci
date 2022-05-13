@@ -487,6 +487,10 @@ catchError {
             build_arms["arm64 tidb-binlog Docker"] = {
                 libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false, false)
             }
+
+            build_arms["arm64 ticdc Docker"]={
+                libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false, false)
+            }
             if (RELEASE_TAG >= "v5.3.0") {
                 build_arms["arm64 dm Docker"] = {
                     libs.release_online_image("dm", dm_sha1, arch,  os , platform, RELEASE_TAG, false, false)
