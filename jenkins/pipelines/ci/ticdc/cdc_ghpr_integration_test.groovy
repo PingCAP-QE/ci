@@ -50,9 +50,14 @@ GO_IMAGE_MAP = [
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
 ]
 POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
+    "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-build-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-build-${BUILD_NUMBER}",
+]
+TEST_POD_LABEL_MAP = [
+    "go1.13": "${JOB_NAME}-go1130-test-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-test-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-test-${BUILD_NUMBER}",
 ]
 
 feature_branch_use_go13 = []
@@ -138,7 +143,7 @@ println "go image: ${POD_GO_IMAGE}"
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-ticdc"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -321,18 +326,10 @@ catchError {
         def common = load script_path
         catchError {
             common.prepare_binaries()
-
-            def label = "cdc-integration-test"
-            if (GO_VERSION == "1.13") {
-                label = "cdc-integration-test-go1130-${BUILD_NUMBER}"
-            }
-            if (GO_VERSION == "1.16") {
-                label = "cdc-integration-test-go1160-${BUILD_NUMBER}"
-            }
-            if (GO_VERSION == "1.18") {
-                label = "cdc-integration-test-go1180-${BUILD_NUMBER}"
-            }
-            podTemplate(label: label,
+            def label = TEST_POD_LABEL_MAP[GO_VERSION]
+            podTemplate(
+                    label: label,
+                    cloud: "kubernetes-ng",
                     idleMinutes: 0,
                     namespace: "jenkins-ticdc",
                     containers: [

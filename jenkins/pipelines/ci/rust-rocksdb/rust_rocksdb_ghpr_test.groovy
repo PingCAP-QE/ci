@@ -8,32 +8,34 @@ arm_features = "jemalloc"
 
 def checkout() {
     node("build") {
-        dir("rust-rocksdb") {
-            deleteDir()
-            checkout(changelog: false, poll: false, scm: [
-                $class: "GitSCM",
-                branches: [[name: 'master']],
-                userRemoteConfigs: [[
-                    url: 'https://github.com/tikv/rust-rocksdb.git',
-                    refspec: '+refs/pull/*/head:refs/remotes/origin/pr/*'
-                ]],
-                extensions: [
-                    [$class: 'PruneStaleBranch'],
-                    [$class: 'CleanBeforeCheckout'],
-                    [$class: 'SubmoduleOption', recursiveSubmodules: true],
-                ],
-            ])
-            sh """
-                # checkout git commit of the PR
-                git checkout -f ${commit}
-                git submodule update
+        container("rust") {
+            dir("rust-rocksdb") {
+                deleteDir()
+                checkout(changelog: false, poll: false, scm: [
+                    $class: "GitSCM",
+                    branches: [[name: 'master']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/tikv/rust-rocksdb.git',
+                        refspec: '+refs/pull/*/head:refs/remotes/origin/pr/*'
+                    ]],
+                    extensions: [
+                        [$class: 'PruneStaleBranch'],
+                        [$class: 'CleanBeforeCheckout'],
+                        [$class: 'SubmoduleOption', recursiveSubmodules: true],
+                    ],
+                ])
+                sh """
+                    # checkout git commit of the PR
+                    git checkout -f ${commit}
+                    git submodule update
 
-                # sync rust-toolchain with TiKV
-                curl ${toolchain} > ./rust-toolchain
-                cat ./rust-toolchain
-            """
-        }
-        stash includes: "rust-rocksdb/**", name: "rust-rocksdb", useDefaultExcludes: false
+                    # sync rust-toolchain with TiKV
+                    curl ${toolchain} > ./rust-toolchain
+                    cat ./rust-toolchain
+                """
+            }
+            stash includes: "rust-rocksdb/**", name: "rust-rocksdb", useDefaultExcludes: false
+        }  
     }
 }
 
