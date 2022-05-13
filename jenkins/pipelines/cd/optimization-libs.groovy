@@ -474,7 +474,7 @@ def release_dm_ansible_amd64(sha1, release_tag) {
         container("delivery") {
             stage('Prepare') {
                 def wss = pwd()
-                def dm_file = "${FILE_SERVER_URL}/builds/pingcap/dm/optimization/${release_tag}/${sha1}/centos7/dm-linux-amd64.tar.gz"
+                def dm_file = "${FILE_SERVER_URL}/download/builds/pingcap/dm/optimization/${release_tag}/${sha1}/centos7/dm-linux-amd64.tar.gz"
                 sh """
                     rm -rf *
                     cd /home/jenkins
