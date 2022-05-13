@@ -36,7 +36,7 @@ catchError {
 
                     if (RELEASE_TAG >= "v5.3.0") {
                         dumpling_sha1 = tidb_sha1
-                        dm_sha1 = cdc_sh1
+                        dm_sha1 = cdc_sha1
                         ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     } else {
                         dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
