@@ -112,14 +112,14 @@ def create_enterprise_builds(build_para) {
 //new
 def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release) {
     // build tidb enterprise image with plugin
-    binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
-    plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
+    binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/centos7/${product}-linux-${arch}-enterprise.tar.gz"
+    plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (product == "tidb" && os == "linux" && arch == "amd64") {
+    if (product == "tidb"  && arch == "amd64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
-    if (product == "tidb" && os == "linux" && arch == "arm64") {
+    if (product == "tidb"  && arch == "arm64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
     }
     def imageName = product
