@@ -364,7 +364,7 @@ catchError {
                 push_arm_bin("tidb-${release_tag}-linux-arm64")
                 push_arm_toolkit("tidb-toolkit-${release_tag}-linux-arm64")
                 if (RELEASE_TAG >= "v5.3.0") {
-                    lib.release_dm_ansible_amd64(dm_sha1, RELEASE_TAG)
+                    libs.release_dm_ansible_amd64(dm_sha1, RELEASE_TAG)
                 }
                 if (RELEASE_TAG >= "v3.1") {
                     push_tiflash("tiflash-${release_tag}-linux-amd64")
