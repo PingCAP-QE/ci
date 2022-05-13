@@ -166,6 +166,7 @@ def tests(sink_type, node_label) {
                             try {
                                 timeout(time: 60, unit: 'MINUTES') { 
                                     sh """
+                                        go version
                                         s3cmd --version
                                         rm -rf /tmp/tidb_cdc_test
                                         mkdir -p /tmp/tidb_cdc_test
