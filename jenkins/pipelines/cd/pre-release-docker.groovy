@@ -54,7 +54,17 @@ def test_binary_already_build(binary_url) {
 }
 
 
+// only release version >= v6.1.0 need multi-arch image
+def versionNeedMultiArch(version) {
+    if (version.startsWith("v") && version >= "v6.1.0") {
+        return true
+    }
+    return false
+}
+
+NEED_MULTIARCH = versionNeedMultiArch(RELEASE_TAG)
 IMAGE_TAG = RELEASE_TAG + "-pre"
+
 
 def release_one(repo, arch, failpoint) {
     def actualRepo = repo
@@ -124,13 +134,26 @@ def release_one(repo, arch, failpoint) {
     if (repo == "monitoring") {
         imageName = "tidb-monitor-initializer"
     }
-    if (arch == "arm64") {
+    // if current version not need multi-arch image, then use image image to distingush amd64 and arm64.
+    // otherwise, use imageTag to distingush different version.
+    // example1:
+    // hub.pingcap.net/qa/tidb:v5.4.0-pre
+    // hub.pingcap.net/qa/tidb-arm64:v5.4.0-pre
+    // example2:
+    // hub.pingcap.net/qa/tidb:v6.1.0-pre-amd64
+    // hub.pingcap.net/qa/tidb:v6.1.0-pre-arm64
+    if (arch == "arm64" && !NEED_MULTIARCH) {
         imageName = imageName + "-arm64"
     }
+    def imageTag = IMAGE_TAG
+    if (NEED_MULTIARCH) {
+        imageTag = IMAGE_TAG + "-" + arch
+    }
 
-    def image = "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
+
+    def image = "hub.pingcap.net/qa/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
     if (failpoint) {
-        image = "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-failpoint"
+        image = "hub.pingcap.net/qa/${imageName}:${imageTag}-failpoint"
     }
 
     def paramsDocker = [
@@ -204,9 +227,12 @@ def release_one(repo, arch, failpoint) {
     if (repo == "br") {
         def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
         imageName = "tidb-lightning"
-        if (arch == "arm64") {
+        if (arch == "arm64" && !NEED_MULTIARCH) {
             imageName = imageName + "-arm64"
         }
+        if (NEED_MULTIARCH) {
+            IMAGE_TAG = IMAGE_TAG + "-" + arch
+         }
         def imageLightling = "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
@@ -266,6 +292,31 @@ private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object
     }
 }
 
+
+def manifest_multiarch_image() {
+    def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
+    def manifest_multiarch_builds = [:]
+    for (imageName in imageNames) {
+        def paramsManifest = [
+            string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-amd64"),
+            string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-arm64"),
+            string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),
+        ]
+        build job: "manifest-multiarch-common",
+            wait: true,
+            parameters: paramsManifest
+        def paramsSyncImage = [
+                string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
+                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),
+                string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${IMAGE_TAG}"),
+        ]
+        build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+    }
+
+    parallel manifest_multiarch_builds
+}
+
+
 stage("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
@@ -276,8 +327,12 @@ stage("release") {
             if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH == "release-5.4") {
                 release_docker(releaseRepos, builds, "arm64")
             }
-            
+
             parallel builds
+
+            if (NEED_MULTIARCH) {
+                manifest_multiarch_image()
+            }
         }
     }
 }
