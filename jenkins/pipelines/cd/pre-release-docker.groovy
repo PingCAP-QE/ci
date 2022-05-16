@@ -242,23 +242,6 @@ def release_one(repo, arch, failpoint) {
     }
 }
 
-stage("release") {
-    node("${GO_BUILD_SLAVE}") {
-        container("golang") {
-            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
-            builds = [:]
-            release_docker(releaseRepos, builds, "amd64")
-
-            if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH == "release-5.4") {
-                release_docker(releaseRepos, builds, "arm64")
-            }
-
-
-            parallel builds
-        }
-    }
-}
-
 private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object, Object> builds, arch) {
     for (item in releaseRepos) {
         def product = "${item}"
@@ -282,3 +265,21 @@ private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object
         }
     }
 }
+
+stage("release") {
+    node("${GO_BUILD_SLAVE}") {
+        container("golang") {
+            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
+            builds = [:]
+            release_docker(releaseRepos, builds, "amd64")
+
+            if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH == "release-5.4") {
+                release_docker(releaseRepos, builds, "arm64")
+            }
+            
+            parallel builds
+        }
+    }
+}
+
+
