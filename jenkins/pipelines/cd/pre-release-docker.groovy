@@ -152,6 +152,10 @@ def release_one(repo, arch, failpoint) {
 
 
     def image = "hub.pingcap.net/qa/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
+    // version need multi-arch image, sync image from internal harbor to dockerhub
+    if (NEED_MULTIARCH) {
+        image = "hub.pingcap.net/qa/${imageName}:${imageTag}"
+    }
     if (failpoint) {
         image = "hub.pingcap.net/qa/${imageName}:${imageTag}-failpoint"
     }
