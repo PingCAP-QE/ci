@@ -128,6 +128,7 @@ try {
                                 wait: true,
                                 parameters: [
                                         [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
                                         [$class: 'StringParameterValue', name: 'TIDB_SHA', value: tidb_sha1],
                                         [$class: 'StringParameterValue', name: 'TIKV_SHA', value: tikv_sha1],
                                         [$class: 'StringParameterValue', name: 'PD_SHA', value: pd_sha1],
