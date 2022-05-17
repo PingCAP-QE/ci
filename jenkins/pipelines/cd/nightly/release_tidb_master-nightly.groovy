@@ -2,6 +2,23 @@ env.DOCKER_HOST = "tcp://localhost:2375"
 def tidb_sha1, tikv_sha1, pd_sha1
 def IMPORTER_BRANCH = "master"
 def taskStartTimeInMillis = System.currentTimeMillis()
+
+def push_docker_image(item, dir_name) {
+    def harbor_tmp_image_name = "hub.pingcap.net/image-sync/" + item
+    def sync_dest_image_name = item
+
+    docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
+        docker.build(harbor_tmp_image_name, dir_name).push()
+    }
+    sync_image_params = [
+            string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
+            string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name),
+            string(name: 'TARGET_IMAGE', value: sync_dest_image_name),
+    ]
+    build(job: "jenkins-image-syncer", parameters: sync_image_params, wait: true, propagate: true)
+    sh "docker rmi ${harbor_tmp_image_name} || true"
+}
+
 try {
     catchError {
         node("${GO_BUILD_SLAVE}") {
@@ -80,69 +97,61 @@ try {
 
                         sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                     }
-
-
                     dir('etcd') {
                         sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz | tar xz"
                     }
                 }
-
-                stage("Publish Monitor Docker Image") {
-                    dir("monitoring_docker_build") {
-                        deleteDir()
-                        unstash 'monitoring'
-                        dir("go/src/github.com/pingcap/monitoring") {
-                            withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                                docker.build("pingcap/tidb-monitor-initializer:${RELEASE_TAG}", "monitor-snapshot/${TIDB_VERSION}/operator").push()
+                stage("publish docker image") {
+                    def builds = [:]
+                    builds["Publish Monitor Docker Image"] = {
+                        dir("monitoring_docker_build") {
+                            deleteDir()
+                            unstash 'monitoring'
+                            dir("go/src/github.com/pingcap/monitoring") {
+                                def item = "pingcap/tidb-monitor-initializer:" + RELEASE_TAG
+                                def dir_name = "monitor-snapshot/${TIDB_VERSION}/operator"
+                                push_docker_image(item, dir_name)
                             }
                         }
                     }
-                }
-
-                stage('Push tidb Docker') {
-                    dir('tidb_docker_build') {
-                        sh """
+                    builds["Push tidb Docker"] = {
+                        dir('tidb_docker_build') {
+                            sh """
                 cp ../centos7/bin/tidb-server ./
                 wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tidb/Dockerfile
                 """
+                        }
+                        def item = "pingcap/tidb:" + RELEASE_TAG
+                        def dir_name = "tidb_docker_build"
+                        push_docker_image(item, dir_name)
                     }
-
-                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                        docker.build("pingcap/tidb:${RELEASE_TAG}", "tidb_docker_build").push()
-                    }
-                }
-
-                stage('Push tikv Docker') {
-                    dir('tikv_docker_build') {
-                        sh """
+                    builds["Push tikv Docker"] = {
+                        dir('tikv_docker_build') {
+                            sh """
                 cp ../centos7/bin/tikv-server ./
                 cp ../centos7/bin/tikv-ctl ./
                 wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tikv/Dockerfile
                 """
+                        }
+                        def item = "pingcap/tikv:" + RELEASE_TAG
+                        def dir_name = "tikv_docker_build"
+                        push_docker_image(item, dir_name)
                     }
-
-                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                        docker.build("pingcap/tikv:${RELEASE_TAG}", "tikv_docker_build").push()
-                    }
-                }
-
-                stage('Push pd Docker') {
-                    dir('pd_docker_build') {
-                        sh """
+                    builds["Push pd Docker"] = {
+                        dir('pd_docker_build') {
+                            sh """
                 cp ../centos7/bin/pd-server ./
                 cp ../centos7/bin/pd-ctl ./
                 wget ${FILE_SERVER_URL}/download/script/release-dockerfile/pd/Dockerfile
                 """
+                        }
+                        def item = "pingcap/pd:" + RELEASE_TAG
+                        def dir_name = "pd_docker_build"
+                        push_docker_image(item, dir_name)
                     }
-
-                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                        docker.build("pingcap/pd:${RELEASE_TAG}", "pd_docker_build").push()
-                    }
-                }
-
-                stage('Push lightning Docker') {
-                    dir('lightning_docker_build') {
-                        sh """
+                    builds["Push lightning Docker"] = {
+                        dir('lightning_docker_build') {
+                            sh """
                 cp ../centos7/bin/tidb-lightning ./
                 cp ../centos7/bin/tidb-lightning-ctl ./
                 cp ../centos7/bin/tikv-importer ./
@@ -157,16 +166,14 @@ COPY tikv-importer /tikv-importer
 COPY br /br
 __EOF__
                 """
+                        }
+                        def item = "pingcap/tidb-lightning:" + RELEASE_TAG
+                        def dir_name = "lightning_docker_build"
+                        push_docker_image(item, dir_name)
                     }
-
-                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                        docker.build("pingcap/tidb-lightning:${RELEASE_TAG}", "lightning_docker_build").push()
-                    }
-                }
-
-                stage('Push tidb-binlog Docker') {
-                    dir('tidb_binlog_docker_build') {
-                        sh """
+                    builds["Push tidb-binlog Docker"] = {
+                        dir('tidb_binlog_docker_build') {
+                            sh """
                 cp ../centos7/bin/pump ./
                 cp ../centos7/bin/drainer ./
                 cp ../centos7/bin/reparo ./
@@ -184,20 +191,28 @@ EXPOSE 8249 8250
 CMD ["/pump"]
 __EOF__
                 """
+                        }
+                        def item = "pingcap/tidb-binlog:" + RELEASE_TAG
+                        def dir_name = "tidb_binlog_docker_build"
+                        push_docker_image(item, dir_name)
                     }
-
-                    withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                        docker.build("pingcap/tidb-binlog:${RELEASE_TAG}", "tidb_binlog_docker_build").push()
-                    }
+                    parallel builds
                 }
             }
         }
 
         currentBuild.result = "SUCCESS"
     }
-}catch(Exception e){
+} catch (Exception e) {
     currentBuild.result = "FAILURE"
-}finally{
+//    休眠5分钟
+    Thread.sleep(60 * 1000 * 5);
+    buid job: 'release-tidb-master-image-nightly',
+            wait: true,
+            parameters: [
+            ]
+
+} finally {
     build job: 'send_notify',
             wait: true,
             parameters: [
@@ -209,6 +224,7 @@ __EOF__
                     [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
             ]
 }
+
 
 stage('Summary') {
     def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
