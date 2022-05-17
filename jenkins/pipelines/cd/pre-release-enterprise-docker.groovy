@@ -63,9 +63,6 @@ properties([
 ])
 
 
-os = "linux"
-platform = "centos7"
-
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 
 def run_with_pod(Closure body) {
