@@ -84,7 +84,7 @@ def run_with_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-go1180-${BUILD_NUMBER}"
     }
 
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -124,7 +124,7 @@ def run_with_memory_volume_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-memory-volume-go1180-${BUILD_NUMBER}"
     }
     
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,

@@ -53,7 +53,7 @@ def waitBuildDone = 0
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
