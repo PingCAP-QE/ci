@@ -63,8 +63,6 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
-def sessionTestSuitesString = "testPessimisticSuite"
-
 def run_with_pod(Closure body) {
     def label = "jenkins-check-2-${BUILD_NUMBER}"
     def cloud = "kubernetes"
@@ -292,13 +290,6 @@ try {
 
 
         if (ghprbTargetBranch == "master"){
-            tests["test session with real tikv suites ${sessionTestSuitesString}"] = {
-                test_suites(sessionTestSuitesString, "-check.f")
-            }
-            tests["test session with real tikv exclude suites ${sessionTestSuitesString}"] = {
-                test_suites(sessionTestSuitesString, "-check.exclude")
-            }
-
             tests["New Collation Enabled"] = {
                 run_with_pod {
                     deleteDir()
