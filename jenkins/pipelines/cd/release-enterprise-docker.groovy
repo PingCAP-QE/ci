@@ -54,66 +54,6 @@ properties([
                         description: '',
                         trim: true
                 ),
-                string(
-                        defaultValue: '',
-                        name: 'TIDB_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIKV_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PD_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'BINLOG_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIFLASH_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'LIGHTNING_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'IMPORTER_TAG',
-                        description: '访问 https://api.github.com/repos/tikv/importer/git/refs/tags/{TIKV_IMPORTER_VERSION}  确认版本信息正确',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TOOLS_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'DUMPLING_TAG',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'CDC_TAG',
-                        description: '',
-                        trim: true
-                ),
                 booleanParam(
                         defaultValue: true,
                         name: 'FORCE_REBUILD',
@@ -125,8 +65,6 @@ properties([
 
 def libs
 
-def os = "linux"
-def platform = "centos7"
 def taskStartTimeInMillis = System.currentTimeMillis()
 
 try {
