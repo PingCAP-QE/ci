@@ -54,8 +54,68 @@ properties([
                         description: '',
                         trim: true
                 ),
+                string(
+                        defaultValue: '',
+                        name: 'TIDB_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIKV_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'PD_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'BINLOG_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIFLASH_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'LIGHTNING_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'IMPORTER_TAG',
+                        description: '访问 https://api.github.com/repos/tikv/importer/git/refs/tags/{TIKV_IMPORTER_VERSION}  确认版本信息正确',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TOOLS_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'DUMPLING_TAG',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'CDC_TAG',
+                        description: '',
+                        trim: true
+                ),
                 booleanParam(
-                        defaultValue: false,
+                        defaultValue: true,
                         name: 'FORCE_REBUILD',
                         description: ''
                 ),
@@ -63,43 +123,10 @@ properties([
 ])
 
 
-os = "linux"
-platform = "centos7"
-
-label = "${JOB_NAME}-${BUILD_NUMBER}"
-
-def run_with_pod(Closure body) {
-    def cloud = "kubernetes"
-    def namespace = "jenkins-cd"
-    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
-    podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
-            idleMinutes: 0,
-            containers: [
-                    containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
-                            image: "${pod_go_docker_image}", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
-                            command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-
-                    )
-            ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-            ],
-    ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
-        }
-    }
-}
-
 def libs
+
+def os = "linux"
+def platform = "centos7"
 def taskStartTimeInMillis = System.currentTimeMillis()
 
 try {
@@ -116,24 +143,21 @@ try {
             }
         }
 
-        stage("enterprise docker image amd64 build") {
-            node("delivery") {
-                container("delivery") {
-                    def arch_amd64 = "amd64"
-                    libs.parallel_enterprise_docker(arch_amd64, false)
-                }
+        node('delivery') {
+            container("delivery") {
+                def arch_amd64 = "amd64"
+                libs.parallel_enterprise_docker(arch_amd64, true)
+
             }
         }
 
-        stage("enterprise docker image arm64 build") {
-            node("arm") {
-                def arch_arm64 = "arm64"
-                libs.parallel_enterprise_docker(arch_arm64, false)
-            }
+        node('arm') {
+            def arch_arm64 = "arm64"
+            libs.parallel_enterprise_docker(arch_arm64, true)
         }
+
         currentBuild.result = "SUCCESS"
     }
-
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
 } finally {
@@ -146,7 +170,5 @@ try {
                     [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
                     [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
                     [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
-
             ]
 }
-
