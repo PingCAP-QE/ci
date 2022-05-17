@@ -102,6 +102,15 @@ def run_with_pod(Closure body) {
 def libs
 def taskStartTimeInMillis = System.currentTimeMillis()
 
+// only release version >= v6.1.0 need multi-arch image
+def versionNeedMultiArch(version) {
+    if (version.startsWith("v") && version >= "v6.1.0") {
+        return true
+    }
+    return false
+}
+NEED_MULTIARCH = versionNeedMultiArch(RELEASE_TAG)
+
 try {
     catchError {
         stage('Prepare') {
@@ -129,6 +138,16 @@ try {
             node("arm") {
                 def arch_arm64 = "arm64"
                 libs.parallel_enterprise_docker(arch_arm64, false)
+            }
+        }
+
+        if (NEED_MULTIARCH) {
+            stage("manifest multi-arch docker image build") {
+                node("delivery") {
+                    container("delivery") {
+                        libs.parallel_enterprise_docker_multiarch(false)
+                    }
+                }
             }
         }
         currentBuild.result = "SUCCESS"
