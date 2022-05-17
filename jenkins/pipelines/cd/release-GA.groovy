@@ -118,9 +118,10 @@ try {
                 stage('publish tiup prod && publish community image') {
                     publishs = [:]
                     publishs["publish tiup prod"] = {
-                        build job: 'tiup-mirror-update-test',
-                                wait: true,
-                                parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+//                        build job: 'tiup-mirror-update-test',
+//                                wait: true,
+//                                parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        println("publish tiup prod")
                     }
                     publishs["publish community image"] = {
                         build job: 'release-community-docker',
@@ -143,36 +144,38 @@ try {
                     parallel publishs
                 }
                 stage('publish enterprise image') {
-                    build job: 'release-enterprise-docker',
-                            wait: true,
-                            parameters: [
-                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                    [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
-                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: false]
-                            ]
+                    println("publish enterprise image")
+                    println("tidb_hash:"+tidb_sha1)
+//                    build job: 'release-enterprise-docker',
+//                            wait: true,
+//                            parameters: [
+//                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+//                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
+//                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+//                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+//                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+//                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+//                                    [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
+//                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: false]
+//                            ]
                 }
-                stage('publish tiup offline package && publish dm tiup offline package') {
-                    publishs = [:]
-                    publishs["publish tiup offline package"] = {
-                        build job: 'tiup-package-offline-mirror',
-                                wait: true,
-                                parameters: [
-                                        [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
-                                ]
-                    }
-                    publishs["publish dm tiup offline package"] = {
-                        // publish dm offline package (include linux amd64 and arm64)
-                        build job: 'tiup-package-offline-mirror-dm',
-                                wait: true,
-                                parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
-                    }
-                    parallel publishs
-                }
+//                stage('publish tiup offline package && publish dm tiup offline package') {
+//                    publishs = [:]
+//                    publishs["publish tiup offline package"] = {
+//                        build job: 'tiup-package-offline-mirror',
+//                                wait: true,
+//                                parameters: [
+//                                        [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
+//                                ]
+//                    }
+//                    publishs["publish dm tiup offline package"] = {
+//                        // publish dm offline package (include linux amd64 and arm64)
+//                        build job: 'tiup-package-offline-mirror-dm',
+//                                wait: true,
+//                                parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
+//                    }
+//                    parallel publishs
+//                }
             }
         }
 
