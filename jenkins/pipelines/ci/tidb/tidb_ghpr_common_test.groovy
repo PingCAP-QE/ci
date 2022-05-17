@@ -103,7 +103,7 @@ def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
 
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: "jenkins-tidb",
@@ -133,7 +133,7 @@ def run_test_with_pod(Closure body) {
 
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,

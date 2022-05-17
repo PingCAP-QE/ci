@@ -83,7 +83,7 @@ def run_with_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "tidb-ghpr-integration-common-test-go1180-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -122,7 +122,7 @@ def run_with_memory_volume_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "tidb-ghpr-integration-common-test-memory-volume-go1180-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
