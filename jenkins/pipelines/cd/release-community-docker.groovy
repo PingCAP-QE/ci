@@ -26,7 +26,7 @@ node('delivery') {
             }
             stage('community_docker_image_amd64') {
                 println("community_docker_image_amd64")
-//                community_docker_image_amd64(libs)
+                community_docker_image_amd64(libs)
             }
 
 //            stage('community_docker_image_arm64') {
