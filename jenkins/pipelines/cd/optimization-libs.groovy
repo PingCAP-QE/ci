@@ -120,8 +120,7 @@ def create_enterprise_builds(build_para) {
 //    amd64: harbor.pingcap.net/qa/tidb:v6.1.0-pre-amd64
 //    arm64: harbor.pingcap.net/qa/tidb:v6.1.0-pre-arm64
 //    multi-arch: harbor.pingcap.net/qa/tidb:v6.1.0-pre
-def get_image_str(product, arch, tag, if_release, if_multi_arch) {
-    def imageStr = ""
+def get_image_str_for_enterprise(product, arch, tag, if_release, if_multi_arch) {
     def imageTag = tag
     def imageName = product
     if (product == "monitroing") {
@@ -137,10 +136,7 @@ def get_image_str(product, arch, tag, if_release, if_multi_arch) {
         }
     }
 
-    imageStr = "uhub.service.ucloud.cn/pingcap/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
-    if (!if_release) {
-        imageStr = "hub.pingcap.net/qa/${imageName}:${imageTag}"
-    }
+    def imageStr = "hub.pingcap.net/qa/${imageName}:${imageTag}"
 
     return imageStr
 }
@@ -158,7 +154,7 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
     if (product == "tidb"  && arch == "arm64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
     }
-    def image = get_image_str("tidb", arch, RELEASE_TAG, if_release, if_multi_arch)
+    def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG, if_release, if_multi_arch)
 
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -276,7 +272,7 @@ def build_enterprise_image(product, sha1, arch, if_release, if_multi_arch) {
     }
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
     def repo = product
-    def image = get_image_str(product, arch, RELEASE_TAG, if_release, if_multi_arch)
+    def image = get_image_str_for_enterprise(product, arch, RELEASE_TAG, if_release, if_multi_arch)
 
     def paramsDocker = [
             string(name: "ARCH", value: arch),
