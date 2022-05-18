@@ -328,7 +328,7 @@ stage("release") {
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
 
-            if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH == "release-5.4") {
+            if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH >= "release-5.4") {
                 release_docker(releaseRepos, builds, "arm64")
             }
 
