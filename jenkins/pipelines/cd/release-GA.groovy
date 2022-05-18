@@ -72,9 +72,10 @@ try {
 
         node('delivery') {
             container("delivery") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                def wss = pwd()
-                sh """
+                stage("prepare aws key") {
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                    def wss = pwd()
+                    sh """
             rm -rf *
             cd /home/jenkins
             mkdir -p /root/.docker
@@ -82,9 +83,10 @@ try {
             yes|cp -R /etc/.aws /root
             cd $wss
             """
-                if (NEED_MULTIARCH) {
+                }
+                if (NEED_MULTIARCH == true) {
                     stage('publish tiup prod && publish community image && publish enterprise image') {
-                        publishs = [:]
+                        def publishs = [:]
                         publishs["publish tiup prod"] = {
                             println("start publish tiup prod")
 //                            build job: 'tiup-mirror-update-test',
@@ -108,10 +110,11 @@ try {
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
                                             [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: true]]
                         }
+                        parallel publishs
                     }
                 } else {
                     stage('publish tiup prod && publish community image') {
-                        publishs = [:]
+                        def publishs = [:]
                         publishs["publish tiup prod"] = {
                             println("start publish tiup prod")
 //                            build job: 'tiup-mirror-update-test',
@@ -156,7 +159,7 @@ try {
                 }
 
 //                stage('publish tiup offline package && publish dm tiup offline package') {
-//                    publishs = [:]
+//                    def publishs = [:]
 //                    publishs["publish tiup offline package"] = {
 //                        build job: 'tiup-package-offline-mirror',
 //                                wait: true,

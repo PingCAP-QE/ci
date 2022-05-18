@@ -22,22 +22,20 @@ node('delivery') {
             }
 
             stage('multi-arch docker image') {
-                if (IF_ENTERPRISE) {
+                if (IF_ENTERPRISE==true) {
                     def builds_enterprise = [:]
-                    for (item in release_repo) {
-                        builds_enterprise["sync ${item} enterprise docker image"] = {
-                            def product = "${item}"
-                            libs.retag_docker_image_for_ga(product, true)
+                    for (item1 in release_repo) {
+                        builds_enterprise["sync ${item1} enterprise docker image"] = {
+                            libs.retag_docker_image_for_ga(item1, true)
                         }
 
                     }
                     parallel builds_enterprise
                 } else {
                     def builds_community = [:]
-                    for (item in release_repo) {
-                        builds_community["sync ${item} community docker image"] = {
-                            def product = "${item}"
-                            libs.retag_docker_image_for_ga(product, false)
+                    for (item2 in release_repo) {
+                        builds_community["sync ${item2} community docker image"] = {
+                            libs.retag_docker_image_for_ga(item2, false)
                         }
 
                     }
