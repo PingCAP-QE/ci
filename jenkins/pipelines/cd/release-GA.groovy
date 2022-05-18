@@ -2,6 +2,7 @@ package cd
 /*
 * @RELEASE_TAG
 * @RELEASE_BRANCH
+* @NEED_MUTIARCH
 */
 
 
@@ -14,9 +15,9 @@ tidb_sha1 = ""
 tikv_sha1 = ""
 pd_sha1 = ""
 
-tidb_lightning_sha1=""
-tidb_br_sha1=""
-tidb_binlog_sha1=""
+tidb_lightning_sha1 = ""
+tidb_br_sha1 = ""
+tidb_binlog_sha1 = ""
 
 tiflash_sha1 = ""
 cdc_sha1 = ""
@@ -71,9 +72,10 @@ try {
 
         node('delivery') {
             container("delivery") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                def wss = pwd()
-                sh """
+                stage("prepare aws key") {
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                    def wss = pwd()
+                    sh """
             rm -rf *
             cd /home/jenkins
             mkdir -p /root/.docker
@@ -81,51 +83,83 @@ try {
             yes|cp -R /etc/.aws /root
             cd $wss
             """
+                }
+                if (NEED_MULTIARCH == "true") {
+                    stage('publish tiup prod && publish community image && publish enterprise image') {
+                        def publishs = [:]
+                        publishs["publish tiup prod"] = {
+                            println("start publish tiup prod")
+                            build job: 'tiup-mirror-update-test',
+                                    wait: true,
+                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        }
+                        publishs["publish community image"] = {
+                            build job: 'multi-arch-sync-docker',
+                                    wait: true,
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "false"]]
 
-                stage('publish tiup prod && publish community image') {
-                    publishs = [:]
-                    publishs["publish tiup prod"] = {
-                        build job: 'tiup-mirror-update-test',
-                                wait: true,
-                                parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        }
+                        publishs["publish enterprise image"] = {
+                            build job: 'multi-arch-sync-docker',
+                                    wait: true,
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "true"]]
+                        }
+                        parallel publishs
                     }
-                    publishs["publish community image"] = {
-                        build job: 'release-community-docker',
+                } else {
+                    stage('publish tiup prod && publish community image') {
+                        def publishs = [:]
+                        publishs["publish tiup prod"] = {
+                            println("start publish tiup prod")
+                            build job: 'tiup-mirror-update-test',
+                                    wait: true,
+                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                        }
+                        publishs["publish community image"] = {
+                            build job: 'release-community-docker',
+                                    wait: true,
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
+                                            [$class: 'StringParameterValue', name: 'TIDB_SHA', value: tidb_sha1],
+                                            [$class: 'StringParameterValue', name: 'TIKV_SHA', value: tikv_sha1],
+                                            [$class: 'StringParameterValue', name: 'PD_SHA', value: pd_sha1],
+                                            [$class: 'StringParameterValue', name: 'TIDB_LIGHTNING_SHA', value: tidb_lightning_sha1],
+                                            [$class: 'StringParameterValue', name: 'BR_SHA', value: tidb_br_sha1],
+                                            [$class: 'StringParameterValue', name: 'DUMPLING_SHA', value: dumpling_sha1],
+                                            [$class: 'StringParameterValue', name: 'TIDB_BINLOG_SHA', value: tidb_binlog_sha1],
+                                            [$class: 'StringParameterValue', name: 'CDC_SHA', value: cdc_sha1],
+                                            [$class: 'StringParameterValue', name: 'DM_SHA', value: dm_sha1],
+                                            [$class: 'StringParameterValue', name: 'TIFLASH_SHA', value: tiflash_sha1],
+                                            [$class: 'StringParameterValue', name: 'NG_MONITORING_SHA', value: ng_monitoring_sha1],
+                                    ]
+                        }
+                        parallel publishs
+                    }
+                    stage('publish enterprise image') {
+                        build job: 'release-enterprise-docker',
                                 wait: true,
                                 parameters: [
                                         [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                        [$class: 'StringParameterValue', name: 'TIDB_SHA', value: tidb_sha1],
-                                        [$class: 'StringParameterValue', name: 'TIKV_SHA', value: tikv_sha1],
-                                        [$class: 'StringParameterValue', name: 'PD_SHA', value: pd_sha1],
-                                        [$class: 'StringParameterValue', name: 'TIDB_LIGHTNING_SHA', value: tidb_lightning_sha1],
-                                        [$class: 'StringParameterValue', name: 'BR_SHA', value: tidb_br_sha1],
-                                        [$class: 'StringParameterValue', name: 'DUMPLING_SHA', value: dumpling_sha1],
-                                        [$class: 'StringParameterValue', name: 'TIDB_BINLOG_SHA', value: tidb_binlog_sha1],
-                                        [$class: 'StringParameterValue', name: 'CDC_SHA', value: cdc_sha1],
-                                        [$class: 'StringParameterValue', name: 'DM_SHA', value: dm_sha1],
-                                        [$class: 'StringParameterValue', name: 'TIFLASH_SHA', value: tiflash_sha1],
-                                        [$class: 'StringParameterValue', name: 'NG_MONITORING_SHA', value: ng_monitoring_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                        [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                        [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
+                                        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: "false"]
                                 ]
                     }
-                    parallel publishs
                 }
-                stage('publish enterprise image') {
-                    build job: 'release-enterprise-docker',
-                            wait: true,
-                            parameters: [
-                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                    [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
-                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: false]
-                            ]
-                }
+
                 stage('publish tiup offline package && publish dm tiup offline package') {
-                    publishs = [:]
+                    def publishs = [:]
                     publishs["publish tiup offline package"] = {
                         build job: 'tiup-package-offline-mirror',
                                 wait: true,
