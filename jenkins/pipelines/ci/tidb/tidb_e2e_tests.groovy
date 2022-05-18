@@ -47,8 +47,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = "tidb-e2e-tests-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tidb-mergeci"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
