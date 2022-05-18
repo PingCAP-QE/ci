@@ -126,7 +126,7 @@ try {
             node("delivery") {
                 container("delivery") {
                     def arch_amd64 = "amd64"
-                    libs.parallel_enterprise_docker(arch_amd64, false)
+                    libs.parallel_enterprise_docker(arch_amd64, false, NEED_MULTIARCH)
                 }
             }
         }
@@ -134,7 +134,7 @@ try {
         stage("enterprise docker image arm64 build") {
             node("arm") {
                 def arch_arm64 = "arm64"
-                libs.parallel_enterprise_docker(arch_arm64, false)
+                libs.parallel_enterprise_docker(arch_arm64, false, NEED_MULTIARCH)
             }
         }
 
