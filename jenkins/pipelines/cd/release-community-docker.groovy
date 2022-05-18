@@ -29,16 +29,16 @@ node('delivery') {
                 community_docker_image_amd64(libs)
             }
 
-//            stage('community_docker_image_arm64') {
-//                println("community_docker_image_arm64")
-//                community_docker_image_arm64(libs)
-//                build job: 'build-arm-image',
-//                        wait: true,
-//                        parameters: [
-//                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-//                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-//                        ]
-//            }
+            stage('community_docker_image_arm64') {
+                println("community_docker_image_arm64")
+                community_docker_image_arm64(libs)
+                build job: 'build-arm-image',
+                        wait: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+                        ]
+            }
         }
     }
 }
@@ -48,7 +48,7 @@ def community_docker_image_amd64(libs) {
     def arch_amd64 = "amd64"
     def platform = "centos7"
     def builds = [:]
-//    builds = push_community_docker_image(libs, builds, arch_amd64, os, platform)
+    builds = push_community_docker_image(libs, builds, arch_amd64, os, platform)
 
     // TODO: refine monitoring
     builds["Push monitor initializer"] = {

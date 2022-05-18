@@ -89,10 +89,10 @@ try {
             }
         }
 
-//        node('arm') {
-//            def arch_arm64 = "arm64"
-//            libs.parallel_enterprise_docker(arch_arm64, true)
-//        }
+        node('arm') {
+            def arch_arm64 = "arm64"
+            libs.parallel_enterprise_docker(arch_arm64, true)
+        }
 
         currentBuild.result = "SUCCESS"
     }
