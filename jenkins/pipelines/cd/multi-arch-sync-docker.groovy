@@ -25,7 +25,7 @@ node('delivery') {
                 if (IF_ENTERPRISE == "true") {
                     def builds_enterprise = [:]
                     for (item in release_repo) {
-                        def product="${item}"
+                        def product = "${item}"
                         builds_enterprise["sync ${item} enterprise docker image"] = {
                             libs.retag_docker_image_for_ga(product, true)
                         }
@@ -35,7 +35,7 @@ node('delivery') {
                 } else {
                     def builds_community = [:]
                     for (item in release_repo) {
-                        def product="${item}"
+                        def product = "${item}"
                         builds_community["sync ${item} community docker image"] = {
                             libs.retag_docker_image_for_ga(product, false)
                         }
@@ -44,6 +44,15 @@ node('delivery') {
                     builds_community["push tidb-monitor-initializer community docker image"] = {
                         libs.build_push_tidb_monitor_initializer_image()
                     }
+                    builds_community["push tidb-monitor-reloader arm64"] = {
+                        build job: 'build-arm-image',
+                                wait: true,
+                                parameters: [
+                                        [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+                                ]
+                    }
+
                     parallel builds_community
                 }
 
