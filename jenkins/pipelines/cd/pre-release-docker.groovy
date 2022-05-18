@@ -201,7 +201,8 @@ def release_one(repo, arch, failpoint) {
 
     }
 
-    if (repo == "tidb-lightning") {
+    if (repo == "br") {
+        println("start push tidb-lightning")
         def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
         imageName = "tidb-lightning"
         if (arch == "arm64") {
@@ -245,7 +246,7 @@ def release_one(repo, arch, failpoint) {
 stage("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm","tidb-lightning"]
+            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
 
@@ -262,9 +263,16 @@ stage("release") {
 def release_docker(releaseRepos, builds, arch) {
     for (item in releaseRepos) {
         def product = "${item}"
-        builds["build ${item} " + arch] = {
-            release_one(product, arch, false)
+        if (product == "br") {
+            builds["build br & tidb-lightning " + arch] = {
+                release_one(product, arch, false)
+            }
+        } else {
+            builds["build ${item} " + arch] = {
+                release_one(product, arch, false)
+            }
         }
+
     }
     if (RELEASE_TAG >= "v5.3.0") {
         builds["build ng-monitoring " + arch] = {
