@@ -201,7 +201,7 @@ def release_one(repo, arch, failpoint) {
 
     }
 
-    if (repo == "br") {
+    if (repo == "tidb-lightning") {
         def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
         imageName = "tidb-lightning"
         if (arch == "arm64") {
@@ -245,7 +245,7 @@ def release_one(repo, arch, failpoint) {
 stage("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
+            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm","tidb-lightning"]
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
 
@@ -259,7 +259,7 @@ stage("release") {
     }
 }
 
-private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object, Object> builds, arch) {
+def release_docker(releaseRepos, builds, arch) {
     for (item in releaseRepos) {
         def product = "${item}"
         builds["build ${item} " + arch] = {
