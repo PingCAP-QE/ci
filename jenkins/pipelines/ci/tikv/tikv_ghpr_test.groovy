@@ -66,10 +66,10 @@ stage("Prepare") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_cached_lint_passed = false
-            container("rust") {
-                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
-                println "Skip linting: ${is_cached_lint_passed}"
-            }
+//             container("rust") {
+//                 is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
+//                 println "Skip linting: ${is_cached_lint_passed}"
+//             }
 
             if (!is_cached_lint_passed) {
                 container("rust") {
