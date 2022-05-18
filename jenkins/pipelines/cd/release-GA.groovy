@@ -27,6 +27,8 @@ ng_monitoring_sha1 = ""
 enterprise_plugin_sha1 = ""
 def libs
 def taskStartTimeInMillis = System.currentTimeMillis()
+yes = false
+no=true
 try {
     catchError {
         stage('Prepare') {
@@ -84,7 +86,7 @@ try {
             cd $wss
             """
                 }
-                if (NEED_MULTIARCH == true) {
+                if (NEED_MULTIARCH == yes) {
                     stage('publish tiup prod && publish community image && publish enterprise image') {
                         def publishs = [:]
                         publishs["publish tiup prod"] = {
@@ -99,7 +101,7 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: false]]
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: no]]
 
                         }
                         publishs["publish enterprise image"] = {
@@ -108,7 +110,7 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: true]]
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: yes]]
                         }
                         parallel publishs
                     }
@@ -153,7 +155,7 @@ try {
                                         [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
                                         [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                         [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
-                                        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: false]
+                                        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: no]
                                 ]
                     }
                 }
