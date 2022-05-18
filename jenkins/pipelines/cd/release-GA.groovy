@@ -105,6 +105,7 @@ try {
                                     wait: true,
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
                                             [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: true]]
                         }
                     }
