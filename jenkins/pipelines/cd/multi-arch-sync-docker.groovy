@@ -22,7 +22,7 @@ node('delivery') {
             }
 
             stage('multi-arch docker image') {
-                if (IF_ENTERPRISE==true) {
+                if (IF_ENTERPRISE == "true") {
                     def builds_enterprise = [:]
                     for (item1 in release_repo) {
                         builds_enterprise["sync ${item1} enterprise docker image"] = {
