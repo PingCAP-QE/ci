@@ -32,9 +32,21 @@ properties([
                 booleanParam(
                         defaultValue: true,
                         name: 'NEED_DEBUG_IMAGE'
+                ),
+                booleanParam(
+                        defaultValue: true,
+                        name: 'DEBUG_MODE'
                 )
         ])
 ])
+
+
+HARBOR_REGISTRY_PROJECT_PREFIX = "hub.pingcap.net/qa"
+DOCKERHUB_REGISTRY_PROJECT_PREFIX = "pingcap"
+if (params.DEBUG_MODE) {
+    println "run pipeline in debug mode"
+    HARBOR_REGISTRY_PROJECT_PREFIX = "hub.pingcap.net/ee-debug"
+}
 
 
 def get_sha(repo, branch) {
@@ -151,13 +163,13 @@ def release_one(repo, arch, failpoint) {
     }
 
 
-    def image = "hub.pingcap.net/qa/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
+    def image = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
     // version need multi-arch image, sync image from internal harbor to dockerhub
     if (NEED_MULTIARCH) {
-        image = "hub.pingcap.net/qa/${imageName}:${imageTag}"
+        image = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
     }
     if (failpoint) {
-        image = "hub.pingcap.net/qa/${imageName}:${imageTag}-failpoint"
+        image = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}-failpoint"
     }
 
     def paramsDocker = [
@@ -179,9 +191,9 @@ def release_one(repo, arch, failpoint) {
 
     if (NEED_DEBUG_IMAGE && arch == "amd64") {
         def dockerfileForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/${repo}"
-        def imageForDebug = "hub.pingcap.net/qa/${repo}:${IMAGE_TAG}-debug"
+        def imageForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${repo}:${IMAGE_TAG}-debug"
         if (failpoint) {
-            imageForDebug = "hub.pingcap.net/qa/${repo}:${IMAGE_TAG}-failpoint-debug"
+            imageForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${repo}:${IMAGE_TAG}-failpoint-debug"
         }
         def paramsDockerForDebug = [
                 string(name: "ARCH", value: "amd64"),
@@ -211,7 +223,7 @@ def release_one(repo, arch, failpoint) {
         if (arch == "arm64") {
             imageNameForDmMonitorInitializer = imageNameForDmMonitorInitializer + "-arm64"
         }
-        imageNameForDmMonitorInitializer = "hub.pingcap.net/qa/${imageNameForDmMonitorInitializer}:${IMAGE_TAG},pingcap/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
+        imageNameForDmMonitorInitializer = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageNameForDmMonitorInitializer}:${IMAGE_TAG},pingcap/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
         def paramsDockerDmMonitorInitializer = [
                 string(name: "ARCH", value: arch),
                 string(name: "OS", value: "linux"),
@@ -237,7 +249,7 @@ def release_one(repo, arch, failpoint) {
         if (NEED_MULTIARCH) {
             IMAGE_TAG = IMAGE_TAG + "-" + arch
          }
-        def imageLightling = "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
+        def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
                 string(name: "OS", value: "linux"),
@@ -254,7 +266,7 @@ def release_one(repo, arch, failpoint) {
 
         if (NEED_DEBUG_IMAGE && arch == "amd64") {
             def dockerfileLightningForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/tidb-lightning"
-            def imageLightlingForDebug = "hub.pingcap.net/qa/tidb-lightning:${IMAGE_TAG}-debug"
+            def imageLightlingForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/tidb-lightning:${IMAGE_TAG}-debug"
             def paramsDockerLightningForDebug = [
                     string(name: "ARCH", value: "amd64"),
                     string(name: "OS", value: "linux"),
@@ -302,19 +314,24 @@ def manifest_multiarch_image() {
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
         def paramsManifest = [
-            string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-amd64"),
-            string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-arm64"),
-            string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),
+            string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}-amd64"),
+            string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}-arm64"),
+            string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"),
         ]
         build job: "manifest-multiarch-common",
             wait: true,
             parameters: paramsManifest
-        def paramsSyncImage = [
-                string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
-                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),
-                string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${IMAGE_TAG}"),
-        ]
-        build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+        if (params.DEBUG_MODE) {
+            println "run pipeline in debug mode, not push image to dockerhub"
+        } else {
+            def paramsSyncImage = [
+                    string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
+                    string(name: 'SOURCE_IMAGE', value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"),
+                    string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${IMAGE_TAG}"),
+            ]
+            println "paramsSyncImage: ${paramsSyncImage}"
+            build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+        }
     }
 
     parallel manifest_multiarch_builds
