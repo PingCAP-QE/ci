@@ -41,29 +41,29 @@ try {
 
 
                         tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        if (RELEASE_TAG >= "v5.2.0") {
-                            tidb_br_sha1 = tidb_sha1
-                        } else {
-                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
-                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-
-                        if (RELEASE_TAG >= "v5.3.0") {
-                            dumpling_sha1 = tidb_sha1
-                            dm_sha1 = cdc_sha1
-                            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        } else {
-                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
-
-                        tidb_lightning_sha1 = tidb_br_sha1
-                        tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
-                        mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
+//                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        if (RELEASE_TAG >= "v5.2.0") {
+//                            tidb_br_sha1 = tidb_sha1
+//                        } else {
+//                            tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        }
+//                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//
+//                        if (RELEASE_TAG >= "v5.3.0") {
+//                            dumpling_sha1 = tidb_sha1
+//                            dm_sha1 = cdc_sha1
+//                            ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        } else {
+//                            dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        }
+//
+//                        tidb_lightning_sha1 = tidb_br_sha1
+//                        tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+//                        tidb_ctl_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -version=master -s=${FILE_SERVER_URL}").trim()
+//                        mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
                     }
                 }
             }
@@ -86,20 +86,22 @@ try {
                     stage('publish tiup prod && publish community image && publish enterprise image') {
                         publishs = [:]
                         publishs["publish tiup prod"] = {
-                            build job: 'tiup-mirror-update-test',
-                                    wait: true,
-                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                            println("start publish tiup prod")
+//                            build job: 'tiup-mirror-update-test',
+//                                    wait: true,
+//                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
                         }
                         publishs["publish community image"] = {
-                            build job: 'cd.multi-arch-sync-docker',
+                            build job: 'multi-arch-sync-docker',
                                     wait: true,
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
                                             [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: false]]
 
                         }
                         publishs["publish enterprise image"] = {
-                            build job: 'cd.multi-arch-sync-docker',
+                            build job: 'multi-arch-sync-docker',
                                     wait: true,
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
@@ -110,9 +112,10 @@ try {
                     stage('publish tiup prod && publish community image') {
                         publishs = [:]
                         publishs["publish tiup prod"] = {
-                            build job: 'tiup-mirror-update-test',
-                                    wait: true,
-                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                            println("start publish tiup prod")
+//                            build job: 'tiup-mirror-update-test',
+//                                    wait: true,
+//                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
                         }
                         publishs["publish community image"] = {
                             build job: 'release-community-docker',
@@ -151,23 +154,23 @@ try {
                     }
                 }
 
-                stage('publish tiup offline package && publish dm tiup offline package') {
-                    publishs = [:]
-                    publishs["publish tiup offline package"] = {
-                        build job: 'tiup-package-offline-mirror',
-                                wait: true,
-                                parameters: [
-                                        [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
-                                ]
-                    }
-                    publishs["publish dm tiup offline package"] = {
-                        // publish dm offline package (include linux amd64 and arm64)
-                        build job: 'tiup-package-offline-mirror-dm',
-                                wait: true,
-                                parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
-                    }
-                    parallel publishs
-                }
+//                stage('publish tiup offline package && publish dm tiup offline package') {
+//                    publishs = [:]
+//                    publishs["publish tiup offline package"] = {
+//                        build job: 'tiup-package-offline-mirror',
+//                                wait: true,
+//                                parameters: [
+//                                        [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
+//                                ]
+//                    }
+//                    publishs["publish dm tiup offline package"] = {
+//                        // publish dm offline package (include linux amd64 and arm64)
+//                        build job: 'tiup-package-offline-mirror-dm',
+//                                wait: true,
+//                                parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
+//                    }
+//                    parallel publishs
+//                }
 
             }
         }
@@ -177,17 +180,17 @@ try {
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
 } finally {
-    build job: 'send_notify',
-            wait: true,
-            parameters: [
-                    [$class: 'StringParameterValue', name: 'RESULT_JOB_NAME', value: "${JOB_NAME}"],
-                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_RESULT', value: currentBuild.result],
-                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
-                    [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
-                    [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
-                    [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
-
-            ]
+//    build job: 'send_notify',
+//            wait: true,
+//            parameters: [
+//                    [$class: 'StringParameterValue', name: 'RESULT_JOB_NAME', value: "${JOB_NAME}"],
+//                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_RESULT', value: currentBuild.result],
+//                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+//                    [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
+//                    [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
+//                    [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
+//
+//            ]
 }
 //stage('download') {
 //    dir('centos7') {
