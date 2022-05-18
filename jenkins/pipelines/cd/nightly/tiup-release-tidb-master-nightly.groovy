@@ -221,6 +221,12 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+    //    休眠5分钟
+    Thread.sleep(60 * 1000 * 5);
+    buid job: 'release-tidb-master-tiup-nightly',
+            wait: true,
+            parameters: [
+            ]
 } finally {
     def result = [:]
     result["name"] = "【"+currentBuild.result+"】"+JOB_NAME
