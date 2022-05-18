@@ -229,6 +229,7 @@ def release_one(repo, arch, failpoint) {
     }
 
     if (repo == "br") {
+        println("start push tidb-lightning")
         def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
         imageName = "tidb-lightning"
         if (arch == "arm64" && !NEED_MULTIARCH) {
@@ -236,7 +237,7 @@ def release_one(repo, arch, failpoint) {
         }
         if (NEED_MULTIARCH) {
             IMAGE_TAG = IMAGE_TAG + "-" + arch
-         }
+        }
         def imageLightling = "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
@@ -272,10 +273,14 @@ def release_one(repo, arch, failpoint) {
     }
 }
 
-private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object, Object> builds, arch) {
+def release_docker(releaseRepos, builds, arch) {
     for (item in releaseRepos) {
         def product = "${item}"
-        builds["build ${item} " + arch] = {
+        def product_show = product
+        if (product_show == "br") {
+            product_show = "br && tidb-lightning"
+        }
+        builds["build  " + product_show + " " + arch] = {
             release_one(product, arch, false)
         }
     }
@@ -302,13 +307,13 @@ def manifest_multiarch_image() {
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
         def paramsManifest = [
-            string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-amd64"),
-            string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-arm64"),
-            string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),
+                string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-amd64"),
+                string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}-arm64"),
+                string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),
         ]
         build job: "manifest-multiarch-common",
-            wait: true,
-            parameters: paramsManifest
+                wait: true,
+                parameters: paramsManifest
         def paramsSyncImage = [
                 string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
                 string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${imageName}:${IMAGE_TAG}"),

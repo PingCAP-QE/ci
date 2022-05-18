@@ -214,20 +214,20 @@ def parallel_enterprise_docker(arch, if_release, if_multi_arch) {
 // version need multi-arch image, we don't build arm64 image like this
 // pingcap/${product}-arm64:${RELEASE_TAG}, becase pingcap/${product}:${RELEASE_TAG} contains arm64 and amd64 image
 def retag_enterprise_image(product, arch, if_release, if_multi_arch) {
-    def community_image_for_pre_replease
-    def enterprise_image_for_pre_replease
+    def community_image_for_rc_or_ga
+    def enterprise_image_for_rc_or_ga
     if (arch == 'amd64' && if_release) {
-        community_image_for_pre_replease = "pingcap/${product}:${RELEASE_TAG}"
-        enterprise_image_for_pre_replease = "pingcap/${product}-enterprise:${RELEASE_TAG}"
+        community_image_for_rc_or_ga = "pingcap/${product}:${RELEASE_TAG}"
+        enterprise_image_for_rc_or_ga = "pingcap/${product}-enterprise:${RELEASE_TAG}"
     } else if (arch == 'arm64' && if_release) {
-        community_image_for_pre_replease = "pingcap/${product}-arm64:${RELEASE_TAG}"
-        enterprise_image_for_pre_replease = "pingcap/${product}-enterprise-arm64:${RELEASE_TAG}"
+        community_image_for_rc_or_ga = "pingcap/${product}-arm64:${RELEASE_TAG}"
+        enterprise_image_for_rc_or_ga = "pingcap/${product}-enterprise-arm64:${RELEASE_TAG}"
     } else if (arch == 'amd64' && (!if_release)) {
-        community_image_for_pre_replease = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
-        enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
+        community_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
+        enterprise_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
     } else {
-        community_image_for_pre_replease = "hub.pingcap.net/qa/${product}-arm64:${RELEASE_TAG}-pre"
-        enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise-arm64:${RELEASE_TAG}-pre"
+        community_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}-arm64:${RELEASE_TAG}-pre"
+        enterprise_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}-enterprise-arm64:${RELEASE_TAG}-pre"
     }
 
     if (if_multi_arch && arch == "arm64") {
@@ -237,10 +237,30 @@ def retag_enterprise_image(product, arch, if_release, if_multi_arch) {
 
 
     def default_params = [
-            string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
-            string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
+            string(name: 'SOURCE_IMAGE', value: community_image_for_rc_or_ga),
+            string(name: 'TARGET_IMAGE', value: enterprise_image_for_rc_or_ga),
     ]
     println "retag enterprise image from community image: ${default_params}"
+    build(job: "jenkins-image-syncer",
+            parameters: default_params,
+            wait: true)
+
+}
+
+//new
+def retag_docker_image_for_ga(product,if_enterprise){
+    image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
+    image_for_ga_to_docker = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
+    if(if_enterprise){
+        image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
+        image_for_ga_to_docker = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}"
+    }
+
+    def default_params = [
+            string(name: 'SOURCE_IMAGE', value: image_for_ga_from_harbor),
+            string(name: 'TARGET_IMAGE', value: image_for_ga_to_docker),
+    ]
+    println "retag multi-arch image from image: ${default_params}.if_enterprise:${if_enterprise}"
     build(job: "jenkins-image-syncer",
             parameters: default_params,
             wait: true)
@@ -294,13 +314,15 @@ def parallel_enterprise_docker_multiarch(if_release) {
         build job: "manifest-multiarch-common",
             wait: true,
             parameters: paramsManifest
-        def paramsSyncImage = [
-                string(name: 'triggered_by_upstream_ci', value: "release-enterprise-docker"),
-                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${imageName}:${imageTag}"),
-                string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${imageTag}"),
-        ]
-        println "paramsSyncImage: ${paramsSyncImage}"
-        build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+
+//        enterprise RC or GA don't push to dockerhub
+//        def paramsSyncImage = [
+//                string(name: 'triggered_by_upstream_ci', value: "release-enterprise-docker"),
+//                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${imageName}:${imageTag}"),
+//                string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${imageTag}"),
+//        ]
+//        println "paramsSyncImage: ${paramsSyncImage}"
+//        build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
     }
 
     parallel manifest_multiarch_builds
