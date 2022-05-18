@@ -83,7 +83,7 @@ POD_LABEL_MAP = [
     "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
 ]
-POD_NAMESPACE = "jenkins-tidb"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 node("master") {
     deleteDir()
@@ -106,7 +106,7 @@ def run_test_with_pod(Closure body) {
     def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
-            namespace: "jenkins-tidb",
+            namespace: "jenkins-tidb-mergeci",
             idleMinutes: 0,
             containers: [
                     containerTemplate(

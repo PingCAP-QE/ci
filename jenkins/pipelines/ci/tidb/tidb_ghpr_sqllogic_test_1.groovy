@@ -44,7 +44,7 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-tidb"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"

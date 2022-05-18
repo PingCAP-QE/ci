@@ -50,7 +50,7 @@ println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 all_task_result = []
-POD_NAMESPACE = "jenkins-tidb"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
