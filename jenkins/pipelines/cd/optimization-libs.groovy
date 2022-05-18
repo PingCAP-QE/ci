@@ -178,29 +178,29 @@ def parallel_enterprise_docker(arch, if_release) {
     def builds = [:]
 
     builds["Push tidb Docker"] = {
-        println("tidb enterprise docker:"+ TIDB_HASH)
-//        build_tidb_enterprise_image("tidb", TIDB_HASH, PLUGIN_HASH, arch, if_release, if_multi_arch)
+//        println("tidb enterprise docker:"+ TIDB_HASH)
+        build_tidb_enterprise_image("tidb", TIDB_HASH, PLUGIN_HASH, arch, if_release, if_multi_arch)
     }
 
-//    builds["Push tikv Docker"] = {
-//        build_enterprise_image("tikv", TIKV_HASH, arch, if_release, if_multi_arch)
-//    }
-//
-//    builds["Push pd Docker"] = {
-//        build_enterprise_image("pd", PD_HASH, arch, if_release, if_multi_arch)
-//    }
-//
-//    builds["Push tiflash Docker"] = {
-//        build_enterprise_image("tiflash", TIFLASH_HASH, arch, if_release, if_multi_arch)
-//    }
-//
-//    retagProducts = ["tidb-lightning", "tidb-binlog", "ticdc", "br", "dumpling", "ng-monitoring", "dm"]
-//    for (item in retagProducts) {
-//        def product = item
-//        builds["Push ${product} Docker"] = {
-//            retag_enterprise_image(product, arch, if_release, if_multi_arch)
-//        }
-//    }
+    builds["Push tikv Docker"] = {
+        build_enterprise_image("tikv", TIKV_HASH, arch, if_release, if_multi_arch)
+    }
+
+    builds["Push pd Docker"] = {
+        build_enterprise_image("pd", PD_HASH, arch, if_release, if_multi_arch)
+    }
+
+    builds["Push tiflash Docker"] = {
+        build_enterprise_image("tiflash", TIFLASH_HASH, arch, if_release, if_multi_arch)
+    }
+
+    retagProducts = ["tidb-lightning", "tidb-binlog", "ticdc", "br", "dumpling", "ng-monitoring", "dm"]
+    for (item in retagProducts) {
+        def product = item
+        builds["Push ${product} Docker"] = {
+            retag_enterprise_image(product, arch, if_release, if_multi_arch)
+        }
+    }
     
     stage("Push ${arch} enterprise image") {
         parallel builds
@@ -258,9 +258,9 @@ def retag_docker_image_for_ga(product,if_enterprise){
             string(name: 'TARGET_IMAGE', value: image_for_ga_to_docker),
     ]
     println "retag multi-arch image from image: ${default_params}.if_enterprise:${if_enterprise}"
-//    build(job: "jenkins-image-syncer",
-//            parameters: default_params,
-//            wait: true)
+    build(job: "jenkins-image-syncer",
+            parameters: default_params,
+            wait: true)
 
 }
 
@@ -329,50 +329,22 @@ def parallel_enterprise_docker_multiarch(if_release) {
 //new
 def build_push_tidb_monitor_initializer_image() {
     println("build_push_tidb_monitor_initializer_image:${RELEASE_TAG}:${RELEASE_BRANCH}")
-//    build job: 'release-monitor',
-//            wait: true,
-//            parameters: [
-//                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-//                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-//            ]
-//
-//    docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-//        sh """
-//                        docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-//                        docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-//                        docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-//                    """
-//    }
-}
+    build job: 'release-monitor',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
+                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
+            ]
 
-
-def retag_enterprise_docker(product, release_tag, pre_release) {
-
-    if (pre_release) {
-        def community_image = "pingcap/${product}:${release_tag}"
-        def enterprise_image = "pingcap/${product}-enterprise:${release_tag}"
-
-        withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-            sh """
-            docker pull ${community_image}
-            docker tag ${community_image} ${enterprise_image}
-            docker push ${enterprise_image}
-            """
-        }
-    } else {
-        def community_image_for_pre_replease = "hub.pingcap.net/qa/${product}:${release_tag}"
-        def enterprise_image_for_pre_replease = "hub.pingcap.net/qa/${product}-enterprise:${release_tag}"
-
-        def default_params = [
-                string(name: 'SOURCE_IMAGE', value: community_image_for_pre_replease),
-                string(name: 'TARGET_IMAGE', value: enterprise_image_for_pre_replease),
-        ]
-        build(job: "jenkins-image-syncer",
-                parameters: default_params,
-                wait: true, propagate: true)
+    docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+        sh """
+                        docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                        docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                        docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
+                    """
     }
-
 }
+
 
 def build_product(build_para, product) {
     def arch = build_para["ARCH"]
@@ -489,56 +461,6 @@ def release_online_image(product, sha1, arch, os, platform, tag, enterprise, pre
             wait: true,
             parameters: paramsDocker
 }
-
-def release_tidb_online_image(product, sha1, plugin_hash, arch, os, platform, tag, enterprise, preRelease) {
-    // build tidb enterprise image with plugin
-    def binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
-    def plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${tag}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}.tar.gz"
-    if (enterprise) {
-        binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
-        plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${tag}/${plugin_hash}/${platform}/enterprise-plugin-${os}-${arch}-enterprise.tar.gz"
-    }
-
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
-    }
-    def imageName = product
-    def repo = product
-
-    if (repo == "monitoring") {
-        imageName = "tidb-monitor-initializer"
-    }
-    if (enterprise) {
-        imageName = imageName + "-enterprise"
-    }
-    if (arch == "arm64") {
-        imageName = imageName + "-arm64"
-    }
-
-    def image = "uhub.service.ucloud.cn/pingcap/${imageName}:${tag},pingcap/${imageName}:${tag}"
-    // pre release stage, only push to harbor registry
-    if (preRelease) {
-        image = "hub.pingcap.net/qa/${imageName}:${tag}"
-    }
-
-    def paramsDocker = [
-            string(name: "ARCH", value: arch),
-            string(name: "OS", value: "linux"),
-            string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
-            string(name: "REPO", value: repo),
-            string(name: "PRODUCT", value: repo),
-            string(name: "RELEASE_TAG", value: RELEASE_TAG),
-            string(name: "DOCKERFILE", value: dockerfile),
-            string(name: "RELEASE_DOCKER_IMAGES", value: image),
-            string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
-    ]
-    println "release_online_image: ${paramsDocker}"
-    build job: "docker-common-check",
-            wait: true,
-            parameters: paramsDocker
-}
-
 
 def release_dm_ansible_amd64(sha1, release_tag) {
     node('delivery') {
