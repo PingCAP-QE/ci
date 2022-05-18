@@ -163,26 +163,34 @@ try {
                                     throw err
                                 }
                                 
-                                sh """
-                                
-                                cd tests/globalkilltest
-                                tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/master/sha1"`
-	                            tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-	
-	                            pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/master/sha1"`
-	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-	
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-	                            curl \${tikv_url} | tar xz bin
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-	                            curl \${pd_url} | tar xz bin
-	                            ls -lhrt ./bin
-                                make
-                                ls -lhrt ./bin
-                                PD=./bin/pd-server  TIKV=./bin/tikv-server sh run-tests.sh
-                                """
+                                try {
+                                    sh """
+
+                                    cd tests/globalkilltest
+                                    tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/master/sha1"`
+	                                tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+	                                pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/master/sha1"`
+	                                pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+
+
+	                                while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+	                                curl \${tikv_url} | tar xz bin
+
+	                                while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+	                                curl \${pd_url} | tar xz bin
+	                                ls -lhrt ./bin
+                                    make
+                                    ls -lhrt ./bin
+                                    PD=./bin/pd-server  TIKV=./bin/tikv-server sh run-tests.sh
+                                    """
+                                } catch (err) {
+                                    sh """
+                                    cat /tmp/tidb_globalkilltest/tidb5001.log
+                                    cat /tmp/tidb_globalkilltest/tidb5002.log
+                                    """
+                                    throw err
+                                }
                             }
                         }
                     }
