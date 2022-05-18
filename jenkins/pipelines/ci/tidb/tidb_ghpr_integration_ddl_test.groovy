@@ -50,7 +50,7 @@ println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 all_task_result = []
-POD_NAMESPACE = "jenkins-tidb"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
@@ -84,7 +84,7 @@ def run_with_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-go1180-${BUILD_NUMBER}"
     }
 
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -124,7 +124,7 @@ def run_with_memory_volume_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-memory-volume-go1180-${BUILD_NUMBER}"
     }
     
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,

@@ -70,7 +70,7 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-tidb"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-integration-common-test"
