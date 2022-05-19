@@ -230,47 +230,44 @@ node("build_go1130") {
                     [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: true],
                     [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: true],
             ]
-
-            stage("TiUP build cdc") {
-                retry(3) {
-                    build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: params1)
+            stage("TiUP builds parallel"){
+                def builds=[:]
+                builds["TiUP build cdc"]={
+                    retry(3) {
+                        build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
-            }
-
-            stage("TiUP build br") {
-                retry(3) {
-                    build(job: "br-tiup-mirror-update-test", wait: true, parameters: params1)
+                builds["TiUP build br"]={
+                    retry(3) {
+                        build(job: "br-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
-            }
-
-            stage("TiUP build dumpling") {
-                retry(3) {
-                    build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: params1)
+                builds["TiUP build dumpling"]={
+                    retry(3) {
+                        build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
-            }
-
-            stage("TiUP build lightning") {
-                retry(3) {
-                    build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
+                builds["TiUP build lightning"]={
+                    retry(3) {
+                        build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
-            }
-
-            stage("TiUP build tiflash") {
-                retry(3) {
-                    build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: params1)
+                builds["TiUP build tiflash"]={
+                    retry(3) {
+                        build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
-            }
-
-            stage("TiUP build grafana") {
-                retry(3) {
-                    build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                builds["TiUP build grafana"]={
+                    retry(3) {
+                        build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                    }
                 }
-            }
-
-            stage("TiUP build prometheus") {
-                retry(3) {
-                    build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                builds["TiUP build prometheus"]={
+                    retry(3) {
+                        build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                    }
                 }
+                parallel builds
             }
 
             if (RELEASE_TAG == "v6.1.0-alpha") {
