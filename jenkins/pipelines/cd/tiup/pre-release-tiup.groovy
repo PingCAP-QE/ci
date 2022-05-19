@@ -332,7 +332,7 @@ run_with_pod {
                         ]
             }
             publishs["publish community image"] = {
-                build job: "pre-release-community-docker",
+                build job: "pre-release-docker",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
