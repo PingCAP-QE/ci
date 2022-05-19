@@ -382,7 +382,7 @@ stage("release") {
             releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
             if (RELEASE_TAG >= "v5.3.0") { 
                 // build ng-monitoring only for v5.3.0+
-                releaseRepos.append("ng-monitoring")
+                releaseRepos.add("ng-monitoring")
             }
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
