@@ -174,7 +174,7 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
 }
 
 //new
-def parallel_enterprise_docker(arch, if_release) {
+def parallel_enterprise_docker(arch, if_release, if_multi_arch) {
     def builds = [:]
 
     builds["Push tidb Docker"] = {
