@@ -246,6 +246,7 @@ def release_one(repo, arch, failpoint) {
     }
 
     if (repo == "br") {
+        println("start push tidb-lightning")
         def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
         imageName = "tidb-lightning"
         if (arch == "arm64" && !NEED_MULTIARCH) {
@@ -253,7 +254,6 @@ def release_one(repo, arch, failpoint) {
         }
         if (NEED_MULTIARCH) {
             IMAGE_TAG = IMAGE_TAG + "-" + arch
-         }
         def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
         if (params.DEBUG_MODE) {  
             imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"
@@ -292,10 +292,14 @@ def release_one(repo, arch, failpoint) {
     }
 }
 
-private void release_docker(ArrayList<String> releaseRepos, LinkedHashMap<Object, Object> builds, arch) {
+def release_docker(releaseRepos, builds, arch) {
     for (item in releaseRepos) {
         def product = "${item}"
-        builds["build ${item} " + arch] = {
+        def product_show = product
+        if (product_show == "br") {
+            product_show = "br && tidb-lightning"
+        }
+        builds["build  " + product_show + " " + arch] = {
             release_one(product, arch, false)
         }
     }

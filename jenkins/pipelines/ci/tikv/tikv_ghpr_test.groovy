@@ -66,10 +66,10 @@ stage("Prepare") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_cached_lint_passed = false
-            container("rust") {
-                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
-                println "Skip linting: ${is_cached_lint_passed}"
-            }
+            // container("rust") {
+            //     is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
+            //     println "Skip linting: ${is_cached_lint_passed}"
+            // }
 
             if (!is_cached_lint_passed) {
                 container("rust") {
@@ -110,7 +110,7 @@ stage("Prepare") {
                     sh label: 'Post-lint: Save lint status', script: """
                     cd \$HOME/tikv-src
                     echo 1 > cached_lint_passed
-                    curl -F tikv_test/${ghprbActualCommit}/cached_lint_passed=@cached_lint_passed ${FILE_SERVER2_URL}/upload
+                    curl -F tikv_test/${ghprbActualCommit}/cached_lint_passed=@cached_lint_passed ${FILE_SERVER_URL}/upload
                     """
                 }
             }
@@ -133,10 +133,10 @@ stage("Prepare") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_artifact_existed = false
-            container("rust") {
-                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
-                println "Skip building test artifact: ${is_artifact_existed}"
-            }
+            // container("rust") {
+            //     is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
+            //     println "Skip building test artifact: ${is_artifact_existed}"
+            // }
 
             if (!is_artifact_existed) {
                 container("rust") {
@@ -224,7 +224,7 @@ def write_to(part):
     f.write("set -ex\\n")
     return f
 def upload(bin):
-    return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER2_URL}/upload"])
+    return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER_URL}/upload"])
 total_score=0
 visited_files=set()
 with open('test.json', 'r') as f:
@@ -276,9 +276,9 @@ pool.join()
 EOF
                     chmod a+x test-chunk-*
                     tar czf test-chunk.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
-                    curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER2_URL}/upload
+                    curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER_URL}/upload
                     echo 1 > cached_build_passed
-                    curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER2_URL}/upload
+                    curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
                     """
                 }
             }
@@ -314,7 +314,7 @@ stage('Test') {
                         export RUST_BACKTRACE=1
                         export MALLOC_CONF=prof:true,prof_active:false
                         mkdir -p target/debug
-                        curl -O ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
+                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
                         tar xf test-chunk.tar.gz
                         ls -la
                         if [[ ! -f test-chunk-${chunk_suffix} ]]; then
@@ -326,7 +326,7 @@ stage('Test') {
                             fi
                         fi
                         for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
-                            curl -o \$i ${FILE_SERVER2_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                            curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
                             chmod +x \$i;
                         done
                         CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out

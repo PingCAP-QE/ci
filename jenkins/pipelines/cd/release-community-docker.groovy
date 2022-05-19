@@ -52,20 +52,7 @@ def community_docker_image_amd64(libs) {
 
     // TODO: refine monitoring
     builds["Push monitor initializer"] = {
-        build job: 'release-monitor',
-                wait: true,
-                parameters: [
-                        [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-                ]
-
-        docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-            sh """
-                        docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                        docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                    """
-        }
+       libs.build_push_tidb_monitor_initializer_image()
     }
     parallel builds
 }
