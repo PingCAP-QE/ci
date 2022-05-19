@@ -21,36 +21,37 @@ def PLATFORM_DARWINARM = "darwin-arm64"
 
 def FORCE_REBUILD = false
 
-try {
-    timeout(600) {
-        RELEASE_TAG = "v6.1.0-alpha"
-        node("build_go1130") {
-            container("golang") {
-                def ws = pwd()
-                deleteDir()
+retry(2) {
+    try {
+        timeout(600) {
+            RELEASE_TAG = "v6.1.0-alpha"
+            node("build_go1130") {
+                container("golang") {
+                    def ws = pwd()
+                    deleteDir()
 
-                stage("Prepare") {
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-                    println "${ws}"
-                }
+                    stage("Prepare") {
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        println "${ws}"
+                    }
 
-                stage("Get hash") {
-                    sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+                    stage("Get hash") {
+                        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-                    tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
-                    println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}"
-                    println "tiflow hash:${cdc_sha1}\ntidb-ctl hash:${tidb_ctl_githash}\nng_monitoring hash:${ng_monitoring_sha1}"
+                        tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
+                        println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}"
+                        println "tiflow hash:${cdc_sha1}\ntidb-ctl hash:${tidb_ctl_githash}\nng_monitoring hash:${ng_monitoring_sha1}"
 
-                    sh """
+                        sh """
                 echo ${tidb_sha1} > sha1
                 curl -F refs/pingcap/tidb/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
 
@@ -87,185 +88,182 @@ try {
                 echo ${ng_monitoring_sha1} > sha1
                 curl -F refs/pingcap/ng-monitoring/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload
                 """
+                    }
                 }
             }
-        }
 
-        stage("Build") {
-            def builds = [:]
-            builds["Build on linux/arm64"] = {
-                build job: "optimization-build-tidb",
+            stage("Build") {
+                def builds = [:]
+                builds["Build on linux/arm64"] = {
+                    build job: "optimization-build-tidb",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                    [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                    [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                    [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
+                                    [$class: 'StringParameterValue', name: 'ARCH', value: ARM64],
+                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
+                            ]
+                }
+
+                builds["Build on darwin/amd64"] = {
+                    build job: "optimization-build-tidb",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                    [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                    [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                    [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'OS', value: OS_DARWIN],
+                                    [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
+                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_DARWIN],
+                            ]
+                }
+                builds["Build on darwin/arm64"] = {
+                    build job: "optimization-build-tidb",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                    [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                    [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                    [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'OS', value: OS_DARWIN],
+                                    [$class: 'StringParameterValue', name: 'ARCH', value: ARM64],
+                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_DARWINARM],
+                            ]
+                }
+
+                builds["Build on linux/amd64"] = {
+                    build job: "optimization-build-tidb",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
+                                    [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
+                                    [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                    [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
+                                    [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
+                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
+                            ]
+                }
+
+
+                parallel builds
+            }
+
+            RELEASE_TAG = "nightly"
+
+            stage("TiUP build") {
+                build job: "tiup-mirror-update-test",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                                [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
-                                [$class: 'StringParameterValue', name: 'ARCH', value: ARM64],
-                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
                         ]
             }
 
-            builds["Build on darwin/amd64"] = {
-                build job: "optimization-build-tidb",
+            stage("Tiup nightly test") {
+                build job: "tiup-mirror-test",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                                [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'OS', value: OS_DARWIN],
-                                [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
-                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_DARWIN],
-                        ]
-            }
-            builds["Build on darwin/arm64"] = {
-                build job: "optimization-build-tidb",
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                                [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'OS', value: OS_DARWIN],
-                                [$class: 'StringParameterValue', name: 'ARCH', value: ARM64],
-                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_DARWINARM],
+                                [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
+                                [$class: 'StringParameterValue', name: 'VERSION', value: RELEASE_TAG],
                         ]
             }
 
-            builds["Build on linux/amd64"] = {
-                build job: "optimization-build-tidb",
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: tidb_binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
-                                [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
-                                [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
-                                [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
-                        ]
-            }
-            
-
-            parallel builds
+            currentBuild.result = "SUCCESS"
+        }
+    } catch (Exception e) {
+        currentBuild.result = "FAILURE"
+        slackcolor = 'danger'
+        echo "${e}"
+        echo 'Waiting 5 minutes'
+        sh "sleep 300 "
+    } finally {
+        def result = [:]
+        result["name"] = "【" + currentBuild.result + "】" + JOB_NAME
+        result["result"] = currentBuild.result.toLowerCase()
+        result["build_num"] = BUILD_NUMBER
+        result["type"] = "jenkinsci"
+        result["url"] = RUN_DISPLAY_URL
+        result["duration"] = System.currentTimeMillis() - taskStartTimeInMillis
+        result["start_time"] = taskStartTimeInMillis
+        result["trigger"] = "tiup nightly build"
+        if (currentBuild.result == "SUCCESS") {
+            result["notify_message"] = "【SUCCESS】TiUP release tidb master nightly success"
+        } else if (currentBuild.result == "FAILURE") {
+            result["notify_message"] = "【FAILURE】TiUP release tidb master nightly failed"
+        } else {
+            result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
         }
 
-        RELEASE_TAG = "nightly"
+        result["notify_receiver"] = ["purelind", "heibaijian"]
 
-        stage("TiUP build") {
-            build job: "tiup-mirror-update-test",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
-                    ]
-        }
-
-        stage("Tiup nightly test") {
-            build job: "tiup-mirror-test",
-                    wait: true,
-                    parameters: [
-                            [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
-                            [$class: 'StringParameterValue', name: 'VERSION', value: RELEASE_TAG],
-                    ]
-        }
-
-        currentBuild.result = "SUCCESS"
-    }
-} catch (Exception e) {
-    currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
-    echo "${e}"
-    //    休眠5分钟
-    Thread.sleep(60 * 1000 * 5);
-    buid job: 'release-tidb-master-tiup-nightly',
-            wait: true,
-            parameters: [
-            ]
-} finally {
-    def result = [:]
-    result["name"] = "【"+currentBuild.result+"】"+JOB_NAME
-    result["result"] = currentBuild.result.toLowerCase()
-    result["build_num"] = BUILD_NUMBER
-    result["type"] = "jenkinsci"
-    result["url"] = RUN_DISPLAY_URL
-    result["duration"] = System.currentTimeMillis() - taskStartTimeInMillis
-    result["start_time"] = taskStartTimeInMillis
-    result["trigger"] = "tiup nightly build"
-    if (currentBuild.result == "SUCCESS") {
-        result["notify_message"] = "【SUCCESS】TiUP release tidb master nightly success"
-    } else if (currentBuild.result == "FAILURE") {
-        result["notify_message"] = "【FAILURE】TiUP release tidb master nightly failed"
-    } else {
-        result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
-    }
-    
-    result["notify_receiver"] = ["purelind", "heibaijian"]
-
-    node("lightweight_pod") {
-        container("golang") {
-            writeJSON file: 'result.json', json: result, pretty: 4
-            sh 'cat result.json'
-            archiveArtifacts artifacts: 'result.json', fingerprint: true
-            sh """
+        node("lightweight_pod") {
+            container("golang") {
+                writeJSON file: 'result.json', json: result, pretty: 4
+                sh 'cat result.json'
+                archiveArtifacts artifacts: 'result.json', fingerprint: true
+                sh """
                 export LC_CTYPE="en_US.UTF-8"
                 wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci.py
                 python3 agent-jenkinsci.py result.json || true
-            """  
+            """
+            }
         }
     }
-}
 
-stage('Summary') {
-    echo "Send slack here ..."
-    //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+    stage('Summary') {
+        echo "Send slack here ..."
+        //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+        def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
+        if (currentBuild.result != "SUCCESS") {
+            slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
+        }
     }
 }
