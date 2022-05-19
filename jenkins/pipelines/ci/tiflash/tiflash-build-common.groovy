@@ -854,58 +854,60 @@ def postBuildStage(repo_path, build_dir, install_dir) {
 }
 
 node("${GO_TEST_SLAVE}") {
-    def checkout_target = getCheckoutTarget()
-    def repo_path = "${pwd()}/tiflash"
-    def build_dir = "${pwd()}/build"
-    def install_dir = "${pwd()}/install/tiflash"
-    def error_msg = ""
-    try {
-        dir(repo_path) {
-            checkoutTiFlash(checkout_target, false)
-        }
-        dispatchRunEnv(repo_path) {
-            checkoutStage(repo_path, checkout_target)
-            def proxy_cache_ready = prepareStage(repo_path)
-            buildStage(repo_path, build_dir, install_dir, proxy_cache_ready)
-            postBuildStage(repo_path, build_dir, install_dir)
-        }
-    } catch (Exception e) {
-        error_msg = "Error Message: ${e}\\n"
-        error "build failed: ${e}"
-    } finally {
-        stage('Lark Message') {
-            if (params.PUSH_MESSAGE) {
-                def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-                def result_mark = "❌"
-                if (!error_msg) {
-                    result_mark = "✅"
-                }
-                def feishumsg = "TiFlash Build Common\\n" +
-                        "Build Number: ${env.BUILD_NUMBER}\\n" +
-                        "Result: ${result_mark}\\n" +
-                        "Target: ${checkout_target}\\n" +
-                        "Elapsed Time: ${duration} Mins\\n" +
-                        "OS: ${params.OS}\\n" +
-                        "Arch: ${params.ARCH}\\n" +
-                        error_msg +
-                        "Build Link: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${env.BUILD_NUMBER}/pipeline\\n" +
-                        "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/activity/"
-                print feishumsg
-                node("master") {
-                    withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                        sh """
-                          curl -X POST "\$TOKEN" -H 'Content-Type: application/json' \
-                          -d '{
-                            "msg_type": "text",
-                            "content": {
-                              "text": "$feishumsg"
-                            }
-                          }'
-                        """
+    container("golang") {
+        def checkout_target = getCheckoutTarget()
+        def repo_path = "${pwd()}/tiflash"
+        def build_dir = "${pwd()}/build"
+        def install_dir = "${pwd()}/install/tiflash"
+        def error_msg = ""
+        try {
+            dir(repo_path) {
+                checkoutTiFlash(checkout_target, false)
+            }
+            dispatchRunEnv(repo_path) {
+                checkoutStage(repo_path, checkout_target)
+                def proxy_cache_ready = prepareStage(repo_path)
+                buildStage(repo_path, build_dir, install_dir, proxy_cache_ready)
+                postBuildStage(repo_path, build_dir, install_dir)
+            }
+        } catch (Exception e) {
+            error_msg = "Error Message: ${e}\\n"
+            error "build failed: ${e}"
+        } finally {
+            stage('Lark Message') {
+                if (params.PUSH_MESSAGE) {
+                    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+                    def result_mark = "❌"
+                    if (!error_msg) {
+                        result_mark = "✅"
                     }
+                    def feishumsg = "TiFlash Build Common\\n" +
+                            "Build Number: ${env.BUILD_NUMBER}\\n" +
+                            "Result: ${result_mark}\\n" +
+                            "Target: ${checkout_target}\\n" +
+                            "Elapsed Time: ${duration} Mins\\n" +
+                            "OS: ${params.OS}\\n" +
+                            "Arch: ${params.ARCH}\\n" +
+                            error_msg +
+                            "Build Link: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${env.BUILD_NUMBER}/pipeline\\n" +
+                            "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/activity/"
+                    print feishumsg
+                    node("master") {
+                        withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                            sh """
+                            curl -X POST "\$TOKEN" -H 'Content-Type: application/json' \
+                            -d '{
+                                "msg_type": "text",
+                                "content": {
+                                "text": "$feishumsg"
+                                }
+                            }'
+                            """
+                        }
+                    }
+                } else {
+                    echo "skipped because message pushing is disabled"
                 }
-            } else {
-                echo "skipped because message pushing is disabled"
             }
         }
     }
