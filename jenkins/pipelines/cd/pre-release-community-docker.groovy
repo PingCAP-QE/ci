@@ -336,13 +336,6 @@ def release_docker(releaseRepos, builds, arch) {
             release_one(product, arch, false)
         }
     }
-    if (RELEASE_TAG >= "v5.3.0") {
-        builds["build ng-monitoring " + arch] = {
-            release_one("ng-monitoring", arch, false)
-        }
-    } else {
-        println("skip build ng-monitoring because only v5.3.0+ support")
-    }
 
     failpointRepos = ["tidb", "pd", "tikv"]
     for (item in failpointRepos) {
@@ -387,6 +380,10 @@ stage("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
             releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
+            if (RELEASE_TAG >= "v5.3.0") { 
+                // build ng-monitoring only for v5.3.0+
+                releaseRepos.add("ng-monitoring")
+            }
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
 
