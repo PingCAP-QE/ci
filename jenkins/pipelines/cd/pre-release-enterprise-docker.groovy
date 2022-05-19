@@ -67,7 +67,7 @@ properties([
 ])
 
 HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/qa'
-if (pramas.DEBUG_MODE) {
+if (params.DEBUG_MODE) {
     harbor_registry_project_prefix = 'hub.pingcap.net/ee-debug'
 }
 

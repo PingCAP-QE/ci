@@ -42,7 +42,7 @@ properties([
 
 
 HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/qa'
-if (pramas.DEBUG_MODE) {
+if (params.DEBUG_MODE) {
     harbor_registry_project_prefix = 'hub.pingcap.net/ee-debug'
 }
 
@@ -165,7 +165,7 @@ def release_one(repo, arch, failpoint) {
         echo "force rebuild: ${params.FORCE_REBUILD}"
         echo "binary not existed or forece_rebuild is true"
         println "start build binary ${repo} ${arch}"
-        println "pramas: ${paramsBuild}"
+        println "params: ${paramsBuild}"
         build job: "build-common",
                 wait: true,
                 parameters: paramsBuild
@@ -215,7 +215,7 @@ def release_one(repo, arch, failpoint) {
             string(name: "RELEASE_DOCKER_IMAGES", value: image),
     ]
     println "start build image ${repo} ${arch}"
-    println "pramas: ${paramsDocker}"
+    println "params: ${paramsDocker}"
     build job: "docker-common",
             wait: true,
             parameters: paramsDocker
@@ -239,7 +239,7 @@ def release_one(repo, arch, failpoint) {
         ]
         if (repo in ["dumpling", "ticdc", "tidb-binlog", "tidb", "tikv", "pd"]) {
             println "start build debug image ${repo} ${arch}"
-            println "pramas: ${paramsDockerForDebug}"
+            println "params: ${paramsDockerForDebug}"
             build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerForDebug
