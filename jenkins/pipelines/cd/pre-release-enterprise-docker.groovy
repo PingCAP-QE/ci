@@ -59,9 +59,17 @@ properties([
                         name: 'FORCE_REBUILD',
                         description: ''
                 ),
+                booleanParam(
+                        defaultValue: false,
+                        name: 'DEBUG_MODE'
+                )
         ])
 ])
 
+HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/qa'
+if (pramas.DEBUG_MODE) {
+    harbor_registry_project_prefix = 'hub.pingcap.net/ee-debug'
+}
 
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 
