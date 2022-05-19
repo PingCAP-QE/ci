@@ -136,7 +136,7 @@ def get_image_str_for_enterprise(product, arch, tag, if_release, if_multi_arch) 
         }
     }
 
-    def imageStr = "hub.pingcap.net/qa/${imageName}:${imageTag}"
+    def imageStr = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
 
     return imageStr
 }
@@ -174,7 +174,7 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
 }
 
 //new
-def parallel_enterprise_docker(arch, if_release) {
+def parallel_enterprise_docker(arch, if_release, if_multi_arch) {
     def builds = [:]
 
     builds["Push tidb Docker"] = {
@@ -220,11 +220,11 @@ def retag_enterprise_image(product, arch, if_release, if_multi_arch) {
         community_image_for_rc_or_ga = "pingcap/${product}-arm64:${RELEASE_TAG}"
         enterprise_image_for_rc_or_ga = "pingcap/${product}-enterprise-arm64:${RELEASE_TAG}"
     } else if (arch == 'amd64' && (!if_release)) {
-        community_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
-        enterprise_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
+        community_image_for_rc_or_ga = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${product}:${RELEASE_TAG}-pre"
+        enterprise_image_for_rc_or_ga = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${product}-enterprise:${RELEASE_TAG}-pre"
     } else {
-        community_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}-arm64:${RELEASE_TAG}-pre"
-        enterprise_image_for_rc_or_ga = "hub.pingcap.net/qa/${product}-enterprise-arm64:${RELEASE_TAG}-pre"
+        community_image_for_rc_or_ga = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${product}-arm64:${RELEASE_TAG}-pre"
+        enterprise_image_for_rc_or_ga = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${product}-enterprise-arm64:${RELEASE_TAG}-pre"
     }
 
     if (if_multi_arch && arch == "arm64") {

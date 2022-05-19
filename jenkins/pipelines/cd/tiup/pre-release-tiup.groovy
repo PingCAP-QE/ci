@@ -332,7 +332,7 @@ run_with_pod {
                         ]
             }
             publishs["publish community image"] = {
-                build job: "pre-release-docker",
+                build job: "pre-release-community-docker",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -341,6 +341,7 @@ run_with_pod {
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
+                                [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                         ]
             }
 
@@ -359,6 +360,7 @@ run_with_pod {
                             [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
                             [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
                             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                            [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                     ]
         }
     }
