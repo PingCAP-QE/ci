@@ -66,10 +66,10 @@ stage("Prepare") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_cached_lint_passed = false
-            // container("rust") {
-            //     is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
-            //     println "Skip linting: ${is_cached_lint_passed}"
-            // }
+            container("rust") {
+                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
+                println "Skip linting: ${is_cached_lint_passed}"
+            }
 
             if (!is_cached_lint_passed) {
                 container("rust") {
@@ -133,10 +133,10 @@ stage("Prepare") {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
             def is_artifact_existed = false
-            // container("rust") {
-            //     is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
-            //     println "Skip building test artifact: ${is_artifact_existed}"
-            // }
+            container("rust") {
+                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
+                println "Skip building test artifact: ${is_artifact_existed}"
+            }
 
             if (!is_artifact_existed) {
                 container("rust") {
