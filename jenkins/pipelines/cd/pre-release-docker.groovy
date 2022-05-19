@@ -42,7 +42,7 @@ properties([
 
 
 HARBOR_REGISTRY_PROJECT_PREFIX = "hub.pingcap.net/qa"
-DOCKERHUB_REGISTRY_PROJECT_PREFIX = "pingcap"
+// DOCKERHUB_REGISTRY_PROJECT_PREFIX = "pingcap"
 if (params.DEBUG_MODE) {
     println "run pipeline in debug mode"
     HARBOR_REGISTRY_PROJECT_PREFIX = "hub.pingcap.net/ee-debug"
@@ -164,6 +164,9 @@ def release_one(repo, arch, failpoint) {
 
 
     def image = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
+    if (params.DEBUG_MODE) { 
+        image = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}}"   
+    }
     // version need multi-arch image, sync image from internal harbor to dockerhub
     if (NEED_MULTIARCH) {
         image = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
@@ -223,7 +226,9 @@ def release_one(repo, arch, failpoint) {
         if (arch == "arm64") {
             imageNameForDmMonitorInitializer = imageNameForDmMonitorInitializer + "-arm64"
         }
-        imageNameForDmMonitorInitializer = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageNameForDmMonitorInitializer}:${IMAGE_TAG},pingcap/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
+        if (params.DEBUG_MODE) {  
+            imageNameForDmMonitorInitializer = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
+        }
         def paramsDockerDmMonitorInitializer = [
                 string(name: "ARCH", value: arch),
                 string(name: "OS", value: "linux"),
@@ -250,6 +255,9 @@ def release_one(repo, arch, failpoint) {
             IMAGE_TAG = IMAGE_TAG + "-" + arch
          }
         def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
+        if (params.DEBUG_MODE) {  
+            imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"
+        }
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
                 string(name: "OS", value: "linux"),
