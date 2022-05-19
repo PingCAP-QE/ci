@@ -43,7 +43,8 @@ properties([
 
 HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/qa'
 if (params.DEBUG_MODE) {
-    harbor_registry_project_prefix = 'hub.pingcap.net/ee-debug'
+    HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/ee-debug'
+    println('DEBUG_MODE is true, use hub.pingcap.net/ee-debug')
 }
 
 // pre-release push image to harbor.pingcap.net
