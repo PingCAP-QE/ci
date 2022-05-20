@@ -13,6 +13,10 @@ if (params.containsKey("release_test")) {
 def notRun = 1
 def chunk_count = 20
 
+ghprbTargetBranch = "master"
+ghprbActualCommit = "99a3f2b0919eecafcb195652194cc38643ce76b1"
+ghprbPullId = "12537"
+
 def pod_image_param = ghprbTargetBranch
 
 
@@ -32,29 +36,13 @@ println "ci image use  hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:la
 
 
 try {
-stage("PreCheck") {
-    if (!params.force) {
-        node("${GO_BUILD_SLAVE}"){
-            container("golang") {
-                notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-            }
-        }
-    }
 
-    if (notRun == 0) {
-        println "the ${ghprbActualCommit} has been tested"
-        currentBuild.result = 'SUCCESS'
-        throw new RuntimeException("hasBeenTested")
-    }
-}
-
+// nodeSelector: 'role_type=slave', instanceCap: 3,
 stage("Prepare") {
     def clippy = {
-    def label="tikv_cached_${ghprbTargetBranch}_clippy"
+    def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
     podTemplate(name: label, label: label,
-        nodeSelector: 'role_type=slave', instanceCap: 3,
+        cloud: "kubernetes-ng", namespace: 'jenkins-tikv',
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
@@ -67,7 +55,7 @@ stage("Prepare") {
 
             def is_cached_lint_passed = false
             container("rust") {
-                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
+                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed") == 0)
                 println "Skip linting: ${is_cached_lint_passed}"
             }
 
@@ -119,9 +107,9 @@ stage("Prepare") {
     }
 
     def build = {
-        def label="tikv_cached_${ghprbTargetBranch}_build"
+        def label="tikv_cached_${ghprbTargetBranch}_build_${BUILD_NUMBER}"
         podTemplate(name: label, label: label,
-        nodeSelector: 'role_type=slave', instanceCap: 7,
+        cloud: "kubernetes-ng", namespace: 'jenkins-tikv',
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
@@ -134,7 +122,7 @@ stage("Prepare") {
 
             def is_artifact_existed = false
             container("rust") {
-                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
+                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
                 println "Skip building test artifact: ${is_artifact_existed}"
             }
 
@@ -296,52 +284,119 @@ EOF
     parallel prepare
 }
 
+
+// old node("test_tikv_go1130_memvolume") 
 stage('Test') {
     def run_test = { chunk_suffix ->
-        node("test_tikv_go1130_memvolume") {
-            dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                container("golang") {
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+        podTemplate(cloud: "kubernetes-ng",
+            namespace: "jenkins-tikv",
+            idleMinutes: 0,
+            yaml: '''
+              kind: Pod
+              spec:
+                nodeSelector:
+                  pingcap/ee-ci: tikv-ut
+                tolerations:
+                - key: cpu_affinity
+                  operator: Equal
+                  value: need
+                  effect: NoSchedule
+                containers:
+                - name: golang
+                  image: hub.pingcap.net/jenkins/centos7_golang-1.13:cached
+                  imagePullPolicy: Always
+                  stdin: true
+                  tty: true
+                  command:
+                  - /bin/sh
+                  - -c
+                  args:
+                  - cat
+                  env:
+                    - name: GOPATH
+                      value: /go
+                  resources:
+                    requests:
+                      cpu: 3
+                      memory: 8Gi
+                    limits:
+                      cpu: 3
+                      memory: 8Gi
+                  volumeMounts:
+                    - mountPath: "/home/jenkins/agent/memvolume"
+                      name: "volume-2"
+                      readOnly: false
+                    - mountPath: "/home/jenkins"
+                      name: "volume-1"
+                      readOnly: false
+                    - mountPath: "/tmp"
+                      name: "volume-0"
+                      readOnly: false
+                    - mountPath: "/home/jenkins/agent"
+                      name: "workspace-volume"
+                      readOnly: false
+                volumes:
+                  - emptyDir:
+                    medium: "Memory"
+                    name: "volume-0"
+                  - emptyDir:
+                    medium: "Memory"
+                    name: "volume-2"
+                  - emptyDir:
+                    medium: "Memory"
+                    name: "volume-1"
+                  - emptyDir:
+                    medium: "Memory"
+                    name: "workspace-volume"
 
-                    deleteDir()
-                    timeout(15) {
-                        sh """
-                        # set -o pipefail
-                        ln -s `pwd` \$HOME/tikv-src
-                        uname -a
-                        export RUSTFLAGS=-Dwarnings
-                        export FAIL_POINT=1
-                        export RUST_BACKTRACE=1
-                        export MALLOC_CONF=prof:true,prof_active:false
-                        mkdir -p target/debug
-                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
-                        tar xf test-chunk.tar.gz
-                        ls -la
-                        if [[ ! -f test-chunk-${chunk_suffix} ]]; then
-                            if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
-                            exit
-                            else
-                            echo test-chunk-${chunk_suffix} not found
-                            exit 1
+'''
+  ) {
+
+  node(POD_LABEL) {
+                dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                    container("golang") {
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+
+                        deleteDir()
+                        timeout(15) {
+                            sh """
+                            # set -o pipefail
+                            ln -s `pwd` \$HOME/tikv-src
+                            uname -a
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export RUST_BACKTRACE=1
+                            export MALLOC_CONF=prof:true,prof_active:false
+                            mkdir -p target/debug
+                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
+                            tar xf test-chunk.tar.gz
+                            ls -la
+                            if [[ ! -f test-chunk-${chunk_suffix} ]]; then
+                                if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
+                                exit
+                                else
+                                echo test-chunk-${chunk_suffix} not found
+                                exit 1
+                                fi
                             fi
-                        fi
-                        for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
-                            curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
-                            chmod +x \$i;
-                        done
-                        CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
-                        chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
-                        ok_count=`grep "test result: ok" tests.out | wc -l`
-                        if [ "\$chunk_count" -eq "\$ok_count" ]; then
-                            echo "test pass"
-                        else
-                            # test failed
-                            grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
-                            awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
-                            gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
-                            exit 1
-                        fi
-                        """
+                            for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                chmod +x \$i;
+                            done
+                            CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
+                            chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
+                            ok_count=`grep "test result: ok" tests.out | wc -l`
+                            if [ "\$chunk_count" -eq "\$ok_count" ]; then
+                                echo "test pass"
+                            else
+                                # test failed
+                                grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
+                                awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
+                                gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                exit 1
+                            fi
+                            """
+                        }
                     }
                 }
             }
@@ -359,16 +414,16 @@ stage('Test') {
     parallel tests
 }
 currentBuild.result = "SUCCESS"
-stage('Post-test') {
-    node("${GO_BUILD_SLAVE}"){
-        container("golang"){
-            sh """
-            echo "done" > done
-            curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-            """
-        }
-    }
-}
+// stage('Post-test') {
+//     node("${GO_BUILD_SLAVE}"){
+//         container("golang"){
+//             sh """
+//             echo "done" > done
+//             curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+//             """
+//         }
+//     }
+// }
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {
@@ -381,32 +436,32 @@ stage('Post-test') {
     }
 }
 
-if (params.containsKey("triggered_by_upstream_ci")) {
-    stage("update commit status") {
-        node("master") {
-            if (currentBuild.result == "ABORTED") {
-                PARAM_DESCRIPTION = 'Jenkins job aborted'
-                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
-                PARAM_STATUS = 'error'
-            } else if (currentBuild.result == "FAILURE") {
-                PARAM_DESCRIPTION = 'Jenkins job failed'
-                PARAM_STATUS = 'failure'
-            } else if (currentBuild.result == "SUCCESS") {
-                PARAM_DESCRIPTION = 'Jenkins job success'
-                PARAM_STATUS = 'success'
-            } else {
-                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
-                PARAM_STATUS = 'error'
-            }
-            def default_params = [
-                    string(name: 'TIKV_COMMIT_ID', value: ghprbActualCommit ),
-                    string(name: 'CONTEXT', value: 'idc-jenkins-ci/test'),
-                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
-                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
-                    string(name: 'STATUS', value: PARAM_STATUS ),
-            ]
-            echo("default params: ${default_params}")
-            build(job: "tikv_update_commit_status", parameters: default_params, wait: true)
-        }
-    }
-}
+// if (params.containsKey("triggered_by_upstream_ci")) {
+//     stage("update commit status") {
+//         node("master") {
+//             if (currentBuild.result == "ABORTED") {
+//                 PARAM_DESCRIPTION = 'Jenkins job aborted'
+//                 // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
+//                 PARAM_STATUS = 'error'
+//             } else if (currentBuild.result == "FAILURE") {
+//                 PARAM_DESCRIPTION = 'Jenkins job failed'
+//                 PARAM_STATUS = 'failure'
+//             } else if (currentBuild.result == "SUCCESS") {
+//                 PARAM_DESCRIPTION = 'Jenkins job success'
+//                 PARAM_STATUS = 'success'
+//             } else {
+//                 PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
+//                 PARAM_STATUS = 'error'
+//             }
+//             def default_params = [
+//                     string(name: 'TIKV_COMMIT_ID', value: ghprbActualCommit ),
+//                     string(name: 'CONTEXT', value: 'idc-jenkins-ci/test'),
+//                     string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
+//                     string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
+//                     string(name: 'STATUS', value: PARAM_STATUS ),
+//             ]
+//             echo("default params: ${default_params}")
+//             build(job: "tikv_update_commit_status", parameters: default_params, wait: true)
+//         }
+//     }
+// }
