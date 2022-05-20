@@ -219,7 +219,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                     try {
                         timeout(10) {
-                            if (ghprbTargetBranch in ["master", "release-6.0", "release-5.4", "release-5.3"]) {
+                            if (ghprbTargetBranch in ["master", "release-6.1", "release-6.0", "release-5.4", "release-5.3"]) {
                                 sh """ 
                                 set +e
                                 killall -9 -r tidb-server
