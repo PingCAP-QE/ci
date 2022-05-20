@@ -284,12 +284,13 @@ def release_one(repo, arch, failpoint) {
         if (arch == "arm64" && !NEED_MULTIARCH) {
             imageName = imageName + "-arm64"
         }
+        def imageTag = IMAGE_TAG
         if (NEED_MULTIARCH) {
-            IMAGE_TAG = IMAGE_TAG + "-" + arch
+            imageTag = imageTag + "-" + arch
         }
-        def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
+        def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
         if (params.DEBUG_MODE) {
-            imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"
+            imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
         }
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
