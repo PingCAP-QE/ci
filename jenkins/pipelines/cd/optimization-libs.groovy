@@ -126,6 +126,7 @@ def get_image_str_for_enterprise(product, arch, tag, if_release, if_multi_arch) 
     if (product == "monitroing") {
         imageName = "tidb-monitor-initializer"
     }
+    imageName = imageName + "-enterprise"
     if (!if_multi_arch && arch == "arm64") {
         imageName = imageName + "-arm64"
     }
@@ -137,6 +138,7 @@ def get_image_str_for_enterprise(product, arch, tag, if_release, if_multi_arch) 
     }
 
     def imageStr = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
+    println "imageStr: ${imageStr}"
 
     return imageStr
 }
@@ -160,8 +162,8 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
             string(name: "ARCH", value: arch),
             string(name: "OS", value: "linux"),
             string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
-            string(name: "REPO", value: repo),
-            string(name: "PRODUCT", value: repo),
+            string(name: "REPO", value: product),
+            string(name: "PRODUCT", value: product),
             string(name: "RELEASE_TAG", value: RELEASE_TAG),
             string(name: "DOCKERFILE", value: dockerfile),
             string(name: "RELEASE_DOCKER_IMAGES", value: image),
@@ -178,7 +180,8 @@ def parallel_enterprise_docker(arch, if_release, if_multi_arch) {
     def builds = [:]
 
     builds["Push tidb Docker"] = {
-//        println("tidb enterprise docker:"+ TIDB_HASH)
+        println "tidb hash : ${TIDB_HASH}"
+        println "tidb plugin hash : ${PLUGIN_HASH}"
         build_tidb_enterprise_image("tidb", TIDB_HASH, PLUGIN_HASH, arch, if_release, if_multi_arch)
     }
 
@@ -303,9 +306,9 @@ def parallel_enterprise_docker_multiarch(if_release) {
     for (item in imageNames) {
         def imageName = item
         def paramsManifest = [
-            string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${imageTag}-amd64"),
-            string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${imageTag}-arm64"),
-            string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}:${imageTag}"),
+            string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
+            string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
+            string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
         ]
         println "paramsManifest: ${paramsManifest}"
         build job: "manifest-multiarch-common",
