@@ -60,7 +60,7 @@ if (params.DEBUG_MODE) {
 def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
     def imageTag = tag
     def imageName = product
-    if (product == "monitroing") {
+    if (product == "monitoring") {
         imageName = "tidb-monitor-initializer"
     }
     if (!if_multi_arch && arch == "arm64") {
@@ -284,12 +284,13 @@ def release_one(repo, arch, failpoint) {
         if (arch == "arm64" && !NEED_MULTIARCH) {
             imageName = imageName + "-arm64"
         }
+        def imageTag = IMAGE_TAG
         if (NEED_MULTIARCH) {
-            IMAGE_TAG = IMAGE_TAG + "-" + arch
+            imageTag = imageTag + "-" + arch
         }
-        def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG},pingcap/${imageName}:${IMAGE_TAG}"
+        def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
         if (params.DEBUG_MODE) {
-            imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"
+            imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
         }
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
@@ -352,9 +353,9 @@ def manifest_multiarch_image() {
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
         def paramsManifest = [
-                string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}-amd64"),
-                string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}-arm64"),
-                string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"),
+                string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
+                string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
+                string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
         ]
         build job: "manifest-multiarch-common",
                 wait: true,
@@ -363,13 +364,13 @@ def manifest_multiarch_image() {
         if (params.DEBUG_MODE) {
             println "run pipeline in debug mode, only push image to harbor, not push to dockerhub"
         } else {
-            def paramsSyncImage = [
-                string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
-                string(name: 'SOURCE_IMAGE', value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${IMAGE_TAG}"),
-                string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${IMAGE_TAG}"),
-            ]
-            build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
-        }
+            // def paramsSyncImage = [
+            //     string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
+            //     string(name: 'SOURCE_IMAGE', value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
+            //     string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${RELEASE_TAG}-pre"),
+            // ]
+            // build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+        }   
     }
 
     parallel manifest_multiarch_builds
@@ -397,11 +398,19 @@ stage("release") {
 
             parallel builds
 
-            if (NEED_MULTIARCH) {
+        }
+    }
+}
+
+if (NEED_MULTIARCH) {
+    stage("create multi-arch image") {
+        node("${GO_BUILD_SLAVE}") {
+            container("golang") {
                 manifest_multiarch_image()
             }
         }
     }
 }
+
 
 
