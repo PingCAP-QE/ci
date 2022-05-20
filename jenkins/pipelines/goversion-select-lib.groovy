@@ -2,7 +2,7 @@
 
 feature_branch_use_go13 = []
 feature_branch_use_go16 = ["hz-poc", "ft-data-inconsistency"]
-feature_branch_use_go18 = ["release-multi-source", "br-stream", "refactor-syncer"]
+feature_branch_use_go18 = ["release-multi-source", "br-stream", "refactor-syncer", "fb/latency"]
 
 // Version Selector
 // branch or tag
