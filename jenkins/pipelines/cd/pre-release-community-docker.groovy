@@ -338,13 +338,16 @@ def release_docker(releaseRepos, builds, arch) {
         }
     }
 
-    failpointRepos = ["tidb", "pd", "tikv"]
-    for (item in failpointRepos) {
-        def product = "${item}"
-        builds["build ${item} failpoint" + arch] = {
-            release_one(product, arch, true)
+    if (arch == "amd64") {
+        failpointRepos = ["tidb", "pd", "tikv"]
+        for (item in failpointRepos) {
+            def product = "${item}"
+            builds["build ${item} failpoint" + arch] = {
+                release_one(product, arch, true)
+            }
         }
     }
+
 }
 
 
