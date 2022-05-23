@@ -309,7 +309,7 @@ def parallel_enterprise_docker_multiarch(if_release) {
                 string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
                 string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
                 string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
-                string(name: "IF_ENTERPRISE", value: true),
+                booleanParam(name: "IF_ENTERPRISE", value: true),
         ]
         println "paramsManifest: ${paramsManifest}"
         build job: "manifest-multiarch-common",

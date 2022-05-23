@@ -356,7 +356,7 @@ def manifest_multiarch_image(if_enterprise) {
                 string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
                 string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
                 string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
-                string(name: "IF_ENTERPRISE", value: if_enterprise),
+                booleanParam(name: "IF_ENTERPRISE", value: if_enterprise),
         ]
         build job: "manifest-multiarch-common",
                 wait: true,
