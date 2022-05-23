@@ -230,7 +230,8 @@ def checkoutTiFlash(target, full) {
 }
 
 def runBuilderClosure(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, containers: [
+    podTemplate(name: label, label: label, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0, instanceCap: 15,
+    containers: [
             containerTemplate(name: 'builder', image: image,
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
