@@ -148,8 +148,9 @@ def build_dm_bin() {
 def run_tls_source_it_test(String case_name) {
     def label = 'dm-integration-test'
     podTemplate(label: label,
-            nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
+            namespace: 'jenkins-dm',
+            cloud: "kubernetes-ng",
+            idleMinutes: 0,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -251,8 +252,9 @@ def run_tls_source_it_test(String case_name) {
 def run_single_it_test(String case_name) {
     def label = 'dm-integration-test'
     podTemplate(label: label,
-            nodeSelector: 'role_type=slave',
-            namespace: 'jenkins-tidb',
+            namespace: 'jenkins-dm',
+            cloud: "kubernetes-ng",
+            idleMinutes: 0,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
