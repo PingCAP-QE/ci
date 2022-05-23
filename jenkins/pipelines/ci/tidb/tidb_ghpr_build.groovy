@@ -46,12 +46,20 @@ if (ghprbPullId != null && ghprbPullId != "") {
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
 GO_VERSION = "go1.18"
+ALWAYS_PULL_IMAGE = true
+RESOURCE_REQUEST_CPU = '4000m'
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:202206042",
 ]
+VOLUMES = [
+                nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                emptyDirVolume(mountPath: '/tmp', memory: false),
+            ]
 
 node("master") {
     deleteDir()
@@ -59,7 +67,14 @@ node("master") {
     sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
     def script_path = "${ws}/goversion-select-lib.groovy"
     def goversion_lib = load script_path
-    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    if (ghprbTargetBranch == "master") {
+        GO_VERSION = "bazel_master"
+        ALWAYS_PULL_IMAGE = false
+        RESOURCE_REQUEST_CPU = '2000m'
+    } else {
+        GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+        VOLUMES.append(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
+    }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
@@ -76,19 +91,14 @@ def run_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
+                        name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
-            volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+            volumes: VOLUMES,
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -176,26 +186,57 @@ try {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
                                 if (isBuildCheck){
-                                    sh """
-	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-	                                make
-	                                """
+                                    if (ghprbTargetBranch == "master") {
+                                        sh """
+	                                    if make bazel_build; then
+                                            touch importer.done
+                                            touch tidb-server-check.done
+                                        else 
+                                            touch importer.fail
+                                            touch tidb-server-check.fail
+                                        fi
+                                        """
+                                    } else {
+                                        sh """
+	                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                    nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+	                                    make
+	                                    """
+                                    }
                                 }else{
-                                    sh """
-	                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-	                                nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
-	                                make
-	                                touch tidb-server-check.done
-	                                """
+                                    if (ghprbTargetBranch == "master") {
+                                        sh """
+	                                    if make bazel_build; then
+                                            touch importer.done
+                                            touch tidb-server-check.done
+                                        else 
+                                            touch importer.fail
+                                            touch tidb-server-check.fail
+                                        fi
+                                        touch tidb-server-check.done
+                                        """
+                                    } else {
+                                        sh """
+	                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                    nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
+	                                    make
+	                                    touch tidb-server-check.done
+	                                    """
+                                    }
                                 }
 
                                 waitUntil{
                                     (fileExists('importer.done') || fileExists('importer.fail')) && (fileExists('tidb-server-check.done') || fileExists('tidb-server-check.fail'))
                                 }
-                                sh """
-                                ls bin
-                                """
+                                if (ghprbTargetBranch == "master") {
+                                    sh """
+                                    ls bazel-out
+                                    """
+                                } else {
+                                    sh """
+                                    ls bin
+                                    """
+                                }
                                 if (fileExists('importer.fail') ){
                                     sh """
                                     cat importer.log
