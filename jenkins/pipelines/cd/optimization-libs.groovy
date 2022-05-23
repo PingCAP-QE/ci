@@ -150,10 +150,10 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
     plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
-    if (product == "tidb" && arch == "amd64") {
+    if (product == "tidb"  && arch == "amd64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
-    if (product == "tidb" && arch == "arm64") {
+    if (product == "tidb"  && arch == "arm64") {
         dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
     }
     def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG, if_release, if_multi_arch)
@@ -204,7 +204,7 @@ def parallel_enterprise_docker(arch, if_release, if_multi_arch) {
             retag_enterprise_image(product, arch, if_release, if_multi_arch)
         }
     }
-
+    
     stage("Push ${arch} enterprise image") {
         parallel builds
     }
@@ -248,10 +248,10 @@ def retag_enterprise_image(product, arch, if_release, if_multi_arch) {
 }
 
 //new
-def retag_docker_image_for_ga(product, if_enterprise) {
+def retag_docker_image_for_ga(product,if_enterprise){
     image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
     image_for_ga_to_docker = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
-    if (if_enterprise) {
+    if(if_enterprise){
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
         image_for_ga_to_docker = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}"
     }
@@ -306,15 +306,14 @@ def parallel_enterprise_docker_multiarch(if_release) {
     for (item in imageNames) {
         def imageName = item
         def paramsManifest = [
-                string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
-                string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
-                string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
-                string(name: "IF_ENTERPRISE", value: true),
+            string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
+            string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
+            string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
         ]
         println "paramsManifest: ${paramsManifest}"
         build job: "manifest-multiarch-common",
-                wait: true,
-                parameters: paramsManifest
+            wait: true,
+            parameters: paramsManifest
 
 //        enterprise RC or GA don't push to dockerhub
 //        def paramsSyncImage = [
@@ -327,7 +326,7 @@ def parallel_enterprise_docker_multiarch(if_release) {
     }
 
     parallel manifest_multiarch_builds
-
+    
 }
 
 //new

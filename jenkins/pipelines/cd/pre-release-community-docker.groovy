@@ -74,7 +74,7 @@ def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
     if (failpoint) {
         imageTag = imageTag + "-" + "failpoint"
     }
-
+    
 
     def imageStr = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
 
@@ -348,7 +348,7 @@ def release_docker(releaseRepos, builds, arch) {
 }
 
 
-def manifest_multiarch_image(if_enterprise) {
+def manifest_multiarch_image() {
     def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
@@ -356,7 +356,6 @@ def manifest_multiarch_image(if_enterprise) {
                 string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
                 string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
                 string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
-                string(name: "IF_ENTERPRISE", value: if_enterprise),
         ]
         build job: "manifest-multiarch-common",
                 wait: true,
@@ -371,7 +370,7 @@ def manifest_multiarch_image(if_enterprise) {
             //     string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${RELEASE_TAG}-pre"),
             // ]
             // build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
-        }
+        }   
     }
 
     parallel manifest_multiarch_builds
@@ -382,7 +381,7 @@ stage("release") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
             releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
-            if (RELEASE_TAG >= "v5.3.0") {
+            if (RELEASE_TAG >= "v5.3.0") { 
                 // build ng-monitoring only for v5.3.0+
                 releaseRepos.add("ng-monitoring")
             }
@@ -407,7 +406,7 @@ if (NEED_MULTIARCH) {
     stage("create multi-arch image") {
         node("${GO_BUILD_SLAVE}") {
             container("golang") {
-                manifest_multiarch_image("false")
+                manifest_multiarch_image()
             }
         }
     }

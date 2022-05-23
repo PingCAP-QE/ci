@@ -1,4 +1,4 @@
-FROM pingcap/alpine-glibc:alpine-3.14.6
+FROM centos:centos7.9.2009
 ENV TZ=/etc/localtime
 ENV TZDIR=/usr/share/zoneinfo
 
