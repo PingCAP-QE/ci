@@ -77,8 +77,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-dm"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -182,9 +182,9 @@ catchError {
     stage('Compatibility Tests') {
         def label = POD_LABEL_MAP[GO_VERSION]
         podTemplate(label: label,
-                nodeSelector: 'role_type=slave',
-                namespace: "jenkins-tidb",
+                cloud: "kubernetes-ng",
                 idleMinutes: 0,
+                namespace: "jenkins-dm",
                 containers: [
                         containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_IMAGE}", ttyEnabled: true,
                                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',

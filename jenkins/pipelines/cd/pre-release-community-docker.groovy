@@ -377,7 +377,6 @@ def manifest_multiarch_image(if_enterprise) {
                 // build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
             }
         }
-
     }
 
     parallel manifest_multiarch_builds
