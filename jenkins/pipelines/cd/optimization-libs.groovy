@@ -305,16 +305,17 @@ def parallel_enterprise_docker_multiarch(if_release) {
     }
     for (item in imageNames) {
         def imageName = item
-        def paramsManifest = [
-                string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
-                string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
-                string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
-                booleanParam(name: "IF_ENTERPRISE", value: true),
-        ]
-        println "paramsManifest: ${paramsManifest}"
-        build job: "manifest-multiarch-common",
-                wait: true,
-                parameters: paramsManifest
+        manifest_multiarch_builds[imageName + "-enterprise multi-arch"] = {
+            def paramsManifest = [
+                    string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
+                    string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
+                    string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
+                    booleanParam(name: "IF_ENTERPRISE", value: true),
+            ]
+            println "paramsManifest: ${paramsManifest}"
+            build job: "manifest-multiarch-common",
+                    wait: true,
+                    parameters: paramsManifest
 
 //        enterprise RC or GA don't push to dockerhub
 //        def paramsSyncImage = [
@@ -324,6 +325,8 @@ def parallel_enterprise_docker_multiarch(if_release) {
 //        ]
 //        println "paramsSyncImage: ${paramsSyncImage}"
 //        build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+        }
+
     }
 
     parallel manifest_multiarch_builds
