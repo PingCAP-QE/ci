@@ -111,13 +111,13 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "dm-integration-test-go1180-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(
             label: label,
-            nodeSelector: 'role_type=slave',
-            namespace: POD_NAMESPACE,
+            cloud: cloud,
             idleMinutes: 0,
+            namespace: "jenkins-dm",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -163,11 +163,11 @@ def run_build_with_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "dm-integration-test-build-go1180-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
-            namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            namespace: "jenkins-dm",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
