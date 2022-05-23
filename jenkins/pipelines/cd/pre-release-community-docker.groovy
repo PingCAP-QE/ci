@@ -355,26 +355,29 @@ def manifest_multiarch_image(if_enterprise) {
     def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
-        def paramsManifest = [
-                string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
-                string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
-                string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
-                booleanParam(name: "IF_ENTERPRISE", value: if_enterprise),
-        ]
-        build job: "manifest-multiarch-common",
-                wait: true,
-                parameters: paramsManifest
+        manifest_multiarch_builds[imageName + " multi-arch"] = {
+            def paramsManifest = [
+                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
+                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
+                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
+                    booleanParam(name: "IF_ENTERPRISE", value: if_enterprise),
+            ]
+            build job: "manifest-multiarch-common",
+                    wait: true,
+                    parameters: paramsManifest
 
-        if (params.DEBUG_MODE) {
-            println "run pipeline in debug mode, only push image to harbor, not push to dockerhub"
-        } else {
-            // def paramsSyncImage = [
-            //     string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
-            //     string(name: 'SOURCE_IMAGE', value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
-            //     string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${RELEASE_TAG}-pre"),
-            // ]
-            // build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+            if (params.DEBUG_MODE) {
+                println "run pipeline in debug mode, only push image to harbor, not push to dockerhub"
+            } else {
+                // def paramsSyncImage = [
+                //     string(name: 'triggered_by_upstream_ci', value: "pre-release-docker"),
+                //     string(name: 'SOURCE_IMAGE', value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
+                //     string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${RELEASE_TAG}-pre"),
+                // ]
+                // build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
+            }
         }
+
     }
 
     parallel manifest_multiarch_builds
