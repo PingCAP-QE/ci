@@ -15,15 +15,28 @@ def test_base(commitName, ghprbActualCommit, ghprbCommentBody) {
             wait: true, propagate: true)
 }
 
-def test_master(commitID, version) {
+def test_master_tiflash(commitID, version) {
     println "tispark master"
     parallel(
             test1: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-flash=true")
+            }
+    )
+}
+
+def test_master(commitID, version) {
+    println "tispark master"
+    parallel(
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
+
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1 test-flash=true")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2.1")
             },
     )
 }
@@ -32,12 +45,12 @@ def test_release2_5(commitID, version) {
     println "tispark release-2.5"
     parallel(
             test1: {
-                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version test-flash=true")
+                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
             },
 
 
             test3: {
-                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1 test-flash=true")
+                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1")
             },
     )
 }
@@ -46,15 +59,15 @@ def test_release2_4(commitID, version) {
     println "tispark release-2.4"
     parallel(
             test5: {
-                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11 profile=spark-2.3 test-flash=true")
+                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11 profile=spark-2.3")
             },
 
             test6: {
-                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11 test-flash=true")
+                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.11")
             },
 
             test7: {
-                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.12 test-flash=true")
+                test_base("release-2.4", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=scala-2.12")
             },
     )
 }
@@ -105,6 +118,7 @@ node("lightweight_pod") {
                     break;
                 case 7:
                     test_release2_5(release_2_5, "master")
+                    test_master_tiflash(master,"master")
                     break;
             }
         }
