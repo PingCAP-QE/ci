@@ -85,16 +85,16 @@ def run_with_pod(Closure body) {
 
 run_with_pod {
         stage('Build') {
-        def built = build(
-                        job: "tiflash-build-common",
-                        wait: true,
-                        propagate: false,
-                        parameters: parameters
-                )
-        echo "built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${built.number}/pipeline"
-        if (built.getResult() != 'SUCCESS') {
-                error "build failed"
-        }
+                def built = build(
+                                job: "tiflash-build-common",
+                                wait: true,
+                                propagate: false,
+                                parameters: parameters
+                        )
+                echo "built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${built.number}/pipeline"
+                if (built.getResult() != 'SUCCESS') {
+                        error "build failed"
+                }
         }
 }
 
