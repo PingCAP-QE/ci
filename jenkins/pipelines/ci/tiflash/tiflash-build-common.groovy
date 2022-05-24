@@ -858,7 +858,6 @@ def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-build"
     def cloud = "kubernetes-ng"
     def namespace = "jenkins-tiflash"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -866,7 +865,7 @@ def run_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
-                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
                         resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
