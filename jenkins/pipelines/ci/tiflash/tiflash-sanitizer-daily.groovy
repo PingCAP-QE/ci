@@ -190,69 +190,99 @@ UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/test
     }
 }
 
-
-node("${GO_TEST_SLAVE}") {
-    def result = "SUCCESS"
-    def githash = null
-
-    stage("Get Hash") {
-        def target_branch = "master"
-        echo "Target Branch: ${target_branch}"
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-        githash = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
-    }
-    
-    try {
-        def cwd = pwd()
-        def sanitizer = params.SANITIZER
-        runCheckoutAndBuilderClosure("tiflash-sanitizer-daily-regression-${sanitizer}", cwd) {
-            runWithCache(sanitizer, cwd)
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tiflash"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
         }
-    } catch (Exception e) {
-        result = "FAILURE"
-        echo "${e}"
     }
-    
-    stage('Summary') {
-        def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-        def msg = "Build Result: `${result}`" + "\n" +
-                "Elapsed Time: `${duration} mins`" + "\n" +
-                "${env.RUN_DISPLAY_URL}"
-    
-        echo "${msg}"
-    
-        if (result != "SUCCESS") {
-            stage("sendLarkMessage") {
-                def result_mark = "❌"
-                def feishumsg = "tiflash-sanitizer-daily (${params.SANITIZER})\\n" +
-                        "Build Number: ${env.BUILD_NUMBER}\\n" +
-                        "Result: ${result} ${result_mark}\\n" +
-                        "Git Hash: ${githash}\\n" +
-                        "Elapsed Time: ${duration} Mins\\n" +
-                        "Build Link: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/${env.BUILD_NUMBER}/pipeline\\n" +
-                        "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/activity/"
-                print feishumsg
-                node("master") {
+}
+
+
+run_with_pod {
+    container("golang") {
+        def result = "SUCCESS"
+        def githash = null
+
+        stage("Get Hash") {
+            def target_branch = "master"
+            echo "Target Branch: ${target_branch}"
+            sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+            githash = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
+        }
+        
+        try {
+            def cwd = pwd()
+            def sanitizer = params.SANITIZER
+            runCheckoutAndBuilderClosure("tiflash-sanitizer-daily-regression-${sanitizer}", cwd) {
+                runWithCache(sanitizer, cwd)
+            }
+        } catch (Exception e) {
+            result = "FAILURE"
+            echo "${e}"
+        }
+        
+        stage('Summary') {
+            def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
+            def msg = "Build Result: `${result}`" + "\n" +
+                    "Elapsed Time: `${duration} mins`" + "\n" +
+                    "${env.RUN_DISPLAY_URL}"
+        
+            echo "${msg}"
+        
+            if (result != "SUCCESS") {
+                stage("sendLarkMessage") {
+                    def result_mark = "❌"
+                    def feishumsg = "tiflash-sanitizer-daily (${params.SANITIZER})\\n" +
+                            "Build Number: ${env.BUILD_NUMBER}\\n" +
+                            "Result: ${result} ${result_mark}\\n" +
+                            "Git Hash: ${githash}\\n" +
+                            "Elapsed Time: ${duration} Mins\\n" +
+                            "Build Link: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/${env.BUILD_NUMBER}/pipeline\\n" +
+                            "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/activity/"
+                    print feishumsg
                     withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
                         sh """
-                          curl -X POST \$TOKEN -H 'Content-Type: application/json' \
-                          -d '{
+                        curl -X POST \$TOKEN -H 'Content-Type: application/json' \
+                        -d '{
                             "msg_type": "text",
                             "content": {
-                              "text": "$feishumsg"
+                            "text": "$feishumsg"
                             }
-                          }'
+                        }'
                         """
                     }
                     withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
                         sh """
-                          curl -X POST \$TOKEN -H 'Content-Type: application/json' \
-                          -d '{
+                        curl -X POST \$TOKEN -H 'Content-Type: application/json' \
+                        -d '{
                             "msg_type": "text",
                             "content": {
-                              "text": "$feishumsg"
+                            "text": "$feishumsg"
                             }
-                          }'
+                        }'
                         """
                     }
                 }

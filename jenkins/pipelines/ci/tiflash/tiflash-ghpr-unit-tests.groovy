@@ -48,7 +48,8 @@ def parameters = [
 
 
 def runBuilderClosure(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, containers: [
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0,
+    containers: [
             containerTemplate(name: 'runner', image: image,
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
@@ -110,8 +111,37 @@ def prepareArtifacts(built, get_toolchain) {
     )
 }
 
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}-for-ut"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tiflash"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
 
-node(GO_TEST_SLAVE) {
+run_with_pod {
     def toolchain = null
     def built = null
     stage('Build') {
