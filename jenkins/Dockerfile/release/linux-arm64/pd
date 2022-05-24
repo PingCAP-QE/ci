@@ -1,4 +1,4 @@
-FROM centos:8
+FROM pingcap/centos-stream:8
 COPY pd-server /pd-server
 COPY pd-ctl /pd-ctl
 COPY pd-recover /pd-recover
