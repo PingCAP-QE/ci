@@ -355,11 +355,12 @@ def manifest_multiarch_image(if_enterprise) {
     def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
-        manifest_multiarch_builds[imageName + " multi-arch"] = {
+        def image = imageName
+        manifest_multiarch_builds[image + " multi-arch"] = {
             def paramsManifest = [
-                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
-                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
-                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
+                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre-amd64"),
+                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre-arm64"),
+                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre"),
                     booleanParam(name: "IF_ENTERPRISE", value: if_enterprise),
             ]
             build job: "manifest-multiarch-common",
