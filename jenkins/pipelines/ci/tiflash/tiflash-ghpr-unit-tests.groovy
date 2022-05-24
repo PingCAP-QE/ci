@@ -48,7 +48,8 @@ def parameters = [
 
 
 def runBuilderClosure(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, containers: [
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0,
+    containers: [
             containerTemplate(name: 'runner', image: image,
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
@@ -110,8 +111,36 @@ def prepareArtifacts(built, get_toolchain) {
     )
 }
 
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}-for-ut"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tiflash"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
+                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
 
-node(GO_TEST_SLAVE) {
+run_with_pod {
     def toolchain = null
     def built = null
     stage('Build') {
@@ -345,8 +374,3 @@ node(GO_TEST_SLAVE) {
     }
 }
 
-stage("Sync Status") {
-    node {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
-    }
-}
