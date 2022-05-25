@@ -1,4 +1,10 @@
+import java.text.SimpleDateFormat
+
 env.DOCKER_HOST = "tcp://localhost:2375"
+
+def date = new Date()
+sdf = new SimpleDateFormat("yyyyMMdd")
+day = sdf.format(date)
 
 def check_file_exists(build_para, product) {
     if (build_para["FORCE_REBUILD"]) {
@@ -298,37 +304,50 @@ def build_enterprise_image(product, sha1, arch, if_release, if_multi_arch) {
 
 def parallel_enterprise_docker_multiarch(if_release) {
     def manifest_multiarch_builds = [:]
-    def imageNames = ["tikv", "tidb", "tiflash", "pd"]
+    def imageNamesRebuild = ["tikv", "tidb", "tiflash", "pd"]
+    def imageNamesRetag = ["tidb-lightning", "tidb-binlog", "ticdc", "br", "dumpling", "ng-monitoring", "dm", "tidb-monitor-initializer"]
     def imageTag = RELEASE_TAG
     if (!if_release) {
         imageTag = imageTag + "-pre"
     }
-    for (item in imageNames) {
+    for (item in imageNamesRebuild) {
         def imageName = item
-        manifest_multiarch_builds[imageName + "-enterprise multi-arch"] = {
+        manifest_multiarch_builds[imageName + "-enterprise multi-arch to cloud"] = {
             def paramsManifest = [
                     string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
                     string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
-                    string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}"),
+                    string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}",),
                     booleanParam(name: "IF_ENTERPRISE", value: true),
             ]
             println "paramsManifest: ${paramsManifest}"
             build job: "manifest-multiarch-common",
                     wait: true,
                     parameters: paramsManifest
-
-//        enterprise RC or GA don't push to dockerhub
-//        def paramsSyncImage = [
-//                string(name: 'triggered_by_upstream_ci', value: "release-enterprise-docker"),
-//                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${imageName}:${imageTag}"),
-//                string(name: 'TARGET_IMAGE', value: "pingcap/${imageName}:${imageTag}"),
-//        ]
-//        println "paramsSyncImage: ${paramsSyncImage}"
-//        build(job: "jenkins-image-syncer", parameters: paramsSyncImage, wait: true, propagate: true)
         }
 
     }
 
+    for (itemRetag in imageNamesRetag) {
+        def imageNameRetag = itemRetag
+        manifest_multiarch_builds[imageNameRetag + "-enterprise to cloud"] = {
+            def source_image = "hub.pingcap.net/qa/${imageNamesRetag}-enterprise:${imageTag}"
+            // 命名规范：
+            //- vX.Y.Z-yyyymmdd，举例：v6.1.0-20220524
+            //- 特例：tidb-monitor-initializer 镜像格式要求，vX.Y.Z，举例：v6.1.0 （每次覆盖即可，这个问题是DBaaS上历史问题）
+            def dest_image = "gcr.io/pingcap-public/dbaas/${imageNamesRetag}-enterprise:${imageTag}"
+            if (!dest_image.contains("tidb-monitor-initializer-enterprise")) {
+                dest_image = dest_image + "-" + day
+            }
+
+            def default_params = [
+                    string(name: 'SOURCE_IMAGE', value: source_image),
+                    string(name: 'TARGET_IMAGE', value: dest_image),
+            ]
+            build(job: "jenkins-image-syncer",
+                    parameters: default_params,
+                    wait: true)
+        }
+    }
     parallel manifest_multiarch_builds
 
 }
