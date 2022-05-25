@@ -337,9 +337,9 @@ def manifest_multiarch_image() {
         def image = imageName
         manifest_multiarch_builds[image + " multi-arch"] = {
             def paramsManifest = [
-                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
-                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
-                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
+                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre-amd64"),
+                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre-arm64"),
+                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre"),
             ]
             build job: "manifest-multiarch-common",
                     wait: true,
@@ -391,7 +391,6 @@ if (NEED_MULTIARCH) {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
             stage("create multi-arch image") {
-
                 manifest_multiarch_image()
             }
             stage("sync community image to dockerhub") {
