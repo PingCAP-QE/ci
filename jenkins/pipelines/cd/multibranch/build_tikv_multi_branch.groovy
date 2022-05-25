@@ -167,9 +167,9 @@ try {
                         sh """
                         echo "${githash}" > sha1
                         tar czvf tikv-server.tar.gz bin/*
-                        curl -F ${filepath}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload --fail
-                        curl -F ${filepath2}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload --fail
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${filepath2}=@tikv-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                     release_one("tikv","${githash}")
