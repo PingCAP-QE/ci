@@ -137,7 +137,7 @@ catchError {
 
                     def filepath = "builds/pingcap/release/${target}.tar.gz"
                     sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo  ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
 
@@ -192,7 +192,7 @@ catchError {
 
                     def filepath = "builds/pingcap/release/${target}.tar.gz"
                     sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo  ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
 
@@ -232,7 +232,7 @@ catchError {
 
                     def filepath = "builds/pingcap/release/${target}.tar.gz"
                     sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo  ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
 
@@ -273,7 +273,7 @@ catchError {
 
                     def filepath = "builds/pingcap/release/${target}.tar.gz"
                     sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo  ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
 
@@ -313,7 +313,7 @@ catchError {
 
                     def filepath = "builds/pingcap/release/${target}.tar.gz"
                     sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
 //tiflash linux amd linux version 有 release ci，不需要再次上传到公有云
@@ -341,7 +341,7 @@ catchError {
 
                     def filepath = "builds/pingcap/release/${target}.tar.gz"
                     sh """
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     echo ${FILE_SERVER_URL}/download/builds/pingcap/release/${target}.tar.gz
                     """
 

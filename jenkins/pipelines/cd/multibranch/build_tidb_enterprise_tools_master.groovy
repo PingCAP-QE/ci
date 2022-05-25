@@ -90,9 +90,9 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         tar czvf tidb-enterprise-tools.tar.gz bin/*
-                        curl -F ${filepath}=@tidb-enterprise-tools.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@tidb-enterprise-tools.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }

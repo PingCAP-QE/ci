@@ -75,7 +75,7 @@ try {
                     sh """
                     cd /tmp/
                     curl -o /tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz
-                    curl -F builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz=@tiflash.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz=@tiflash.tar.gz ${FILE_SERVER_URL}/upload
                     """
                 }
             }
@@ -99,8 +99,8 @@ try {
                     def refspath1 = "refs/pingcap/tiflash/${env.BRANCH_NAME}/sha1"
                     sh """
                     echo "${githash}" > sha1
-                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                    curl -F ${refspath1}=@sha1 ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${refspath1}=@sha1 ${FILE_SERVER_URL}/upload
                     """
                 } else {
                     echo 'invalid gitHash, mark this build as failed'

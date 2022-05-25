@@ -101,9 +101,9 @@ try {
                     timeout(10) {
                         sh """
                         tar --exclude=tidb-test.tar.gz -czvf tidb-test.tar.gz ./*
-                        curl -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
                         echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
                 }

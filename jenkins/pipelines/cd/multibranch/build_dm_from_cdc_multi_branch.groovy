@@ -118,7 +118,7 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         mkdir ${target}
                         mkdir ${target}/bin
                         mkdir ${target}/conf
@@ -135,7 +135,7 @@ try {
                         # curl -O ${FILE_SERVER_URL}/download/script/config.cfg
                         # chmod +x filemgr-linux64
 
-                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/${target}.tar.gz --file ${target}.tar.gz
                         """
                         // writeFile file: 'sha1', text: "${githash}"
@@ -244,7 +244,7 @@ try {
                 timeout(10) {
                     sh """
                     echo "${githash}" > sha1
-                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                     mkdir ${target}
                     mkdir ${target}/bin
                     mkdir ${target}/conf
@@ -261,7 +261,7 @@ try {
                     # curl -O ${FILE_SERVER_URL}/download/script/config.cfg
                     # chmod +x filemgr-linux64
 
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/${target}.tar.gz --file ${target}.tar.gz
                     """
                     // writeFile file: 'sha1', text: "${githash}"
