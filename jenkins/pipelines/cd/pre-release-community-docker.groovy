@@ -68,7 +68,7 @@ def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
     }
 
     imageTag = imageTag + "-pre"
-    if (if_multi_arch) {
+    if (if_multi_arch && !failpoint) {
         imageTag = imageTag + "-" + arch
     }
     if (failpoint) {
