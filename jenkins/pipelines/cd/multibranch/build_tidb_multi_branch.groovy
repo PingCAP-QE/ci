@@ -215,10 +215,10 @@ try {
                         sh """
                         tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
                         bin/tidb-server -V
-                        curl --fail -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                        curl --fail -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
@@ -321,9 +321,9 @@ try {
                             go mod tidy
                             GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                             md5sum whitelist-1.so > whitelist-1.so.md5
-                            curl --fail -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
-                            curl --fail -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
-                            curl --fail -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
+                            curl --fail -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                            curl --fail -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                            curl --fail -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                             """
                     }
 
@@ -332,9 +332,9 @@ try {
                         go mod tidy
                         GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                         md5sum audit-1.so > audit-1.so.md5
-                        curl --fail -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
-                        curl --fail -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
-                        curl --fail -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                 }

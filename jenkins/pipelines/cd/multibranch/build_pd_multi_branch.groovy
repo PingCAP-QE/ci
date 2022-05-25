@@ -133,11 +133,11 @@ try {
                     timeout(10) {
                         sh """
                         tar --exclude=pd-server.tar.gz -czvf pd-server.tar.gz *
-                        curl --fail -F ${filepath}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
-                        curl --fail -F ${filepath2}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${filepath2}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
 
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                 }

@@ -119,10 +119,10 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
 
                         tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
-                        curl --fail -F ${filepath}=@br.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@br.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                 }
@@ -139,10 +139,10 @@ try {
                         timeout(10) {
                             sh """
                             echo "${githash}" > sha1
-                            curl --fail -F ${latestref}=@sha1 ${FILE_SERVER_URL}/upload
+                            curl --fail -F ${latestref}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
 
                             tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
-                            curl --fail -F ${latestpath}=@br.tar.gz ${FILE_SERVER_URL}/upload
+                            curl --fail -F ${latestpath}=@br.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                             """
                         }
                     }

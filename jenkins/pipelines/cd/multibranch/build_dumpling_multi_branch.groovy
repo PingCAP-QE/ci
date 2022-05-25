@@ -134,9 +134,9 @@ try {
                     timeout(10) {
                         sh """
                         tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz *
-                        curl --fail -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                 }

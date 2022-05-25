@@ -128,9 +128,9 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         tar czvf tidb-tools.tar.gz bin/*
-                        curl --fail -F ${filepath}=@tidb-tools.tar.gz ${FILE_SERVER_URL}/upload
+                        curl --fail -F ${filepath}=@tidb-tools.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                         """
                     }
                 }
