@@ -152,6 +152,7 @@ try {
                 node("delivery") {
                     container("delivery") {
                         libs.parallel_enterprise_docker_multiarch(false)
+                        libs.enterprise_docker_sync_gcr()
                     }
                 }
             }

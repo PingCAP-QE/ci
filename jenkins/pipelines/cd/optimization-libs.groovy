@@ -305,7 +305,6 @@ def build_enterprise_image(product, sha1, arch, if_release, if_multi_arch) {
 def parallel_enterprise_docker_multiarch(if_release) {
     def manifest_multiarch_builds = [:]
     def imageNamesRebuild = ["tikv", "tidb", "tiflash", "pd"]
-    def imageNamesRetag = ["tidb-lightning", "tidb-binlog", "ticdc", "br", "dumpling", "ng-monitoring", "dm", "tidb-monitor-initializer"]
     def imageTag = RELEASE_TAG
     if (!if_release) {
         imageTag = imageTag + "-pre"
@@ -317,7 +316,6 @@ def parallel_enterprise_docker_multiarch(if_release) {
                     string(name: "AMD64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-amd64"),
                     string(name: "ARM64_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}-arm64"),
                     string(name: "MULTI_ARCH_IMAGE", value: "hub.pingcap.net/qa/${imageName}-enterprise:${imageTag}",),
-                    booleanParam(name: "IF_ENTERPRISE", value: true),
             ]
             println "paramsManifest: ${paramsManifest}"
             build job: "manifest-multiarch-common",
@@ -326,15 +324,22 @@ def parallel_enterprise_docker_multiarch(if_release) {
         }
 
     }
+    parallel manifest_multiarch_builds
 
-    for (itemRetag in imageNamesRetag) {
-        def imageNameRetag = itemRetag
-        manifest_multiarch_builds[imageNameRetag + "-enterprise to cloud"] = {
-            def source_image = "hub.pingcap.net/qa/${imageNamesRetag}-enterprise:${imageTag}"
+}
+
+def enterprise_docker_sync_gcr() {
+    def imageTag = RELEASE_TAG
+    def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
+    def builds = [:]
+    for (imageName in imageNames) {
+        def image = imageName
+        builds[image + "-enterprise sync"] = {
+            def source_image = "hub.pingcap.net/qa/${image}-enterprise:${imageTag}-pre"
             // 命名规范：
             //- vX.Y.Z-yyyymmdd，举例：v6.1.0-20220524
             //- 特例：tidb-monitor-initializer 镜像格式要求，vX.Y.Z，举例：v6.1.0 （每次覆盖即可，这个问题是DBaaS上历史问题）
-            def dest_image = "gcr.io/pingcap-public/dbaas/${imageNamesRetag}-enterprise:${imageTag}"
+            def dest_image = "gcr.io/pingcap-public/dbaas/${image}-enterprise:${imageTag}"
             if (!dest_image.contains("tidb-monitor-initializer-enterprise")) {
                 dest_image = dest_image + "-" + day
             }
@@ -348,8 +353,7 @@ def parallel_enterprise_docker_multiarch(if_release) {
                     wait: true)
         }
     }
-    parallel manifest_multiarch_builds
-
+    parallel builds
 }
 
 //new
