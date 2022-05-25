@@ -553,6 +553,16 @@ try {
                 }
             }
 
+            tests["Integration Beego ORM Test"] = {
+                try {
+                    run("beego_orm_test", "beegoormtest", "./test.sh")
+                    all_task_result << ["name": "Beego ORM Test", "status": "success", "error": ""]
+                } catch (err) {
+                    all_task_result << ["name": "Beego ORM Test", "status": "failed", "error": err.message]
+                    throw err
+                }
+            }
+
             tests["Integration GORM Test"] = {
                 try {
                     run("gorm_test", "gormtest", "./test.sh")
