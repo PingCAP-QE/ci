@@ -34,6 +34,7 @@ node('delivery') {
                     parallel builds_enterprise
                 } else {
                     def builds_community = [:]
+                    release_repo.remove("tidb-monitor-initializer")
                     for (item in release_repo) {
                         def product = "${item}"
                         builds_community["sync ${item} community docker image"] = {
