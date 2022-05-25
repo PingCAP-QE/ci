@@ -160,12 +160,22 @@ try {
 
                 stage('publish tiup offline package && publish dm tiup offline package') {
                     def publishs = [:]
-                    publishs["publish tiup offline package"] = {
-                        build job: 'tiup-package-offline-mirror',
-                                wait: true,
-                                parameters: [
-                                        [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
-                                ]
+                    if (RELEASE_BRANCH >= "release-6.0") {
+                        publishs["publish tiup offline package"] = {
+                            build job: 'tiup-package-offline-mirror-v6.0.0',
+                                    wait: true,
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
+                                    ]
+                        }
+                    } else {
+                        publishs["publish tiup offline package"] = {
+                            build job: 'tiup-package-offline-mirror',
+                                    wait: true,
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
+                                    ]
+                        }
                     }
                     publishs["publish dm tiup offline package"] = {
                         // publish dm offline package (include linux amd64 and arm64)
