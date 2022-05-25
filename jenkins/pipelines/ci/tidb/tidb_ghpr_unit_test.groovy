@@ -45,7 +45,7 @@ node("master") {
 label = "tidb_ghpr_unit_test-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
