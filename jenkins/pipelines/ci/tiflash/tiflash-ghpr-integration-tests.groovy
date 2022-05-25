@@ -13,6 +13,9 @@ def runTest(label, name, path, tidb_branch) {
     podTemplate(
         name: label, 
         label: label,
+        cloud: "kubernetes-ng",
+        namespace: "jenkins-tiflash",
+        idleMinutes: 0,
         instanceCap: 15,
         containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
@@ -119,70 +122,96 @@ def checkoutTiFlash() {
     }
 }
 
-node(GO_TEST_SLAVE) {
-    def toolchain = null
-    def identifier = "tiflash-integration-test-${ghprbTargetBranch}-${ghprbPullId}"
-    def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
-    def tidb_branch = ({
-        def m = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
-        if (m) {
-            return "${m.group(1)}"
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}-for-it"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tiflash"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
+                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
         }
-        return ghprbTargetBranch ?: 'master'
-    }).call()
-    if (ghprbTargetBranch in ["planner_refactory"]) {
-        tidb_branch = "master"
     }
+}
 
-    stage('Wait for Build') {
-        def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TIFLASH%22%20and%20value=%22true%22]]])[1]"
-        echo "poll status from: ${api}"
-        waitUntil(quiet: true) {
-            def response = httpRequest(url: api, validResponseCodes: "100:399,404", quiet: true)
-            def content = response.getContent()
-            if (content.contains('<result>FAILURE</result>')) {
-                error "build failure"
+run_with_pod {
+    container("golang") {
+        def toolchain = null
+        def identifier = "tiflash-integration-test-${ghprbTargetBranch}-${ghprbPullId}"
+        def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
+        def tidb_branch = ({
+            def m = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
+            if (m) {
+                return "${m.group(1)}"
             }
-            if (!content.contains('<building>false</building>') || !content.contains('<result>SUCCESS</result>')) {
-                return false
-            }
-            return true
+            return ghprbTargetBranch ?: 'master'
+        }).call()
+        if (ghprbTargetBranch in ["planner_refactory"]) {
+            tidb_branch = "master"
         }
-        copyArtifacts(
-            projectName: 'tiflash-build-common',
-            parameters: "TARGET_BRANCH=${ghprbTargetBranch},TARGET_PULL_REQUEST=${ghprbPullId},TARGET_COMMIT_HASH=${ghprbActualCommit},BUILD_TIFLASH=true",
-            filter: 'toolchain',
-            selector: lastSuccessful(),
-            optional: false
+
+        stage('Wait for Build') {
+            def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TIFLASH%22%20and%20value=%22true%22]]])[1]"
+            echo "poll status from: ${api}"
+            waitUntil(quiet: true) {
+                def response = httpRequest(url: api, validResponseCodes: "100:399,404", quiet: true)
+                def content = response.getContent()
+                if (content.contains('<result>FAILURE</result>')) {
+                    error "build failure"
+                }
+                if (!content.contains('<building>false</building>') || !content.contains('<result>SUCCESS</result>')) {
+                    return false
+                }
+                return true
+            }
+            copyArtifacts(
+                projectName: 'tiflash-build-common',
+                parameters: "TARGET_BRANCH=${ghprbTargetBranch},TARGET_PULL_REQUEST=${ghprbPullId},TARGET_COMMIT_HASH=${ghprbActualCommit},BUILD_TIFLASH=true",
+                filter: 'toolchain',
+                selector: lastSuccessful(),
+                optional: false
+            )
+            toolchain = readFile(file: 'toolchain').trim()
+            echo "Built with ${toolchain}"
+        }
+
+        checkoutTiFlash()
+
+        parallel (
+            "tidb ci test": {
+                def name = "tidb-ci-test"
+                runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/tidb-ci", tidb_branch)
+            },
+            "delta merge test": {
+                def name = "delta-merge-test"
+                runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/delta-merge-test", tidb_branch)
+            },
+            "fullstack test": {
+                def name = "fullstack-test"
+                runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/fullstack-test", tidb_branch)
+            },
+            "fullstack test2": {
+                def name = "fullstack-test2"
+                runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/fullstack-test2", tidb_branch)
+            }
         )
-        toolchain = readFile(file: 'toolchain').trim()
-        echo "Built with ${toolchain}"
-    }
-
-    checkoutTiFlash()
-
-    parallel (
-        "tidb ci test": {
-            def name = "tidb-ci-test"
-            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/tidb-ci", tidb_branch)
-        },
-        "delta merge test": {
-            def name = "delta-merge-test"
-            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/delta-merge-test", tidb_branch)
-        },
-        "fullstack test": {
-            def name = "fullstack-test"
-            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/fullstack-test", tidb_branch)
-        },
-        "fullstack test2": {
-            def name = "fullstack-test2"
-            runTest("${identifier}-${name}-${BUILD_NUMBER}", name, "tests/fullstack-test2", tidb_branch)
-        }
-    )
-}
-
-stage("Sync Status") {
-    node {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
     }
 }
+

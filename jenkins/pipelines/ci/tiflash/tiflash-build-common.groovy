@@ -230,7 +230,8 @@ def checkoutTiFlash(target, full) {
 }
 
 def runBuilderClosure(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, containers: [
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0,
+        containers: [
             containerTemplate(name: 'builder', image: image,
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
@@ -853,7 +854,36 @@ def postBuildStage(repo_path, build_dir, install_dir) {
     }
 }
 
-node("${GO_TEST_SLAVE}") {
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}-build"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tiflash"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
+                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+run_with_pod {
     container("golang") {
         def checkout_target = getCheckoutTarget()
         def repo_path = "${pwd()}/tiflash"
@@ -892,18 +922,16 @@ node("${GO_TEST_SLAVE}") {
                             "Build Link: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${env.BUILD_NUMBER}/pipeline\\n" +
                             "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/activity/"
                     print feishumsg
-                    node("master") {
-                        withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                            sh """
-                            curl -X POST "\$TOKEN" -H 'Content-Type: application/json' \
-                            -d '{
-                                "msg_type": "text",
-                                "content": {
-                                "text": "$feishumsg"
-                                }
-                            }'
-                            """
-                        }
+                    withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                        sh """
+                        curl -X POST "\$TOKEN" -H 'Content-Type: application/json' \
+                        -d '{
+                            "msg_type": "text",
+                            "content": {
+                            "text": "$feishumsg"
+                            }
+                        }'
+                        """
                     }
                 } else {
                     echo "skipped because message pushing is disabled"

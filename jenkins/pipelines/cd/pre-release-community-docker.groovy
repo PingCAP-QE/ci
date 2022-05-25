@@ -68,7 +68,7 @@ def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
     }
 
     imageTag = imageTag + "-pre"
-    if (if_multi_arch) {
+    if (if_multi_arch && !failpoint) {
         imageTag = imageTag + "-" + arch
     }
     if (failpoint) {
@@ -334,7 +334,8 @@ def manifest_multiarch_image() {
     def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
-        manifest_multiarch_builds[imageName + " multi-arch"] = {
+        def image = imageName
+        manifest_multiarch_builds[image + " multi-arch"] = {
             def paramsManifest = [
                     string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
                     string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),

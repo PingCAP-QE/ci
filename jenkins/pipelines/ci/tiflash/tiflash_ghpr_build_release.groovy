@@ -40,52 +40,79 @@ def release_one_amd64(repo,hash) {
 }
 
 
-try{
-
-    node("${GO_BUILD_SLAVE}") {
-        stage("Check binary") {
-            binary_existed = sh(returnStatus: true,
-                    script: """
-		    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/${binary}; then exit 0; else exit 1; fi
-		    """)
-            if (binary_existed == 0) {
-                println "tiflash: ${ghprbActualCommit} has beeb build before"
-                println "skip this build"
-            } else {
-                println "this commit need build"
-            }
-
-        }
-
-        stage("Build") {
-            if (binary_existed == 0) {
-                println "skip build..."
-            } else {
-                timeout(120) {
-                    release_one_amd64("tics", ghprbActualCommit)
-                }
-            }
-        }
-
-        stage("Print binary url") {
-            println "${FILE_SERVER_URL}/download/${binary}"
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tiflash"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
+                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
         }
     }
+}
 
-    stage("Comment on pr") {
-        // job param: notcomment default to True
-        // /release : not comment binary download url
-        // /release comment=true : comment binary download url
+try{
+    run_with_pod {
+        container("golang") {
+            stage("Check binary") {
+                binary_existed = sh(returnStatus: true,
+                        script: """
+                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/${binary}; then exit 0; else exit 1; fi
+                """)
+                if (binary_existed == 0) {
+                    println "tiflash: ${ghprbActualCommit} has beeb build before"
+                    println "skip this build"
+                } else {
+                    println "this commit need build"
+                }
 
-        if ( needComment.toBoolean() ) {
-            node("master") {
-                withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                    sh """
-                    rm -f comment-pr
-                    curl -O http://fileserver.pingcap.net/download/comment-pr
-                    chmod +x comment-pr
-                    ./comment-pr --token=$TOKEN --owner=pingcap --repo=tics --number=${ghprbPullId} --comment="download tiflash binary(linux amd64) at ${FILE_SERVER_URL}/download/${binary}"
-                """
+            }
+            stage("Build") {
+                if (binary_existed == 0) {
+                    println "skip build..."
+                } else {
+                    timeout(120) {
+                        release_one_amd64("tics", ghprbActualCommit)
+                    }
+                }
+            }
+            stage("Print binary url") {
+                println "${FILE_SERVER_URL}/download/${binary}"
+            }
+
+            stage("Comment on pr") {
+                // job param: notcomment default to True
+                // /release : not comment binary download url
+                // /release comment=true : comment binary download url
+                if ( needComment.toBoolean() ) {
+                    node("master") {
+                        withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+                            sh """
+                            rm -f comment-pr
+                            curl -O http://fileserver.pingcap.net/download/comment-pr
+                            chmod +x comment-pr
+                            ./comment-pr --token=$TOKEN --owner=pingcap --repo=tics --number=${ghprbPullId} --comment="download tiflash binary(linux amd64) at ${FILE_SERVER_URL}/download/${binary}"
+                        """
+                        }
+                    }
                 }
             }
         }

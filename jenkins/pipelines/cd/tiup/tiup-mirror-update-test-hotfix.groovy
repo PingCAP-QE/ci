@@ -137,11 +137,16 @@ def pack = { name, version, os, arch ->
             else
                 echo "monitoring dir not exists, it is expected"
             fi;
+            # pr about dm-ansible why exist on version >= 6.0.0
+            #  1. tiflow delete dm-ansible dir https://github.com/pingcap/tiflow/pull/4917
+            #  2. build-commmon suppport config file bewteen versin >=6.0.0 and version < 6.0.0
+            #     https://github.com/PingCAP-QE/jenkins-templates/pull/225
             if [[ -d "dm-ansible" ]]; then
-                echo "dm-ansible dir exists, is something wrong? dm version >= 6.0.0 not exist dm-ansible dir"
-                exit 1
+                echo "dm-ansible dir exists even though dm version >= 6.0.0"
+                echo "some backround info https://github.com/PingCAP-QE/jenkins-templates/pull/225"
             else
-                echo "dm-ansible dir not exists, it is expected"
+                echo "dm-ansible dir not exists, is something wrong? (dm version >=6.0.0 need dm-ansible origin from dm/metrics)"
+                exit 1
             fi;
             """
         }

@@ -1,15 +1,9 @@
-FROM centos:8
+FROM pingcap/centos-stream:8
 COPY zoneinfo.zip  /usr/local/go/lib/time/zoneinfo.zip
 COPY pump /pump
 COPY drainer /drainer
 COPY reparo /reparo
 COPY binlogctl /binlogctl
-RUN set -e && \
-    curl -O 'http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/centos-gpg-keys-8-3.el8.noarch.rpm' && \
-    rpm -i 'centos-gpg-keys-8-3.el8.noarch.rpm' && \
-    dnf -y --disablerepo '*' --enablerepo=extras swap centos-linux-repos centos-stream-repos && \
-    dnf install bind-utils nmap wget -y && \
-    dnf clean all
 EXPOSE 4000
 EXPOSE 8249 8250
 CMD ["/pump"]
