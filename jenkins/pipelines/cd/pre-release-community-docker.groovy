@@ -174,10 +174,6 @@ def release_one(repo, arch, failpoint) {
 
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${repo}"
-    // def imageName = repo
-    // if (repo == "monitoring") {
-    //     imageName = "tidb-monitor-initializer"
-    // }
     // if current version not need multi-arch image, then use image image to distingush amd64 and arm64.
     // otherwise, use imageTag to distingush different version.
     // example1:
@@ -186,23 +182,6 @@ def release_one(repo, arch, failpoint) {
     // example2:
     // hub.pingcap.net/qa/tidb:v6.1.0-pre-amd64
     // hub.pingcap.net/qa/tidb:v6.1.0-pre-arm64
-    // if (arch == "arm64" && !NEED_MULTIARCH) {
-    //     imageName = imageName + "-arm64"
-    // }
-    // def imageTag = IMAGE_TAG
-    // if (NEED_MULTIARCH) {
-    //     imageTag = IMAGE_TAG + "-" + arch
-    // }
-
-
-    // def image = "hub.pingcap.net/qa/${imageName}:${imageTag},pingcap/${imageName}:${imageTag}"
-    // // version need multi-arch image, sync image from internal harbor to dockerhub
-    // if (NEED_MULTIARCH) {
-    //     image = "hub.pingcap.net/qa/${imageName}:${imageTag}"
-    // }
-    // if (failpoint) {
-    //     image = "hub.pingcap.net/qa/${imageName}:${imageTag}-failpoint"
-    // }
     def image = get_image_str_for_community(repo, arch, RELEASE_TAG, failpoint, NEED_MULTIARCH)
 
     def paramsDocker = [
@@ -351,17 +330,16 @@ def release_docker(releaseRepos, builds, arch) {
 }
 
 
-def manifest_multiarch_image(if_enterprise) {
+def manifest_multiarch_image() {
     def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
         def image = imageName
         manifest_multiarch_builds[image + " multi-arch"] = {
             def paramsManifest = [
-                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre-amd64"),
-                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre-arm64"),
-                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${RELEASE_TAG}-pre"),
-                    booleanParam(name: "IF_ENTERPRISE", value: if_enterprise),
+                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-amd64"),
+                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre-arm64"),
+                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${RELEASE_TAG}-pre"),
             ]
             build job: "manifest-multiarch-common",
                     wait: true,
@@ -410,10 +388,31 @@ stage("release") {
 }
 
 if (NEED_MULTIARCH) {
-    stage("create multi-arch image") {
-        node("${GO_BUILD_SLAVE}") {
-            container("golang") {
-                manifest_multiarch_image("false")
+    node("${GO_BUILD_SLAVE}") {
+        container("golang") {
+            stage("create multi-arch image") {
+
+                manifest_multiarch_image()
+            }
+            stage("sync community image to dockerhub") {
+                def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
+                def builds = [:]
+                for (imageName in imageNames) {
+                    def image = imageName
+                    builds[image + " sync"] = {
+                        source_image = "hub.pingcap.net/qa/${image}:${RELEASE_TAG}-pre"
+                        dest_image = "pingcap/${image}:${RELEASE_TAG}-pre"
+                        def default_params = [
+                                string(name: 'SOURCE_IMAGE', value: source_image),
+                                string(name: 'TARGET_IMAGE', value: dest_image),
+                        ]
+                        build(job: "jenkins-image-syncer",
+                                parameters: default_params,
+                                wait: true)
+                    }
+                }
+                parallel builds
+
             }
         }
     }
