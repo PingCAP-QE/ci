@@ -1,7 +1,6 @@
 name: CD config Test
 on:
   workflow_dispatch:
-  push:
   pull_request:
 
 jobs:
