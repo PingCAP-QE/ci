@@ -86,21 +86,21 @@ node("toolkit") {
             parallel(
                 "common_test": {
                     def built1 = build(job: "tidb_ghpr_integration_common_test", wait: true, propagate: false, parameters: tidb_params)
-                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_test_ghpr_integration_test/${built1.number}/pipeline"
+                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_common_test/${built1.number}/pipeline"
                     if (built.getResult() != 'SUCCESS') {
                         error "common_test failed"
                     }
                 },
                 "ddl_test": {
                     def built2 = build(job: "tidb_ghpr_integration_ddl_test", wait: true, propagate: false, parameters: tidb_params)
-                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_test_ghpr_integration_test/${built2.number}/pipeline"
+                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_ddl_test/${built2.number}/pipeline"
                     if (built2.getResult() != 'SUCCESS') {
                         error "ddl_test failed"
                     }
                 },
                 "compatibility_test": {
                     def built3 = build(job: "tidb_ghpr_integration_campatibility_test", wait: true, propagate: false, parameters: tidb_params)
-                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_test_ghpr_integration_test/${built3.number}/pipeline"
+                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_campatibility_test/${built3.number}/pipeline"
                     if (buil3.getResult() != 'SUCCESS') {
                         error "compatibility_test failed"
                     }
