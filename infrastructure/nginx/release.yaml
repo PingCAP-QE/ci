@@ -4,21 +4,20 @@ kind: HelmRelease
 metadata:
   name: nginx
 spec:
-  releaseName: nginx-ingress-controller
+  releaseName: nginx-ingress
   chart:
     spec:
-      chart: nginx-ingress-controller
+      chart: nginx-ingress
       sourceRef:
         kind: HelmRepository
-        name: bitnami
+        name: ingress-nginx
         namespace: flux-system
-      version: "9.1.11"
+      version: "4.1.2"
   interval: 1h0m0s
   install:
     remediation:
       retries: 3
-  # Default values
-  # https://github.com/bitnami/charts/blob/master/bitnami/nginx-ingress-controller/values.yaml
   values:
-    service:
-      type: NodePort
+    controller:
+      service:
+        type: NodePort
