@@ -36,8 +36,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb-test"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -74,7 +74,6 @@ try {
             def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
             def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
             def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/done"
-            
             stage("Get commits and Set params") {
                 println "TIDB_BRANCH: ${TIDB_BRANCH}"
                 println "tidb_sha1: $tidb_sha1"
@@ -92,7 +91,6 @@ try {
                 ]
 
                 println "basic_params: $basic_params"
-                
             }
 
             stage("Checkout") {
@@ -245,7 +243,19 @@ try {
                         }
                     },
                     "trigger tidb_ghpr_mysql_test": {
-                        build(job: "tidb_ghpr_mysql_test", parameters: basic_params, wait: true)
+                        def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+                        println "check if current commit is already build, if not wait for build done."
+                        timeout(10) {
+                            sh """
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_download_url}; do sleep 3; done
+                            echo "tidb_test build finished: ${ghprbActualCommit}"
+                            """
+                        }
+                        def built = build(job: "tidb_ghpr_mysql_test", propagate: false, parameters: basic_params, wait: true)
+                        println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_ghpr_mysql_test/detail/tidb_ghpr_mysql_test/${built.number}/pipeline"
+                        if (built.getResult() != 'SUCCESS') {
+                            error "mysql_test failed"
+                        }
                     }
                 )
             }
