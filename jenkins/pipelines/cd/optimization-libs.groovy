@@ -4,7 +4,7 @@ env.DOCKER_HOST = "tcp://localhost:2375"
 
 def date = new Date()
 ts13 = date.getTime() / 1000
-ts11 = (Long) ts13
+ts10 = (Long) ts13
 sdf = new SimpleDateFormat("yyyyMMdd")
 day = sdf.format(date)
 
@@ -343,7 +343,7 @@ def enterprise_docker_sync_gcr() {
             //- 特例：tidb-monitor-initializer 镜像格式要求，vX.Y.Z，举例：v6.1.0 （每次覆盖即可，这个问题是DBaaS上历史问题）
             def dest_image = "gcr.io/pingcap-public/dbaas/${image}:${imageTag}"
             if (!dest_image.contains("tidb-monitor-initializer-enterprise")) {
-                dest_image = dest_image + "-" + day + "-" + ts11
+                dest_image = dest_image + "-" + day + "-" + ts10
             }
 
             def default_params = [
