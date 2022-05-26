@@ -64,8 +64,8 @@ node("master") {
 }
 
 def run_with_pod(Closure body) {
-    def label = "jenkins-check-2-${BUILD_NUMBER}"
-    def cloud = "kubernetes"
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -131,24 +131,22 @@ def upload_test_result(reportDir) {
 }
 
 try {
-    stage("Pre-check"){
-        if (!params.force){
-            node("${GO_BUILD_SLAVE}"){
+    run_with_pod {
+        stage("Pre-check"){
+            if (!params.force){
                 container("golang"){
                     notRun = sh(returnStatus: true, script: """
-			    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-			    """)
+                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+                """)
                 }
+            }
+
+            if (notRun == 0){
+                println "the ${ghprbActualCommit} has been tested"
+                throw new RuntimeException("hasBeenTested")
             }
         }
 
-        if (notRun == 0){
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
-
-    run_with_pod {
         def ws = pwd()
 
         stage("Checkout") {
@@ -360,9 +358,9 @@ try {
     
         container("golang"){
             sh """
-        echo "done" > done
-        curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-        """
+                echo "done" > done
+                curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+            """
         }
     }
 }
@@ -389,12 +387,6 @@ catch (Exception e) {
         currentBuild.result = "FAILURE"
         slackcolor = 'danger'
         echo "${e}"
-    }
-}
-
-stage("upload status"){
-    node("master") {
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.25:36000/api/v1/ci/job/sync || true"""
     }
 }
 

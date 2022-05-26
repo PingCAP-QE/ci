@@ -42,7 +42,7 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-check-${BUILD_NUMBER}"
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -75,7 +75,7 @@ def run_with_pod(Closure body) {
 
 def run_with_heavy_pod(Closure body) {
     def label = "tidb-ghpr-check-heavy-${BUILD_NUMBER}"
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -107,23 +107,21 @@ def run_with_heavy_pod(Closure body) {
 }
 
 try {
-    stage("Pre-check") {
-        if (!params.force) {
-            run_with_pod {
+    run_with_pod {
+        stage("Pre-check") {
+            if (!params.force) {
                 container("golang") {
                     notRun = sh(returnStatus: true, script: """
-    			    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-    			    """)
+                    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+                    """)
                 }
             }
+            if (notRun == 0) {
+                println "the ${ghprbActualCommit} has been tested"
+                throw new RuntimeException("hasBeenTested")
+            }
         }
-        if (notRun == 0) {
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
 
-    run_with_pod {
         def ws = pwd()
         stage("debuf info") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"

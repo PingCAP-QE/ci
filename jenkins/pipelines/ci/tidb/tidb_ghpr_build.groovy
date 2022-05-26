@@ -68,9 +68,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-build-${BUILD_NUMBER}"
-    def cloud = "kubernetes"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -239,7 +238,6 @@ try {
                             }
                         }
                     }
-//                    change  isBuildCheck to true , always run
                     if(true){
                         filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                         donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
