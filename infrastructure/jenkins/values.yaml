@@ -23,7 +23,7 @@ controller:
   installPlugins:
     - kubernetes:1.31.3
     - workflow-aggregator:2.6
-    - git:4.10.2
+    - git:4.11.1
     - configuration-as-code:1429.v09b_044a_c93de
     - prometheus:2.0.11
     - blueocean:1.25.5
