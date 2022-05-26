@@ -83,6 +83,14 @@ node("toolkit") {
         println tidb_params
 
         stage("trigger jobs"){
+            def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+            println "check if current commit is already build, if not wait for build done."
+            timeout(10) {
+                sh """
+                while ! curl --output /dev/null --silent --head --fail ${tidb_test_download_url}; do sleep 3; done
+                echo "tidb_test build finished: ${ghprbActualCommit}"
+                """
+            }
             parallel(
                 "common_test": {
                     def built1 = build(job: "tidb_ghpr_integration_common_test", wait: true, propagate: false, parameters: tidb_params)
