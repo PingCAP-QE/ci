@@ -1,7 +1,3 @@
-// Author: Yixuan Zhao <zhaoyixuan (at) pingcap.com>
-
-
-// def (TIKV_BRANCH, PD_BRANCH, TIDB_BRANCH) = ["master", "master", "master"]
 def (TIKV_BRANCH, PD_BRANCH, TIDB_BRANCH) = [ghprbTargetBranch, ghprbTargetBranch, ghprbTargetBranch]
 
 // parse tikv branch
@@ -49,7 +45,8 @@ node("toolkit") {
                 string(name: "ghprbCommentBody", value: ghprbCommentBody),
                 string(name: "ghprbPullTitle", value: ghprbPullTitle),
                 string(name: "ghprbPullLink", value: ghprbPullLink),
-                string(name: "ghprbPullDescription", value: ghprbPullDescription)
+                string(name: "ghprbPullDescription", value: ghprbPullDescription),
+                booleanParam(name: 'force', value: true),
             ]
 
             tidb_params = basic_params + [
@@ -81,28 +78,34 @@ node("toolkit") {
 
             inv upload --dst builds/download/refs/pingcap/tikv/${tikv_sha1}/sha1 --content $tikv_sha1
             inv upload --dst builds/download/refs/pingcap/pd/$pd_sha1/sha1 --content $pd_sha1
-
-
             """
-            
-            // sh "inv upload --dst builds/download/refs/pingcap/tidb/${params.TIDB_COMMIT}/sha1 --content ${params.TIDB_COMMIT}"
-            // sh "inv upload --dst builds/download/refs/pingcap/tikv/${params.TIKV_COMMIT}/sha1 --content ${params.TIKV_COMMIT}"
-            // sh "inv upload --dst builds/download/refs/pingcap/pd/${params.PD_COMMIT}/sha1 --content ${params.PD_COMMIT}"
-
-
         }
         println tidb_params
 
         stage("trigger jobs"){
-            // parallel(
-                build(job: "tidb_ghpr_integration_common_test", wait: false, parameters: tidb_params)
-                build(job: "tidb_ghpr_integration_ddl_test", wait: false, parameters: tidb_params)
-                build(job: "tidb_ghpr_integration_campatibility_test", wait: false,parameters: tidb_params)
-            // )
-        }
-
-        stage("Summary"){
+            parallel(
+                "common_test": {
+                    def built1 = build(job: "tidb_ghpr_integration_common_test", wait: true, propagate: false, parameters: tidb_params)
+                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_test_ghpr_integration_test/${built1.number}/pipeline"
+                    if (built.getResult() != 'SUCCESS') {
+                        error "common_test failed"
+                    }
+                },
+                "ddl_test": {
+                    def built2 = build(job: "tidb_ghpr_integration_ddl_test", wait: true, propagate: false, parameters: tidb_params)
+                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_test_ghpr_integration_test/${built2.number}/pipeline"
+                    if (built2.getResult() != 'SUCCESS') {
+                        error "ddl_test failed"
+                    }
+                },
+                "compatibility_test": {
+                    def built3 = build(job: "tidb_ghpr_integration_campatibility_test", wait: true, propagate: false, parameters: tidb_params)
+                    println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_test_ghpr_integration_test/${built3.number}/pipeline"
+                    if (buil3.getResult() != 'SUCCESS') {
+                        error "compatibility_test failed"
+                    }
+                }
+            )
         }
     }
-
 }
