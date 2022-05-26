@@ -31,10 +31,6 @@ def unpack = { name, version, os, arch ->
 }
 
 def pack = { name, version, os, arch ->
-
-    dir("tiflash") {
-    }
-
     sh """
     tiup package tiflash --name=${name} --release=${version} --entry=${name}/${name} --os=${os} --arch=${arch} --desc="The TiFlash Columnar Storage Engine" --hide
     tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name}/${name} --arch ${arch} --os ${os} --desc="The TiFlash Columnar Storage Engine"
