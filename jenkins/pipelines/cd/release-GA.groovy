@@ -112,6 +112,9 @@ try {
                         }
                         parallel publishs
                     }
+                    stage('sync enterprise image to gcr'){
+                        libs.enterprise_docker_sync_gcr()
+                    }
                 } else {
                     stage('publish tiup prod && publish community image') {
                         def publishs = [:]
