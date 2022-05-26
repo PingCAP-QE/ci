@@ -33,17 +33,6 @@ def unpack = { name, version, os, arch ->
 def pack = { name, version, os, arch ->
 
     dir("tiflash") {
-        sh """
-        wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf"
-        md5sum "PingCAP Community Software Agreement(Chinese Version).pdf" > /tmp/chinese.check
-        curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(Chinese Version).pdf.md5" >> /tmp/chinese.check
-        md5sum --check /tmp/chinese.check
-
-        wget "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf"
-        md5sum "PingCAP Community Software Agreement(English Version).pdf" > /tmp/english.check
-        curl "http://fileserver.pingcap.net/download/archive/pdf/PingCAP Community Software Agreement(English Version).pdf.md5" >> /tmp/english.check
-        md5sum --check /tmp/english.check
-        """
     }
 
     sh """
