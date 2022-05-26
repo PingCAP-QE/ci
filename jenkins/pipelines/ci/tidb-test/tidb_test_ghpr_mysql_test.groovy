@@ -245,7 +245,11 @@ try {
                         }
                     },
                     "trigger tidb_ghpr_mysql_test": {
-                        build(job: "tidb_ghpr_mysql_test", parameters: basic_params, wait: true)
+                        def built = build(job: "tidb_ghpr_mysql_test", propagate: false, parameters: basic_params, wait: true)
+                        println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_ghpr_mysql_test/detail/tidb_ghpr_mysql_test/${built.number}/pipeline"
+                        if (built.getResult() != 'SUCCESS') {
+                            error "mysql_test failed"
+                        }
                     }
                 )
             }
