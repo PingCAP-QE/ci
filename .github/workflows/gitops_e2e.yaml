@@ -1,0 +1,65 @@
+# verify with local kind k8s cluster.
+name: CD E2E test
+
+on:
+  workflow_dispatch:    
+  push:
+
+jobs:
+  kubernetes:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        cluster: [staging]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup tools
+        uses: ./.github/actions/flux2/tools
+      - name: Setup Flux
+        uses: fluxcd/flux2/action@main
+      - name: Setup Kubernetes
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          # renovate: datasource=go depName=sigs.k8s.io/kind
+          version: v0.12.0
+      - name: Install Flux in Kubernetes Kind
+        run: |
+           flux check --pre
+           flux install
+      - name: Setup cluster reconciliation
+        run: |          
+          kubectl apply -f - <<EOF > cat
+          apiVersion: source.toolkit.fluxcd.io/v1beta2
+          kind: GitRepository
+          metadata:
+            name: flux-system
+            namespace: flux-system
+          spec:
+            interval: 15m
+            ref:
+              branch: ${GITHUB_HEAD_REF}
+            url: ${{ github.event.repository.html_url }}
+            ignore: clusters/${{ matrix.cluster }}/flux-system/
+          EOF
+
+           flux create kustomization flux-system \
+            --source=flux-system \
+            --path=clusters/${{ matrix.cluster }}
+
+      - name: Verify cluster reconciliations
+        timeout-minutes: 5
+        run: |
+          while flux get all --all-namespaces --status-selector=ready=false | grep False
+          do
+            sleep 5
+          done
+      - name: Debug failure
+        if: failure()
+        run: |
+          kubectl -n flux-system get all
+          kubectl -n flux-system logs deploy/source-controller
+          kubectl -n flux-system logs deploy/kustomize-controller
+          kubectl -n flux-system logs deploy/helm-controller
+          flux get all --all-namespaces
