@@ -32,8 +32,8 @@ controller:
         # will read from key `client-id` from secret `github-oauth2`
         clientId: "${github-oauth2-client-id}"
         # will read from key `client-secret` from secret `github-oauth2`
-        clientSecret: "${github-oauth2-client-secret}" 
-    authorizationStrategy:
+        clientSecret: "${github-oauth2-client-secret}"
+    authorizationStrategy: |-
       globalMatrix:
         permissions:
         - "Job/Read:anonymous"
@@ -41,13 +41,10 @@ controller:
         - "Metrics/View:anonymous"
         - "Overall/Read:anonymous"
         - "Overall/Read:authenticated"
-        - "View/Read:anonymous"    
+        - "View/Read:anonymous"
     configScripts:
       #  welcome-message: |
       #    jenkins:
       #      systemMessage: Welcome to our CI\CD server.  This Jenkins is configured and managed 'as code'.
       # Ignored if securityRealm is defined in controller.JCasC.configScripts and
       # ignored if controller.enableXmlConfig=true as controller.securityRealm takes precedence
-
-    
-    
