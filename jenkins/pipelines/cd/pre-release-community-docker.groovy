@@ -137,10 +137,7 @@ def release_one(repo, arch, failpoint) {
     if (failpoint) {
         binary = "builds/pingcap/${repo}/test/failpoint/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
-    if (repo == "tiflash") {
-        repo = "tics"
-        actualRepo = "tics"
-    }
+
     def paramsBuild = [
             string(name: "ARCH", value: arch),
             string(name: "OS", value: "linux"),
@@ -153,6 +150,20 @@ def release_one(repo, arch, failpoint) {
             string(name: "TARGET_BRANCH", value: RELEASE_BRANCH),
             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
     ]
+    if (repo == "tiflash") {
+        paramsBuild = [
+                string(name: "ARCH", value: arch),
+                string(name: "OS", value: "linux"),
+                string(name: "EDITION", value: "community"),
+                string(name: "OUTPUT_BINARY", value: binary),
+                string(name: "REPO", value: "tics"),
+                string(name: "PRODUCT", value: "tics"),
+                string(name: "GIT_HASH", value: sha1),
+                string(name: "RELEASE_TAG", value: RELEASE_TAG),
+                string(name: "TARGET_BRANCH", value: RELEASE_BRANCH),
+                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+        ]
+    }
     if (failpoint) {
         paramsBuild.push([$class: 'BooleanParameterValue', name: 'FAILPOINT', value: true])
     }
