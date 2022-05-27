@@ -29,6 +29,7 @@ controller:
     - prometheus:2.0.11
     - blueocean:1.25.5
     - job-dsl:1.79
+    - google-login:1.6
 
   ingress:
     enabled: true
