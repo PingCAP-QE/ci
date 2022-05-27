@@ -200,10 +200,11 @@ retry(2) {
             RELEASE_TAG = "nightly"
 
             stage("TiUP build") {
-                build job: "tiup-mirror-update-test",
+                build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
             }
 

@@ -309,26 +309,27 @@ run_with_pod {
         stage("publish tiup staging & publish community image") {
             publishs = [:]
             publishs["publish tiup staging"] = {
-                build job: "tiup-mirror-update-test-hotfix",
+                build job: "tiup-mirror-online-rc",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'TIDB_TAG', value: tidb_sha1],
-                                [$class: 'StringParameterValue', name: 'TIKV_TAG', value: tikv_sha1],
-                                [$class: 'StringParameterValue', name: 'PD_TAG', value: pd_sha1],
-                                [$class: 'StringParameterValue', name: 'BINLOG_TAG', value: binlog_sha1],
-                                [$class: 'StringParameterValue', name: 'CDC_TAG', value: cdc_sha1],
-                                [$class: 'StringParameterValue', name: 'DM_TAG', value: dm_sha1],
-                                [$class: 'StringParameterValue', name: 'BR_TAG', value: br_sha1],
-                                [$class: 'StringParameterValue', name: 'DUMPLING_TAG', value: dumpling_sha1],
-                                [$class: 'StringParameterValue', name: 'TIFLASH_TAG', value: tiflash_sha1],
-                                [$class: 'StringParameterValue', name: 'HOTFIX_TAG', value: RELEASE_TAG],
-                                [$class: 'StringParameterValue', name: 'TIDB_CTL_TAG', value: tidb_ctl_githash],
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'BINLOG_HASH', value: binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
+                                [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                [$class: 'StringParameterValue', name: 'BR_HASH', value: br_sha1],
+                                [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: dumpling_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'StringParameterValue', name: 'TIDB_CTL_HASH', value: tidb_ctl_githash],
                                 [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
                                 [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: ARCH_ARM],
                                 [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: ARCH_X86],
                                 [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: ARCH_MAC],
                                 [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: ARCH_MAC_ARM],
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "staging"],
                         ]
             }
             publishs["publish community image"] = {
