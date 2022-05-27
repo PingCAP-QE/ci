@@ -16,6 +16,9 @@ spec:
   install:
     remediation:
       retries: 3
+  test:
+    enable: true
+    ignoreFailures: false
   valuesFrom:
     - { kind: ConfigMap, name: jenkins-values, valuesKey: values1.yaml }
     - { kind: ConfigMap, name: jenkins-values, valuesKey: values2.yaml }
