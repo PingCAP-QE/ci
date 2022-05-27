@@ -21,13 +21,6 @@ controller:
   JCasC:
     defaultConfig: true
     securityRealm: |-
-      local:
-        allowsSignup: false
-        enableCaptcha: false
-        users:
-        - id: "${chart-admin-username}"
-          name: "Jenkins Admin"
-          password: "${chart-admin-password}"
       googleOAuth2:
         # will read from key `client-id` from secret `github-oauth2`
         clientId: "${github-oauth2-client-id}"
