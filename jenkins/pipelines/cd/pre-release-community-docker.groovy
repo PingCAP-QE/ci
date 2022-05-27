@@ -36,7 +36,42 @@ properties([
                 booleanParam(
                         defaultValue: false,
                         name: 'DEBUG_MODE'
-                )
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIDB_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIKV_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'PD_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIFLASH_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'NG_MONITORING_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TIDB_BINLOG_HASH',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
+                        name: 'TICDC_HASH',
+                        trim: true
+                ),
         ])
 ])
 
@@ -81,9 +116,14 @@ def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
     return imageStr
 }
 
-def get_sha(repo, branch) {
-    sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
-    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
+def get_sha(hash, repo, branch) {
+    if (hash == "") {
+        return hash
+    } else {
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
+        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
+    }
+
 }
 
 def test_binary_already_build(binary_url) {
@@ -112,25 +152,53 @@ IMAGE_TAG = RELEASE_TAG + "-pre"
 
 def release_one(repo, arch, failpoint) {
     def actualRepo = repo
+    def hash = ""
     if (repo == "br" && RELEASE_TAG >= "v5.2.0") {
         actualRepo = "tidb"
+        hash = "${TIDB_HASH}"
     }
     if (repo == "dumpling" && RELEASE_TAG >= "v5.3.0") {
         actualRepo = "tidb"
+        hash = "${TIDB_HASH}"
     }
     if (repo == "ticdc") {
         actualRepo = "tiflow"
+        hash = "${TICDC_HASH}"
     }
     if (repo == "dm") {
         actualRepo = "tiflow"
+        hash = "${TICDC_HASH}"
     }
-    def sha1 = get_sha(actualRepo, RELEASE_BRANCH)
+    if (repo == "tidb-lightning") {
+        hash = "${TIDB_HASH}"
+    }
+    if (repo == "tidb") {
+        hash = "${TIDB_HASH}"
+    }
+    if (repo == "tikv") {
+        hash = "${TIKV_HASH}"
+    }
+    if (repo == "pd") {
+        hash = "${PD_HASH}"
+    }
+    if (repo == "ng-monitoring") {
+        hash = "${NG_MONITORING_HASH}"
+    }
+    if (repo == "tidb-binlog") {
+        hash = "${TIDB_BINLOG_HASH}"
+    }
+    if (repo == "tiflash") {
+        hash = "${TIFLASH_HASH}"
+    }
+
+    def sha1 = get_sha(hash, actualRepo, RELEASE_BRANCH)
     if (TIKV_BUMPVERION_HASH.length() > 1 && repo == "tikv") {
         sha1 = TIKV_BUMPVERION_HASH
     }
     if (repo == "monitoring") {
-        sha1 = get_sha(actualRepo, RELEASE_BRANCH)
+        sha1 = get_sha(hash, actualRepo, RELEASE_BRANCH)
     }
+
 
     println "${repo}: ${sha1}"
     def binary = "builds/pingcap/${repo}/optimization/${RELEASE_TAG}/${sha1}/centos7/${repo}-linux-${arch}.tar.gz"

@@ -343,6 +343,13 @@ run_with_pod {
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
                                 [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
+                                [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                [$class: 'StringParameterValue', name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1],
+                                [$class: 'StringParameterValue', name: 'TIDB_BINLOG_HASH', value: binlog_sha1],
+                                [$class: 'StringParameterValue', name: 'TICDC_HASH', value: cdc_sha1],
                         ]
             }
 
