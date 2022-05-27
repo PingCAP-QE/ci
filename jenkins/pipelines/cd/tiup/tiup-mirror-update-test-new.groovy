@@ -340,7 +340,7 @@ node("build_go1130") {
                 pd_sha1 = get_hash(PD_HASH, "pd")
                 tidb_binlog_sha1 = get_hash(BINLOG_HASH, "tidb-binlog")
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
-                    ticdc_sha1 = get_hash(CDC_HASH, "ticdc")
+                    ticdc_sha1 = get_hash(CDC_HASH, "tiflow")
                 }
                 lightning_sha1 = ""
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
@@ -349,7 +349,7 @@ node("build_go1130") {
                     lightning_sha1 = get_hash(BR_HASH, "br")
                 }
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
-                    dm_sha1 = get_hash(DM_HASH, "ticdc")
+                    dm_sha1 = get_hash(DM_HASH, "tiflow")
                 }
 
                 println "tidb_sha1: ${tidb_sha1}"
