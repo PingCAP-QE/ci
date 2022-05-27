@@ -7,6 +7,9 @@ resources:
 configMapGenerator:
   - name: jenkins-values
     files:
-      - values.yaml=values.yaml
+      - values1.yaml=values-controller.yaml
+      - values2.yaml=values-persistence.yaml
+      - values3.yaml=values-JCasC.yaml
+      - values4.yaml=values-JCasC-jobs.yaml
 configurations:
   - kustomize-config.yaml

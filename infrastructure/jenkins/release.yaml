@@ -17,5 +17,7 @@ spec:
     remediation:
       retries: 3
   valuesFrom:
-    - kind: ConfigMap
-      name: jenkins-values
+    - { kind: ConfigMap, name: jenkins-values, valuesKey: values1.yaml }
+    - { kind: ConfigMap, name: jenkins-values, valuesKey: values2.yaml }
+    - { kind: ConfigMap, name: jenkins-values, valuesKey: values3.yaml }
+    - { kind: ConfigMap, name: jenkins-values, valuesKey: values4.yaml }
