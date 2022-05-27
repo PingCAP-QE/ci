@@ -137,6 +137,10 @@ def release_one(repo, arch, failpoint) {
     if (failpoint) {
         binary = "builds/pingcap/${repo}/test/failpoint/${RELEASE_TAG}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
+    if (repo == "tiflash") {
+        repo = "tics"
+        actualRepo = "tics"
+    }
     def paramsBuild = [
             string(name: "ARCH", value: arch),
             string(name: "OS", value: "linux"),
