@@ -9,23 +9,6 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def notRun = 1
-if (!params.force){
-    node("${GO_BUILD_SLAVE}"){
-        container("golang"){
-            notRun = sh(returnStatus: true, script: """
-			if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-			""")
-        }
-    }
-}
-
-if (notRun == 0){
-    println "the ${ghprbActualCommit} has been tested"
-    return
-}
-
-
 def TIDB_TEST_BRANCH = "master"
 def TIDB_PRIVATE_TEST_BRANCH = "master"
 
@@ -52,9 +35,42 @@ m4 = null
 println "TIDB_PRIVATE_TEST_BRANCH=${TIDB_PRIVATE_TEST_BRANCH}"
 all_task_result = []
 
+
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb"
+    def java_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'java', alwaysPullImage: true,
+                        image: "${java_image}", ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: true),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "go image: ${POD_GO_IMAGE}"
+            body()
+        }
+    }
+}
+
+
 try {
     stage('Mybatis Test') {
-        node("test_java_memvolume") {
+        run_with_pod {
             try {
                 container("java") {
                     def ws = pwd()

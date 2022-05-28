@@ -21,7 +21,40 @@ if (ghprbPullId == null || ghprbPullId == "") {
 
 result = ""
 triggered_job_name = "cdc_ghpr_integration_test"
-node("${GO_TEST_SLAVE}") {
+
+
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb-mergeci"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "${go_image}", ttyEnabled: true,
+                        resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+run_with_pod {
     try {    
         stage('Trigger TiCDC Integration Test') {
             if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-")) {

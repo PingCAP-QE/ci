@@ -25,9 +25,9 @@ GO_IMAGE_MAP = [
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
 ]
 POD_LABEL_MAP = [
-    "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
-    "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
-    "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
+    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
 ]
 
 node("master") {
@@ -45,8 +45,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
