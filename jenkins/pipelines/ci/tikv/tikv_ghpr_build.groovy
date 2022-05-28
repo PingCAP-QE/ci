@@ -36,9 +36,48 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
+def run_build_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tikv"
+    def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                    containerTemplate(
+                        name: 'rust', alwaysPullImage: true,
+                        image: rust_image, ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/cache', readOnly: false),
+                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/index', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/db', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/db', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/checkouts', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: true),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: true),
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "rust image: ${rust_image}"
+            body()
+        }
+    }
+}
 
 try {
-    node("build") {
+    run_build_with_pod {
         def ws = pwd()
         deleteDir()
 
@@ -121,18 +160,4 @@ try {
     echo "${e}"
 }
 
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Build tikv: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
 
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-    slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-}

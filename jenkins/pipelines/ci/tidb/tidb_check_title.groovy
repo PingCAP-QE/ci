@@ -47,11 +47,44 @@ if (isNeedGo1160) {
 println "BUILD_NODE_NAME=${GO_BUILD_SLAVE}"
 println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
+
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
+                        resourceRequestCpu: '2000m', resourceRequestMemory: '2Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
 catchError {
     stage("check title note") {
             //sh "echo $ghprbPullLongDescription | egrep 'Release note'"
             //sh "python -v"
-        node("${GO_BUILD_SLAVE}") {
+        run_with_pod {
+            container("golang") {
             //def goVersion = new Utils(this).detectGoVersion("https://raw.githubusercontent.com/pingcap/tidb/master/circle.yml")
             //buildSlave = GO_BUILD_SLAVE
             //testSlave = GO_TEST_SLAVE
@@ -68,6 +101,7 @@ EOT"""
             sh "egrep '.+: .+' $ghprbActualCommit/title.txt || ( echo 'Please format title' && exit 1) "
 
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
+            }
         }
         
     }

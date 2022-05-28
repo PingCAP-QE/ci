@@ -30,11 +30,46 @@ if (!ghprbTargetBranch.startsWith("release-")) {
 }
 println "ci image use  hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
 
+def run_test_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tikv"
+    def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                    containerTemplate(
+                        name: 'golang', alwaysPullImage: true,
+                        image: go_image, ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: true),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: true),
+                    emptyDirVolume(mountPath: '/home/jenkins/agent/memvolume', memory: true)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "go image: ${go_image}"
+            body()
+        }
+    }
+}
+
 
 try {
 stage("PreCheck") {
     if (!params.force) {
-        node("${GO_BUILD_SLAVE}"){
+        run_test_with_pod{
             container("golang") {
                 notRun = sh(returnStatus: true, script: """
                 if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
@@ -53,8 +88,8 @@ stage("PreCheck") {
 stage("Prepare") {
     def clippy = {
     def label="tikv_cached_${ghprbTargetBranch}_clippy"
-    podTemplate(name: label, label: label,
-        nodeSelector: 'role_type=slave', instanceCap: 3,
+    podTemplate(name: label, label: label, 
+        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 3, 
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
@@ -121,7 +156,7 @@ stage("Prepare") {
     def build = {
         def label="tikv_cached_${ghprbTargetBranch}_build"
         podTemplate(name: label, label: label,
-        nodeSelector: 'role_type=slave', instanceCap: 7,
+        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 7, 
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
@@ -296,14 +331,14 @@ EOF
     parallel prepare
 }
 
+
 stage('Test') {
     def run_test = { chunk_suffix ->
         retry(3) { 
-            node("test_tikv_go1130_memvolume") {
+            run_test_with_pod {
                 dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                     container("golang") {
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
+                        println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                         deleteDir()
                         timeout(15) {
                             sh """
@@ -362,7 +397,7 @@ stage('Test') {
 }
 currentBuild.result = "SUCCESS"
 stage('Post-test') {
-    node("${GO_BUILD_SLAVE}"){
+    run_test_with_pod{
         container("golang"){
             sh """
             echo "done" > done
