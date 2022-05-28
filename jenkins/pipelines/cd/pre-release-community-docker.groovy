@@ -117,7 +117,7 @@ def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
 }
 
 def get_sha(hash, repo, branch) {
-    if (hash == "") {
+    if (hash != "") {
         return hash
     } else {
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
