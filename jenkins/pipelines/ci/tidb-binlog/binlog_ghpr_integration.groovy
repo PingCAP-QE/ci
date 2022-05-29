@@ -77,8 +77,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb-binlog"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -197,6 +197,8 @@ try {
         }
         tests["Integration Test"] = {
             podTemplate(label: label, 
+            cloud: "kubernetes-ng",
+            namespace: "jenkins-tidb-binlog",
             idleMinutes: 0,
             containers: [
                 containerTemplate(name: 'golang',alwaysPullImage: false, image: "${POD_GO_IMAGE}",
@@ -277,18 +279,4 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-}
-
-stage('Summary') {
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-    "${ghprbPullLink}" + "\n" +
-    "${ghprbPullDescription}" + "\n" +
-    "Integration Common Test Result: `${currentBuild.result}`" + "\n" +
-    "Elapsed Time: `${duration} mins` " + "\n" +
-    "${env.RUN_DISPLAY_URL}"
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
 }

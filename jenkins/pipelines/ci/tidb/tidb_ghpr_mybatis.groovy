@@ -39,7 +39,7 @@ all_task_result = []
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tidb"
+    def namespace = "jenkins-tidb-mergeci"
     def java_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached"
     podTemplate(label: label,
             cloud: cloud,
@@ -61,7 +61,6 @@ def run_with_pod(Closure body) {
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            println "go image: ${POD_GO_IMAGE}"
             body()
         }
     }
