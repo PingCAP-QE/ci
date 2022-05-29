@@ -51,7 +51,7 @@ def run_with_pod(Closure body) {
     }
 }
 
-node("${GO_TEST_SLAVE}") {
+run_with_pod {
     try {    
         // After BR merged into TiDB, every PR should trigger this test.
         stage('Trigger BRIE Test') {
