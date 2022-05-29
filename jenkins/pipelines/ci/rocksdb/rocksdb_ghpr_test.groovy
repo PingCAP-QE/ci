@@ -73,7 +73,9 @@ def build = { target, do_cache ->
         unstash "rocksdb"
         dir("rocksdb") {
             sh """
-                V=1 make ${target} -j
+                echo using gcc 8
+                source /opt/rh/devtoolset-8/enable
+                V=1 make ${target} -j 3
             """
         }
         if (do_cache) {
@@ -99,10 +101,12 @@ def test = { start, end, extra, do_cache, use_tmp ->
                 export_test_tmpdir = "export TEST_TMPDIR=./tmp_dir"
             }
             sh """
+                echo using gcc 8
+                source /opt/rh/devtoolset-8/enable
                 ${export_test_tmpdir}
                 export ROCKSDBTESTS_START=${start}
                 export ROCKSDBTESTS_END=${end}
-                V=1 ${extra} make all_but_some_tests check_some -j
+                V=1 ${extra} make all_but_some_tests check_some -j 3
             """
         }
     }
@@ -121,6 +125,7 @@ parallel(
             test("", "db_block_cache_test", "", do_cache, use_tmp)
         }
     },
+    /*
     mac: {
         node("mac-i7") {
             def do_cache = false
@@ -128,6 +133,7 @@ parallel(
             test("", "db_block_cache_test", "", do_cache)
         }
     },
+    */
     x86: {
         def do_cache = true
         def use_tmp = false
