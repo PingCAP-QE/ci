@@ -21,7 +21,35 @@ if (m3) {
 }
 m3 = null
 
-node("toolkit") {
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tidb-test"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'toolkit', alwaysPullImage: true,
+                        image: "hub.pingcap.net/qa/ci-toolkit:latest", ttyEnabled: true,
+                        resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
+                        command: '/bin/sh -c', args: 'cat'    
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+run_with_pod {
     container('toolkit') {
         def basic_params = []
         def tidb_params = []
