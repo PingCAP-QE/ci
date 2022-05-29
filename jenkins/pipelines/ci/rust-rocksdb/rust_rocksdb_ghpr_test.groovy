@@ -6,8 +6,46 @@ common_features = "encryption,portable"
 x86_features = "jemalloc,sse"
 arm_features = "jemalloc"
 
+def run_with_x86_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-org-tikv"
+    def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'rust', alwaysPullImage: true,
+                        image: rust_image, ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat'    
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/cache', readOnly: false),
+                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/index', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/db', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/db', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/checkouts', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "rust image: ${rust_image}"
+            body()
+        }
+    }
+}
+
 def checkout() {
-    node("build") {
+    run_with_x86_pod {
         container("rust") {
             dir("rust-rocksdb") {
                 deleteDir()
@@ -76,7 +114,7 @@ def run_test = { features, use_gcc8 ->
 }
 
 def run_formatter = {
-    node("build") {
+    run_with_x86_pod {
         prepare()
         dir("rust-rocksdb") {
             stage("Format Rust") {
@@ -109,7 +147,7 @@ stage("Checkout") {
 parallel(
     test_x86_minimal: {
         def use_gcc8 = true
-        node("build") {
+        run_with_x86_pod {
             container("rust") {
                 run_test("", use_gcc8)
             }
@@ -117,7 +155,7 @@ parallel(
     },
     test_x86_all: {
         def use_gcc8 = true
-        node("build") {
+        run_with_x86_pod {
             container("rust") {
                 run_test(common_features + "," + x86_features, use_gcc8)
             }

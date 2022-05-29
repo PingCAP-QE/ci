@@ -1,8 +1,47 @@
 def pullId = params.get("ghprbPullId")
 def commit = params.get("ghprbActualCommit")
 
+def run_with_x86_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-org-tikv"
+    def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'rust', alwaysPullImage: true,
+                        image: rust_image, ttyEnabled: true,
+                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat'    
+                    )
+            ],
+            volumes: [
+                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/cache', readOnly: false),
+                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/index', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/db', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/db', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/checkouts', readOnly: false),
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "rust image: ${rust_image}"
+            body()
+        }
+    }
+}
+
+
 def checkout = {
-    node("build") {
+    run_with_x86_pod {
         dir("rocksdb") {
             deleteDir()
             checkout(changelog: false, poll: false, scm: [
@@ -92,49 +131,49 @@ parallel(
     x86: {
         def do_cache = true
         def use_tmp = false
-        node("build") {
+        run_with_x86_pod {
             container("rust") {
                 build("librocksdb_debug.a", do_cache)
             }
         }
         parallel(
             platform_dependent: {
-                node("build") {
+                run_with_x86_pod {
                     container("rust") {
                         test("", "db_block_cache_test", "", do_cache, use_tmp)
                     }
                 }
             },
             group1: {
-                node("build") {
+                run_with_x86_pod {
                     container("rust") {
                         test("db_block_cache_test", "full_filter_block_test", "", do_cache, use_tmp)
                     }
                 }
             },
             group2: {
-                node("build") {
+                run_with_x86_pod {
                     container("rust") {
                         test("full_filter_block_test", "write_batch_with_index_test", "", do_cache, use_tmp)
                     }
                 }
             },
             group3: {
-                node("build") {
+                run_with_x86_pod {
                     container("rust") {
                         test("write_batch_with_index_test", "write_prepared_transaction_test", "", do_cache, use_tmp)
                     }
                 }
             },
             group4: {
-                node("build") {
+                run_with_x86_pod {
                     container("rust") {
                         test("write_prepared_transaction_test", "", "", do_cache, use_tmp)
                     }
                 }
             },
             encrypted_env: {
-                node("build") {
+                run_with_x86_pod {
                     container("rust") {
                         test("", "db_block_cache_test", "ENCRYPTED_ENV=1", do_cache, use_tmp)
                     }
@@ -143,7 +182,7 @@ parallel(
         )
     },
     x86_release: {
-        node("build") {
+        run_with_x86_pod {
             container("rust") {
                 def do_cache = false
                 build("release", do_cache)
