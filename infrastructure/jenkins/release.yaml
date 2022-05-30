@@ -24,3 +24,4 @@ spec:
     - { kind: ConfigMap, name: jenkins-values, valuesKey: values2.yaml }
     - { kind: ConfigMap, name: jenkins-values, valuesKey: values3.yaml }
     - { kind: ConfigMap, name: jenkins-values, valuesKey: values4.yaml }
+    - { kind: ConfigMap, name: jenkins-values, valuesKey: values5.yaml }
