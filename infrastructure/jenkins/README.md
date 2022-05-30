@@ -7,6 +7,7 @@ Guide for jenkins helm chart value configuration
 - Setup secret `github-oauth2` in namespace `jenkins`, the secret contains keys: 
   - `client-id`
   - `client-secret`
+- Setup PVC `jenkins` in namespace `jenkins`, size should bigger than 8Gi.
 
 ## values guide and schema
 
