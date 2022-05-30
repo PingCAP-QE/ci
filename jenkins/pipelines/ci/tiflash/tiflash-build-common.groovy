@@ -134,7 +134,7 @@ def getBuildTarget() {
     }
 
     if (params.BUILD_PAGE_TOOLS) {
-        targets = "page_ctl page_stress_testing ${targets}"
+        targets = "page_stress_testing ${targets}"
     }
 
     if (!targets) {
