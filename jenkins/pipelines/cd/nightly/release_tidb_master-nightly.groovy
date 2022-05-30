@@ -206,8 +206,8 @@ __EOF__
         }
     } catch (Exception e) {
         currentBuild.result = "FAILURE"
-        echo 'Waiting 5 minutes'
-        sh "sleep 300 "
+        echo "${e}"
+        echo "retry!!!"
 
     } finally {
         build job: 'send_notify',
