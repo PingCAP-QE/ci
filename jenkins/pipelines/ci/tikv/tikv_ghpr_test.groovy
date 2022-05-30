@@ -39,21 +39,18 @@ def run_test_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
-            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
-                        image: go_image, ttyEnabled: true,
-                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        image: go_image, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    emptyDirVolume(mountPath: '/tmp', memory: true),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: true),
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins/agent/memvolume', memory: true)
                     ],
     ) {
@@ -67,29 +64,29 @@ def run_test_with_pod(Closure body) {
 
 
 try {
-stage("PreCheck") {
-    if (!params.force) {
-        run_test_with_pod{
-            container("golang") {
-                notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-            }
-        }
-    }
+    // stage("PreCheck") {
+    //     if (!params.force) {
+    //         run_test_with_pod{
+    //             container("golang") {
+    //                 notRun = sh(returnStatus: true, script: """
+    //                 if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+    //                 """)
+    //             }
+    //         }
+    //     }
 
-    if (notRun == 0) {
-        println "the ${ghprbActualCommit} has been tested"
-        currentBuild.result = 'SUCCESS'
-        throw new RuntimeException("hasBeenTested")
-    }
-}
+    //     if (notRun == 0) {
+    //         println "the ${ghprbActualCommit} has been tested"
+    //         currentBuild.result = 'SUCCESS'
+    //         throw new RuntimeException("hasBeenTested")
+    //     }
+    // }
 
 stage("Prepare") {
     def clippy = {
-    def label="tikv_cached_${ghprbTargetBranch}_clippy"
+    def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
     podTemplate(name: label, label: label, 
-        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 3, 
+        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
@@ -154,15 +151,15 @@ stage("Prepare") {
     }
 
     def build = {
-        def label="tikv_cached_${ghprbTargetBranch}_build"
+        def label="tikv_cached_${ghprbTargetBranch}_build_${BUILD_NUMBER}"
         podTemplate(name: label, label: label,
-        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 7, 
-        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
-        containers: [
-            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
-                alwaysPullImage: true, privileged: true,
-                resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
-                ttyEnabled: true, command: 'cat'),
+            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
+                    alwaysPullImage: true, privileged: true,
+                    resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                    ttyEnabled: true, command: 'cat'),
         ]) {
         node(label) {
             println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
@@ -337,7 +334,8 @@ stage('Test') {
         retry(3) { 
             if (chunk_suffix == 20) {
                 print "chunk_suffix is 20, use the old k8s cluster"
-                node("test_tikv_go1130_memvolume") { 
+                // node("test_tikv_go1130_memvolume") { 
+                run_test_with_pod {
                     dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                         container("golang") {
                             println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
