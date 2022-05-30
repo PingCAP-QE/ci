@@ -221,10 +221,8 @@ retry(2) {
         }
     } catch (Exception e) {
         currentBuild.result = "FAILURE"
-        slackcolor = 'danger'
         echo "${e}"
-        echo 'Waiting 5 minutes'
-        sh "sleep 300 "
+        echo "retry!!!"
     } finally {
         def result = [:]
         result["name"] = "【" + currentBuild.result + "】" + JOB_NAME
@@ -256,15 +254,6 @@ retry(2) {
                 python3 agent-jenkinsci.py result.json || true
             """
             }
-        }
-    }
-
-    stage('Summary') {
-        echo "Send slack here ..."
-        //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-        def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-        if (currentBuild.result != "SUCCESS") {
-            slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
         }
     }
 }
