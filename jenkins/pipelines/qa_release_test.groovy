@@ -18,7 +18,28 @@ catchError {
         echo response
         release_info = readJSON text: response
     }
-    node("toolkit") {
+
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-qa"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: 'toolkit', alwaysPullImage: true,
+                        image: "hub.pingcap.net/qa/ci-toolkit:latest", ttyEnabled: true,
+                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
         stage("Prepare") {
             container('toolkit') {
                 if (release_info.release_branch != "release-3.0") {
@@ -195,4 +216,5 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
             )
         }
     }
+}
 }
