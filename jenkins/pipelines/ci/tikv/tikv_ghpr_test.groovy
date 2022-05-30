@@ -335,49 +335,100 @@ EOF
 stage('Test') {
     def run_test = { chunk_suffix ->
         retry(3) { 
-            run_test_with_pod {
-                dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                    container("golang") {
-                        println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
-                        deleteDir()
-                        timeout(15) {
-                            sh """
-                            # set -o pipefail
-                            ln -s `pwd` \$HOME/tikv-src
-                            uname -a
-                            export RUSTFLAGS=-Dwarnings
-                            export FAIL_POINT=1
-                            export RUST_BACKTRACE=1
-                            export MALLOC_CONF=prof:true,prof_active:false
-                            mkdir -p target/debug
-                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
-                            tar xf test-chunk.tar.gz
-                            ls -la
-                            if [[ ! -f test-chunk-${chunk_suffix} ]]; then
-                                if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
-                                exit
-                                else
-                                echo test-chunk-${chunk_suffix} not found
-                                exit 1
+            if (chunk_suffix == 20) {
+                print "chunk_suffix is 20, use the old k8s cluster"
+                node("test_tikv_go1130_memvolume") { 
+                    dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                        container("golang") {
+                            println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
+                            deleteDir()
+                            timeout(15) {
+                                sh """
+                                # set -o pipefail
+                                ln -s `pwd` \$HOME/tikv-src
+                                uname -a
+                                export RUSTFLAGS=-Dwarnings
+                                export FAIL_POINT=1
+                                export RUST_BACKTRACE=1
+                                export MALLOC_CONF=prof:true,prof_active:false
+                                mkdir -p target/debug
+                                curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
+                                tar xf test-chunk.tar.gz
+                                ls -la
+                                if [[ ! -f test-chunk-${chunk_suffix} ]]; then
+                                    if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
+                                    exit
+                                    else
+                                    echo test-chunk-${chunk_suffix} not found
+                                    exit 1
+                                    fi
                                 fi
-                            fi
-                            for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
-                                chmod +x \$i;
-                            done
-                            CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
-                            chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
-                            ok_count=`grep "test result: ok" tests.out | wc -l`
-                            if [ "\$chunk_count" -eq "\$ok_count" ]; then
-                                echo "test pass"
-                            else
-                                # test failed
-                                grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
-                                awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
-                                gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
-                                exit 1
-                            fi
-                            """
+                                for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
+                                    curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                    chmod +x \$i;
+                                done
+                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
+                                chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
+                                ok_count=`grep "test result: ok" tests.out | wc -l`
+                                if [ "\$chunk_count" -eq "\$ok_count" ]; then
+                                    echo "test pass"
+                                else
+                                    # test failed
+                                    grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
+                                    awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
+                                    gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                    exit 1
+                                fi
+                                """
+                            }
+                        }
+                    }
+                }
+            } else {
+                run_test_with_pod {
+                    dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                        container("golang") {
+                            println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
+                            deleteDir()
+                            timeout(15) {
+                                sh """
+                                # set -o pipefail
+                                ln -s `pwd` \$HOME/tikv-src
+                                uname -a
+                                export RUSTFLAGS=-Dwarnings
+                                export FAIL_POINT=1
+                                export RUST_BACKTRACE=1
+                                export MALLOC_CONF=prof:true,prof_active:false
+                                mkdir -p target/debug
+                                curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
+                                tar xf test-chunk.tar.gz
+                                ls -la
+                                if [[ ! -f test-chunk-${chunk_suffix} ]]; then
+                                    if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
+                                    exit
+                                    else
+                                    echo test-chunk-${chunk_suffix} not found
+                                    exit 1
+                                    fi
+                                fi
+                                for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
+                                    curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                    chmod +x \$i;
+                                done
+                                CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
+                                chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
+                                ok_count=`grep "test result: ok" tests.out | wc -l`
+                                if [ "\$chunk_count" -eq "\$ok_count" ]; then
+                                    echo "test pass"
+                                else
+                                    # test failed
+                                    grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
+                                    awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
+                                    gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                    exit 1
+                                fi
+                                """
+                            }
                         }
                     }
                 }
