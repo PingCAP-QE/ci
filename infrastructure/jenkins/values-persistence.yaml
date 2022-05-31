@@ -13,15 +13,15 @@ persistence:
   ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
   ##   GKE, AWS & OpenStack)
   ##
-  storageClass:
-  annotations: {}
-  labels: {}
-  accessMode: "ReadWriteOnce"
-  size: "8Gi"
-  volumes:
-  #  - name: nothing
-  #    emptyDir: {}
-  mounts:
-  #  - mountPath: /var/nothing
-  #    name: nothing
-  #    readOnly: true
+  # storageClass:
+  # annotations: {}
+  # labels: {}
+  # accessMode: "ReadWriteOnce"
+  # size: "8Gi"
+  # volumes:
+  # #  - name: nothing
+  # #    emptyDir: {}
+  # mounts:
+  # #  - mountPath: /var/nothing
+  # #    name: nothing
+  # #    readOnly: true
