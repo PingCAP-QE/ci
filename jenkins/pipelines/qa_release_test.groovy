@@ -133,7 +133,7 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                         for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
                             container('toolkit') {
                                 sh "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1"
-                                sh "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_old_commits[i]}/centos7/tidb-server.tar.gz"
+                                sh "curl -C - --retry 3 --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_old_commits[i]}/centos7/tidb-server.tar.gz"
                             }
                             this_params = default_params.collect()
                             this_params.add(string(name: 'release_test__tidb_old_commit', value: release_info.tidb_old_commits[i]))

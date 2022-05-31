@@ -117,7 +117,7 @@ def build_dm_bin() {
 
                 // tidb
                 tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/master/sha1").trim()
-                sh "curl -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                sh "curl -C - --retry 3 -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
                 sh 'mkdir -p tidb-server'
                 sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
                 sh 'mv tidb-server/bin/tidb-server bin/'
