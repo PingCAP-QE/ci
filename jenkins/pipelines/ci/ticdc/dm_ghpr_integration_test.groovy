@@ -237,7 +237,7 @@ def build_dm_bin() {
 
 
                 tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                sh "curl -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                sh "curl -C - --retry 3 -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
                 sh 'mkdir -p tidb-server'
                 sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
                 sh 'mv tidb-server/bin/tidb-server bin/'
@@ -245,7 +245,7 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server.tar.gz'
 
                 tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
-                sh "curl -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
+                sh "curl -C - --retry 3 -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
                 sh 'mkdir -p tidb-tools'
                 sh 'tar -zxf tidb-tools.tar.gz -C tidb-tools'
                 sh 'mv tidb-tools/bin/sync_diff_inspector bin/'

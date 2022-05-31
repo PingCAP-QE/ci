@@ -18,11 +18,11 @@ catchError {
             """
                 dir ('centos7') {
                     tidb_enterprise_tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-enterprise-tools/${TIDB_ENTERPRISE_TOOLS_BRANCH}/sha1").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-enterprise-tools/${tidb_enterprise_tools_sha1}/centos7/tidb-enterprise-tools.tar.gz | tar xz"
+                    sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb-enterprise-tools/${tidb_enterprise_tools_sha1}/centos7/tidb-enterprise-tools.tar.gz | tar xz"
                     tidb_tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/${TIDB_TOOLS_BRANCH}/sha1").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz"
+                    sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz | tar xz"
                     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/${MYDUMPER_BRANCH}/sha1").trim()
-                    sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz && mv mydumper-linux-amd64/bin/mydumper bin/ && rm -rf mydumper-linux-amd64"
+                    sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-amd64.tar.gz | tar xz && mv mydumper-linux-amd64/bin/mydumper bin/ && rm -rf mydumper-linux-amd64"
                 }
             }
 
