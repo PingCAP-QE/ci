@@ -56,7 +56,7 @@ retry(2) {
             cd /home/jenkins
             mkdir -p .docker
             cp /etc/dockerconfig.json .docker/config.json
-            cp -R /etc/.aws ./
+            cp -R /root/.aws ./
             cd $wss
             """
                     stage('Prepare') {
