@@ -232,6 +232,15 @@ def build_dm_bin() {
                 if (!TIDB_BRANCH.startsWith("release-") || TIDB_BRANCH in dm_feature_branch) {
                     TIDB_BRANCH = "master"
                 }
+                def pattern = /^(release-\d.\d)-(.*)/
+                def m1 = TIDB_BRANCH =~ pattern
+                if (m1) {
+                    print "this is a hotfix branch: ${TIDB_BRANCH}"
+                    TIDB_BRANCH_REMOVE_DATE_SUFFIX = "${m1[0][1]}"
+                    TIDB_BRANCH = TIDB_BRANCH_REMOVE_DATE_SUFFIX
+                    println "current branch is a hotfix branch, so we will use the branch name without date suffix: ${TIDB_BRANCH}"
+                }
+                m1 = null
                 TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", TIDB_BRANCH)
                 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
