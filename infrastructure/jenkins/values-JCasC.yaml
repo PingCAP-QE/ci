@@ -21,9 +21,20 @@ controller:
   JCasC:
     defaultConfig: true
     # Ignored if authorizationStrategy is defined in controller.JCasC.configScripts
+    # authorizationStrategy: |-
+    # loggedInUsersCanDoAnything:
+    #   allowAnonymousRead: true # allow users to read builds logs without logging in.
     authorizationStrategy: |-
-      loggedInUsersCanDoAnything:
-        allowAnonymousRead: true
+      globalMatrix:
+        permissions:
+        - "Job/Read:anonymous"
+        - "Lockable Resources/View:anonymous"
+        - "Metrics/View:anonymous"
+        - "Overall/Read:anonymous"
+        - "Overall/Read:authenticated"
+        - "View/Read:anonymous"
+        # add more...
+
     securityRealm: |-
       googleOAuth2:
         # will read from key `client-id` from secret `github-oauth2`
@@ -31,16 +42,6 @@ controller:
         # will read from key `client-secret` from secret `github-oauth2`
         clientSecret: "${github-oauth2-client-secret}"
 
-    # FIXME: conflict with default config.
-    # authorizationStrategy: |-
-    #   globalMatrix:
-    #     permissions:
-    #     - "Job/Read:anonymous"
-    #     - "Lockable Resources/View:anonymous"
-    #     - "Metrics/View:anonymous"
-    #     - "Overall/Read:anonymous"
-    #     - "Overall/Read:authenticated"
-    #     - "View/Read:anonymous"
     configScripts:
       #  welcome-message: |
       #    jenkins:
