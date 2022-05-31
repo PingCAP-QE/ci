@@ -73,9 +73,9 @@ GO_IMAGE_MAP = [
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
 ]
 POD_LABEL_MAP = [
-    "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
-    "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
-    "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
+    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
 ]
 
 node("master") {
@@ -100,8 +100,8 @@ echo "trigger by upstream job: ${params.containsKey("upstreamJob")}"
 if (params.containsKey("upstreamJob")) {
     upstreamJob = params.get("upstreamJob")
     println "upstreamJob: ${upstreamJob}"
-    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-    tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+    tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 }
 
 if (ghprbTargetBranch in ["br-stream"]) {
