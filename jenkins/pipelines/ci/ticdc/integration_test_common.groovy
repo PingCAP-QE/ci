@@ -372,7 +372,7 @@ def download_binaries() {
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin
         curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
-        curl -L ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
+        curl -C - --retry 3 -L ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
         curl ${sync_diff_download_url} | tar xz -C ./third_bin
         curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq

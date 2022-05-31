@@ -74,7 +74,7 @@ try {
                 container("golang") {
                     sh """
                     cd /tmp/
-                    curl -o /tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz
+                    curl -C - --retry 3 -o /tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz
                     curl --fail -F builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz=@tiflash.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                     """
                 }

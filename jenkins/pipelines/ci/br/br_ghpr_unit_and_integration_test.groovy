@@ -319,7 +319,7 @@ def run_unit_test() {
                     mkdir -p ${ws}/go/src/github.com/pingcap/br/
                     cd ${ws}/go/src/github.com/pingcap/br
 
-                    curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz
+                    curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz
 
                     ${make_cmd}
 
@@ -387,12 +387,12 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             break;
 
                     }
-                    scripts_builder.append("(curl ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
+                    scripts_builder.append("(curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
 
                     // cdc
                     if (cdc != "") {
                         scripts_builder.append("(cdc_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/ticdc/${cdc}/sha1); ")
-                                    .append("curl ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/\${cdc_sha1}/centos7/ticdc-linux-amd64.tar.gz | tar xz ticdc-linux-amd64/bin/cdc; ")
+                                    .append("curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/\${cdc_sha1}/centos7/ticdc-linux-amd64.tar.gz | tar xz ticdc-linux-amd64/bin/cdc; ")
                                     .append("mv ticdc-linux-amd64/bin/* bin/; ")
                                     .append("rm -rf ticdc-linux-amd64/;) &\n")
                     }
@@ -408,7 +408,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
 
                     // tikv-importer
                     scripts_builder.append("(tikv_importer_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/importer/${importer}/sha1); ")
-                                .append("curl ${FILE_SERVER_URL}/download/builds/pingcap/importer/\${tikv_importer_sha1}/centos7/importer.tar.gz | tar xz bin/tikv-importer;) &\n")
+                                .append("curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/importer/\${tikv_importer_sha1}/centos7/importer.tar.gz | tar xz bin/tikv-importer;) &\n")
 
                     // pd & pd-ctl
                     scripts_builder.append("(pd_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${pd}/sha1); ")
@@ -445,7 +445,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                         scripts_builder.append("(tiflashCommit=${tiflashCommit}; ")
                     }
 
-                    scripts_builder.append("curl ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash; ")
+                    scripts_builder.append("curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash; ")
                                 .append("mv tiflash/* bin/; rmdir tiflash;) &\n")
 
                     // Testing S3 ans GCS.

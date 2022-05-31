@@ -541,7 +541,7 @@ def release_dm_ansible_amd64(sha1, release_tag) {
                     cd $wss
                 """
                 dir('centos7') {
-                    sh "curl ${dm_file} | tar xz"
+                    sh "curl -C - --retry 3 ${dm_file} | tar xz"
                     // do not release dm-ansible after v6.0.0
                     // if (release_tag.startsWith("v") && release_tag <"v6.0.0") {
                     //   sh "curl ${FILE_SERVER_URL}/download/builds/pingcap/dm/${dm_sha1}/centos7/dm-ansible.tar.gz | tar xz"

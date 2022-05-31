@@ -232,12 +232,21 @@ def build_dm_bin() {
                 if (!TIDB_BRANCH.startsWith("release-") || TIDB_BRANCH in dm_feature_branch) {
                     TIDB_BRANCH = "master"
                 }
+                def pattern = /^(release-\d.\d)-(.*)/
+                def m1 = TIDB_BRANCH =~ pattern
+                if (m1) {
+                    print "this is a hotfix branch: ${TIDB_BRANCH}"
+                    TIDB_BRANCH_REMOVE_DATE_SUFFIX = "${m1[0][1]}"
+                    TIDB_BRANCH = TIDB_BRANCH_REMOVE_DATE_SUFFIX
+                    println "current branch is a hotfix branch, so we will use the branch name without date suffix: ${TIDB_BRANCH}"
+                }
+                m1 = null
                 TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", TIDB_BRANCH)
                 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
 
                 tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                sh "curl -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                sh "curl -C - --retry 3 -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
                 sh 'mkdir -p tidb-server'
                 sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
                 sh 'mv tidb-server/bin/tidb-server bin/'
@@ -245,7 +254,7 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server.tar.gz'
 
                 tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
-                sh "curl -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
+                sh "curl -C - --retry 3 -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
                 sh 'mkdir -p tidb-tools'
                 sh 'tar -zxf tidb-tools.tar.gz -C tidb-tools'
                 sh 'mv tidb-tools/bin/sync_diff_inspector bin/'

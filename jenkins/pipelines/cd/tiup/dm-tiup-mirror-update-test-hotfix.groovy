@@ -59,8 +59,8 @@ def download = { name, version, os, arch ->
     tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
-    curl ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${dm_sha1}/${platform}/${tarball_name} | tar xz
-    curl ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${dm_sha1}/${platform}/dm-ansible.tar.gz | tar xz
+    curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${dm_sha1}/${platform}/${tarball_name} | tar xz
+    curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/${name}/${dm_sha1}/${platform}/dm-ansible.tar.gz | tar xz
     """
 }
 
