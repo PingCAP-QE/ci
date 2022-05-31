@@ -428,7 +428,7 @@ def build_product(build_para, product) {
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     if (build_para["ENTERPRISE"]) {
         filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
-    } else if (build_para["PRE_RELEASE"] == "true") {
+    } else if (build_para["PRE_RELEASE"] == "true" && product.contains("failpoint")) {
         filepath = "builds/pingcap/${repo}/test/failpoint/${release_tag}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
 
