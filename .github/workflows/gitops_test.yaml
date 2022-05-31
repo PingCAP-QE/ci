@@ -2,6 +2,8 @@ name: CD config Test
 on:
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - "**.md"
 
 jobs:
   manifests:

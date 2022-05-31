@@ -1,7 +1,6 @@
 Guide for jenkins helm chart value configuration
 ===
 
-
 ## Pre requests
 
 - Setup secret `google-oauth2` in namespace `jenkins`, the secret contains keys: 
