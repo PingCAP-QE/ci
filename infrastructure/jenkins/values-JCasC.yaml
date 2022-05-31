@@ -37,10 +37,10 @@ controller:
 
     securityRealm: |-
       googleOAuth2:
-        # will read from key `client-id` from secret `github-oauth2`
-        clientId: "${github-oauth2-client-id}"
-        # will read from key `client-secret` from secret `github-oauth2`
-        clientSecret: "${github-oauth2-client-secret}"
+        # will read from key `client-id` from secret `google-oauth2`
+        clientId: "${google-oauth2-client-id}"
+        # will read from key `client-secret` from secret `google-oauth2`
+        clientSecret: "${google-oauth2-client-secret}"
 
     configScripts:
       #  welcome-message: |
@@ -52,7 +52,7 @@ controller:
       #   jenkins:
       #     securityRealm:
       #       googleOAuth2:
-      #         # will read from key `client-id` from secret `github-oauth2`
-      #         clientId: "${github-oauth2-client-id}"
-      #         # will read from key `client-secret` from secret `github-oauth2`
-      #         clientSecret: "${github-oauth2-client-secret}"
+      #         # will read from key `client-id` from secret `google-oauth2`
+      #         clientId: "${google-oauth2-client-id}"
+      #         # will read from key `client-secret` from secret `google-oauth2`
+      #         clientSecret: "${google-oauth2-client-secret}"
