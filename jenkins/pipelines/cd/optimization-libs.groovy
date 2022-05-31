@@ -90,6 +90,18 @@ def create_builds(build_para) {
         build_product(build_para, "tiflash")
     }
 
+    if (build_para["PRE_RELEASE"] == "true" && build_para["ARCH"] == "amd64" && build_para["OS"] == "linux") {
+        builds["Build tidb failpoint"] = {
+            build_product(build_para, "tidb-failpoint")
+        }
+        builds["Build tikv failpoint"] = {
+            build_product(build_para, "tidb-failpoint")
+        }
+        builds["Build pd failpoint"] = {
+            build_product(build_para, "tidb-failpoint")
+        }
+    }
+
     return builds
 }
 
@@ -400,11 +412,26 @@ def build_product(build_para, product) {
     if (product == "dm") {
         repo = "tiflow"
     }
+    if (product == "tidb-failpoint") {
+        repo = "tidb"
+        sha1 = build_para["tidb"]
+    }
+    if (product == "tikv-failpoint") {
+        repo = "tikv"
+        sha1 = build_para["tikv"]
+    }
+    if (product == "pd-failpoint") {
+        repo = "pd"
+        sha1 = build_para["pd"]
+    }
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     if (build_para["ENTERPRISE"]) {
         filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
+    } else if (build_para["PRE_RELEASE"] == "true") {
+        filepath = "builds/pingcap/${repo}/test/failpoint/${release_tag}/${sha1}/linux-${arch}/${repo}.tar.gz"
     }
+
     if (product == "tiflash") {
         repo = "tics"
         product = "tics"
@@ -427,7 +454,7 @@ def build_product(build_para, product) {
     if (product in ["tidb", "tikv", "pd"]) {
         paramsBuild.push(booleanParam(name: 'NEED_SOURCE_CODE', value: true))
     }
-    if (git_pr != "" && repo == "tikv") {
+    if (git_pr != "" && product == "tikv") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: git_pr])
     }
     if (product in ["enterprise-plugin"]) {
@@ -437,6 +464,11 @@ def build_product(build_para, product) {
         paramsBuild.push(string(name: "EDITION", value: "enterprise"))
     } else {
         paramsBuild.push(string(name: "EDITION", value: "community"))
+    }
+    if (build_para["PRE_RELEASE"]) {
+        def taget_branch = build_para["RELEASE_BRANCH"]
+        paramsBuild.push(string(name: "TARGET_BRANCH", value: taget_branch))
+        paramsBuild.push(booleanParam(name: "FAILPOINT", value: "true"))
     }
 
     println "paramsBuild: ${paramsBuild}"

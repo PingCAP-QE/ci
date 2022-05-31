@@ -255,6 +255,7 @@ run_with_pod {
                                     [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
                                     [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
                                     [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
+                                    [$class: 'BooleanParameterValue', name: 'PRE_RELEASE', value: true],
                             ]
                 }
             }
