@@ -465,7 +465,7 @@ def build_product(build_para, product) {
     } else {
         paramsBuild.push(string(name: "EDITION", value: "community"))
     }
-    if (build_para["PRE_RELEASE"]) {
+    if (build_para["PRE_RELEASE"] && product.contains("failpoint")) {
         def taget_branch = build_para["RELEASE_BRANCH"]
         paramsBuild.push(string(name: "TARGET_BRANCH", value: taget_branch))
         paramsBuild.push(booleanParam(name: "FAILPOINT", value: "true"))
