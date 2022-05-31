@@ -35,9 +35,6 @@ catchError {
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
     ) {
         node(label) {
         stage("Prepare") {
