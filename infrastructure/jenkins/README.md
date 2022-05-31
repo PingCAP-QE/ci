@@ -4,10 +4,12 @@ Guide for jenkins helm chart value configuration
 
 ## Pre requests
 
-- Setup secret `github-oauth2` in namespace `jenkins`, the secret contains keys: 
+- Setup secret `google-oauth2` in namespace `jenkins`, the secret contains keys: 
   - `client-id`
   - `client-secret`
-- Setup PVC `jenkins` in namespace `jenkins`, size should bigger than 8Gi.
+- Setup PVC `jenkins` in namespace `jenkins`
+  - size should bigger than 8Gi.
+  - if replicas > 1, the PVC access mode should be `ReadWriteMany` to support jenkins server HA mode.
 
 ## values guide and schema
 
