@@ -72,8 +72,7 @@ try {
         container("golang") {
             def ws = pwd()
             def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-            def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-            def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/done"
+            def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${TIDB_BRANCH}/${tidb_sha1}/centos7/tidb-server.tar.gz"
             stage("Get commits and Set params") {
                 println "TIDB_BRANCH: ${TIDB_BRANCH}"
                 println "tidb_sha1: $tidb_sha1"
@@ -124,7 +123,7 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
                                     curl ${tidb_url} | tar xz
                                     """
                                 }
@@ -143,7 +142,7 @@ try {
                                 timeout(10) {
                                     retry(3){
                                         sh """
-                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
                                         curl ${tidb_url} | tar xz
                                         """
                                     }
@@ -179,7 +178,7 @@ try {
                                 timeout(10) {
                                     retry(3){
                                         sh """
-                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
                                         curl ${tidb_url} | tar xz
                                         """
                                     }
@@ -214,7 +213,7 @@ try {
                                 timeout(10) {
                                     retry(3){
                                         sh """
-                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
                                         curl ${tidb_url} | tar xz
                                         """
                                     }
