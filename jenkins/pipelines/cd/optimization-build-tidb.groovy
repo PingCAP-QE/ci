@@ -53,14 +53,16 @@ try {
         build_para["ARCH"] = ARCH
         build_para["FILE_SERVER_URL"] = FILE_SERVER_URL
         build_para["GIT_PR"] = TIKV_PRID
-        
+        build_para["PRE_RELEASE"] = PRE_RELEASE
+        build_para["RELEASE_BRANCH"] = RELEASE_BRANCH
+
 
         builds = libs.create_builds(build_para)
 
         parallel builds
     }
     currentBuild.result = "SUCCESS"
-} catch (Exception e ) {
+} catch (Exception e) {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
