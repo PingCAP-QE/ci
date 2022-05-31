@@ -31,7 +31,7 @@ jobs:
       - name: Setup secret and PVC
         run: |
           kubectl create namespace jenkins
-          kubectl -n jenkins create secret generic github-oauth2 --from-literal=client-id=client --from-literal=client-secret=secret
+          kubectl -n jenkins create secret generic google-oauth2 --from-literal=client-id=client --from-literal=client-secret=secret
           kubectl -n jenkins apply -f - <<EOF > cat
           apiVersion: v1
           kind: PersistentVolumeClaim
