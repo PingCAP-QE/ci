@@ -100,8 +100,8 @@ echo "trigger by upstream job: ${params.containsKey("upstreamJob")}"
 if (params.containsKey("upstreamJob")) {
     upstreamJob = params.get("upstreamJob")
     println "upstreamJob: ${upstreamJob}"
-    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-    tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+    tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+    tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${ghprbTargetBranch}/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 }
 
 if (ghprbTargetBranch in ["br-stream"]) {
