@@ -95,10 +95,10 @@ def create_builds(build_para) {
             build_product(build_para, "tidb-failpoint")
         }
         builds["Build tikv failpoint"] = {
-            build_product(build_para, "tidb-failpoint")
+            build_product(build_para, "tikv-failpoint")
         }
         builds["Build pd failpoint"] = {
-            build_product(build_para, "tidb-failpoint")
+            build_product(build_para, "pd-failpoint")
         }
     }
 
