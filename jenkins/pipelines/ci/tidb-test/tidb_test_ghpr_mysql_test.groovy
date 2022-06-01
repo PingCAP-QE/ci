@@ -151,21 +151,28 @@ try {
                             unstash "tidb-test"
                             dir("go/src/github.com/pingcap/tidb-test") {
                                 timeout(10) {
-                                    sh """
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
-                                    cd mysql_test && ./build.sh
-                                    ./test.sh
-                                    
-                                    pwd && ls -l
-                                    """
-                                }
-                                if (ghprbTargetBranch == "master") {
-                                    sh """
-                                    pwd && ls -l
-                                    cp mysql_test/result.xml test1_result.xml
-                                    """
-                                    junit testResults: "**/test1_result.xml"
+                                    if (ghprbTargetBranch == "master") {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh alias alter_table alter_table1 alter_table_PK auto_increment bigint bool builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete do drop echo exec_selection expression_index field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema insert insert_select insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join-reorder join json json_functions json_gcol key like mariadb_cte_nonrecursive mariadb_cte_recursive math multi_update mysql_replace nth operator opt_hint_timeout orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare ps qualified regexp replace role role2 row select_qualified show single_delete_update sqllogic str_quoted sub_query sub_query_more temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func type type_binary type_decimal type_enum type_time type_timestamp type_uint type_varchar union update update_stmt variable variables window_functions window_min_max with_non_recursive with_recursive with_recursive_bugs xd
+                                        pwd && ls -l
+                                        """
+                                        sh """
+                                        pwd && ls -l
+                                        cp mysql_test/result.xml test3_result.xml
+                                        """
+                                        junit testResults: "**/test3_result.xml"
+                                    } else {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh
+                                        pwd && ls -l
+                                        """
+                                    }
                                 }
                             }
                         }
@@ -187,19 +194,27 @@ try {
                             unstash "tidb-test"
                             dir("go/src/github.com/pingcap/tidb-test") {
                                 timeout(10) {
-                                    sh """
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
-                                    cd mysql_test && ./build.sh
-                                    ./test.sh
-                                    pwd && ls -l
-                                    """
                                     if (ghprbTargetBranch == "master") {
                                         sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh alias alter_table alter_table1 alter_table_PK auto_increment bigint bool builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete do drop echo exec_selection expression_index field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema insert insert_select insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join-reorder join json json_functions json_gcol key like mariadb_cte_nonrecursive mariadb_cte_recursive math multi_update mysql_replace nth operator opt_hint_timeout orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare ps qualified regexp replace role role2 row select_qualified show single_delete_update sqllogic str_quoted sub_query sub_query_more temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func type type_binary type_decimal type_enum type_time type_timestamp type_uint type_varchar union update update_stmt variable variables window_functions window_min_max with_non_recursive with_recursive with_recursive_bugs xd
                                         pwd && ls -l
-                                        cp mysql_test/result.xml test2_result.xml
                                         """
-                                        junit testResults: "**/test2_result.xml"
+                                        sh """
+                                        pwd && ls -l
+                                        cp mysql_test/result.xml test3_result.xml
+                                        """
+                                        junit testResults: "**/test3_result.xml"
+                                    } else {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh
+                                        pwd && ls -l
+                                        """
                                     }
                                 }
                             }
@@ -222,19 +237,27 @@ try {
                             unstash "tidb-test"
                             dir("go/src/github.com/pingcap/tidb-test") {
                                 timeout(10) {
-                                    sh """
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
-                                    cd mysql_test && ./build.sh
-                                    ./test.sh
-                                    pwd && ls -l
-                                    """
                                     if (ghprbTargetBranch == "master") {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh alias alter_table alter_table1 alter_table_PK auto_increment bigint bool builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete do drop echo exec_selection expression_index field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema insert insert_select insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join-reorder join json json_functions json_gcol key like mariadb_cte_nonrecursive mariadb_cte_recursive math multi_update mysql_replace nth operator opt_hint_timeout orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare ps qualified regexp replace role role2 row select_qualified show single_delete_update sqllogic str_quoted sub_query sub_query_more temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func type type_binary type_decimal type_enum type_time type_timestamp type_uint type_varchar union update update_stmt variable variables window_functions window_min_max with_non_recursive with_recursive with_recursive_bugs xd
+                                        pwd && ls -l
+                                        """
                                         sh """
                                         pwd && ls -l
                                         cp mysql_test/result.xml test3_result.xml
                                         """
                                         junit testResults: "**/test3_result.xml"
+                                    } else {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh
+                                        pwd && ls -l
+                                        """
                                     }
                                 }
                             }
