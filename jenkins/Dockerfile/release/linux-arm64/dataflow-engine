@@ -1,4 +1,4 @@
-FROM pingcap/alpine-glibc:alpine-3.14.6
+FROM alpine:3.12
 
 COPY df-executor /df-executor
 COPY df-master /df-master
