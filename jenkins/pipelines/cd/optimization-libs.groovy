@@ -451,6 +451,21 @@ def build_product(build_para, product) {
             string(name: "RELEASE_TAG", value: release_tag),
             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
     ]
+    if (build_para["PRE_RELEASE"] && product.contains("failpoint")) {
+        def taget_branch = build_para["RELEASE_BRANCH"]
+        paramsBuild = [
+                string(name: "ARCH", value: arch),
+                string(name: "OS", value: os),
+                string(name: "OUTPUT_BINARY", value: filepath),
+                string(name: "REPO", value: repo),
+                string(name: "PRODUCT", value: repo),
+                string(name: "GIT_HASH", value: sha1),
+                string(name: "RELEASE_TAG", value: release_tag),
+                string(name: "TARGET_BRANCH", value: taget_branch),
+                [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: force_rebuild],
+                [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: true],
+        ]
+    }
     if (product in ["tidb", "tikv", "pd"]) {
         paramsBuild.push(booleanParam(name: 'NEED_SOURCE_CODE', value: true))
     }
@@ -465,11 +480,7 @@ def build_product(build_para, product) {
     } else {
         paramsBuild.push(string(name: "EDITION", value: "community"))
     }
-    if (build_para["PRE_RELEASE"] && product.contains("failpoint")) {
-        def taget_branch = build_para["RELEASE_BRANCH"]
-        paramsBuild.push(string(name: "TARGET_BRANCH", value: taget_branch))
-        paramsBuild.push(booleanParam(name: "FAILPOINT", value: "true"))
-    }
+
 
     println "paramsBuild: ${paramsBuild}"
     build job: "build-common",
