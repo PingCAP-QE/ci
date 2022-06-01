@@ -131,6 +131,30 @@ def run_test_with_pod(Closure body) {
     }
 }
 
+def run_with_lightweight_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}-lightweight"
+    def cloud = "kubernetes-ng"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: "jenkins-tidb-mergeci",
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: POD_GO_IMAGE, ttyEnabled: true,
+                            resourceRequestCpu: '100m', resourceRequestMemory: '1Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    )
+            ]
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
@@ -163,22 +187,22 @@ all_task_result = []
 
 try {
     timestamps {
-        stage("Pre-check"){
-            if (!params.force){
-                node("lightweight_pod"){
-                    container("golang"){
-                        notRun = sh(returnStatus: true, script: """
-				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-				    """)
-                    }
-                }
-            }
+        // stage("Pre-check"){
+        //     if (!params.force){
+        //         run_with_lightweight_pod{
+        //             container("golang"){
+        //                 notRun = sh(returnStatus: true, script: """
+		// 		    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+		// 		    """)
+        //             }
+        //         }
+        //     }
 
-            if (notRun == 0){
-                println "the ${ghprbActualCommit} has been tested"
-                throw new RuntimeException("hasBeenTested")
-            }
-        }
+        //     if (notRun == 0){
+        //         println "the ${ghprbActualCommit} has been tested"
+        //         throw new RuntimeException("hasBeenTested")
+        //     }
+        // }
 
         stage('Prepare') {
 
@@ -278,9 +302,15 @@ try {
                                 set -e
                                 awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
 
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh
-                                
+                                if [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "master"  ]; then
+                                    echo "run mysql-test on master branch in witelist-mode"
+                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                    ./test.sh alias alter_table alter_table1 alter_table_PK auto_increment bigint bool builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete do drop echo exec_selection expression_index field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema insert insert_select insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join-reorder join json json_functions json_gcol key like mariadb_cte_nonrecursive mariadb_cte_recursive math multi_update mysql_replace nth operator opt_hint_timeout orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare ps qualified regexp replace role role2 row select_qualified show single_delete_update sqllogic str_quoted sub_query sub_query_more temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func type type_binary type_decimal type_enum type_time type_timestamp type_uint type_varchar union update update_stmt variable variables window_functions window_min_max with_non_recursive with_recursive with_recursive_bugs xd
+                                else
+                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                    ./test.sh
+                                fi;
+
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
@@ -416,23 +446,29 @@ try {
                             try {
                                 timeout(10) {
                                     sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                CACHE_ENABLED=1 ./test.sh
-                                
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    
+                                    if [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "master"  ]; then
+                                        echo "run mysql-test on master branch in witelist-mode"
+                                        TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                        CACHE_ENABLED=1 ./test.sh alias alter_table alter_table1 alter_table_PK auto_increment bigint bool builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete do drop echo exec_selection expression_index field_length func_concat gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic groupby having in index index_merge1 index_merge2 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema insert insert_select insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join-reorder join json json_functions json_gcol key like mariadb_cte_nonrecursive mariadb_cte_recursive math multi_update mysql_replace nth operator opt_hint_timeout orderby partition_bug18198 partition_hash partition_innodb partition_list partition_range precedence prepare ps qualified regexp replace role role2 row select_qualified show single_delete_update sqllogic str_quoted sub_query sub_query_more temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func type type_binary type_decimal type_enum type_time type_timestamp type_uint type_varchar union update update_stmt variable variables window_functions window_min_max with_non_recursive with_recursive with_recursive_bugs xd
+                                    else
+                                        TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                        CACHE_ENABLED=1 ./test.sh
+                                    fi;
+                                    
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    """
                                 }
                             } catch (err) {
                                 sh "cat ${log_path}"
@@ -681,7 +717,7 @@ EOF
                 } 
             }
 
-            if ( ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-3") ) {
+            if ( ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-") ) {
                 tests["Mysql Test Cache"] = {
                     try {
                         run_cache_log("mysql_test", "mysql-test.out*")
@@ -753,7 +789,7 @@ EOF
         }
 
         currentBuild.result = "SUCCESS"
-        node("lightweight_pod"){
+        run_with_lightweight_pod{
             container("golang"){
                 sh """
                     echo "done" > done
