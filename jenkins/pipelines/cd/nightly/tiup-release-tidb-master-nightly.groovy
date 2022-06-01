@@ -5,7 +5,7 @@ def slackcolor = 'good'
 def githash
 def tidb_githash, tikv_githash, pd_githash, tools_githash
 def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_githash
-def cdc_githash, lightning_githash, dm_githash
+def cdc_githash, lightning_githash, dm_githash, dataflow_engine_githash
 
 def taskStartTimeInMillis = System.currentTimeMillis()
 def RELEASE_BRANCH = "master"
@@ -46,6 +46,7 @@ retry(2) {
                         tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                         cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                         dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                        dataflow_engine_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                         tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
                         ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
                         println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}"
@@ -82,8 +83,11 @@ retry(2) {
                 echo ${tidb_ctl_githash} > sha1
                 curl --fail -F refs/pingcap/tidb-ctl/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
                 
-                echo ${cdc_sha1} > sha1
+                echo ${dm_sha1} > sha1
                 curl --fail -F refs/pingcap/dm/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+
+                echo ${dataflow_engine_sha1} > sha1
+                curl --fail -F refs/pingcap/dataflow-engine/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
 
                 echo ${ng_monitoring_sha1} > sha1
                 curl --fail -F refs/pingcap/ng-monitoring/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
@@ -105,6 +109,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                     [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'DATAFLOW_ENGINE_HASH', value: dataflow_engine_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -130,6 +135,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                     [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'DATAFLOW_ENGINE_HASH', value: dataflow_engine_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -154,6 +160,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                     [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'DATAFLOW_ENGINE_HASH', value: dataflow_engine_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
@@ -179,6 +186,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'TOOLS_HASH', value: tidb_tools_sha1],
                                     [$class: 'StringParameterValue', name: 'CDC_HASH', value: cdc_sha1],
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
+                                    [$class: 'StringParameterValue', name: 'DATAFLOW_ENGINE_HASH', value: dataflow_engine_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
