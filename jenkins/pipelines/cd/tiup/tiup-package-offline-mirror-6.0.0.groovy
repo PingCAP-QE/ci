@@ -188,20 +188,20 @@ node("delivery") {
         stage("build community tarball linux/amd64") {
             deleteDir()
             package_community("amd64")
-            if (release_tag >= "v4") {
+            if (release_tag >= "v4" || DEBUG_MODE == "true") {
                 package_tools "community", "amd64"
             }
         }
 
         stage("build community tarball linux/arm64") {
             package_community("arm64")
-            if (release_tag >= "v4") {
+            if (release_tag >= "v4" || DEBUG_MODE == "true") {
                 package_tools "community", "arm64"
             }
         }
 
         def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
-        if (release_tag >= "v4" && !noEnterpriseList.contains(release_tag)) {
+        if ((release_tag >= "v4" && !noEnterpriseList.contains(release_tag)) || DEBUG_MODE == "true") {
             stage("build enterprise tarball linux/amd64") {
                 package_enterprise("amd64")
                 package_tools "enterprise", "amd64"
