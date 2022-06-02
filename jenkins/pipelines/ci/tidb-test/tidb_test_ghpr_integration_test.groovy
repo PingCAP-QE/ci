@@ -297,13 +297,11 @@ run_with_toolkit_pod {
             tests["GORM Test"] = {
                 run("gorm_test", "gormtest", "./test.sh")
             }
-            tests["Beego ORM Test"] = {
-                run("beego_orm_test", "beegoormtest", "./test.sh")
-            }
-
-            // tests["Integration Beego ORM Test"] = {
+            // uncomment this when pr https://github.com/pingcap/tidb-test/pull/1722 is merged
+            // tests["Beego ORM Test"] = {
             //     run("beego_orm_test", "beegoormtest", "./test.sh")
             // }
+
             println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
             println "check if current commit is already build, if not wait for build done."
