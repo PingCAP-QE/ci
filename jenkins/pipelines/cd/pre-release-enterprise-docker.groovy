@@ -115,6 +115,7 @@ def versionNeedMultiArch(version) {
     }
     return false
 }
+
 NEED_MULTIARCH = versionNeedMultiArch(RELEASE_TAG)
 
 try {
@@ -151,8 +152,10 @@ try {
             stage("manifest multi-arch docker image build") {
                 node("delivery") {
                     container("delivery") {
+                        def source = "hub.pingcap.net/qa/"
+                        def type = "rc"
                         libs.parallel_enterprise_docker_multiarch(false)
-                        libs.enterprise_docker_sync_gcr()
+                        libs.enterprise_docker_sync_gcr(source, type)
                     }
                 }
             }

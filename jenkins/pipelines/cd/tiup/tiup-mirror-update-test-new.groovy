@@ -15,12 +15,13 @@
 * @ARCH_MAC
 * @ARCH_MAC_ARM
 * @TIUP_ENV
+* @DEBUG_MODE
 */
 
 def get_hash = { hash_or_branch, repo ->
     if (hash_or_branch.length() == 40) {
         return hash_or_branch
-    }else{
+    } else {
         return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
     }
 
@@ -377,6 +378,8 @@ node("build_go1130") {
 
                     }
                 }
+            } else if (DEBUG_MODE == "true") {
+                tidb_version = "build-debug-mode"
             } else {
                 tidb_version = RELEASE_TAG
             }
@@ -442,7 +445,7 @@ node("build_go1130") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: paramsDUMPLING)
-                        }else{
+                        } else {
                             build(job: "dumpling-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsDUMPLING)
                         }
 
@@ -463,7 +466,7 @@ node("build_go1130") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: paramsLIGHTNING)
-                        }else {
+                        } else {
                             build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
                         }
 
@@ -483,7 +486,7 @@ node("build_go1130") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: paramsTIFLASH)
-                        }else{
+                        } else {
                             build(job: "tiflash-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsTIFLASH)
                         }
 
@@ -504,7 +507,7 @@ node("build_go1130") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: paramsGRANFANA)
-                        }else{
+                        } else {
                             build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
                         }
                     }
@@ -524,7 +527,7 @@ node("build_go1130") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: paramsPROMETHEUS)
-                        }else{
+                        } else {
                             build(job: "prometheus-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
                         }
                     }
