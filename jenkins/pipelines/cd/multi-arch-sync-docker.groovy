@@ -28,7 +28,7 @@ node('delivery') {
                     for (item in release_repo) {
                         def product = "${item}"
                         builds_enterprise["sync ${item} enterprise docker image"] = {
-                            libs.retag_docker_image_for_ga(product, true, DEBUG_MODE)
+                            libs.retag_docker_image_for_ga(product, "true", DEBUG_MODE)
                         }
 
                     }
@@ -39,28 +39,28 @@ node('delivery') {
                     for (item in release_repo) {
                         def product = "${item}"
                         builds_community["sync ${item} community docker image"] = {
-                            libs.retag_docker_image_for_ga(product, false, DEBUG_MODE)
+                            libs.retag_docker_image_for_ga(product, "false", DEBUG_MODE)
                         }
 
                     }
                     builds_community["push tidb-monitor-initializer community docker image"] = {
-                        if(DEBUG_MODE=="true"){
+                        if (DEBUG_MODE == "true") {
                             sh
                             """
                             echo "DEBUG MODE:push tidb-monitor-initializer community docker image"
                             """
-                        }else{
+                        } else {
                             libs.build_push_tidb_monitor_initializer_image()
                         }
 
                     }
                     builds_community["push tidb-monitor-reloader arm64"] = {
-                        if(DEBUG_MODE=="true"){
+                        if (DEBUG_MODE == "true") {
                             sh
                             """
                             echo "DEBUG MODE:push tidb-monitor-reloader arm64"
                             """
-                        }else{
+                        } else {
                             build job: 'build-arm-image',
                                     wait: true,
                                     parameters: [

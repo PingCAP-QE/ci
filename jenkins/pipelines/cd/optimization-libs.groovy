@@ -277,7 +277,7 @@ def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
         image_for_ga_to_docker = "hub.pingcap.net/enterprise/${product}-enterprise:${RELEASE_TAG}"
     } else if (if_enterprise == "false" && debug_mode == "true") {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
-        image_for_ga_to_docker = "hub.pingcap.net/ga-debug-community/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
+        image_for_ga_to_docker = "hub.pingcap.net/ga-debug-community/${product}:${RELEASE_TAG}"
     } else {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
         image_for_ga_to_docker = "hub.pingcap.net/ga-debug-enterprise/${product}-enterprise:${RELEASE_TAG}"

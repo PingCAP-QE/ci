@@ -110,7 +110,7 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "false"],
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: false],
                                             [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                     ]
 
@@ -122,7 +122,7 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "true"],
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: true],
                                             [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                     ]
                         }
