@@ -205,10 +205,7 @@ try {
                     }
                     publishs["publish dm tiup offline package"] = {
                         if (DEBUG_MODE == "true") {
-                            sh
-                            """
-                            echo "DEBUG MODE:publish dm tiup offline packag"
-                            """
+                            echo "DEBUG MODE:publish dm tiup offline package"
                         } else {
                             // publish dm offline package (include linux amd64 and arm64)
                             build job: 'tiup-package-offline-mirror-dm',
@@ -230,17 +227,17 @@ try {
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
 } finally {
-//    build job: 'send_notify',
-//            wait: true,
-//            parameters: [
-//                    [$class: 'StringParameterValue', name: 'RESULT_JOB_NAME', value: "${JOB_NAME}"],
-//                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_RESULT', value: currentBuild.result],
-//                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
-//                    [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
-//                    [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
-//                    [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
-//
-//            ]
+    build job: 'send_notify',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'RESULT_JOB_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_RESULT', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
+
+            ]
 }
 //stage('download') {
 //    dir('centos7') {
