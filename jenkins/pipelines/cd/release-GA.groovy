@@ -90,10 +90,10 @@ try {
                         def publishs = [:]
                         publishs["publish tiup prod"] = {
                             println("start publish tiup prod")
-                            build job: 'tiup-mirror-update-test-new',
+                            build job: 'tiup-mirror-online-ga',
                                     wait: true,
                                     parameters: [
-                                            [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                                             [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                             [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
@@ -110,7 +110,7 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "false"],
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: false],
                                             [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                     ]
 
@@ -122,7 +122,7 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "true"],
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: true],
                                             [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                     ]
                         }
