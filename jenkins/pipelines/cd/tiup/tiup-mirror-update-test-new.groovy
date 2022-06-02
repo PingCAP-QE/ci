@@ -30,7 +30,7 @@ def get_hash = { hash_or_branch, repo ->
     }
 }
 
-def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, dm_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version
+def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, dm_sha1, tidb_binlog_sha1, br_sha1, ticdc_sha1, lightning_sha1, dumpling_sha1, tiflash_sha1, platform, tag, tarball_name, tidb_version
 def tidb_desc = "TiDB is an open source distributed HTAP database compatible with the MySQL protocol"
 def tikv_desc = "Distributed transactional key-value database, originally created to complement TiDB"
 def pd_desc = "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster"
@@ -339,6 +339,8 @@ node("build_go1130") {
                 }
 
                 tidb_sha1 = get_hash(TIDB_HASH, "tidb")
+                br_sha1 = get_hash(BR_HASH, "tidb")
+                dumpling_sha1 = get_hash(DUMPLING_HASH, "tidb")
                 tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
                 tikv_sha1 = get_hash(TIKV_HASH, "tikv")
                 pd_sha1 = get_hash(PD_HASH, "pd")
@@ -355,8 +357,11 @@ node("build_go1130") {
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
                     dm_sha1 = get_hash(DM_HASH, "tiflow")
                 }
+                tiflash_sha1 = get_hash(TIFLASH_HASH, "tics")
 
                 println "tidb_sha1: ${tidb_sha1}"
+                println "br_sha1: ${br_sha1}"
+                println "dumpling_sha1: ${dumpling_sha1}"
                 println "tidb_ctl_sha1: ${tidb_ctl_sha1}"
                 println "tikv_sha1: ${tikv_sha1}"
                 println "pd_sha1: ${pd_sha1}"
@@ -364,6 +369,7 @@ node("build_go1130") {
                 println "ticdc_sha1: ${ticdc_sha1}"
                 println "lightning_sha1: ${lightning_sha1}"
                 println "dm_sha1: ${dm_sha1}"
+                println "tiflash_sha1: ${tiflash_sha1}"
             }
 
             if (RELEASE_TAG == "v6.2.0-alpha") {
@@ -397,7 +403,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${CDC_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${ticdc_sha1}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
@@ -418,7 +424,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${BR_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${br_sha1}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
@@ -438,7 +444,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${DUMPLING_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${dumpling_sha1}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
@@ -459,7 +465,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${BR_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${lightning_sha1}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
@@ -479,7 +485,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${TIFLASH_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${tiflash_sha1}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
@@ -499,7 +505,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${TIFLASH_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${tiflash_sha1}"),
                         string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
@@ -519,7 +525,7 @@ node("build_go1130") {
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                        string(name: "ORIGIN_TAG", value: "${TIFLASH_HASH}"),
+                        string(name: "ORIGIN_TAG", value: "${tiflash_sha1}"),
                         string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
                         [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: params.ARCH_X86],
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
