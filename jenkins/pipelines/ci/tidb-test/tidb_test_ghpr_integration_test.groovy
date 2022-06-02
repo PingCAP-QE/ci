@@ -291,11 +291,14 @@ run_with_toolkit_pod {
             tests["Integration Analyze Test"] = {
                 run("analyze_test", "analyzetest", "./test.sh")
             }
-            tests["Integration Go SQL Test"] = {
+            tests["Go SQL Test"] = {
                 run("go-sql-test", "gosqltest", "./test.sh")
             }
-            tests["Integration GORM Test"] = {
+            tests["GORM Test"] = {
                 run("gorm_test", "gormtest", "./test.sh")
+            }
+            tests["Beego ORM Test"] = {
+                run("beego_orm_test", "beegoormtest", "./test.sh")
             }
 
             // tests["Integration Beego ORM Test"] = {
@@ -314,7 +317,7 @@ run_with_toolkit_pod {
             tests["trigger common_test"] = {
                     def built1 = build(job: "tidb_ghpr_integration_common_test", wait: true, propagate: false, parameters: tidb_params)
                     println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_common_test/${built1.number}/pipeline"
-                    if (built.getResult() != 'SUCCESS') {
+                    if (built1.getResult() != 'SUCCESS') {
                         error "common_test failed"
                     }
             }
