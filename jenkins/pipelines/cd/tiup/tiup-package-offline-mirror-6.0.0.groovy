@@ -1,3 +1,9 @@
+release_tag = params.VERSION
+
+if (DEBUG_MODE == "true") {
+    VERSION = "build-debug-mode"
+}
+
 def clone_server_package = { arch, dst ->
     sh """
     tiup mirror set https://tiup-mirrors.pingcap.com
@@ -42,14 +48,14 @@ def package_enterprise = { arch ->
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     def hashes = [:]
     comps.each {
-        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     }
     def os = "linux"
     def dst = "tidb-enterprise-server-" + VERSION + "-linux-" + arch
     def descs = [
             "tidb": "TiDB is an open source distributed HTAP database compatible with the MySQL protocol",
             "tikv": "Distributed transactional key-value database, originally created to complement TiDB",
-            "pd": "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster",
+            "pd"  : "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster",
     ]
 
     clone_server_package(arch, dst)
@@ -64,7 +70,7 @@ def package_enterprise = { arch ->
         """
 
         sh """
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/optimization/${version}/${hashes[it]}/centos7/${it}-${os}-${arch}-enterprise.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/optimization/${release_tag}/${hashes[it]}/centos7/${it}-${os}-${arch}-enterprise.tar.gz
         tar -xzf ${it}-${os}-${arch}-enterprise.tar.gz
         tar -czf ${it}-server-linux-${arch}-enterprise.tar.gz -C bin/ \$(ls bin/)
         """
@@ -74,9 +80,9 @@ def package_enterprise = { arch ->
         """
     }
 
-    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     sh """
-    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${VERSION}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
+    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${release_tag}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
     rm -rf tiflash
     tar -xzf tiflash-linux-${arch}-enterprise.tar.gz
     rm -rf tiflash-linux-${arch}-enterprise.tar.gz
@@ -99,14 +105,14 @@ def package_tools = { plat, arch ->
 
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-    binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
-    pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
-    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+    binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+    pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     br_hash = ""
     if (VERSION >= "v5.2.0") {
-        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     } else {
-        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${VERSION} -s=${FILE_SERVER_URL}").trim()
+        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     }
     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
 
@@ -114,10 +120,10 @@ def package_tools = { plat, arch ->
 
     sh """
         mkdir -p ${toolkit_dir}/
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${VERSION}/${binlog_hash}/centos7/tidb-binlog-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${VERSION}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${VERSION}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${VERSION}/${br_hash}/centos7/br-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${release_tag}/${binlog_hash}/centos7/tidb-binlog-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag}/${br_hash}/centos7/br-linux-${arch}.tar.gz
         if [ ${arch} == 'amd64' ]; then
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
         fi;
@@ -148,7 +154,7 @@ def package_tools = { plat, arch ->
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     """
 
-    if(plat == "community") {
+    if (plat == "community") {
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz
@@ -180,20 +186,20 @@ node("delivery") {
         stage("build community tarball linux/amd64") {
             deleteDir()
             package_community("amd64")
-            if(VERSION >= "v4") {
+            if (release_tag >= "v4") {
                 package_tools "community", "amd64"
             }
         }
 
         stage("build community tarball linux/arm64") {
             package_community("arm64")
-            if(VERSION >= "v4") {
+            if (release_tag >= "v4") {
                 package_tools "community", "arm64"
             }
         }
 
         def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
-        if(VERSION >= "v4" && !noEnterpriseList.contains(VERSION)) {
+        if (release_tag >= "v4" && !noEnterpriseList.contains(release_tag)) {
             stage("build enterprise tarball linux/amd64") {
                 package_enterprise("amd64")
                 package_tools "enterprise", "amd64"

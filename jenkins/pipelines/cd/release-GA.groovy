@@ -3,6 +3,7 @@ package cd
 * @RELEASE_TAG
 * @RELEASE_BRANCH
 * @NEED_MUTIARCH
+* @DEBUG_MODE
 */
 
 
@@ -80,7 +81,7 @@ try {
             cd /home/jenkins
             mkdir -p /root/.docker
             yes | cp /etc/dockerconfig.json /root/.docker/config.json
-            yes|cp -R /etc/.aws /root
+            #yes|cp -R /etc/.aws /root
             cd $wss
             """
                 }
@@ -89,9 +90,19 @@ try {
                         def publishs = [:]
                         publishs["publish tiup prod"] = {
                             println("start publish tiup prod")
-                            build job: 'tiup-mirror-update-test',
+                            build job: 'tiup-mirror-update-test-new',
                                     wait: true,
-                                    parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
+                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                            [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
+                                            [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
+                                            [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: true],
+                                            [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: true],
+                                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: true],
+                                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: true],
+
+                                    ]
                         }
                         publishs["publish community image"] = {
                             build job: 'multi-arch-sync-docker',
@@ -99,7 +110,10 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "false"]]
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "false"],
+                                            [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
+                                    ]
+
 
                         }
                         publishs["publish enterprise image"] = {
@@ -108,12 +122,19 @@ try {
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
                                             [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"],
-                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "true"]]
+                                            [$class: 'BooleanParameterValue', name: 'IF_ENTERPRISE', value: "true"],
+                                            [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
+                                    ]
                         }
                         parallel publishs
                     }
-                    stage('sync enterprise image to gcr'){
-                        libs.enterprise_docker_sync_gcr()
+                    stage('sync enterprise image to gcr') {
+                        def source = "hub.pingcap.net/enterprise/"
+                        if (DEBUG_MODE == "true") {
+                            source = "hub.pingcap.net/ga-debug-enterprise/"
+                        }
+                        def type = "ga"
+                        libs.enterprise_docker_sync_gcr(source, type)
                     }
                 } else {
                     stage('publish tiup prod && publish community image') {
@@ -168,7 +189,8 @@ try {
                             build job: 'tiup-package-offline-mirror-v6.0.0',
                                     wait: true,
                                     parameters: [
-                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
+                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"],
+                                            [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                     ]
                         }
                     } else {
@@ -176,15 +198,25 @@ try {
                             build job: 'tiup-package-offline-mirror',
                                     wait: true,
                                     parameters: [
-                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]
+                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"],
                                     ]
                         }
                     }
                     publishs["publish dm tiup offline package"] = {
-                        // publish dm offline package (include linux amd64 and arm64)
-                        build job: 'tiup-package-offline-mirror-dm',
-                                wait: true,
-                                parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
+                        if (DEBUG_MODE == "true") {
+                            sh
+                            """
+                            echo "DEBUG MODE:publish dm tiup offline packag"
+                            """
+                        } else {
+                            // publish dm offline package (include linux amd64 and arm64)
+                            build job: 'tiup-package-offline-mirror-dm',
+                                    wait: true,
+                                    parameters: [
+                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"],
+                                            [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],]
+                        }
+
                     }
                     parallel publishs
                 }

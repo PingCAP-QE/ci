@@ -268,12 +268,19 @@ def retag_enterprise_image(product, arch, if_release, if_multi_arch) {
 }
 
 //new
-def retag_docker_image_for_ga(product, if_enterprise) {
-    image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
-    image_for_ga_to_docker = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
-    if (if_enterprise) {
+def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
+    if (if_enterprise == "false" && debug_mode == "false") {
+        image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
+        image_for_ga_to_docker = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
+    } else if (if_enterprise == "true" && debug_mode == "false") {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
-        image_for_ga_to_docker = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}"
+        image_for_ga_to_docker = "hub.pingcap.net/enterprise/${product}-enterprise:${RELEASE_TAG}"
+    } else if (if_enterprise == "false" && debug_mode == "true") {
+        image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
+        image_for_ga_to_docker = "hub.pingcap.net/ga-debug-community/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
+    } else {
+        image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
+        image_for_ga_to_docker = "hub.pingcap.net/ga-debug-enterprise/${product}-enterprise:${RELEASE_TAG}"
     }
 
     def default_params = [
@@ -342,14 +349,17 @@ def parallel_enterprise_docker_multiarch(if_release) {
 
 }
 
-def enterprise_docker_sync_gcr() {
+def enterprise_docker_sync_gcr(source, type) {
     def imageTag = RELEASE_TAG
     def imageNames = ["br", "ticdc", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "tidb-lightning"]
     def builds = [:]
     for (imageName in imageNames) {
         def image = imageName
         builds[image + "-enterprise sync"] = {
-            def source_image = "hub.pingcap.net/qa/${image}-enterprise:${imageTag}-pre"
+            def source_image = source + "${image}-enterprise:${imageTag}-pre"
+            if (type == "ga") {
+                source_image = source + "${image}-enterprise:${imageTag}"
+            }
             // 命名规范：
             //- vX.Y.Z-yyyymmdd，举例：v6.1.0-20220524
             //- 特例：tidb-monitor-initializer 镜像格式要求，vX.Y.Z，举例：v6.1.0 （每次覆盖即可，这个问题是DBaaS上历史问题）
