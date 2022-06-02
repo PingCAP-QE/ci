@@ -21,7 +21,67 @@ if (m3) {
 }
 m3 = null
 
-def run_with_pod(Closure body) {
+
+GO_VERSION = "go1.18"
+POD_GO_IMAGE = ""
+GO_IMAGE_MAP = [
+    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
+    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+]
+
+node("master") {
+    deleteDir()
+    def ws = pwd()
+    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    def script_path = "${ws}/goversion-select-lib.groovy"
+    def goversion_lib = load script_path
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    println "go version: ${GO_VERSION}"
+    println "go image: ${POD_GO_IMAGE}"
+}
+POD_NAMESPACE = "jenkins-tidb-test"
+
+def run_test_with_pod(Closure body) {
+    def label = ""
+    if (GO_VERSION == "go1.13") {
+        label = "${JOB_NAME}-go1130-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.16") {
+        label = "${JOB_NAME}-go1160-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.18") {
+        label = "${JOB_NAME}-go1180-${BUILD_NUMBER}"
+    }
+    def cloud = "kubernetes-ng"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: false,
+                            image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    )
+            ],
+            volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
+
+def run_with_toolkit_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb-test"
@@ -37,10 +97,6 @@ def run_with_pod(Closure body) {
                         command: '/bin/sh -c', args: 'cat'    
                     )
             ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -49,7 +105,7 @@ def run_with_pod(Closure body) {
     }
 }
 
-run_with_pod {
+run_with_toolkit_pod {
     container('toolkit') {
         def basic_params = []
         def tidb_params = []
@@ -97,7 +153,6 @@ run_with_pod {
             // 由于 ghpr 产生的包来自 pr ，储存路径为 builds/pingcap/tidb/pr/COMMIT ，而这里我们的 commit 是从 branch 上取的，tar 包的位置在 builds/pingcap/tidb/COMMIT
             // 下游集成测试会从 pr/COMMIT 路径下载包，就会导致 not found
             // 这里 参照 qa_release_test 做个 hack,拷贝相关包到对应路径,  tikv 同理
-
             sh """
             wget ${FILE_SERVER_URL}/download/builds/pingcap/tidb/$tidb_sha1/centos7/tidb-server.tar.gz
             curl -F builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
@@ -108,9 +163,145 @@ run_with_pod {
             inv upload --dst builds/download/refs/pingcap/pd/$pd_sha1/sha1 --content $pd_sha1
             """
         }
-        println tidb_params
 
-        stage("trigger jobs"){
+        stage("Checkout") {
+            parallel(
+                'tidb-test': {
+                    dir("go/src/github.com/pingcap/tidb-test") {
+                        checkout(changelog: false, poll: false, scm: [
+                            $class: "GitSCM",
+                            branches: [
+                                [name: "${ghprbActualCommit}"],
+                            ],
+                            userRemoteConfigs: [
+                                [
+                                    url: "git@github.com:pingcap/tidb-test.git",
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                    credentialsId: 'github-sre-bot-ssh',
+                                ]
+                            ],
+                            extensions: [
+                                [$class: 'PruneStaleBranch'],
+                                [$class: 'CleanBeforeCheckout'],
+                            ],
+                        ])
+                    }
+                    stash includes: "go/src/github.com/pingcap/tidb-test/**", name: "tidb-test"
+                }, 
+                'tidb': {
+                    dir("go/src/github.com/pingcap/tidb") {
+                        deleteDir()
+                        timeout(10) {
+                            retry(3){
+                                def tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                                deleteDir()
+                                sh """
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
+                                curl ${tidb_url} | tar xz
+                                """
+                            }
+                        }
+                    }
+                }
+            ) 
+        }
+
+
+        stage("Tests") {
+            def tests = [:]
+
+            def run = { test_dir, mytest, test_cmd ->
+                run_test_with_pod {
+                    def ws = pwd()
+                    deleteDir()
+                    unstash "tidb-test"
+                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        container("golang") {
+                            timeout(20) {
+                                retry(3){
+                                    sh """
+                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+                                    curl \${tikv_url} | tar xz bin
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+                                    curl \${pd_url} | tar xz bin
+        
+                                    mkdir -p ./tidb-src
+                                    curl \${tidb_url} | tar xz -C ./tidb-src
+                                    ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                    """
+                                }
+                            }
+                            try {
+                                timeout(20) {
+                                    sh """
+                                    ps aux
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    rm -rf ./tikv ./pd
+                                    set -e
+                                    
+                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                    sleep 10
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                    sleep 10
+                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+
+                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                    export log_level=debug
+                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                    TIKV_PATH='127.0.0.1:2379' \
+                                    TIDB_TEST_STORE_NAME=tikv \
+                                    ${test_cmd}
+                                    """
+                                }
+                            } catch (err) {
+                                sh"""
+                                cat mysql-test.out || true
+                                """
+                                sh """
+                                cat pd_${mytest}.log
+                                cat tikv_${mytest}.log
+                                cat tidb*.log
+                                """
+                                throw err
+                            } finally {
+                                sh """
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                set -e
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+
+            tests["Integration Analyze Test"] = {
+                run("analyze_test", "analyzetest", "./test.sh")
+            }
+            tests["Integration Go SQL Test"] = {
+                run("go-sql-test", "gosqltest", "./test.sh")
+            }
+            tests["Integration GORM Test"] = {
+                run("gorm_test", "gormtest", "./test.sh")
+            }
+
+            // tests["Integration Beego ORM Test"] = {
+            //     run("beego_orm_test", "beegoormtest", "./test.sh")
+            // }
+            println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
             println "check if current commit is already build, if not wait for build done."
             timeout(10) {
@@ -119,29 +310,30 @@ run_with_pod {
                 echo "tidb_test build finished: ${ghprbActualCommit}"
                 """
             }
-            parallel(
-                "common_test": {
+
+            tests["trigger common_test"] = {
                     def built1 = build(job: "tidb_ghpr_integration_common_test", wait: true, propagate: false, parameters: tidb_params)
                     println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_common_test/${built1.number}/pipeline"
                     if (built.getResult() != 'SUCCESS') {
                         error "common_test failed"
                     }
-                },
-                "ddl_test": {
+            }
+            tests["trigger ddl_test"] =  {
                     def built2 = build(job: "tidb_ghpr_integration_ddl_test", wait: true, propagate: false, parameters: tidb_params)
                     println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_ddl_test/${built2.number}/pipeline"
                     if (built2.getResult() != 'SUCCESS') {
                         error "ddl_test failed"
                     }
-                },
-                "compatibility_test": {
+            }
+            tests["trigger compatibility_test"]= {
                     def built3 = build(job: "tidb_ghpr_integration_campatibility_test", wait: true, propagate: false, parameters: tidb_params)
                     println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_test_ghpr_integration_test/detail/tidb_ghpr_integration_campatibility_test/${built3.number}/pipeline"
-                    if (buil3.getResult() != 'SUCCESS') {
+                    if (built3.getResult() != 'SUCCESS') {
                         error "compatibility_test failed"
                     }
-                }
-            )
+            }
+
+            parallel tests
         }
     }
 }
