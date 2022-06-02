@@ -77,6 +77,9 @@ catchError {
                     if (release_info.containsKey("ticdc_commit") && release_info.ticdc_commit != "") {
                         sh "inv upload --dst refs/pingcap/tiflow/${release_info.ticdc_commit}/sha1 --content ${release_info.ticdc_commit}"
                     }
+                    if (release_info.containsKey("dm_commit") && release_info.dm_commit != "") {
+                        sh "inv upload --dst refs/pingcap/tiflow/${release_info.dm_commit}/sha1 --content ${release_info.dm_commit}"
+                    }
                     for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
                         sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
                     }
@@ -126,6 +129,7 @@ string(name: 'release_test__tools_commit', value: release_info.getOrDefault('too
 string(name: 'release_test__tiflash_commit', value: release_info.getOrDefault('tiflash_commit', '')),
 string(name: 'release_test__br_commit', value: release_info.getOrDefault('br_commit', '')),
 string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc_commit', ''))
+string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_commit', ''))
             ]
             echo("default params: ${default_params}")
             parallel(
@@ -183,6 +187,10 @@ string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc
                         if (release_info.ticdc_commit) {
                             build(job: "cdc_ghpr_integration_test", parameters: default_params)
                             build(job: "cdc_ghpr_kafka_integration_test", parameters: default_params)
+                        }
+                        if (release_info.dm_commit) {
+                            build(job: "dm_ghpr_new_test", parameters: default_params)
+                            build(job: "dm_compatibility_test", parameters: default_params)
                         }
                     },
                     Group7: {
