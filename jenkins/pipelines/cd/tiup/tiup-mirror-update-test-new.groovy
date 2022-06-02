@@ -20,7 +20,7 @@
 
 def get_hash = { hash_or_branch, repo ->
     if (DEBUG_MODE == "true") {
-        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_BRANCH} -s=github").trim()
+        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_BRANCH} -source=github").trim()
     } else {
         if (hash_or_branch.length() == 40) {
             return hash_or_branch
