@@ -19,12 +19,15 @@
 */
 
 def get_hash = { hash_or_branch, repo ->
-    if (hash_or_branch.length() == 40) {
-        return hash_or_branch
+    if (DEBUG_MODE == "true") {
+        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_BRANCH} -s=github").trim()
     } else {
-        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+        if (hash_or_branch.length() == 40) {
+            return hash_or_branch
+        } else {
+            return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+        }
     }
-
 }
 
 def tidb_sha1, tikv_sha1, pd_sha1, tidb_ctl_sha1, dm_sha1, tidb_binlog_sha1, platform, tag, tarball_name, tidb_version

@@ -1,7 +1,9 @@
 release_tag = params.VERSION
-
+source = FILE_SERVER_URL
 if (DEBUG_MODE == "true") {
     VERSION = "build-debug-mode"
+    release_tag = params.RELEASE_BRANCH
+    source = "github"
 }
 
 def clone_server_package = { arch, dst ->
@@ -48,7 +50,7 @@ def package_enterprise = { arch ->
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
     def hashes = [:]
     comps.each {
-        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+        hashes[it] = sh(returnStdout: true, script: "python gethash.py -repo=${it} -version=${release_tag} -s=${source}").trim()
     }
     def os = "linux"
     def dst = "tidb-enterprise-server-" + VERSION + "-linux-" + arch
@@ -80,7 +82,7 @@ def package_enterprise = { arch ->
         """
     }
 
-    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+    def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${release_tag} -s=${source}").trim()
     sh """
     wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${release_tag}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
     rm -rf tiflash
@@ -105,14 +107,14 @@ def package_tools = { plat, arch ->
 
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-    binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
-    pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
-    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+    binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${release_tag} -s=${source}").trim()
+    pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${release_tag} -s=${source}").trim()
+    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${release_tag} -s=${source}").trim()
     br_hash = ""
     if (VERSION >= "v5.2.0") {
-        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${release_tag} -s=${source}").trim()
     } else {
-        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
+        br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${release_tag} -s=${source}").trim()
     }
     mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
 
