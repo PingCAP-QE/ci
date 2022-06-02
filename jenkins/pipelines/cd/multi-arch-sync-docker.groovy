@@ -45,10 +45,7 @@ node('delivery') {
                     }
                     builds_community["push tidb-monitor-initializer community docker image"] = {
                         if (DEBUG_MODE == "true") {
-                            sh
-                            """
                             echo "DEBUG MODE:push tidb-monitor-initializer community docker image"
-                            """
                         } else {
                             libs.build_push_tidb_monitor_initializer_image()
                         }
@@ -56,10 +53,7 @@ node('delivery') {
                     }
                     builds_community["push tidb-monitor-reloader arm64"] = {
                         if (DEBUG_MODE == "true") {
-                            sh
-                            """
                             echo "DEBUG MODE:push tidb-monitor-reloader arm64"
-                            """
                         } else {
                             build job: 'build-arm-image',
                                     wait: true,
