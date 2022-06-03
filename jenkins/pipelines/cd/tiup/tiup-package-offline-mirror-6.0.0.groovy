@@ -7,7 +7,11 @@ if (DEBUG_MODE == "true") {
 }
 def get_hash = { repo ->
     if (DEBUG_MODE == "true") {
-        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${release_tag} -source=github").trim()
+        if(repo=="tidb-tools"){
+            return sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
+        }else{
+            return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${release_tag} -source=github").trim()
+        }
     } else {
         return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     }
