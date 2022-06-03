@@ -1,9 +1,11 @@
 release_tag = params.VERSION
+release_tag_actual = params.VERSION
 source = FILE_SERVER_URL
 if (DEBUG_MODE == "true") {
     VERSION = "build-debug-mode"
     release_tag = params.RELEASE_BRANCH
     source = "github"
+
 }
 
 def clone_server_package = { arch, dst ->
@@ -72,7 +74,7 @@ def package_enterprise = { arch ->
         """
 
         sh """
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/optimization/${release_tag}/${hashes[it]}/centos7/${it}-${os}-${arch}-enterprise.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${it}/optimization/${release_tag_actual}/${hashes[it]}/centos7/${it}-${os}-${arch}-enterprise.tar.gz
         tar -xzf ${it}-${os}-${arch}-enterprise.tar.gz
         tar -czf ${it}-server-linux-${arch}-enterprise.tar.gz -C bin/ \$(ls bin/)
         """
@@ -84,7 +86,7 @@ def package_enterprise = { arch ->
 
     def tiflash_hash = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${release_tag} -s=${source}").trim()
     sh """
-    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${release_tag}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
+    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${release_tag_actual}/${tiflash_hash}/centos7/tiflash-${os}-${arch}-enterprise.tar.gz
     rm -rf tiflash
     tar -xzf tiflash-linux-${arch}-enterprise.tar.gz
     rm -rf tiflash-linux-${arch}-enterprise.tar.gz
@@ -107,25 +109,25 @@ def package_tools = { plat, arch ->
 
     sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
-    binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${release_tag} -s=${source}").trim()
-    pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${release_tag} -s=${source}").trim()
-    tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${release_tag} -s=${source}").trim()
-    br_hash = ""
+    def binlog_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${release_tag} -s=${source}").trim()
+    def pd_hash = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${release_tag} -s=${source}").trim()
+    def tools_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=${release_tag} -s=${source}").trim()
+    def br_hash = ""
     if (VERSION >= "v5.2.0") {
         br_hash = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${release_tag} -s=${source}").trim()
     } else {
         br_hash = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${release_tag} -s=${source}").trim()
     }
-    mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
+    def mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
 
     clone_toolkit_package(arch, toolkit_dir)
 
     sh """
         mkdir -p ${toolkit_dir}/
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${release_tag}/${binlog_hash}/centos7/tidb-binlog-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag}/${br_hash}/centos7/br-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${release_tag_actual}/${binlog_hash}/centos7/tidb-binlog-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag_actual}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag_actual}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag_actual}/${br_hash}/centos7/br-linux-${arch}.tar.gz
         if [ ${arch} == 'amd64' ]; then
             wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
         fi;
@@ -195,13 +197,13 @@ node("delivery") {
 
         stage("build community tarball linux/arm64") {
             package_community("arm64")
-            if (release_tag >= "v4" || DEBUG_MODE == "true") {
+            if (release_tag_actual >= "v4") {
                 package_tools "community", "arm64"
             }
         }
 
         def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
-        if ((release_tag >= "v4" && !noEnterpriseList.contains(release_tag)) || DEBUG_MODE == "true") {
+        if (release_tag_actual >= "v4" && !noEnterpriseList.contains(release_tag_actual)) {
             stage("build enterprise tarball linux/amd64") {
                 package_enterprise("amd64")
                 package_tools "enterprise", "amd64"
