@@ -48,6 +48,10 @@ jobs:
             storageClassName: standard # in kind type cluster.
             volumeMode: Filesystem
           EOF
+      - name: Debug PR info
+        run: |
+          echo "source repo: ${{ github.event.pull_request.head.repo.html_url }}"
+          echo "source branch: ${GITHUB_HEAD_REF}"
       - name: Setup cluster reconciliation
         run: |
           kubectl apply -f - <<EOF > cat
@@ -60,7 +64,7 @@ jobs:
             interval: 15m
             ref:
               branch: ${GITHUB_HEAD_REF}
-            url: ${{ github.event.repository.html_url }}
+            url: ${{ github.event.pull_request.head.repo.html_url }}
             ignore: clusters/${{ matrix.cluster }}/flux-system/
           EOF
 
@@ -77,16 +81,20 @@ jobs:
           done
 
           # wait for jenkins server
-          while kubectl get pods  -l app.kubernetes.io/name=jenkins
+          until kubectl get pods  -l app.kubernetes.io/name=jenkins --all-namespaces
           do
             sleep 5
           done
           kubectl wait -l app.kubernetes.io/name=jenkins pods --for=condition=ready --all-namespaces --timeout=5m
-      - name: Debug failure
+      - name: Debug failure using kubectl
         if: failure()
         run: |
-          kubectl -n flux-system get all
+          kubectl get all --all-namespaces
           kubectl -n flux-system logs deploy/source-controller
           kubectl -n flux-system logs deploy/kustomize-controller
           kubectl -n flux-system logs deploy/helm-controller
+      - name: Debug failure using flux
+        if: failure()
+        run: |
           flux get all --all-namespaces
+          flux logs --all-namespaces
