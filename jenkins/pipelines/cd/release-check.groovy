@@ -10,6 +10,7 @@
 * @TOOLS_VERSION
 * @CDC_VERSION
 * @DUMPLING_VERSION
+* @DM_VERSION
 * @RELEASE_TAG
 */
 
@@ -132,8 +133,9 @@ stage("prepare") {
   "tikv-importer_commit": "${IMPORTER_VERSION}",
   "tidb-tools_commit": "${TOOLS_VERSION}",
   "ticdc_commit": "${CDC_VERSION}",
-  "dumpling_commit": "${DUMPLING_VERSION}"
-  "pd_commit": "${PD_VERSION}"
+  "dumpling_commit": "${DUMPLING_VERSION}",
+  "pd_commit": "${PD_VERSION}",
+  "dm_commit": "${DM_VERSION}",
 }
 __EOF__
                         """
