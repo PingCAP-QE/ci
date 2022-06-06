@@ -228,15 +228,9 @@ try {
                                 waitUntil{
                                     (fileExists('importer.done') || fileExists('importer.fail')) && (fileExists('tidb-server-check.done') || fileExists('tidb-server-check.fail'))
                                 }
-                                if (ghprbTargetBranch == "master") {
-                                    sh """
-                                    ls bazel-out
-                                    """
-                                } else {
-                                    sh """
-                                    ls bin
-                                    """
-                                }
+                                sh """
+                                ls bin
+                                """
                                 if (fileExists('importer.fail') ){
                                     sh """
                                     cat importer.log
