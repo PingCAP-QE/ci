@@ -36,6 +36,7 @@ component_list = (
     Components.importer,
     Components.ticdc,
     Components.dumpling,
+    Components.dm
 )
 
 

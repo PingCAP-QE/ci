@@ -7,7 +7,6 @@ from .types import Components
 
 tiup_cmd = "$HOME/.tiup/bin/tiup"  # easier than setup and unset enviorment variable
 
-
 # component name in hashfile may differ from component in tiup mirror
 COMP_MAP = {  # TODO: map component names tie to time is annoying, any better solution?
     Components.pd: ["pd"],
@@ -19,6 +18,7 @@ COMP_MAP = {  # TODO: map component names tie to time is annoying, any better so
     Components.binlog: ["pump", "drainer"],
     Components.ticdc: ["cdc"],
     Components.lightning: ["tidb-lightning"],
+    Components.dm: ["dm-master","dm-worker"]
 }
 
 

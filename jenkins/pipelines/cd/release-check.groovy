@@ -17,7 +17,7 @@ def task = "release-check"
 def check_image = { comps, edition, registry ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master',alwaysPullImage: true, envVars: [
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master', alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
     ]) {
@@ -49,7 +49,7 @@ def check_pingcap = { arch, edition ->
         def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         def label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,alwaysPullImage: true,
+                containerTemplate(name: 'main', image: imageName, alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -74,11 +74,29 @@ def check_tiup = { comps, label ->
                 }
             }
         }
+    } else if (label == "darwin-arm64") {
+        nodeLabel = "mac-arm"
+        containerLabel = ""
+        if (params.PRODUCT == "tics"){
+            nodeLabel = "mac-arm-tiflash"
+        }
+        node(label){
+            container(container){
+                unstash 'qa'
+                dir("qa/release-checker/checker") {
+                    comps.each {
+                        sh """
+                            python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
+                            """
+                    }
+                }
+            }
+        }
     } else {
         def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         label = task + "-tiflash"
         podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
-                containerTemplate(name: 'main', image: imageName,alwaysPullImage: true,
+                containerTemplate(name: 'main', image: imageName, alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -115,6 +133,7 @@ stage("prepare") {
   "tidb-tools_commit": "${TOOLS_VERSION}",
   "ticdc_commit": "${CDC_VERSION}",
   "dumpling_commit": "${DUMPLING_VERSION}"
+  "pd_commit": "${PD_VERSION}"
 }
 __EOF__
                         """
@@ -132,94 +151,55 @@ __EOF__
     }
 }
 parallel(
-//        "Image Community Docker [tidb,tikv,pd]": {
-//            check_image(["tidb", "tikv", "pd"], "community", "registry.hub.docker.com")
-//        },
-//        "Image Community Docker [tiflash]": {
-//            check_image(["tiflash"], "community", "registry.hub.docker.com")
-//        },
-//        "Image Community Docker [br,binlog,lightning,cdc,dumpling]": {
-//            check_image(["br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "registry.hub.docker.com")
-//        },
-//        "Image Enterprise Docker [tidb,tikv,pd]": {
-//            check_image(["tidb", "tikv", "pd"], "enterprise", "registry.hub.docker.com")
-//        },
-//        "Image Enterprise Docker [tiflash]": {
-//            check_image(["tiflash"], "enterprise", "registry.hub.docker.com")
-//        },
-//        "Image Enterprise Docker [binlog,lightning,cdc]": {
-//            check_image(["tidb-binlog", "tidb-lightning", "ticdc"], "enterprise", "registry.hub.docker.com")
-//        },
-//        "Image Community Ucloud [tidb,tikv,pd]": {
-//            check_image(["tidb", "tikv", "pd"], "community", "uhub.service.ucloud.cn")
-//        },
-//        "Image Community Ucloud [tiflash]": {
-//            check_image(["tiflash"], "community", "uhub.service.ucloud.cn")
-//        },
-//        "Image Community Ucloud [br,binlog,lightning,cdc,dumpling]": {
-//            check_image(["br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "uhub.service.ucloud.cn")
-//        },
-//        "Tiup Linux Amd64 [tidb,tikv,pd]": {
-//            check_tiup(["tidb", "tikv", "pd"], task)
-//        },
-
-//        "Tiup Linux Amd64 [tiflash]": {
-//            check_tiup(["tiflash"], task)
-//        },
-//        "Tiup Linux Amd64 [br,binlog,lightning,importer,cdc,dumpling]": {
-//            check_tiup(["br", "tidb-binlog", "tidb-lightning", "tikv-importer", "ticdc", "dumpling"], task)
-//        },
-//        "Tiup Linux Amd64 [tidb,tikv,pd]": {
-//            check_tiup(["tidb", "tikv", "pd"], task)
-//        },
-//        "Tiup Linux Arm64 [tidb,tikv,pd]": {
-//            check_tiup(["tidb", "tikv", "pd"], "arm")
-//        },
-//        "Tiup Linux Arm64 [tiflash]": {
-//            check_tiup(["tiflash"], "arm")
-//        },
-//        "Tiup Linux Arm64 [br,binlog,lightning,cdc,dumpling]": {
-//            check_tiup(["br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "arm")
-//        },
-//        "Tiup Darwin Amd64 [tidb,tikv,pd]": {
-//            check_tiup(["tidb", "tikv", "pd"], "mac")
-//        },
-//        "Tiup Darwin Amd64 [tiflash]": {
-//            check_tiup(["tiflash"], "mac")
-//        },
-//        "Tiup Darwin Amd64 [br,binlog,lightning,cdc,dumpling]": {
-//            check_tiup(["br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac")
-//        },
-        "Image Community Docker": {
-            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "registry.hub.docker.com")
+        "Image Community Docker test": {
+            check_image(["dm"], "community", "registry.hub.docker.com")
         },
-        "Image Enterprise Docker": {
-            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "enterprise", "registry.hub.docker.com")
+        "Image Community Ucloud test": {
+            check_image(["dm"], "community", "uhub.service.ucloud.cn")
         },
-        "Image Community Ucloud": {
-            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "community", "uhub.service.ucloud.cn")
+        "Tiup Linux Amd64 test": {
+            check_tiup(["dm"], task)
+        },
+        "Tiup Darwin Arm64 test": {
+            check_tiup(["dm"], "darwin-arm64")
         },
 
-        "Tiup Linux Amd64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], task)
-        },
-        "Tiup Linux Arm64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "arm")
-        },
-        "Tiup Darwin Amd64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac")
-        },
-
-        "Pingcap Community Linux Amd64": {
-            check_pingcap("linux-amd64", "community")
-        },
-        "Pingcap Enterprise Linux Amd64": {
-            check_pingcap("linux-amd64", "enterprise")
-        },
-        "Pingcap Community Linux Arm64": {
-            check_pingcap("linux-arm64", "community")
-        },
-        "Pingcap Enterprise Linux Arm64": {
-            check_pingcap("linux-arm64", "enterprise")
-        }
+////        image 校验
+//        "Image Community Docker": {
+//            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling", "dm"], "community", "registry.hub.docker.com")
+//        },
+////        "Image Enterprise Docker": {
+////            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling","dm"], "enterprise", "registry.hub.docker.com")
+////        },
+//        "Image Community Ucloud": {
+//            check_image(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling", "dm"], "community", "uhub.service.ucloud.cn")
+//        },
+//
+////        TiUP 在线包校验
+//        "Tiup Linux Amd64": {
+//            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling","dm"], task)
+//        },
+//        "Tiup Linux Arm64": {
+//            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling","dm"], "arm")
+//        },
+//        "Tiup Darwin Amd64": {
+//            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac")
+//        },
+//        "Tiup Darwin Arm64": {
+//            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "darwin-arm64")
+//        },
+//
+////        TiUp 离线包校验
+////        "Pingcap Community Linux Amd64": {
+////            check_pingcap("linux-amd64", "community")
+////        },
+////        "Pingcap Enterprise Linux Amd64": {
+////            check_pingcap("linux-amd64", "enterprise")
+////        },
+////        "Pingcap Community Linux Arm64": {
+////            check_pingcap("linux-arm64", "community")
+////        },
+////        "Pingcap Enterprise Linux Arm64": {
+////            check_pingcap("linux-arm64", "enterprise")
+////        }
 )
