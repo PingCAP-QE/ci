@@ -81,7 +81,7 @@ def check_tiup = { comps, label ->
         if (params.PRODUCT == "tics"){
             nodeLabel = "mac-arm-tiflash"
         }
-        node(label){
+        node(nodeLabel){
             container(container){
                 unstash 'qa'
                 dir("qa/release-checker/checker") {
