@@ -189,8 +189,8 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
                             build(job: "cdc_ghpr_kafka_integration_test", parameters: default_params)
                         }
                         if (release_info.dm_commit) {
-                            build(job: "dm_ghpr_new_test", parameters: default_params)
-                            build(job: "dm_compatibility_test", parameters: default_params)
+                            build(job: "dm_ghpr_integration_test", parameters: default_params)
+                            build(job: "dm_ghpr_compatibility_test", parameters: default_params)
                         }
                     },
                     Group7: {
