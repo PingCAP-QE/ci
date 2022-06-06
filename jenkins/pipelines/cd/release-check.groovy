@@ -76,17 +76,13 @@ def check_tiup = { comps, label ->
             }
         }
     } else if (label == "darwin-arm64") {
-        nodeLabel = "mac-arm"
-        containerLabel = ""
-        if (params.PRODUCT == "tics") {
-            nodeLabel = "mac-arm-tiflash"
-        }
+        nodeLabel = "mac-arm-tiflash"
         node(nodeLabel) {
             unstash 'qa'
             dir("qa/release-checker/checker") {
                 comps.each {
                     sh """
-                            python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
+                            /opt/homebrew/bin/python3 main.py tiup -c $it ${RELEASE_TAG}.json ${RELEASE_TAG}
                             """
                 }
             }
