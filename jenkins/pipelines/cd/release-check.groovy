@@ -134,8 +134,7 @@ stage("prepare") {
   "tidb-tools_commit": "${TOOLS_VERSION}",
   "ticdc_commit": "${CDC_VERSION}",
   "dumpling_commit": "${DUMPLING_VERSION}",
-  "pd_commit": "${PD_VERSION}",
-  "dm_commit": "${DM_VERSION}",
+  "dm_commit": "${DM_VERSION}"
 }
 __EOF__
                         """
