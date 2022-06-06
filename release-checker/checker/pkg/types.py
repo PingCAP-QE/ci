@@ -11,3 +11,5 @@ class Components:
     importer = "tikv-importer"
     ticdc = "ticdc"
     dumpling = "dumpling"
+
+    dm="dm"
