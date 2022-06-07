@@ -128,7 +128,7 @@ string(name: 'release_test__importer_commit', value: release_info.getOrDefault('
 string(name: 'release_test__tools_commit', value: release_info.getOrDefault('tools_commit', '')),
 string(name: 'release_test__tiflash_commit', value: release_info.getOrDefault('tiflash_commit', '')),
 string(name: 'release_test__br_commit', value: release_info.getOrDefault('br_commit', '')),
-string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc_commit', ''))
+string(name: 'release_test__cdc_commit', value: release_info.getOrDefault('ticdc_commit', '')),
 string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_commit', ''))
             ]
             echo("default params: ${default_params}")
