@@ -18,25 +18,39 @@ if (params.containsKey("release_test")) {
 }
 
 GO_VERSION = "go1.18"
+RESOURCE_REQUEST_CPU = '6000m'
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220606",
 ]
 POD_LABEL_MAP = [
     "go1.13": "tidb-ghpr-unit-test-go1130-${BUILD_NUMBER}",
     "go1.16": "tidb-ghpr-unit-test-go1160-${BUILD_NUMBER}",
     "go1.18": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
+    "bazel_master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
 ]
+VOLUMES = [
+                nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                emptyDirVolume(mountPath: '/tmp', memory: false),
+            ]
 
 node("master") {
-    deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
-    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    if (ghprbTargetBranch == "master") { 
+        GO_VERSION = "bazel_master"
+        RESOURCE_REQUEST_CPU = '4000m'
+    } else {
+        deleteDir()
+        def ws = pwd()
+        sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+        def script_path = "${ws}/goversion-select-lib.groovy"
+        def goversion_lib = load script_path
+        GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+        VOLUMES.append(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
+    }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
@@ -56,7 +70,7 @@ def run_with_pod(Closure body) {
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '6000m', resourceRequestMemory: '16Gi',
+                            resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
                     ),
@@ -67,12 +81,7 @@ def run_with_pod(Closure body) {
                             command: '/bin/sh -c', args: 'cat', 
                     )
             ],
-            volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                            emptyDirVolume(mountPath: '/tmp', memory: false),
-                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+            volumes: VOLUMES,
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -170,56 +179,73 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     try {
-                        sh """
-                        ulimit -c unlimited
-                        export GOBACTRACE=crash
-                        export log_level=warn
-                        
-                        if grep -q "br_unit_test_in_verify_ci" Makefile; then
-                            make br_unit_test_in_verify_ci
-                            mv test_coverage/br_cov.unit_test.out br.coverage
-                        elif grep -q "br_unit_test" Makefile; then
-                            make br_unit_test
-                        else
-                            echo "not found br_unit_test or br_unit_test_in_verify_ci"
-                        fi
+                        if (ghprbTargetBranch == "master") { 
+                            sh """
+                                ./build/jenkins_unit_test.sh
+                            """
+                        } else {
+                            sh """
+                                ulimit -c unlimited
+                                export GOBACTRACE=crash
+                                export log_level=warn
 
-                        if grep -q "dumpling_unit_test_in_verify_ci" Makefile; then
-                            make dumpling_unit_test_in_verify_ci
-                            mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
-                        elif grep -q "dumpling_unit_test" Makefile; then
-                            make dumpling_unit_test
-                        else
-                            echo "not found dumpling_unit_test or dumpling_unit_test_in_verify_ci"
-                        fi
-
-                        if grep -q "gotest_in_verify_ci" Makefile; then
-                            make gotest_in_verify_ci
-                            mv test_coverage/tidb_cov.unit_test.out tidb.coverage
-                        else
-                            make gotest
-                        fi
-
-                        """
+                                if grep -q "br_unit_test_in_verify_ci" Makefile; then
+                                    make br_unit_test_in_verify_ci
+                                    mv test_coverage/br_cov.unit_test.out br.coverage
+                                elif grep -q "br_unit_test" Makefile; then
+                                    make br_unit_test
+                                else
+                                    echo "not found br_unit_test or br_unit_test_in_verify_ci"
+                                fi
+                                if grep -q "dumpling_unit_test_in_verify_ci" Makefile; then
+                                    make dumpling_unit_test_in_verify_ci
+                                    mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                                elif grep -q "dumpling_unit_test" Makefile; then
+                                    make dumpling_unit_test
+                                else
+                                    echo "not found dumpling_unit_test or dumpling_unit_test_in_verify_ci"
+                                fi
+                                if grep -q "gotest_in_verify_ci" Makefile; then
+                                    make gotest_in_verify_ci
+                                    mv test_coverage/tidb_cov.unit_test.out tidb.coverage
+                                else
+                                    make gotest
+                                fi
+                                """
+                            } 
                     }catch (Exception e) {
                         archiveArtifacts artifacts: '**/core.*', allowEmptyArchive: true
                         archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
-                        junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
-
-                        upload_test_result("test_coverage/tidb-junit-report.xml")
-                        upload_test_result("test_coverage/br-junit-report.xml")
-                        upload_test_result("test_coverage/dumpling-junit-report.xml")
+                        if (ghprbTargetBranch == "master") {
+                            junit testResults: "**/bazel.xml", allowEmptyResults: true
+                            upload_test_result("test_coverage/bazel.xml")
+                        } else {
+                            junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
+                            upload_test_result("test_coverage/tidb-junit-report.xml")
+                            upload_test_result("test_coverage/br-junit-report.xml")
+                            upload_test_result("test_coverage/dumpling-junit-report.xml")
+                        }
                     }
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(5) {
-                            if (fileExists("dumpling.coverage") && fileExists("br.coverage") && fileExists("tidb.coverage")) {
-                                if (ghprbPullId != null && ghprbPullId != "") {
+                            if (ghprbPullId != null && ghprbPullId != "") {
+                                if (ghprbTargetBranch == "master") {
+                                    sh """
+                                    codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
+                                    """
+                                } else {
                                     sh """
                                     curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
                                     chmod +x codecov
                                     ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage"  -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
+                                    """
+                                }
+                            } else {
+                                if (ghprbTargetBranch == "master") {
+                                    sh """
+                                    codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                     """
                                 } else {
                                     sh """
@@ -227,7 +253,7 @@ try {
                                     chmod +x codecov
                                     ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                     """
-                                }
+                                }     
                             }
                         }
                     }
