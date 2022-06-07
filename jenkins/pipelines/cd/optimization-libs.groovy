@@ -364,7 +364,7 @@ def enterprise_docker_sync_gcr(source, type) {
             //- vX.Y.Z-yyyymmdd，举例：v6.1.0-20220524
             //- 特例：tidb-monitor-initializer 镜像格式要求，vX.Y.Z，举例：v6.1.0 （每次覆盖即可，这个问题是DBaaS上历史问题）
             def dest_image = "gcr.io/pingcap-public/dbaas/${image}:${imageTag}"
-            if (!dest_image.contains("tidb-monitor-initializer-enterprise")) {
+            if (!dest_image.contains("tidb-monitor-initializer")) {
                 dest_image = dest_image + "-" + day + "-" + ts10
             }
 
