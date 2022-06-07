@@ -53,7 +53,7 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:202206042",
+    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220606",
 ]
 VOLUMES = [
                 nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
