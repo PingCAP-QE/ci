@@ -6,6 +6,19 @@
     * CODECOV_TOKEN (set default in jenkins admin)
 */
 
+
+echo "release test: ${params.containsKey("release_test")}"
+
+if (params.containsKey("release_test")) {
+    ghprbActualCommit = params.release_test__cdc_commit
+    ghprbTargetBranch = params.release_test__release_branch
+    ghprbPullId = ""
+    ghprbCommentBody = ""
+    ghprbPullLink = "release-test"
+    ghprbPullTitle = "release-test"
+    ghprbPullDescription = "release-test"
+}
+
 specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 if (ghprbPullId == null || ghprbPullId == "") {
     specStr = "+refs/heads/*:refs/remotes/origin/*"

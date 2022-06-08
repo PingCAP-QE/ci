@@ -1,3 +1,16 @@
+echo "release test: ${params.containsKey("release_test")}"
+
+if (params.containsKey("release_test")) {
+    ghprbActualCommit = params.release_test__cdc_commit
+    ghprbTargetBranch = params.release_test__release_branch
+    ghprbPullId = ""
+    ghprbCommentBody = ""
+    ghprbPullLink = "release-test"
+    ghprbPullTitle = "release-test"
+    ghprbPullDescription = "release-test"
+}
+
+
 def TIDB_BRANCH = "master"
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
 
