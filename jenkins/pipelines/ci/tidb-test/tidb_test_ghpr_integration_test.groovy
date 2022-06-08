@@ -300,6 +300,9 @@ run_with_toolkit_pod {
             tests["Beego ORM Test"] = {
                 run("beego_orm_test", "beegoormtest", "./test.sh")
             }
+            tests["Upper DB ORM Test"] = {
+                run("upper_db_orm_test", "upperdbormtest", "./test.sh")
+            }
 
             println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
