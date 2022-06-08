@@ -6,6 +6,19 @@
     * CODECOV_TOKEN (set default in jenkins admin)
 */
 
+
+echo "release test: ${params.containsKey("release_test")}"
+
+if (params.containsKey("release_test")) {
+    ghprbActualCommit = params.release_test__dm_commit
+    ghprbTargetBranch = params.release_test__release_branch
+    ghprbPullId = ""
+    ghprbCommentBody = ""
+    ghprbPullLink = "release-test"
+    ghprbPullTitle = "release-test"
+    ghprbPullDescription = "release-test"
+}
+
 specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 if (ghprbPullId == null || ghprbPullId == "") {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
@@ -60,19 +73,19 @@ def pattern_match_any_file(pattern, files_list) {
     return false
 }
 
-
-def pr_diff_files = list_pr_diff_files()
-def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
-// if any diff files start with dm/ or pkg/ , run the dm integration test
-def matched = pattern_match_any_file(pattern, pr_diff_files)
-if (matched) {
-    echo "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm integration test"
-} else {
-    echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
-    currentBuild.result = 'SUCCESS'
-    return 0
+if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
+    def pr_diff_files = list_pr_diff_files()
+    def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
+    // if any diff files start with dm/ or pkg/ , run the dm integration test
+    def matched = pattern_match_any_file(pattern, pr_diff_files)
+    if (matched) {
+        echo "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm integration test"
+    } else {
+        echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
+        currentBuild.result = 'SUCCESS'
+        return 0
+    }
 }
-
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
