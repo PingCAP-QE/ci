@@ -41,11 +41,10 @@ def run_test_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
-                        image: go_image, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '8', resourceRequestMemory: '14Gi',
+                        name: 'golang', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
+                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '8', resourceRequestMemory: '16Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
             volumes: [
