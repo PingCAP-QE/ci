@@ -1,7 +1,7 @@
 echo "release test: ${params.containsKey("release_test")}"
 
 if (params.containsKey("release_test")) {
-    ghprbActualCommit = params.release_test__cdc_commit
+    ghprbActualCommit = params.release_test__dm_commit
     ghprbTargetBranch = params.release_test__release_branch
     ghprbPullId = ""
     ghprbCommentBody = ""
