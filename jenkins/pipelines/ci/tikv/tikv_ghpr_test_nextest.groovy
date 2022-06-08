@@ -43,7 +43,7 @@ def run_test_with_pod(Closure body) {
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
                         image: go_image, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '4', resourceRequestMemory: '14Gi',
+                        resourceRequestCpu: '8', resourceRequestMemory: '14Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
@@ -314,7 +314,7 @@ stage('Test') {
 
                         time cargo install cargo-nextest --version 0.9.16
 
-                        if cargo nextest run --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${chunk_count} --retries 2 ; then
+                        if cargo nextest run --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${chunk_count} --retries 2 -j 6; then
                             echo "test pass"
                         else
                             # test failed
