@@ -21,10 +21,10 @@ def clone_server_package = { arch, dst ->
     sh """
     tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
-    --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager v0.17.0 \
-    --blackbox_exporter v0.12.0 --prometheus $VERSION --node_exporter v0.17.0 \
-    --tiup v1.9.4 --cluster v1.9.4  --insight v0.4.1 --diag v0.7.0 --influxdb v1.8.9 \
-    --playground v1.9.4
+    --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager latest \
+    --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
+    --tiup latest --cluster latest  --insight latest --diag latest --influxdb latest \
+    --playground latest
     """
 }
 
@@ -32,10 +32,10 @@ def clone_toolkit_package = { arch, dst ->
     sh """
     tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
-    --tiup v1.9.4 --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
-    --dm-master $VERSION --dmctl $VERSION --dm v1.9.4 --br $VERSION --spark v2.4.3 \
-    --tispark v2.4.1 --package v0.0.9  --bench v1.9.4 --errdoc v4.0.7 --dba v1.0.4 \
-    --PCC 1.0.1 --pump $VERSION --drainer $VERSION 
+    --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
+    --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
+    --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
+    --PCC latest --pump $VERSION --drainer $VERSION 
     """
 }
 
