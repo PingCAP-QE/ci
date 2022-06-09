@@ -220,12 +220,12 @@ try {
                     } finally {
                         if (ghprbTargetBranch == "master") {
                             junit testResults: "**/bazel.xml", allowEmptyResults: true
-                            upload_test_result("test_coverage/bazel.xml")
+                            // upload_test_result("test_coverage/bazel.xml")
                         } else {
                             junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
-                            upload_test_result("test_coverage/tidb-junit-report.xml")
-                            upload_test_result("test_coverage/br-junit-report.xml")
-                            upload_test_result("test_coverage/dumpling-junit-report.xml")
+                            // upload_test_result("test_coverage/tidb-junit-report.xml")
+                            // upload_test_result("test_coverage/br-junit-report.xml")
+                            // upload_test_result("test_coverage/dumpling-junit-report.xml")
                         }
                     }
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
