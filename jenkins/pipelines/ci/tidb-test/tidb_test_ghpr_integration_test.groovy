@@ -303,6 +303,9 @@ run_with_toolkit_pod {
             tests["Upper DB ORM Test"] = {
                 run("upper_db_orm_test", "upperdbormtest", "./test.sh")
             }
+            tests["XORM Test"] = {
+                run("xorm_test", "xormtest", "./test.sh")
+            }
 
             println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
