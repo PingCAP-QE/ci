@@ -496,8 +496,8 @@ def prepareStage(repo_path) {
                     rm -rf ~/.rustup/toolchains
                     mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
                     mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-                    ln -s /home/jenkins/agent/rust/rustup-env/tmp /root/.rustup/tmp
-                    ln -s /home/jenkins/agent/rust/rustup-env/toolchains /root/.rustup/toolchains
+                    ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
+                    ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
 
                     """
                 }                
