@@ -115,7 +115,7 @@ def upload_test_result(reportDir) {
             author: ghprbPullAuthorLogin
         ]
         def json = groovy.json.JsonOutput.toJson(all_results)
-        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.5.14:30792/report/", validResponseCodes: '200'
+        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.4.15:30792/report/", validResponseCodes: '200'
     }catch (Exception e) {
         // upload test case result to tipipeline, do not block ci
         print "upload test result to tipipeline failed, continue."
