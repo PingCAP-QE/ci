@@ -491,6 +491,14 @@ def prepareStage(repo_path) {
                     rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index 
                     rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
                     rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
+                    
+                    rm -rf ~/.rustup/tmp
+                    rm -rf ~/.rustup/toolchains
+                    mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
+                    mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
+                    ln -s /home/jenkins/agent/rust/rustup-env/tmp /root/.rustup/tmp
+                    ln -s /home/jenkins/agent/rust/rustup-env/toolchains /root/.rustup/toolchains
+
                     """
                 }                
             }
