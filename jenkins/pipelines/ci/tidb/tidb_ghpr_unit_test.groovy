@@ -115,7 +115,7 @@ def upload_test_result(reportDir) {
             author: ghprbPullAuthorLogin
         ]
         def json = groovy.json.JsonOutput.toJson(all_results)
-        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.5.14:30792/report/", validResponseCodes: '200'
+        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.4.15:30792/report/", validResponseCodes: '200'
     }catch (Exception e) {
         // upload test case result to tipipeline, do not block ci
         print "upload test result to tipipeline failed, continue."
@@ -220,12 +220,12 @@ try {
                     } finally {
                         if (ghprbTargetBranch == "master") {
                             junit testResults: "**/bazel.xml", allowEmptyResults: true
-                            upload_test_result("test_coverage/bazel.xml")
+                            // upload_test_result("test_coverage/bazel.xml")
                         } else {
                             junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
-                            upload_test_result("test_coverage/tidb-junit-report.xml")
-                            upload_test_result("test_coverage/br-junit-report.xml")
-                            upload_test_result("test_coverage/dumpling-junit-report.xml")
+                            // upload_test_result("test_coverage/tidb-junit-report.xml")
+                            // upload_test_result("test_coverage/br-junit-report.xml")
+                            // upload_test_result("test_coverage/dumpling-junit-report.xml")
                         }
                     }
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
