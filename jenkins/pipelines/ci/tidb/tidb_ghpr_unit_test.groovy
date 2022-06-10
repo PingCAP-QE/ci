@@ -33,10 +33,10 @@ POD_LABEL_MAP = [
     "bazel_master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
 ]
 VOLUMES = [
-                nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                emptyDirVolume(mountPath: '/tmp', memory: false),
-            ]
+    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+    emptyDirVolume(mountPath: '/tmp', memory: false),
+]
 
 node("master") {
     if (ghprbTargetBranch == "master") { 
@@ -49,7 +49,7 @@ node("master") {
         def script_path = "${ws}/goversion-select-lib.groovy"
         def goversion_lib = load script_path
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-        VOLUMES.append(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
+        VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
     }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
