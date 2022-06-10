@@ -11,7 +11,7 @@ if (params.containsKey("release_test")) {
 }
 
 def notRun = 1
-def chunk_count = 20
+def chunk_count = 3
 
 def pod_image_param = ghprbTargetBranch
 
@@ -41,11 +41,10 @@ def run_test_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
-                        image: go_image, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '2000m', resourceRequestMemory: '14Gi',
+                        name: 'golang', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
+                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '8', resourceRequestMemory: '16Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
             volumes: [
@@ -202,20 +201,11 @@ stage("Prepare") {
 
                     set -o pipefail
 
-                    test="test"
-                    if grep ci_test Makefile; then
-                        test="ci_test"
-                    fi
-                    if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
-                        set +o pipefail
-                    else
-                        if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
-                            set +o pipefail
-                        else
-                            EXTRA_CARGO_ARGS="--no-run" make test
-                            exit 1
-                        fi
-                    fi
+                    time cargo install cargo-nextest --version 0.9.16
+                    # Build and generate a list of binaries
+                    CARGO_TEST_COMMAND="nextest list --message-format json --list-type binaries-only" make test | grep -E '^{.+}\$' > test.json
+                    # Cargo metadata
+                    cargo metadata --format-version 1 > test-metadata.json
                     """
 
                     sh label: 'Post-build: Check SSE instructions', script: """
@@ -239,77 +229,41 @@ import sys
 import subprocess
 import json
 import multiprocessing
-chunk_count = ${chunk_count}
-scores = list()
-def score(bin, l):
-    if "integration" in bin or "failpoint" in bin:
-        if "test_split_region" in l:
-            return 50
-        else:
-            return 20
-    elif "deps/tikv-" in bin:
-        return 10
-    else:
-        return 1
-def write_to(part):
-    f = open("test-chunk-%d" % part, 'w')
-    f.write("#/usr/bin/env bash\\n")
-    f.write("set -ex\\n")
+
+def open_writer(path):
+    f = open(path, 'w')
     return f
 def upload(bin):
     return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER_URL}/upload"])
-total_score=0
+
+merged_dict={ "rust-binaries": {} }
 visited_files=set()
-with open('test.json', 'r') as f:
-    for l in f:
-        if "proc-macro" in l:
-            continue
-        meta = json.loads(l)
-        if "profile" in meta and meta["profile"]["test"]:
-            for bin in meta["filenames"]:
+pool = multiprocessing.Pool(processes=4)
+with open('test-binaries', 'w') as writer:
+    with open('test.json', 'r') as f:
+        for l in f:
+            all = json.loads(l)
+            binaries = all["rust-binaries"]
+            if not "rust-build-meta" in merged_dict:
+                merged_dict["rust-build-meta"] = all["rust-build-meta"]
+            for (name, meta) in binaries.items():
+                if meta["kind"] == "proc-macro":
+                    continue
+                bin = meta["binary-path"]
+                
                 if bin in visited_files:
                     continue
                 visited_files.add(bin)
-                cases = subprocess.check_output([bin, '--list']).splitlines()
-                if len(cases) < 2:
-                    continue
-                cases = list(c[:c.index(': ')] for c in cases if ': ' in c)
-                bin_score = sum(score(bin, c) for c in cases)
-                scores.append((bin, cases, bin_score))
-                total_score += bin_score
-chunk_score = total_score / chunk_count
-current_chunk_score=0
-part=0
-writer = write_to(part)
-pool = multiprocessing.Pool(processes=2)
-scores.sort(key=lambda t: t[0])
-for bin, cases, bin_score in scores:
-    pool.apply_async(upload, (bin,))
-    if current_chunk_score + bin_score <= chunk_score:
-        writer.write("%s --test --nocapture\\n" % bin)
-        current_chunk_score += bin_score
-        continue
-    batch_cases = list()
-    for c in cases:
-        c_score = score(bin, c)
-        if current_chunk_score + c_score > chunk_score and part < chunk_count and batch_cases:
-            writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
-            current_chunk_score = 0
-            part += 1
-            writer.close()
-            writer = write_to(part)
-            batch_cases = list()
-        batch_cases.append(c)
-        current_chunk_score += c_score
-    if batch_cases:
-        writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+                merged_dict["rust-binaries"][name] = meta
+                writer.write("%s\\n" % bin)
+                pool.apply_async(upload, (bin,))
 pool.close()
-writer.close()
 pool.join()
+with open('test-binaries.json', 'w') as f:
+    json.dump(merged_dict, f)
 EOF
-                    chmod a+x test-chunk-*
-                    tar czf test-chunk.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
-                    curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER_URL}/upload
+                    tar czf test-artifacts.tar.gz test-binaries* test-metadata.json src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
+                    curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
                     echo 1 > cached_build_passed
                     curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
                     """
@@ -332,51 +286,41 @@ EOF
 
 stage('Test') {
     def run_test = { chunk_suffix ->
-        retry(3) { 
-            run_test_with_pod {
-                dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                    container("golang") {
-                        println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
-                        deleteDir()
-                        timeout(15) {
-                            sh """
-                            # set -o pipefail
-                            ln -s `pwd` \$HOME/tikv-src
-                            uname -a
-                            export RUSTFLAGS=-Dwarnings
-                            export FAIL_POINT=1
-                            export RUST_BACKTRACE=1
-                            export MALLOC_CONF=prof:true,prof_active:false
-                            mkdir -p target/debug
-                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
-                            tar xf test-chunk.tar.gz
-                            ls -la
-                            if [[ ! -f test-chunk-${chunk_suffix} ]]; then
-                                if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
-                                exit
-                                else
-                                echo test-chunk-${chunk_suffix} not found
-                                exit 1
-                                fi
-                            fi
-                            for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
-                                chmod +x \$i;
-                            done
-                            CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
-                            chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
-                            ok_count=`grep "test result: ok" tests.out | wc -l`
-                            if [ "\$chunk_count" -eq "\$ok_count" ]; then
-                                echo "test pass"
-                            else
-                                # test failed
-                                grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
-                                awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
-                                gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
-                                exit 1
-                            fi
-                            """
-                        }
+        run_test_with_pod {
+            dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                container("golang") {
+                    println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
+                    deleteDir()
+                    timeout(15) {
+                        sh """
+                        # set -o pipefail
+                        ln -s `pwd` \$HOME/tikv-src
+                        uname -a
+                        export RUSTFLAGS=-Dwarnings
+                        export FAIL_POINT=1
+                        export RUST_BACKTRACE=1
+                        export MALLOC_CONF=prof:true,prof_active:false
+                        export CI=1
+                        export LOG_FILE=target/my_test.log
+                        mkdir -p target/debug
+                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                        tar xf test-artifacts.tar.gz
+                        ls -la
+                        for i in `cat test-binaries`; do
+                            curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                            chmod +x \$i;
+                        done
+
+                        time cargo install cargo-nextest --version 0.9.16
+
+                        if cargo nextest run --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${chunk_count} --retries 2 -j 6; then
+                            echo "test pass"
+                        else
+                            # test failed
+                            gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                            exit 1
+                        fi
+                        """
                     }
                 }
             }
