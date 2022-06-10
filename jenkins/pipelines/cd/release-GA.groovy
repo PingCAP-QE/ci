@@ -175,16 +175,13 @@ try {
                         }
                     }
                     publishs["publish dm tiup offline package"] = {
-                        if (DEBUG_MODE == "true") {
-                            echo "DEBUG MODE:publish dm tiup offline package"
-                        } else {
-                            // publish dm offline package (include linux amd64 and arm64)
-                            build job: 'tiup-package-offline-mirror-dm',
-                                    wait: true,
-                                    parameters: [
-                                            [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"],
-                                            ]
-                        }
+                        // publish dm offline package (include linux amd64 and arm64)
+                        build job: 'tiup-package-offline-mirror-dm',
+                                wait: true,
+                                parameters: [
+                                        [$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"],
+                                        [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
+                                ]
 
                     }
                     parallel publishs
