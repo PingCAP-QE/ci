@@ -22,6 +22,9 @@ if (PLUGIN_BRANCH.startsWith("release-") && PLUGIN_BRANCH.split("-").size() >= 3
     println "tidb hotfix branch: ${ghprbTargetBranch}"
     println "plugin branch use ${PLUGIN_BRANCH}"
 }
+if (ghprbTargetBranch == "6.1.0-pitr-dev") {
+    PLUGIN_BRANCH = "release-6.1"
+}
 
 // parse enterprise-plugin branch
 def m1 = ghprbCommentBody =~ /plugin\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -56,10 +59,10 @@ GO_IMAGE_MAP = [
     "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220609",
 ]
 VOLUMES = [
-                nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                emptyDirVolume(mountPath: '/tmp', memory: false),
-            ]
+    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+    emptyDirVolume(mountPath: '/tmp', memory: false),
+]
 
 node("master") {
     deleteDir()
@@ -73,7 +76,7 @@ node("master") {
         RESOURCE_REQUEST_CPU = '2000m'
     } else {
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-        VOLUMES.append(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
+        VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
     }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
