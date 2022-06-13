@@ -294,14 +294,17 @@ def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
             wait: true)
 
     if (if_enterprise == "false" && debug_mode == "false") {
-        def default_params_uhub = [
-                string(name: 'SOURCE_IMAGE', value: image_for_ga_from_harbor),
-                string(name: 'TARGET_IMAGE', value: image_for_ga_to_docker_uhub),
-        ]
-        println "retag multi-arch image from image: ${default_params_uhub}.if_enterprise:${if_enterprise}"
-        build(job: "jenkins-image-syncer",
-                parameters: default_params_uhub,
-                wait: true)
+        docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
+            sh """
+               docker pull ${image_for_ga_from_harbor}
+               """
+        }
+        docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+            sh """
+               docker tag ${image_for_ga_from_harbor} ${image_for_ga_to_docker_uhub}
+               docker push ${image_for_ga_to_docker_uhub}
+               """
+        }
     }
 
 }
