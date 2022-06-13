@@ -272,7 +272,6 @@ def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
     if (if_enterprise == "false" && debug_mode == "false") {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
         image_for_ga_to_docker = "pingcap/${product}:${RELEASE_TAG}"
-        image_for_ga_to_docker_uhub = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG}"
     } else if (if_enterprise == "true" && debug_mode == "false") {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
         image_for_ga_to_docker = "hub.pingcap.net/enterprise/${product}-enterprise:${RELEASE_TAG}"
@@ -293,15 +292,14 @@ def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
             parameters: default_params,
             wait: true)
 
+//  community image to ucloud
     if (if_enterprise == "false" && debug_mode == "false") {
-        docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-            sh """
-               docker pull ${image_for_ga_from_harbor}
-               """
-        }
+        def image_for_ga_from_harbor_u = "hub.pingcap.net/qa/" + product + ":${RELEASE_TAG}-pre"
+        def image_for_ga_to_docker_uhub = "uhub.service.ucloud.cn/pingcap/" + product + ":${RELEASE_TAG}"
         docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
             sh """
-               docker tag ${image_for_ga_from_harbor} ${image_for_ga_to_docker_uhub}
+               docker pull ${image_for_ga_from_harbor_u}
+               docker tag ${image_for_ga_from_harbor_u} ${image_for_ga_to_docker_uhub}
                docker push ${image_for_ga_to_docker_uhub}
                """
         }
