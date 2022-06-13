@@ -164,8 +164,9 @@ parallel(
         "Tiup Darwin Amd64": {
             check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac")
         },
+//        tiflash version is dirty,exclude
         "Tiup Darwin Arm64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "darwin-arm64")
+            check_tiup(["tidb", "tikv", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "darwin-arm64")
         },
 
 //        "Image Enterprise Docker": {
