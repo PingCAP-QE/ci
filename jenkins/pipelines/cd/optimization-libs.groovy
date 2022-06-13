@@ -271,7 +271,8 @@ def retag_enterprise_image(product, arch, if_release, if_multi_arch) {
 def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
     if (if_enterprise == "false" && debug_mode == "false") {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}:${RELEASE_TAG}-pre"
-        image_for_ga_to_docker = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG},pingcap/${product}:${RELEASE_TAG}"
+        image_for_ga_to_docker = "pingcap/${product}:${RELEASE_TAG}"
+        image_for_ga_to_docker_uhub = "uhub.service.ucloud.cn/pingcap/${product}:${RELEASE_TAG},"
     } else if (if_enterprise == "true" && debug_mode == "false") {
         image_for_ga_from_harbor = "hub.pingcap.net/qa/${product}-enterprise:${RELEASE_TAG}-pre"
         image_for_ga_to_docker = "hub.pingcap.net/enterprise/${product}-enterprise:${RELEASE_TAG}"
@@ -291,6 +292,17 @@ def retag_docker_image_for_ga(product, if_enterprise, debug_mode) {
     build(job: "jenkins-image-syncer",
             parameters: default_params,
             wait: true)
+
+    if (if_enterprise == "false" && debug_mode == "false") {
+        def default_params_uhub = [
+                string(name: 'SOURCE_IMAGE', value: image_for_ga_from_harbor),
+                string(name: 'TARGET_IMAGE', value: image_for_ga_to_docker_uhub),
+        ]
+        println "retag multi-arch image from image: ${default_params_uhub}.if_enterprise:${if_enterprise}"
+        build(job: "jenkins-image-syncer",
+                parameters: default_params_uhub,
+                wait: true)
+    }
 
 }
 
