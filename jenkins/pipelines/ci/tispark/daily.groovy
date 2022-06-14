@@ -58,7 +58,7 @@ def test_release2_5(version) {
     )
 }
 
-def test_release2_4(commitID, version) {
+def test_release2_4(version) {
     commitID = get_sha("tispark", "release-2.4")
     println "tispark release-2.4 last commit id: ${commitID}"
     parallel(
