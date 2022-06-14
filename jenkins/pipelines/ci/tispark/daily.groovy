@@ -15,7 +15,7 @@ def test_base(commitName, ghprbActualCommit, ghprbCommentBody) {
             wait: true, propagate: true)
 }
 
-def test_master_tiflash(commitID, version) {
+def test_master_tiflash(version) {
     commitID = get_sha("tispark", "master")
     println "tispark master latest commit id: ${commitID}"
     parallel(
