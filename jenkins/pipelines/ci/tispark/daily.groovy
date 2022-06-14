@@ -95,7 +95,7 @@ def test_release3_0(version) {
 }
 
 // 大版本发版测试
-def release_master(){
+def release_master() {
     commitID = get_sha("tispark", "master")
     version = "master"
     parallel(
@@ -111,122 +111,123 @@ def release_master(){
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
             },
     )
-   version = "release-6.0"
-   parallel(
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+    version = "release-6.0"
+    parallel(
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-             test2: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-             },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
 
-     version = "release-5.4"
-     parallel(
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+    version = "release-5.4"
+    parallel(
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-             test2: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-             },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
-     version = "release-5.3"
-     parallel(
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
+    version = "release-5.3"
+    parallel(
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-              test2: {
-                  test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-              },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
-     version = "release-5.2"
-     parallel(
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
+    version = "release-5.2"
+    parallel(
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-              test2: {
-                  test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-              },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
-     version = "release-5.1"
-     parallel(
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
+    version = "release-5.1"
+    parallel(
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-              test2: {
-                  test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-              },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
-     version = "release-5.0"
-     parallel(
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
+    version = "release-5.0"
+    parallel(
 
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-              test2: {
-                  test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-              },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
-     version = "release-4.0"
-     parallel(
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
+    version = "release-4.0"
+    parallel(
 
-             test1: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
-             },
+            test1: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
+            },
 
-             test2: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
-             },
+            test2: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
-             },
-     )
-     // tiflash test
-     parallel(
+            test3: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+            },
+    )
+    // tiflash test
+    parallel(
 
-             test1: {
-                 test_base("master", commitID, "tidb=master pd=master tiflash=master tikv=master profile=spark3.2.1 test-flash=true")
-             },
+            test1: {
+                test_base("master", commitID, "tidb=master pd=master tiflash=master tikv=master profile=spark3.2.1 test-flash=true")
+            },
 
-             test2: {
-                 test_base("master", commitID, "tidb=v6.0.0 pd=v6.0.0 tiflash=v6.0.0 tikv=v6.0.0 profile=spark3.1.1 test-flash=true")
-             },
+            test2: {
+                test_base("master", commitID, "tidb=v6.0.0 pd=v6.0.0 tiflash=v6.0.0 tikv=v6.0.0 profile=spark3.1.1 test-flash=true")
+            },
 
-             test3: {
-                 test_base("master", commitID, "tidb=release-4.0 pd=release-4.0 tiflash=release-4.0 tikv=release-4.0 test-flash=true")
-             },
-     )
+            test3: {
+                test_base("master", commitID, "tidb=release-4.0 pd=release-4.0 tiflash=release-4.0 tikv=release-4.0 test-flash=true")
+            },
+    )
+}
 
 node("lightweight_pod") {
     container("golang") {
