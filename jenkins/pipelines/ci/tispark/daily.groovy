@@ -111,7 +111,7 @@ def release_master() {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
             },
     )
-    version = "release-6.0"
+    version = "release-6.1"
     parallel(
             test1: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version")
