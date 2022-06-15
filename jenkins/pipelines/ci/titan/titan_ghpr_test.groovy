@@ -1,5 +1,9 @@
 pullId = params.get("ghprbPullId")
 commit = params.get("ghprbActualCommit")
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
+if (pullId != null && pullId != "") {
+    specStr = "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*"
+}
 
 rocksdbBranch = "6.29.tikv"
 compression = "-DWITH_SNAPPY=ON -DWITH_LZ4=ON -DWITH_ZLIB=ON -DWITH_ZSTD=ON"
@@ -52,7 +56,7 @@ def checkout = {
                 branches: [[name: 'master']],
                 userRemoteConfigs: [[
                     url: 'https://github.com/tikv/titan.git',
-                    refspec: '+refs/pull/*/head:refs/remotes/origin/pr/*'
+                    refspec: specStr,
                 ]],
                 extensions: [
                     [$class: 'PruneStaleBranch'],
