@@ -1,7 +1,7 @@
 pullId = params.get("ghprbPullId")
 commit = params.get("ghprbActualCommit")
 
-rocksdbBranch = "6.4.tikv"
+rocksdbBranch = "6.29.tikv"
 compression = "-DWITH_SNAPPY=ON -DWITH_LZ4=ON -DWITH_ZLIB=ON -DWITH_ZSTD=ON"
 
 def run_with_x86_pod(Closure body) {
