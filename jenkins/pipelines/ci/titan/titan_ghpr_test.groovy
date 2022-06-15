@@ -3,6 +3,7 @@ commit = params.get("ghprbActualCommit")
 
 rocksdbBranch = "6.29.tikv"
 compression = "-DWITH_SNAPPY=ON -DWITH_LZ4=ON -DWITH_ZLIB=ON -DWITH_ZSTD=ON"
+link_opt = "-DROCKSDB_BUILD_SHARED=OFF"
 
 def run_with_x86_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
@@ -120,7 +121,7 @@ def run_test = { build_type, sanitizer, use_gcc8 ->
             sh """
                 ${devtoolset}
                 g++ --version
-                cmake . -L ${rocksdb_dir} ${compression} ${build_opt} ${sanitizer_opt} ${tools_opt}
+                cmake . -L ${rocksdb_dir} ${compression} ${build_opt} ${link_opt} ${sanitizer_opt} ${tools_opt}
                 VERBOSE=1 make -j
             """
         }
