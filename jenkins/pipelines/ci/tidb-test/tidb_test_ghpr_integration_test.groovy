@@ -421,6 +421,10 @@ run_with_toolkit_pod {
                 run_java("jdbc8_test", "jdbc8test", "./test_slow.sh")
             }
 
+            tests["Hibernate Test"] = {
+                run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
+            }
+
             println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
             println "check if current commit is already build, if not wait for build done."
