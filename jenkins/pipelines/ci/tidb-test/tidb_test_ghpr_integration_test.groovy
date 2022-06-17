@@ -54,7 +54,7 @@ def run_test_with_java_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'java', alwaysPullImage: false,
-                            image: "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached", ttyEnabled: true,
+                            image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:initial", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                     )
@@ -355,21 +355,6 @@ run_with_toolkit_pod {
                                     rm -rf ./tikv ./pd
                                     set -e
                                     
-                                    mkdir -p ~/.m2 && cat <<EOF > ~/.m2/settings.xml
-<settings>
-  <mirrors>
-    <mirror>
-      <id>alimvn-central</id>
-      <name>aliyun maven mirror</name>
-      <url>https://maven.aliyun.com/repository/central</url>
-      <mirrorOf>central</mirrorOf>
-    </mirror>
-  </mirrors>
-</settings>
-EOF
-                                
-                                    cat ~/.m2/settings.xml || true
-
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
