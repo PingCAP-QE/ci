@@ -111,6 +111,33 @@ def run_with_pod(Closure body) {
     }
 }
 
+def run_test_with_java_pod(Closure body) {
+    def label = "tidb-ghpr-integration-test-java-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: POD_NAMESPACE,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'java', alwaysPullImage: false,
+                            image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:initial", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                    )
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+            ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
+            body()
+        }
+    }
+}
+
 def run_with_memory_volume_pod(Closure body) {
     def label = "tidb-ghpr-integration-common-test-memory-volume"
     if (GO_VERSION == "go1.13") {
@@ -387,6 +414,83 @@ try {
                 }
             }
 
+            def run_java = { test_dir, mytest, test_cmd ->
+                run_test_with_java_pod {
+                    def ws = pwd()
+                    deleteDir()
+                    unstash "tidb-test"
+                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        container("java") {
+                            timeout(20) {
+                                retry(3){
+                                    sh """
+                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+                                    curl \${tikv_url} | tar xz bin
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+                                    curl \${pd_url} | tar xz bin
+        
+                                    mkdir -p ./tidb-src
+                                    curl \${tidb_url} | tar xz -C ./tidb-src
+                                    ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                    """
+                                }
+                            }
+                            try {
+                                timeout(20) {
+                                    sh """
+                                    ps aux
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    rm -rf ./tikv ./pd
+                                    set -e
+                                    
+                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                    sleep 10
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                    sleep 10
+                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                    export log_level=debug
+                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                    TIKV_PATH='127.0.0.1:2379' \
+                                    TIDB_TEST_STORE_NAME=tikv \
+                                    ${test_cmd}
+                                    """
+                                }
+                            } catch (err) {
+                                sh"""
+                                cat mysql-test.out || true
+                                """
+                                sh """
+                                cat pd_${mytest}.log
+                                cat tikv_${mytest}.log
+                                cat tidb*.log
+                                """
+                                throw err
+                            } finally {
+                                sh """
+                                set +e
+                                killall -9 -r tidb-server
+                                killall -9 -r tikv-server
+                                killall -9 -r pd-server
+                                set -e
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+
             def run_split = { test_dir, mytest, test_cmd, chunk ->
                 run_with_memory_volume_pod {
                     def ws = pwd()
@@ -561,6 +665,28 @@ try {
                     all_task_result << ["name": "GORM Test", "status": "failed", "error": err.message]
                     throw err
                 }
+            }
+
+            tests["Beego ORM Test"] = {
+                run("beego_orm_test", "beegoormtest", "./test.sh")
+            }
+            tests["Upper DB ORM Test"] = {
+                run("upper_db_orm_test", "upperdbormtest", "./test.sh")
+            }
+            tests["XORM Test"] = {
+                run("xorm_test", "xormtest", "./test.sh")
+            }
+
+            tests["JDBC8 Fast Test"] = {
+                run_java("jdbc8_test", "jdbc8test", "./test_fast.sh")
+            }
+
+            tests["JDBC8 Slow Test"] = {
+                run_java("jdbc8_test", "jdbc8test", "./test_slow.sh")
+            }
+
+            tests["Hibernate Test"] = {
+                run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
             }
 
             tests["Integration MySQL Test"] = {
