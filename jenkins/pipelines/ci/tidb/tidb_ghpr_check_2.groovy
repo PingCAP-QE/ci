@@ -132,20 +132,20 @@ def upload_test_result(reportDir) {
 
 try {
     run_with_pod {
-        stage("Pre-check"){
-            if (!params.force){
-                container("golang"){
-                    notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-                }
-            }
+        // stage("Pre-check"){
+        //     if (!params.force){
+        //         container("golang"){
+        //             notRun = sh(returnStatus: true, script: """
+        //         if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+        //         """)
+        //         }
+        //     }
 
-            if (notRun == 0){
-                println "the ${ghprbActualCommit} has been tested"
-                throw new RuntimeException("hasBeenTested")
-            }
-        }
+        //     if (notRun == 0){
+        //         println "the ${ghprbActualCommit} has been tested"
+        //         throw new RuntimeException("hasBeenTested")
+        //     }
+        // }
 
         def ws = pwd()
 
@@ -222,6 +222,67 @@ try {
             }
         }
 
+
+        def run_real_tikv_tests = { test_suite ->
+            run_with_pod {
+                deleteDir()
+                unstash 'tidb'
+                container("golang") {
+                    dir("go/src/github.com/pingcap/tidb") {
+                        timeout(30) { 
+                            try {
+                                ws = pwd()
+                                def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                                def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                                tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+                                def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                                def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                                pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                sh """
+                                curl ${tikv_url} | tar xz
+                                curl ${pd_url} | tar xz bin
+
+                                # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
+                                echo -e "[pessimistic-txn]\npipelined = false\n" > tikv.toml
+                                echo -e "[raftdb]\nmax-open-files = 20480\n" >> tikv.toml
+                                echo -e "[rocksdb]\nmax-open-files = 20480\n" >> tikv.toml
+
+                                bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
+                                bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
+                    
+                                bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
+                                bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f  tikv2.log &
+                
+                                bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
+                                bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
+
+                                export log_level=error
+                                make failpoint-enable
+                                go test ./tests/realtikvtest/${test_suite} -v -with-real-tikv -timeout 30m
+                                """
+                                } catch (Exception e){ 
+                                sh "cat ${ws}/pd1.log || true"
+                                sh "cat ${ws}/tikv1.log || true"
+                                sh "cat ${ws}/pd2.log || true"
+                                sh "cat ${ws}/tikv2.log || true"
+                                sh "cat ${ws}/pd3.log || true"
+                                sh "cat ${ws}/tikv3.log || true"
+                                sh "cat ${ws}/cmd/explaintest/explain-test.out || true"
+                                throw e
+                                } finally {
+                                sh """
+                                set +e
+                                killall -9 -r -q tikv-server
+                                killall -9 -r -q pd-server
+                                set -e
+                                """
+                                }
+                            }
+                    }
+                }
+            }
+        } 
 
         if (ghprbTargetBranch == "master"){
             tests["New Collation Enabled"] = {
@@ -350,6 +411,22 @@ try {
                         }
                     }
                 }
+            }
+
+            tests["Real TiKV Tests - brietest"] = {
+                run_real_tikv_tests("brietest")
+            }
+            tests["Real TiKV Tests - pessimistictest"] = {
+                run_real_tikv_tests("pessimistictest")
+            }
+            tests["Real TiKV Tests - sessiontest"] = {
+                run_real_tikv_tests("sessiontest")
+            }
+            tests["Real TiKV Tests - statisticstest"] = {
+                run_real_tikv_tests("statisticstest")
+            }
+            tests["Real TiKV Tests - txntest"] = {
+                run_real_tikv_tests("txntest")
             }
         }
         parallel tests
