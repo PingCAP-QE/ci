@@ -1,4 +1,4 @@
-def notRun = 1
+
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -183,104 +183,36 @@ def run_with_memory_volume_pod(Closure body) {
 all_task_result = []
 
 try {
-    timestamps {
-        stage("Pre-check"){
-            if (!params.force){
-                node("lightweight_pod"){
-                    container("golang"){
-                        notRun = sh(returnStatus: true, script: """
-				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-				    """)
-                    }
-                }
-            }
+    run_with_pod { 
+        container("golang") {
 
-            if (notRun == 0){
-                println "the ${ghprbActualCommit} has been tested"
-                throw new RuntimeException("hasBeenTested")
-            }
-        }
+            def tikv_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
+            def pd_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
 
-        def buildSlave = "${GO_BUILD_SLAVE}"
-        def testSlave = "${GO_TEST_SLAVE}"
+            stage('Prepare') {
+                def prepareStartTime = System.currentTimeMillis()
 
-        stage('Prepare') {
-            def prepareStartTime = System.currentTimeMillis()
+                def prepares = [:]
+                
+                prepares["Part #1"] = {
+                    run_with_pod {
+                        def ws = pwd()
+                        deleteDir()
 
-            def prepares = [:]
-
-            prepares["Part #1"] = {
-                run_with_pod {
-                    def ws = pwd()
-                    deleteDir()
-
-                    container("golang") {
-                        dir("go/src/github.com/pingcap/tidb") {
-                            timeout(20) {
-                                retry(3){
-                                    deleteDir()
-                                    sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                        container("golang") {
+                            dir("go/src/github.com/pingcap/tidb") {
+                                timeout(20) {
+                                    retry(3){
+                                        deleteDir()
+                                        sh """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    curl ${tidb_url} | tar xz
+                                    """
+                                    }
                                 }
                             }
-                        }
 
-                        dir("go/src/github.com/pingcap/tidb-test") {
-                            timeout(20) {
-                                def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
-                                sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
-                            """
-                                def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                                def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
-                                sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                            curl ${tidb_test_url} | tar xz
-
-                            export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                            cd tidb_test && ./build.sh && cd ..
-                            if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                cd randgen-test && ./build.sh && cd ..
-                                cd randgen-test && ls t > packages.list
-                                split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
-                                cd ..
-                            fi
-                            """
-                            }
-                        }
-                    }
-
-                    stash includes: "go/src/github.com/pingcap/tidb-test/_helper.sh", name: "helper"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/tidb_test/**", name: "tidb_test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/randgen-test/**", name: "randgen-test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/go-sql-test/**", name: "go-sql-test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/go.*,go/src/github.com/pingcap/tidb-test/util/**,go/src/github.com/pingcap/tidb-test/bin/**", name: "tidb-test"
-                    deleteDir()
-                }
-            }
-
-            prepares["Part #2"] = {
-                run_with_pod {
-                    def ws = pwd()
-                    deleteDir()
-
-                    container("golang") {
-                        dir("go/src/github.com/pingcap/tidb") {
-                            timeout(20) {
-                                retry(3){
-                                    deleteDir()
-                                    sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
-                                }
-                            }
-                        }
-
-                        dir("go/src/github.com/pingcap/tidb-test") {
-                            container("golang") {
+                            dir("go/src/github.com/pingcap/tidb-test") {
                                 timeout(20) {
                                     def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                     sh """
@@ -289,144 +221,103 @@ try {
                                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                                     def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                     sh """
-                                echo ${tidb_test_url} 
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                                 curl ${tidb_test_url} | tar xz
 
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                cd mysql_test && ./build.sh && cd ..
-                                cd analyze_test && ./build.sh && cd ..
+                                cd tidb_test && ./build.sh && cd ..
+                                if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                    cd randgen-test && ./build.sh && cd ..
+                                    cd randgen-test && ls t > packages.list
+                                    split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
+                                    cd ..
+                                fi
                                 """
                                 }
                             }
                         }
+
+                        stash includes: "go/src/github.com/pingcap/tidb-test/_helper.sh", name: "helper"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/tidb_test/**", name: "tidb_test"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/randgen-test/**", name: "randgen-test"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/go-sql-test/**", name: "go-sql-test"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/go.*,go/src/github.com/pingcap/tidb-test/util/**,go/src/github.com/pingcap/tidb-test/bin/**", name: "tidb-test"
+                        deleteDir()
                     }
-
-                    stash includes: "go/src/github.com/pingcap/tidb-test/_vendor/**", name: "tidb-test-vendor"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/mysql_test/**", name: "mysql_test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/analyze_test/**", name: "analyze_test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/gorm_test/**", name: "gorm_test"
-                    deleteDir()
                 }
-            }
 
-            parallel prepares
-        }
+                prepares["Part #2"] = {
+                    run_with_pod {
+                        def ws = pwd()
+                        deleteDir()
 
-        stage('Integration Common Test') {
-            testStartTimeMillis = System.currentTimeMillis()
-            def tests = [:]
-
-            def run = { test_dir, mytest, test_cmd ->
-                run_with_memory_volume_pod {
-                    def ws = pwd()
-                    deleteDir()
-                    unstash "tidb-test"
-                    unstash "tidb-test-vendor"
-                    unstash "helper"
-                    unstash "${test_dir}"
-
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                         container("golang") {
-                            // def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                            // def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                            // tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-
-                            // def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                            // def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                            // pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-
-                            timeout(20) {
-                                retry(3){
-                                    sh """
-	                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
-	                            tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-	
-	                            pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
-	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-	
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-	                            curl \${tikv_url} | tar xz bin
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-	                            curl \${pd_url} | tar xz bin
-	
-	                            mkdir -p ./tidb-src
-	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-	                            curl ${tidb_url} | tar xz -C ./tidb-src
-	                            ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-	
-	                            mv tidb-src/bin/tidb-server ./bin/tidb-server
-	                            """
+                            dir("go/src/github.com/pingcap/tidb") {
+                                timeout(20) {
+                                    retry(3){
+                                        deleteDir()
+                                        sh """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    curl ${tidb_url} | tar xz
+                                    """
+                                    }
                                 }
-
                             }
 
-                            try {
-                                timeout(20) {
-                                    sh """
-                                ps aux
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                rm -rf ./tikv ./pd
-                                set -e
-                                
-                                bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                sleep 10
-                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                sleep 10
-                                if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+                            dir("go/src/github.com/pingcap/tidb-test") {
+                                container("golang") {
+                                    timeout(20) {
+                                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                                        sh """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
+                                    """
+                                        def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
+                                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                                        sh """
+                                    echo ${tidb_test_url} 
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
+                                    curl ${tidb_test_url} | tar xz
 
-                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                export log_level=debug
-                                TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                TIKV_PATH='127.0.0.1:2379' \
-                                TIDB_TEST_STORE_NAME=tikv \
-                                ${test_cmd}
-                                """
+                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                    cd mysql_test && ./build.sh && cd ..
+                                    cd analyze_test && ./build.sh && cd ..
+                                    """
+                                    }
                                 }
-                            } catch (err) {
-                                sh"""
-                            cat mysql-test.out || true
-                            """
-                                sh """
-                            cat pd_${mytest}.log
-                            cat tikv_${mytest}.log
-                            cat tidb*.log
-                            """
-                                throw err
-                            } finally {
-                                sh """
-                            set +e
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            set -e
-                            """
                             }
                         }
+
+                        stash includes: "go/src/github.com/pingcap/tidb-test/_vendor/**", name: "tidb-test-vendor"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/mysql_test/**", name: "mysql_test"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/analyze_test/**", name: "analyze_test"
+                        stash includes: "go/src/github.com/pingcap/tidb-test/gorm_test/**", name: "gorm_test"
+                        deleteDir()
                     }
                 }
+
+                parallel prepares
             }
 
-            def run_java = { test_dir, mytest, test_cmd ->
-                run_test_with_java_pod {
-                    def ws = pwd()
-                    deleteDir()
-                    unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
-                        container("java") {
-                            timeout(20) {
-                                retry(3){
-                                    sh """
+            stage('Integration Common Test') {
+                testStartTimeMillis = System.currentTimeMillis()
+                def tests = [:]
+
+                def run = { test_dir, mytest, test_cmd ->
+                    run_with_memory_volume_pod {
+                        def ws = pwd()
+                        deleteDir()
+                        unstash "tidb-test"
+                        unstash "tidb-test-vendor"
+                        unstash "helper"
+                        unstash "${test_dir}"
+
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                            container("golang") {
+                                timeout(20) {
+                                    retry(3){
+                                        sh """
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
         
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl \${tikv_url} | tar xz bin
@@ -435,15 +326,19 @@ try {
                                     curl \${pd_url} | tar xz bin
         
                                     mkdir -p ./tidb-src
-                                    curl \${tidb_url} | tar xz -C ./tidb-src
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    curl ${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+        
                                     mv tidb-src/bin/tidb-server ./bin/tidb-server
                                     """
+                                    }
+
                                 }
-                            }
-                            try {
-                                timeout(20) {
-                                    sh """
+
+                                try {
+                                    timeout(20) {
+                                        sh """
                                     ps aux
                                     set +e
                                     killall -9 -r tidb-server
@@ -459,6 +354,7 @@ try {
                                     bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                     sleep 10
                                     if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+
                                     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                     export log_level=debug
                                     TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
@@ -466,300 +362,16 @@ try {
                                     TIDB_TEST_STORE_NAME=tikv \
                                     ${test_cmd}
                                     """
-                                }
-                            } catch (err) {
-                                sh"""
+                                    }
+                                } catch (err) {
+                                    sh"""
                                 cat mysql-test.out || true
                                 """
-                                sh """
+                                    sh """
                                 cat pd_${mytest}.log
                                 cat tikv_${mytest}.log
                                 cat tidb*.log
                                 """
-                                throw err
-                            } finally {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                set -e
-                                """
-                            }
-                        }
-                    }
-                }
-            }
-
-            def run_split = { test_dir, mytest, test_cmd, chunk ->
-                run_with_memory_volume_pod {
-                    def ws = pwd()
-                    deleteDir()
-                    unstash "tidb-test"
-                    unstash "tidb-test-vendor"
-                    unstash "helper"
-                    unstash "${test_dir}"
-
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
-                        container("golang") {
-
-                            timeout(20) {
-                                retry(3){
-                                    sh """
-	                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
-	                            tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-	
-	                            pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
-	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
-	                            curl \${tikv_url} | tar xz
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
-	                            curl \${pd_url} | tar xz
-	
-	                            mkdir -p ./tidb-src
-	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
-	                            curl ${tidb_url} | tar xz -C ./tidb-src
-	                            ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-	
-	                            mv tidb-src/bin/tidb-server ./bin/tidb-server
-	                            """
-                                }
-                            }
-
-                            try {
-                                timeout(20) {
-                                    sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                rm -rf ./tikv ./pd
-                                set -e
-                                
-                                bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                sleep 10
-                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                
-                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                sleep 10
-                                if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-                                if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                    mv t t_bak
-                                    mkdir t
-                                    cd t_bak
-                                    cp \$(cat ../packages_${chunk}) ../t
-                                    cd ..
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export log_level=debug
-                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                    TIKV_PATH='127.0.0.1:2379' \
-                                    TIDB_TEST_STORE_NAME=tikv \
-                                    ${test_cmd}
-                                fi
-                                """
-                                }
-                            } catch (err) {
-                                sh"""
-                            cat mysql-test.out || true
-                            """
-
-                                sh """
-                            cat pd_${mytest}.log
-                            cat tikv_${mytest}.log
-                            cat tidb*.log
-                            """
-                                throw err
-                            } finally {
-                                sh """
-                            set +e
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            set -e
-                            """
-                            }
-                        }
-                    }
-                    deleteDir()
-                }
-            }
-
-            tests["Integration Randgen Test 1"] = {
-                try {
-                    run_split("randgen-test", "randgentest", "./test.sh", 1)
-                    all_task_result << ["name": "Randgen Test 1", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "Randgen Test 1", "status": "failed", "error": err.message]
-                    throw err
-                }  
-            }
-
-            tests["Integration Randgen Test 2"] = {
-                try {
-                    run_split("randgen-test", "randgentest", "./test.sh", 2)
-                    all_task_result << ["name": "Randgen Test 2", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
-                    throw err
-                }  
-            }
-
-            tests["Integration Randgen Test 3"] = {
-                try {
-                    run_split("randgen-test", "randgentest", "./test.sh", 3)
-                    all_task_result << ["name": "Randgen Test 3", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "Randgen Test 3", "status": "failed", "error": err.message]
-                    throw err
-                } 
-            }
-
-            tests["Integration Analyze Test"] = {
-                try {
-                    run("analyze_test", "analyzetest", "./test.sh")
-                    all_task_result << ["name": "Analyze Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "Analyze Test", "status": "failed", "error": err.message]
-                    throw err
-                }
-            }
-
-            tests["Integration TiDB Test 1"] = {
-                try {
-                    run("tidb_test", "tidbtest", "TEST_FILE=ql_1.t ./test.sh")
-                    all_task_result << ["name": "TiDB Test 1", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "TiDB Test 1", "status": "failed", "error": err.message]
-                    throw err
-                }
-            }
-
-            tests["Integration TiDB Test 2"] = {
-                try {
-                    run("tidb_test", "tidbtest", "TEST_FILE=ql_2.t ./test.sh")
-                    all_task_result << ["name": "TiDB Test 2", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "TiDB Test 2", "status": "failed", "error": err.message]
-                    throw err
-                } 
-            }
-
-            tests["Integration Go SQL Test"] = {
-                try {
-                    run("go-sql-test", "gosqltest", "./test.sh")
-                    all_task_result << ["name": "Go SQL Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "Go SQL Test", "status": "failed", "error": err.message]
-                    throw err
-                }
-            }
-
-            tests["Integration GORM Test"] = {
-                try {
-                    run("gorm_test", "gormtest", "./test.sh")
-                    all_task_result << ["name": "GORM Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "GORM Test", "status": "failed", "error": err.message]
-                    throw err
-                }
-            }
-
-            tests["Beego ORM Test"] = {
-                run("beego_orm_test", "beegoormtest", "./test.sh")
-            }
-            tests["Upper DB ORM Test"] = {
-                run("upper_db_orm_test", "upperdbormtest", "./test.sh")
-            }
-            tests["XORM Test"] = {
-                run("xorm_test", "xormtest", "./test.sh")
-            }
-
-            tests["JDBC8 Fast Test"] = {
-                run_java("jdbc8_test", "jdbc8test", "./test_fast.sh")
-            }
-
-            tests["JDBC8 Slow Test"] = {
-                run_java("jdbc8_test", "jdbc8test", "./test_slow.sh")
-            }
-
-            tests["Hibernate Test"] = {
-                run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
-            }
-
-            tests["Integration MySQL Test"] = {
-                try {
-                    if (TIDB_TEST_BRANCH == "master") {
-                        run("mysql_test", "mysqltest", "./test.sh alias alter_table alter_table1 alter_table_PK analyze ansi auto_increment bigint bool bug28940878 bug33509 bug46760 bug58669 builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete delete_myisam do drop ds_mrr-big echo error_simulation exec_selection expression_index field_length filesort filesort_json filter_single_col_idx_big func_bitwise_ops func_compress func_concat func_date_add_myisam func_default func_gconcat func_group_innodb func_math func_op func_str_myisam gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic grant_lowercase_fs groupby having heap_btree heap_btree_myisam histogram_singleton implicit_char_to_num_conversion in index index_merge1 index_merge2 index_merge_bug29952775 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema innodb_tmp_table_heap_to_disk insert insert_select insert_select_myisam insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join join-reorder join_crash json json_functions json_gcol key keywords lead_lag lead_lag_explain like limit limit_myisam long_tmpdir lowercase_fs_off lowercase_mixed_tmpdir lowercase_table2 lowercase_table4 lowercase_table5 lowercase_utf8 lowercase_view lpad mariadb_cte_nonrecursive mariadb_cte_recursive math metadata multi_update multi_update_innodb multi_update_tiny_hash mysql_replace nth null_key_all_innodb odbc operator opt_hint_timeout opt_hints_join_order opt_hints_subquery optimizer_bug12837084 order_by_limit orderby overflow packet_myisam parser parser_precedence partition_bug18198 partition_hash partition_innodb partition_list partition_locking_ps_protocol partition_range precedence prepare ps qualified regexp replace reset_connection role role2 roles-ddl roles-view roles_bugs_wildcard row savepoint savepoint2 savepoint_in_optimistic_txn savepoint_in_pessimistic_txn savepoint_issue_26288 select_qualified show show_check_cs_myisam show_profile show_variables single_delete_update sqllogic str_quoted strict strict_autoinc_2innodb sub_query sub_query_more subquery_antijoin subquery_bugs subquery_sj_innodb_all sum_distinct-big temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func truth_value_transform type type_binary type_decimal type_enum type_time type_timestamp type_timestamp_myisam type_uint type_unit type_varchar union update update_myisam update_stmt user_if_exists varbinary variable variables variables_dynamic_privs view_grant view_myisam warnings window_functions window_functions_big window_functions_bugs window_functions_interesting_orders window_min_max with_non_recursive with_recursive with_recursive_bugs xd")
-                    } else {
-                        run("mysql_test", "mysqltest", "./test.sh")
-                    }
-                    all_task_result << ["name": "MySQL Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "MySQL Test", "status": "failed", "error": err.message]
-                    throw err
-                }
-            }
-
-            tests["Integration MySQL Test Cached"] = {
-                try {
-                    if (TIDB_TEST_BRANCH == "master") {
-                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh alias alter_table alter_table1 alter_table_PK analyze ansi auto_increment bigint bool bug28940878 bug33509 bug46760 bug58669 builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete delete_myisam do drop ds_mrr-big echo error_simulation exec_selection expression_index field_length filesort filesort_json filter_single_col_idx_big func_bitwise_ops func_compress func_concat func_date_add_myisam func_default func_gconcat func_group_innodb func_math func_op func_str_myisam gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic grant_lowercase_fs groupby having heap_btree heap_btree_myisam histogram_singleton implicit_char_to_num_conversion in index index_merge1 index_merge2 index_merge_bug29952775 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema innodb_tmp_table_heap_to_disk insert insert_select insert_select_myisam insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join join-reorder join_crash json json_functions json_gcol key keywords lead_lag lead_lag_explain like limit limit_myisam long_tmpdir lowercase_fs_off lowercase_mixed_tmpdir lowercase_table2 lowercase_table4 lowercase_table5 lowercase_utf8 lowercase_view lpad mariadb_cte_nonrecursive mariadb_cte_recursive math metadata multi_update multi_update_innodb multi_update_tiny_hash mysql_replace nth null_key_all_innodb odbc operator opt_hint_timeout opt_hints_join_order opt_hints_subquery optimizer_bug12837084 order_by_limit orderby overflow packet_myisam parser parser_precedence partition_bug18198 partition_hash partition_innodb partition_list partition_locking_ps_protocol partition_range precedence prepare ps qualified regexp replace reset_connection role role2 roles-ddl roles-view roles_bugs_wildcard row savepoint savepoint2 savepoint_in_optimistic_txn savepoint_in_pessimistic_txn savepoint_issue_26288 select_qualified show show_check_cs_myisam show_profile show_variables single_delete_update sqllogic str_quoted strict strict_autoinc_2innodb sub_query sub_query_more subquery_antijoin subquery_bugs subquery_sj_innodb_all sum_distinct-big temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func truth_value_transform type type_binary type_decimal type_enum type_time type_timestamp type_timestamp_myisam type_uint type_unit type_varchar union update update_myisam update_stmt user_if_exists varbinary variable variables variables_dynamic_privs view_grant view_myisam warnings window_functions window_functions_big window_functions_bugs window_functions_interesting_orders window_min_max with_non_recursive with_recursive with_recursive_bugs xd")
-                    } else {
-                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
-                    }
-                    all_task_result << ["name": "MySQL Test Cached", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "MySQL Test Cached", "status": "failed", "error": err.message]
-                    throw err
-                }
-            }
-
-            tests["Integration Explain Test"] = {
-                try {
-                    run_with_memory_volume_pod {
-                        def ws = pwd()
-                        deleteDir()
-                        dir("go/src/github.com/pingcap/tidb") {
-                            container("golang") {
-                                try {
-                                    timeout(20) {
-                                        retry(3){
-                                            deleteDir()
-                                            sh """
-                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
-                                        """
-                                        }
-
-                                    }
-
-                                    timeout(20) {
-                                        sh """
-                                    if [ ! -d cmd/explaintest ]; then
-                                        echo "no explaintest file found in 'cmd/explaintest'"
-                                        exit -1
-                                    fi
-                                    cp bin/tidb-server cmd/explaintest
-                                    cp bin/importer cmd/explaintest
-                                    cd cmd/explaintest
-                                    GO111MODULE=on go build -o explain_test
-                                    set +e
-                                    killall -9 -r tidb-server
-                                    killall -9 -r tikv-server
-                                    killall -9 -r pd-server
-                                    rm -rf /tmp/tidb
-                                    set -e
-                                    ./run-tests.sh -s ./tidb-server -i ./importer -b n
-                                    """
-                                    }
-                                } catch (err) {
-                                    sh """
-                                cat tidb*.log || true
-                                """
-                                    sh "cat explain-test.out || true"
                                     throw err
                                 } finally {
                                     sh """
@@ -773,24 +385,453 @@ try {
                             }
                         }
                     }
-                    all_task_result << ["name": "Explain Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "Explain Test", "status": "failed", "error": err.message]
-                    throw err
                 }
+
+                def run_java = { test_dir, mytest, test_cmd ->
+                    run_test_with_java_pod {
+                        def ws = pwd()
+                        deleteDir()
+                        unstash "tidb-test"
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                            container("java") {
+                                timeout(20) {
+                                    retry(3){
+                                        sh """
+                                        tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                        pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+            
+                                        while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+                                        curl \${tikv_url} | tar xz bin
+            
+                                        while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+                                        curl \${pd_url} | tar xz bin
+            
+                                        mkdir -p ./tidb-src
+                                        curl \${tidb_url} | tar xz -C ./tidb-src
+                                        ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+                                        mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                        """
+                                    }
+                                }
+                                try {
+                                    timeout(20) {
+                                        sh """
+                                        ps aux
+                                        set +e
+                                        killall -9 -r tidb-server
+                                        killall -9 -r tikv-server
+                                        killall -9 -r pd-server
+                                        rm -rf /tmp/tidb
+                                        rm -rf ./tikv ./pd
+                                        set -e
+                                        
+                                        bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                        sleep 10
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                        sleep 10
+                                        if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export log_level=debug
+                                        TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                        TIKV_PATH='127.0.0.1:2379' \
+                                        TIDB_TEST_STORE_NAME=tikv \
+                                        ${test_cmd}
+                                        """
+                                    }
+                                } catch (err) {
+                                    sh"""
+                                    cat mysql-test.out || true
+                                    """
+                                    sh """
+                                    cat pd_${mytest}.log
+                                    cat tikv_${mytest}.log
+                                    cat tidb*.log
+                                    """
+                                    throw err
+                                } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    set -e
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
+                def run_split = { test_dir, mytest, test_cmd, chunk ->
+                    run_with_memory_volume_pod {
+                        def ws = pwd()
+                        deleteDir()
+                        unstash "tidb-test"
+                        unstash "tidb-test-vendor"
+                        unstash "helper"
+                        unstash "${test_dir}"
+
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                            container("golang") {
+
+                                timeout(20) {
+                                    retry(3){
+                                        sh """
+                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
+                                    curl \${tikv_url} | tar xz
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
+                                    curl \${pd_url} | tar xz
+        
+                                    mkdir -p ./tidb-src
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
+                                    curl ${tidb_url} | tar xz -C ./tidb-src
+                                    ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+        
+                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                    """
+                                    }
+                                }
+
+                                try {
+                                    timeout(20) {
+                                        sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    rm -rf ./tikv ./pd
+                                    set -e
+                                    
+                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                    sleep 10
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    
+                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                    sleep 10
+                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+                                    if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                        mv t t_bak
+                                        mkdir t
+                                        cd t_bak
+                                        cp \$(cat ../packages_${chunk}) ../t
+                                        cd ..
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export log_level=debug
+                                        TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                        TIKV_PATH='127.0.0.1:2379' \
+                                        TIDB_TEST_STORE_NAME=tikv \
+                                        ${test_cmd}
+                                    fi
+                                    """
+                                    }
+                                } catch (err) {
+                                    sh"""
+                                    cat mysql-test.out || true
+                                    """
+
+                                    sh """
+                                    cat pd_${mytest}.log
+                                    cat tikv_${mytest}.log
+                                    cat tidb*.log
+                                    """
+                                    throw err
+                                } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    set -e
+                                    """
+                                }
+                            }
+                        }
+                        deleteDir()
+                    }
+                }
+
+                def run_golang = { test_dir, mytest, test_cmd ->
+                    run_with_memory_volume_pod {
+                        def ws = pwd()
+                        deleteDir()
+                        unstash "tidb-test"
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                            container("golang") {
+                                timeout(20) {
+                                    retry(3){
+                                        sh """
+                                        tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                        pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+            
+                                        while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+                                        curl \${tikv_url} | tar xz bin
+            
+                                        while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+                                        curl \${pd_url} | tar xz bin
+            
+                                        mkdir -p ./tidb-src
+                                        curl \${tidb_url} | tar xz -C ./tidb-src
+                                        ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+                                        mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                        """
+                                    }
+                                }
+                                try {
+                                    timeout(20) {
+                                        sh """
+                                        ps aux
+                                        set +e
+                                        killall -9 -r tidb-server
+                                        killall -9 -r tikv-server
+                                        killall -9 -r pd-server
+                                        rm -rf /tmp/tidb
+                                        rm -rf ./tikv ./pd
+                                        set -e
+                                        
+                                        bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                        sleep 10
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                        sleep 10
+                                        if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export log_level=debug
+                                        TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                        TIKV_PATH='127.0.0.1:2379' \
+                                        TIDB_TEST_STORE_NAME=tikv \
+                                        ${test_cmd}
+                                        """
+                                    }
+                                } catch (err) {
+                                    sh"""
+                                    cat mysql-test.out || true
+                                    """
+                                    sh """
+                                    cat pd_${mytest}.log
+                                    cat tikv_${mytest}.log
+                                    cat tidb*.log
+                                    """
+                                    throw err
+                                } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    set -e
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
+                
+
+                tests["Integration Randgen Test 1"] = {
+                    try {
+                        run_split("randgen-test", "randgentest", "./test.sh", 1)
+                        all_task_result << ["name": "Randgen Test 1", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "Randgen Test 1", "status": "failed", "error": err.message]
+                        throw err
+                    }  
+                }
+
+                tests["Integration Randgen Test 2"] = {
+                    try {
+                        run_split("randgen-test", "randgentest", "./test.sh", 2)
+                        all_task_result << ["name": "Randgen Test 2", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
+                        throw err
+                    }  
+                }
+
+                tests["Integration Randgen Test 3"] = {
+                    try {
+                        run_split("randgen-test", "randgentest", "./test.sh", 3)
+                        all_task_result << ["name": "Randgen Test 3", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "Randgen Test 3", "status": "failed", "error": err.message]
+                        throw err
+                    } 
+                }
+
+                tests["Integration Analyze Test"] = {
+                    try {
+                        run("analyze_test", "analyzetest", "./test.sh")
+                        all_task_result << ["name": "Analyze Test", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "Analyze Test", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                tests["Integration TiDB Test 1"] = {
+                    try {
+                        run("tidb_test", "tidbtest", "TEST_FILE=ql_1.t ./test.sh")
+                        all_task_result << ["name": "TiDB Test 1", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "TiDB Test 1", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                tests["Integration TiDB Test 2"] = {
+                    try {
+                        run("tidb_test", "tidbtest", "TEST_FILE=ql_2.t ./test.sh")
+                        all_task_result << ["name": "TiDB Test 2", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "TiDB Test 2", "status": "failed", "error": err.message]
+                        throw err
+                    } 
+                }
+
+                tests["Integration Go SQL Test"] = {
+                    try {
+                        run("go-sql-test", "gosqltest", "./test.sh")
+                        all_task_result << ["name": "Go SQL Test", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "Go SQL Test", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                tests["Integration GORM Test"] = {
+                    try {
+                        run("gorm_test", "gormtest", "./test.sh")
+                        all_task_result << ["name": "GORM Test", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "GORM Test", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                tests["Beego ORM Test"] = {
+                    run_golang("beego_orm_test", "beegoormtest", "./test.sh")
+                }
+                tests["Upper DB ORM Test"] = {
+                    run_golang("upper_db_orm_test", "upperdbormtest", "./test.sh")
+                }
+                tests["XORM Test"] = {
+                    run_golang("xorm_test", "xormtest", "./test.sh")
+                }
+
+                tests["JDBC8 Fast Test"] = {
+                    run_java("jdbc8_test", "jdbc8test", "./test_fast.sh")
+                }
+
+                tests["JDBC8 Slow Test"] = {
+                    run_java("jdbc8_test", "jdbc8test", "./test_slow.sh")
+                }
+
+                tests["Hibernate Test"] = {
+                    run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
+                }
+
+                tests["Integration MySQL Test"] = {
+                    try {
+                        if (TIDB_TEST_BRANCH == "master") {
+                            run("mysql_test", "mysqltest", "./test.sh alias alter_table alter_table1 alter_table_PK analyze ansi auto_increment bigint bool bug28940878 bug33509 bug46760 bug58669 builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete delete_myisam do drop ds_mrr-big echo error_simulation exec_selection expression_index field_length filesort filesort_json filter_single_col_idx_big func_bitwise_ops func_compress func_concat func_date_add_myisam func_default func_gconcat func_group_innodb func_math func_op func_str_myisam gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic grant_lowercase_fs groupby having heap_btree heap_btree_myisam histogram_singleton implicit_char_to_num_conversion in index index_merge1 index_merge2 index_merge_bug29952775 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema innodb_tmp_table_heap_to_disk insert insert_select insert_select_myisam insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join join-reorder join_crash json json_functions json_gcol key keywords lead_lag lead_lag_explain like limit limit_myisam long_tmpdir lowercase_fs_off lowercase_mixed_tmpdir lowercase_table2 lowercase_table4 lowercase_table5 lowercase_utf8 lowercase_view lpad mariadb_cte_nonrecursive mariadb_cte_recursive math metadata multi_update multi_update_innodb multi_update_tiny_hash mysql_replace nth null_key_all_innodb odbc operator opt_hint_timeout opt_hints_join_order opt_hints_subquery optimizer_bug12837084 order_by_limit orderby overflow packet_myisam parser parser_precedence partition_bug18198 partition_hash partition_innodb partition_list partition_locking_ps_protocol partition_range precedence prepare ps qualified regexp replace reset_connection role role2 roles-ddl roles-view roles_bugs_wildcard row savepoint savepoint2 savepoint_in_optimistic_txn savepoint_in_pessimistic_txn savepoint_issue_26288 select_qualified show show_check_cs_myisam show_profile show_variables single_delete_update sqllogic str_quoted strict strict_autoinc_2innodb sub_query sub_query_more subquery_antijoin subquery_bugs subquery_sj_innodb_all sum_distinct-big temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func truth_value_transform type type_binary type_decimal type_enum type_time type_timestamp type_timestamp_myisam type_uint type_unit type_varchar union update update_myisam update_stmt user_if_exists varbinary variable variables variables_dynamic_privs view_grant view_myisam warnings window_functions window_functions_big window_functions_bugs window_functions_interesting_orders window_min_max with_non_recursive with_recursive with_recursive_bugs xd")
+                        } else {
+                            run("mysql_test", "mysqltest", "./test.sh")
+                        }
+                        all_task_result << ["name": "MySQL Test", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                tests["Integration MySQL Test Cached"] = {
+                    try {
+                        if (TIDB_TEST_BRANCH == "master") {
+                            run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh alias alter_table alter_table1 alter_table_PK analyze ansi auto_increment bigint bool bug28940878 bug33509 bug46760 bug58669 builtin case charset comment_column2 comment_table composite_index concurrent_ddl count_distinct count_distinct2 create_database create_index create_table ctype_gbk date_formats date_time_ddl datetime_insert datetime_update daylight_saving_time ddl_i18n_utf8 decimal delete delete_myisam do drop ds_mrr-big echo error_simulation exec_selection expression_index field_length filesort filesort_json filter_single_col_idx_big func_bitwise_ops func_compress func_concat func_date_add_myisam func_default func_gconcat func_group_innodb func_math func_op func_str_myisam gcol_alter_table gcol_blocked_sql_funcs gcol_column_def_options gcol_dependenies_on_vcol gcol_illegal_expression gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select gcol_supported_sql_funcs gcol_view grant_dynamic grant_lowercase_fs groupby having heap_btree heap_btree_myisam histogram_singleton implicit_char_to_num_conversion in index index_merge1 index_merge2 index_merge_bug29952775 index_merge_delete index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans infoschema innodb_tmp_table_heap_to_disk insert insert_select insert_select_myisam insert_update invisible_indexes issue_11208 issue_165 issue_20571 issue_207 issue_227 issue_266 issue_294 join join-reorder join_crash json json_functions json_gcol key keywords lead_lag lead_lag_explain like limit limit_myisam long_tmpdir lowercase_fs_off lowercase_mixed_tmpdir lowercase_table2 lowercase_table4 lowercase_table5 lowercase_utf8 lowercase_view lpad mariadb_cte_nonrecursive mariadb_cte_recursive math metadata multi_update multi_update_innodb multi_update_tiny_hash mysql_replace nth null_key_all_innodb odbc operator opt_hint_timeout opt_hints_join_order opt_hints_subquery optimizer_bug12837084 order_by_limit orderby overflow packet_myisam parser parser_precedence partition_bug18198 partition_hash partition_innodb partition_list partition_locking_ps_protocol partition_range precedence prepare ps qualified regexp replace reset_connection role role2 roles-ddl roles-view roles_bugs_wildcard row savepoint savepoint2 savepoint_in_optimistic_txn savepoint_in_pessimistic_txn savepoint_issue_26288 select_qualified show show_check_cs_myisam show_profile show_variables single_delete_update sqllogic str_quoted strict strict_autoinc_2innodb sub_query sub_query_more subquery_antijoin subquery_bugs subquery_sj_innodb_all sum_distinct-big temp_table time timestamp_insert timestamp_update tpcc transaction_isolation_func truth_value_transform type type_binary type_decimal type_enum type_time type_timestamp type_timestamp_myisam type_uint type_unit type_varchar union update update_myisam update_stmt user_if_exists varbinary variable variables variables_dynamic_privs view_grant view_myisam warnings window_functions window_functions_big window_functions_bugs window_functions_interesting_orders window_min_max with_non_recursive with_recursive with_recursive_bugs xd")
+                        } else {
+                            run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
+                        }
+                        all_task_result << ["name": "MySQL Test Cached", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test Cached", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                tests["Integration Explain Test"] = {
+                    try {
+                        run_with_memory_volume_pod {
+                            def ws = pwd()
+                            deleteDir()
+                            dir("go/src/github.com/pingcap/tidb") {
+                                container("golang") {
+                                    try {
+                                        timeout(20) {
+                                            retry(3){
+                                                deleteDir()
+                                                sh """
+                                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                            curl ${tidb_url} | tar xz
+                                            """
+                                            }
+
+                                        }
+
+                                        timeout(20) {
+                                            sh """
+                                        if [ ! -d cmd/explaintest ]; then
+                                            echo "no explaintest file found in 'cmd/explaintest'"
+                                            exit -1
+                                        fi
+                                        cp bin/tidb-server cmd/explaintest
+                                        cp bin/importer cmd/explaintest
+                                        cd cmd/explaintest
+                                        GO111MODULE=on go build -o explain_test
+                                        set +e
+                                        killall -9 -r tidb-server
+                                        killall -9 -r tikv-server
+                                        killall -9 -r pd-server
+                                        rm -rf /tmp/tidb
+                                        set -e
+                                        ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                        """
+                                        }
+                                    } catch (err) {
+                                        sh """
+                                    cat tidb*.log || true
+                                    """
+                                        sh "cat explain-test.out || true"
+                                        throw err
+                                    } finally {
+                                        sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    set -e
+                                    """
+                                    }
+                                }
+                            }
+                        }
+                        all_task_result << ["name": "Explain Test", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "Explain Test", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+
+                parallel tests
             }
 
-            parallel tests
-        }
-
-        currentBuild.result = "SUCCESS"
-        node("lightweight_pod"){
-            container("golang"){
-                sh """
-		    echo "done" > done
-		    curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
-            }
+            currentBuild.result = "SUCCESS"
         }
     }
 }
