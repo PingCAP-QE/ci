@@ -47,9 +47,9 @@ if (m3) {
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
-def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-def testStartTimeMillis = System.currentTimeMillis()
+tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+testStartTimeMillis = System.currentTimeMillis()
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
@@ -236,7 +236,7 @@ try {
                                 }
                             }
                         }
-
+                        stash includes: "go/src/github.com/pingcap/tidb-test/**", name: "tidb-test-all"
                         stash includes: "go/src/github.com/pingcap/tidb-test/_helper.sh", name: "helper"
                         stash includes: "go/src/github.com/pingcap/tidb-test/tidb_test/**", name: "tidb_test"
                         stash includes: "go/src/github.com/pingcap/tidb-test/randgen-test/**", name: "randgen-test"
@@ -391,7 +391,7 @@ try {
                     run_test_with_java_pod {
                         def ws = pwd()
                         deleteDir()
-                        unstash "tidb-test"
+                        unstash "tidb-test-all"
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             container("java") {
                                 timeout(20) {
@@ -407,8 +407,10 @@ try {
                                         curl \${pd_url} | tar xz bin
             
                                         mkdir -p ./tidb-src
-                                        curl \${tidb_url} | tar xz -C ./tidb-src
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        curl ${tidb_url} | tar xz -C ./tidb-src
                                         ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+            
                                         mv tidb-src/bin/tidb-server ./bin/tidb-server
                                         """
                                     }
@@ -559,8 +561,7 @@ try {
                 def run_golang = { test_dir, mytest, test_cmd ->
                     run_with_memory_volume_pod {
                         def ws = pwd()
-                        deleteDir()
-                        unstash "tidb-test"
+                        unstash "tidb-test-all"
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             container("golang") {
                                 timeout(20) {
@@ -576,8 +577,10 @@ try {
                                         curl \${pd_url} | tar xz bin
             
                                         mkdir -p ./tidb-src
-                                        curl \${tidb_url} | tar xz -C ./tidb-src
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        curl ${tidb_url} | tar xz -C ./tidb-src
                                         ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+            
                                         mv tidb-src/bin/tidb-server ./bin/tidb-server
                                         """
                                     }
@@ -632,8 +635,6 @@ try {
                         }
                     }
                 }
-
-                
 
                 tests["Integration Randgen Test 1"] = {
                     try {
