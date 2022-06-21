@@ -12,15 +12,9 @@ if (params.containsKey("release_test")) {
 
 def notRun = 1
 def CHUNK_COUNT = 2 // spawn two nodes to run tests
-def pod_image_param = ghprbTargetBranch
-def RETRY = "2" // retry 3 times
+def RETRY = 2 // retry 3 times
 
-// parse params from comment
-def m = ghprbCommentBody =~ /retry\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m) {
-    RETRY = "${m0[0][1]}"
-}
-
+pod_image_param = ghprbTargetBranch
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
 // remove suffix "-20210724", only use "release-4.0"
 if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").size() >= 3 ) {
@@ -29,11 +23,10 @@ if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").siz
     ghprbTargetBranch = ghprbTargetBranch.substring(0, k)
     pod_image_param = ghprbTargetBranch
 }
-
 if (!ghprbTargetBranch.startsWith("release-")) {
     pod_image_param = "master"
 }
-def rust_image = "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
+rust_image = "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
 println "ci image use ${rust_image}"
 
 def run_test_with_pod(Closure body) {
@@ -102,7 +95,11 @@ stage("Prepare") {
             containers: [
                 containerTemplate(name: "2c", image: rust_image,
                     alwaysPullImage: true, privileged: true,
-                    resourceRequestCpu: '2', resourceRequestMemory: '4Gi',
+                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
+                    ttyEnabled: true, command: 'cat'),
+                containerTemplate(name: "4c", image: rust_image,
+                    alwaysPullImage: true, privileged: true,
+                    resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                     ttyEnabled: true, command: 'cat'),
             ],
         ) {
@@ -113,12 +110,12 @@ stage("Prepare") {
                 container("2c") {
                     is_cached_lint_passed = (sh(
                         label: 'Try to skip linting', returnStatus: true,
-                        script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed") == 0)
                     println "Skip linting: ${is_cached_lint_passed}"
                 }
 
                 if (!is_cached_lint_passed) {
-                    container("2c") {
+                    container("4c") {
                         sh label: 'Prepare workspace', script: """
                             cd \$HOME/tikv-src
                             if [[ "${ghprbPullId}" == 0 ]]; then
@@ -172,12 +169,12 @@ stage("Prepare") {
                 containerTemplate(name: "2c",
                     image: rust_image,
                     alwaysPullImage: true, privileged: true,
-                    resourceRequestCpu: '2', resourceRequestMemory: '4Gi',
+                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
                     ttyEnabled: true, command: 'cat'),
-                containerTemplate(name: "6c",
+                containerTemplate(name: "4c",
                     image: rust_image,
                     alwaysPullImage: true, privileged: true,
-                    resourceRequestCpu: '6', resourceRequestMemory: '8Gi',
+                    resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                     ttyEnabled: true, command: 'cat'),
             ],
         ) {
@@ -188,12 +185,12 @@ stage("Prepare") {
                 container("2c") {
                     is_artifact_existed = (sh(
                         label: 'Try to skip building test artifact', returnStatus: true,
-                        script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
                     println "Skip building test artifact: ${is_artifact_existed}"
                 }
 
                 if (!is_artifact_existed) {
-                    container("6c") {
+                    container("4c") {
                         sh label: 'Prepare workspace', script: """
                             cd \$HOME/tikv-src
                             if [[ "${ghprbPullId}" == 0 ]]; then
@@ -221,64 +218,48 @@ stage("Prepare") {
                         echo using gcc 8
                         source /opt/rh/devtoolset-8/enable
                         set -o pipefail
-                        time cargo install cargo-nextest
                         # Build and generate a list of binaries
-                        CARGO_TEST_COMMAND="nextest list --message-format json --list-type binaries-only" make test | grep -E '^{.+}\$' > test.json
+                        CARGO_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test | grep -E '^{.+}\$' > test.json
                         # Cargo metadata
                         cargo metadata --format-version 1 > test-metadata.json
-                        """
-
-                        sh label: 'Post-build: Check SSE instructions', script: """
-                        cd \$HOME/tikv-src
-                        if [ -f scripts/check-sse4_2.sh ]; then
-                            sh scripts/check-sse4_2.sh
-                        fi
-                        """
-
-                        sh label: 'Post-build: Check Jemalloc linking', script: """
-                        cd \$HOME/tikv-src
-                        if [ -f scripts/check-bins-for-jemalloc.sh ]; then
-                            sh scripts/check-bins-for-jemalloc.sh
-                        fi
                         """
 
                         sh label: 'Post-build: Upload test artifacts', script: """
                         cd \$HOME/tikv-src
                         python <<EOF
-    import sys
-    import subprocess
-    import json
-    import multiprocessing
-    def upload(bin):
-        return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER_URL}/upload"])
-    merged_dict={ "rust-binaries": {} }
-    visited_files=set()
-    pool = multiprocessing.Pool(processes=4)
-    with open('test-binaries', 'w') as writer:
-        with open('test.json', 'r') as f:
-            for l in f:
-                all = json.loads(l)
-                binaries = all["rust-binaries"]
-                if not "rust-build-meta" in merged_dict:
-                    merged_dict["rust-build-meta"] = all["rust-build-meta"]
-                for (name, meta) in binaries.items():
-                    if meta["kind"] == "proc-macro":
-                        continue
-                    bin = meta["binary-path"]
-                    
-                    if bin in visited_files:
-                        continue
-                    visited_files.add(bin)
-                    merged_dict["rust-binaries"][name] = meta
-                    writer.write("%s\\n" % bin)
-                    pool.apply_async(upload, (bin,))
-    pool.close()
-    pool.join()
-    with open('test-binaries.json', 'w') as f:
-        json.dump(merged_dict, f)
-    EOF
-                        cp `which cargo-nextest` ./
-                        tar czf test-artifacts.tar.gz test-binaries* test-metadata.json cargo-nextest Cargo.toml cmd fuzz src tests components rust-toolchain `ls target/*/deps/*plugin.so 2>/dev/null`
+import sys
+import subprocess
+import json
+import multiprocessing
+def upload(bin):
+    return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER_URL}/upload"])
+merged_dict={ "rust-binaries": {} }
+visited_files=set()
+pool = multiprocessing.Pool(processes=4)
+with open('test-binaries', 'w') as writer:
+    with open('test.json', 'r') as f:
+        for l in f:
+            all = json.loads(l)
+            binaries = all["rust-binaries"]
+            if not "rust-build-meta" in merged_dict:
+                merged_dict["rust-build-meta"] = all["rust-build-meta"]
+            for (name, meta) in binaries.items():
+                if meta["kind"] == "proc-macro":
+                    continue
+                bin = meta["binary-path"]
+                
+                if bin in visited_files:
+                    continue
+                visited_files.add(bin)
+                merged_dict["rust-binaries"][name] = meta
+                writer.write("%s\\n" % bin)
+                pool.apply_async(upload, (bin,))
+pool.close()
+pool.join()
+with open('test-binaries.json', 'w') as f:
+    json.dump(merged_dict, f)
+EOF
+                        tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
                         curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
                         echo 1 > cached_build_passed
                         curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
@@ -304,7 +285,7 @@ stage('Test') {
     def run_test = { chunk_suffix ->
         run_test_with_pod {
             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                container("8c") {
+                container("4c") {
                     println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                     deleteDir()
                     timeout(15) {
@@ -326,7 +307,7 @@ stage('Test') {
                             curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
                             chmod +x \$i;
                         done
-                        if ./cargo-nextest nextest run --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} --retries ${RETRY} -j 7; then
+                        if cargo nextest run --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} --retries ${RETRY} -j 7; then
                             echo "test pass"
                         else
                             # test failed
