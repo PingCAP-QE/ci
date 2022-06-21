@@ -282,7 +282,6 @@ def download_binaries() {
     def tidb_archive_path = TIDB_ARCHIVE_PATH_BRANCH
     if (m1) {
         TIDB_BRANCH = "${m1[0][1]}"
-        tidb_archive_path = TIDB_ARCHIVE_PATH_PR
     }
     m1 = null
     println "TIDB_BRANCH=${TIDB_BRANCH}"

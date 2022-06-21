@@ -1,4 +1,3 @@
-
 def buildSlave = "${GO_BUILD_SLAVE}"
 
 env.DOCKER_HOST = "tcp://localhost:2375"
@@ -20,7 +19,7 @@ catchError {
                     GOPATH=${ws}/go go build -o pull-monitoring  cmd/monitoring.go
                     """
                     withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                        sh"""
+                        sh """
                         ./pull-monitoring  --config=monitoring.yaml --tag=${version} --token=$TOKEN
                         ls monitor-snapshot/
                         ls monitor-snapshot/${version}/
@@ -41,10 +40,10 @@ catchError {
                     unstash 'monitoring'
                     dir("go/src/github.com/pingcap/monitoring") {
                         withDockerServer([uri: "${env.DOCKER_HOST}"]) {
-                            withCredentials([usernamePassword(credentialsId: 'harbor-pingcap', usernameVariable: 'harborUser', passwordVariable: 'harborPassword')]) { 
-                            sh """
+                            withCredentials([usernamePassword(credentialsId: 'harbor-pingcap', usernameVariable: 'harborUser', passwordVariable: 'harborPassword')]) {
+                                sh """
                             docker version
-                            docker login -u ${ harborUser} -p ${harborPassword} hub.pingcap.net
+                            docker login -u ${harborUser} -p ${harborPassword} hub.pingcap.net
                             
                             wget https://github.com/docker/buildx/releases/download/v0.8.0/buildx-v0.8.0.linux-amd64 -O /usr/bin/buildx
                             chmod +x /usr/bin/buildx
@@ -56,27 +55,30 @@ catchError {
                             
                             buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-initializer:${RELEASE_TAG} monitor-snapshot/${version}/operator
                             # buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-reloader:v1.0.1 -f reload/Dockerfile_buildx .
-                            """   
+                            """
                             }
                         }
 
-                        harbor_tmp_image_name_initializer = "hub.pingcap.net/qa/tidb-monitor-initializer:${RELEASE_TAG}"
-                        sync_dest_image_name_initializer = "pingcap/tidb-monitor-initializer:${RELEASE_TAG}"
-                        sync_image_params_initializer = [
-                                string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
-                                string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name_initializer),
-                                string(name: 'TARGET_IMAGE', value: harbor_tmp_image_name_initializer),
-                        ]
-                        build(job: "jenkins-image-syncer", parameters: sync_image_params_initializer, wait: true, propagate: true)
-                        
-                        // harbor_tmp_image_name_reloader = "hub.pingcap.net/qa/tidb-monitor-reloader:${RELEASE_TAG}"
-                        // sync_dest_image_name_reloader = "pingcap/tidb-monitor-reloader:${RELEASE_TAG}"
-                        // sync_image_params_reloader = [
-                        //         string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
-                        //         string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name_reloader),
-                        //         string(name: 'TARGET_IMAGE', value: harbor_tmp_image_name_reloader),
-                        // ]
-                        // build(job: "jenkins-image-syncer", parameters: sync_image_params_reloader, wait: true, propagate: true)
+                        if (NEED_SYNC_TO_DOCKER == "true") {
+                            harbor_tmp_image_name_initializer = "hub.pingcap.net/qa/tidb-monitor-initializer:${RELEASE_TAG}"
+                            sync_dest_image_name_initializer = "pingcap/tidb-monitor-initializer:${RELEASE_TAG}"
+                            sync_image_params_initializer = [
+                                    string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
+                                    string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name_initializer),
+                                    string(name: 'TARGET_IMAGE', value: harbor_tmp_image_name_initializer),
+                            ]
+                            build(job: "jenkins-image-syncer", parameters: sync_image_params_initializer, wait: true, propagate: true)
+
+                            // harbor_tmp_image_name_reloader = "hub.pingcap.net/qa/tidb-monitor-reloader:${RELEASE_TAG}"
+                            // sync_dest_image_name_reloader = "pingcap/tidb-monitor-reloader:${RELEASE_TAG}"
+                            // sync_image_params_reloader = [
+                            //         string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
+                            //         string(name: 'SOURCE_IMAGE', value: harbor_tmp_image_name_reloader),
+                            //         string(name: 'TARGET_IMAGE', value: harbor_tmp_image_name_reloader),
+                            // ]
+                            // build(job: "jenkins-image-syncer", parameters: sync_image_params_reloader, wait: true, propagate: true)
+                        }
+
                     }
                 }
             }

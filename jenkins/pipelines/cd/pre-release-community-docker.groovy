@@ -140,10 +140,7 @@ def test_binary_already_build(binary_url) {
 
 // only release version >= v6.1.0 need multi-arch image
 def versionNeedMultiArch(version) {
-    if (version.startsWith("v") && version >= "v6.1.0") {
-        return true
-    }
-    return false
+    return true
 }
 
 NEED_MULTIARCH = versionNeedMultiArch(RELEASE_TAG)
@@ -450,7 +447,7 @@ stage("release") {
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
 
-            if (RELEASE_BRANCH == "release-5.1" || RELEASE_BRANCH >= "release-5.4") {
+            if (RELEASE_BRANCH >= "release-5.1") {
                 release_docker(releaseRepos, builds, "arm64")
             } else if (params.DEBUG_MODE) {
                 release_docker(releaseRepos, builds, "arm64")
