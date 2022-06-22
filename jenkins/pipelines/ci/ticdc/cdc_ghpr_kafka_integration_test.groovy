@@ -258,7 +258,10 @@ catchError {
         // HACK! Download jks by injecting RACK_COMMAND
         // https://git.io/JJZXX -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks
         // https://git.io/JJZXM -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks
-        def download_jks = 'curl -sfL https://git.io/JJZXX -o /tmp/kafka.server.keystore.jks && curl -sfL https://git.io/JJZXM -o /tmp/kafka.server.truststore.jks'
+        // resolve git.io in ci node  is likely to fail.
+        //  file kafka.server.keystore.jks  https://git.io/JJZXX 
+        //  file kafka.server.truststore.jks https://git.io/JJZXM
+        def download_jks = 'curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks'
 
         container("golang") {
             def KAFKA_TAG = "2.12-2.4.1"
