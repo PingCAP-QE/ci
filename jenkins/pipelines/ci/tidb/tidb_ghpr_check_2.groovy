@@ -1,9 +1,8 @@
-def notRun = 1
 
 def slackcolor = 'good'
 def githash
 
-def specStr = "+refs/pull/*:refs/remotes/origin/pr/*"
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
@@ -79,7 +78,6 @@ def run_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             privileged: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                            resourceLimitCpu: '30000m', resourceLimitMemory: "100Gi",
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     ),
@@ -101,54 +99,9 @@ def run_with_pod(Closure body) {
     }
 }
 
-def upload_test_result(reportDir) {
-    if (!fileExists(reportDir)){
-        return
-    }
-    try {
-        id=UUID.randomUUID().toString()
-        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
-        sh """
-        curl -F ${filepath}=@${reportDir} ${FILE_SERVER_URL}/upload
-        """
-        def downloadPath = "${FILE_SERVER_URL}/download/${filepath}"
-        def all_results = [
-            jenkins_job_name: "${JOB_NAME}",
-            jenkins_url: "${env.RUN_DISPLAY_URL}",
-            repo: "${ghprbGhRepository}",
-            commit_id: ghprbActualCommit,
-            branch: ghprbTargetBranch,
-            junit_report_url: downloadPath,
-            pull_request: ghprbPullId.toInteger(),
-            author: ghprbPullAuthorLogin
-        ]
-        def json = groovy.json.JsonOutput.toJson(all_results)
-        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.4.15:30792/report/", validResponseCodes: '200'
-    }catch (Exception e) {
-        // upload test case result to tipipeline, do not block ci
-        print "upload test result to tipipeline failed, continue."
-    }
-}
-
 try {
     run_with_pod {
-        // stage("Pre-check"){
-        //     if (!params.force){
-        //         container("golang"){
-        //             notRun = sh(returnStatus: true, script: """
-        //         if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-        //         """)
-        //         }
-        //     }
-
-        //     if (notRun == 0){
-        //         println "the ${ghprbActualCommit} has been tested"
-        //         throw new RuntimeException("hasBeenTested")
-        //     }
-        // }
-
         def ws = pwd()
-
         stage("Checkout") {
             // update code
             dir("/home/jenkins/agent/code-archive") {
@@ -205,7 +158,7 @@ try {
         }
 
         def tests = [:]
-        tests["Build & Test"] = {
+        tests["test_part_parser & gogenerate"] = {
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
                     timeout(15) {
@@ -221,7 +174,6 @@ try {
                 }
             }
         }
-
 
         def run_real_tikv_tests = { test_suite ->
             run_with_pod {
@@ -248,15 +200,14 @@ try {
                                 echo -e "[raftdb]\nmax-open-files = 20480\n" >> tikv.toml
                                 echo -e "[rocksdb]\nmax-open-files = 20480\n" >> tikv.toml
 
-                                bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
-                                bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
-                    
-                                bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
-                                bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f  tikv2.log &
-                
-                                bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
-                                bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
+                                bin/pd-server --name=pd-0 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-0/data --peer-urls=http://127.0.0.1:2380 --advertise-peer-urls=http://127.0.0.1:2380 --client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd1.log &
+                                bin/pd-server --name=pd-1 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-1/data --peer-urls=http://127.0.0.1:2381 --advertise-peer-urls=http://127.0.0.1:2381 --client-urls=http://127.0.0.1:2382 --advertise-client-urls=http://127.0.0.1:2382  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd2.log &
+                                bin/pd-server --name=pd-2 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-2/data --peer-urls=http://127.0.0.1:2383 --advertise-peer-urls=http://127.0.0.1:2383 --client-urls=http://127.0.0.1:2384 --advertise-client-urls=http://127.0.0.1:2384  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd3.log &
+                                bin/tikv-server --addr=127.0.0.1:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20180 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-0/data -f  tikv1.log &
+                                bin/tikv-server --addr=127.0.0.1:20161 --advertise-addr=127.0.0.1:20161 --status-addr=127.0.0.1:20181 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-1/data -f  tikv2.log &
+                                bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-2/data -f  tikv3.log &
 
+                                sleep 10
                                 export log_level=error
                                 make failpoint-enable
                                 go test ./tests/realtikvtest/${test_suite} -v -with-real-tikv -timeout 30m
@@ -268,7 +219,6 @@ try {
                                 sh "cat ${ws}/tikv2.log || true"
                                 sh "cat ${ws}/pd3.log || true"
                                 sh "cat ${ws}/tikv3.log || true"
-                                sh "cat ${ws}/cmd/explaintest/explain-test.out || true"
                                 throw e
                                 } finally {
                                 sh """
