@@ -337,7 +337,7 @@ try {
                             }
 
                             try {
-                                timeout(30) {
+                                timeout(45) {
                                     sh """
                                 ps aux
                                 set +e
