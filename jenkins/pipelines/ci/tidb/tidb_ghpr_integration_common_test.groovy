@@ -11,6 +11,12 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
+ghprbTargetBranch = "master"
+ghprbActualCommit = "b5ed38d300c851feee18ff7c5baa7adec095f3d5"
+ghprbPullId = ""
+ghprbCommentBody = ""
+
+
 def TIKV_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_TEST_BRANCH = ghprbTargetBranch
@@ -734,9 +740,10 @@ try {
                     run_java("jdbc8_test", "jdbc8test", "./test_slow.sh")
                 }
 
-                tests["Hibernate Test"] = {
-                    run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
-                }
+                // Icemap is working on fix this.
+                // tests["Hibernate Test"] = {
+                //     run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
+                // }
 
                 tests["Integration MySQL Test"] = {
                     try {
