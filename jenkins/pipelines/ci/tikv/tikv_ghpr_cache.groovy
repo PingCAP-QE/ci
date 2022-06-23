@@ -68,10 +68,10 @@ RUN cd tikv-src \
 RUN rustup set profile minimal
 
 RUN cd tikv-src \
-    && rustup component add rustfmt clippy llvm-tools-preview \
-    && cargo install cargo-nextest \
     && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
     && git checkout origin/${ghBranch} \
+    && rustup component add rustfmt clippy llvm-tools-preview \
+    && cargo install cargo-nextest \
     && cargo fetch
 
 ENV CARGO_INCREMENTAL=0
