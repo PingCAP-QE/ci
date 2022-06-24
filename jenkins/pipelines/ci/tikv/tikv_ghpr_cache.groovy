@@ -60,18 +60,19 @@ ENV PATH=\\\$PATH:\\\$HOME/.cargo/bin
 RUN mkdir tikv-src && ln -s \\\$HOME/tikv-target \\\$HOME/tikv-src/target && ln -s \\\$HOME/tikv-git \\\$HOME/tikv-src/.git
 
 RUN cd tikv-src \
-        && git init \
-        && git remote add origin https://github.com/tikv/tikv.git \
-        && git fetch origin
+    && git init \
+    && git remote add origin https://github.com/tikv/tikv.git \
+    && git fetch origin
 
 # TODO: This should be configured by base image.
 RUN rustup set profile minimal
 
 RUN cd tikv-src \
-        && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
-        && git checkout origin/${ghBranch} \
-        && rustup component add rustfmt clippy llvm-tools-preview \
-        && cargo fetch
+    && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
+    && git checkout origin/${ghBranch} \
+    && rustup component add rustfmt clippy llvm-tools-preview \
+    && cargo install cargo-nextest \
+    && cargo fetch
 
 ENV CARGO_INCREMENTAL=0
 
@@ -79,11 +80,11 @@ ARG BUILD_DATE
 
 # Cache for daily build
 RUN cd tikv-src \
-        && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
-        && git checkout origin/${ghBranch} \
-        && echo using gcc 8 \
-        && source /opt/rh/devtoolset-8/enable \
-        && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
+    && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
+    && git checkout origin/${ghBranch} \
+    && echo using gcc 8 \
+    && source /opt/rh/devtoolset-8/enable \
+    && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
 """, "base", args, !params.force_base && now.getDate() != 1)
             
             checkAndBuild(ghBranch, """
@@ -94,11 +95,11 @@ MAINTAINER Jay Lee <jay@pingcap.com>
 ARG BUILD_DATE
 
 RUN cd tikv-src \
-        && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
-        && git checkout origin/${ghBranch} \
-        && echo using gcc 8 \
-        && source /opt/rh/devtoolset-8/enable \
-        && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
+    && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
+    && git checkout origin/${ghBranch} \
+    && echo using gcc 8 \
+    && source /opt/rh/devtoolset-8/enable \
+    && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
 """, "latest", args, false)
         }
         
