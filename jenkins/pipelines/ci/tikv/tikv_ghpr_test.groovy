@@ -39,12 +39,6 @@ def run_test_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: "2c", image: rust_image,
-                        alwaysPullImage: true, privileged: true,
-                        resourceRequestCpu: '2', resourceRequestMemory: '4Gi',
-                        ttyEnabled: true, command: 'cat'
-                    ),
-                    containerTemplate(
                         name: "4c", image: rust_image,
                         alwaysPullImage: true, ttyEnabled: true, privileged: true,
                         resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
@@ -70,11 +64,23 @@ try {
 
 stage("PreCheck") {
     if (!params.force) {
-        run_test_with_pod{
-            container("2c") {
-                notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
+        def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
+        podTemplate(name: label, label: label, 
+            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                containerTemplate(name: "2c", image: rust_image,
+                    alwaysPullImage: true, privileged: true,
+                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
+                    ttyEnabled: true, command: 'cat'),
+            ],
+        ) {
+            node(label) {
+                container("2c") {
+                    notRun = sh(returnStatus: true, script: """
+                    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+                    """)
+                }
             }
         }
     }
@@ -93,10 +99,6 @@ stage("Prepare") {
             cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
-                containerTemplate(name: "2c", image: rust_image,
-                    alwaysPullImage: true, privileged: true,
-                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
-                    ttyEnabled: true, command: 'cat'),
                 containerTemplate(name: "4c", image: rust_image,
                     alwaysPullImage: true, privileged: true,
                     resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
@@ -107,7 +109,7 @@ stage("Prepare") {
                 println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                 def is_cached_lint_passed = false
-                container("2c") {
+                container("4c") {
                     is_cached_lint_passed = (sh(
                         label: 'Try to skip linting', returnStatus: true,
                         script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed") == 0)
@@ -166,11 +168,6 @@ stage("Prepare") {
             cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
-                containerTemplate(name: "2c",
-                    image: rust_image,
-                    alwaysPullImage: true, privileged: true,
-                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
-                    ttyEnabled: true, command: 'cat'),
                 containerTemplate(name: "4c",
                     image: rust_image,
                     alwaysPullImage: true, privileged: true,
@@ -182,7 +179,7 @@ stage("Prepare") {
                 println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                 def is_artifact_existed = false
-                container("2c") {
+                container("4c") {
                     is_artifact_existed = (sh(
                         label: 'Try to skip building test artifact', returnStatus: true,
                         script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
@@ -334,12 +331,24 @@ stage('Test') {
 
 currentBuild.result = "SUCCESS"
 stage('Post-test') {
-    run_test_with_pod{
-        container("2c") {
-            sh """
-            echo "done" > done
-            curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-            """
+    def label="${JOB_NAME}_post_test_${BUILD_NUMBER}"
+    podTemplate(name: label, label: label, 
+        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+        containers: [
+            containerTemplate(name: "2c", image: rust_image,
+                alwaysPullImage: true, privileged: true,
+                resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
+                ttyEnabled: true, command: 'cat'),
+        ],
+    ) {
+        node(label) {
+            container("2c") {
+                sh """
+                echo "done" > done
+                curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+                """
+            }
         }
     }
 }
