@@ -15,7 +15,7 @@
 # vendor/
 ./.idea
 .idea/
-
+lib/
 .DS_Store
 
 *.iml
