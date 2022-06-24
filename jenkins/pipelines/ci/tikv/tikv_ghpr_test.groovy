@@ -12,7 +12,6 @@ if (params.containsKey("release_test")) {
 
 def notRun = 1
 def CHUNK_COUNT = 2 // spawn two nodes to run tests
-def RETRY = 2 // retry 3 times
 
 pod_image_param = ghprbTargetBranch
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
@@ -256,7 +255,7 @@ pool.join()
 with open('test-binaries.json', 'w') as f:
     json.dump(merged_dict, f)
 EOF
-                        tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
+                        tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
                         curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
                         echo 1 > cached_build_passed
                         curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
@@ -304,7 +303,7 @@ stage('Test') {
                             curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
                             chmod +x \$i;
                         done
-                        if cargo nextest run --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} --retries ${RETRY} -j 7; then
+                        if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 7; then
                             echo "test pass"
                         else
                             # test failed
