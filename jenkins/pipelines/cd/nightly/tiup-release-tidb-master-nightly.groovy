@@ -241,7 +241,7 @@ retry(2) {
             result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
         }
 
-        result["notify_receiver"] = ["purelind", "heibaijian"]
+        result["notify_receiver"] = ["purelind", "heibaijian", "derekstrong"]
 
         node("lightweight_pod") {
             container("golang") {
