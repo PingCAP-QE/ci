@@ -39,16 +39,16 @@ def run_test_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: "8c", image: rust_image,
-                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '8', resourceRequestMemory: '16Gi',
-                        command: '/bin/sh -c', args: 'cat',
-                    ),
-                    containerTemplate(
                         name: "2c", image: rust_image,
                         alwaysPullImage: true, privileged: true,
                         resourceRequestCpu: '2', resourceRequestMemory: '4Gi',
                         ttyEnabled: true, command: 'cat'
+                    ),
+                    containerTemplate(
+                        name: "4c", image: rust_image,
+                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
                     ),
             ],
             volumes: [
