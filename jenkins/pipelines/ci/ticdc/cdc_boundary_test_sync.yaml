@@ -1,0 +1,104 @@
+apiVersion: api/v1
+kind: Plan
+name: cdc_boundary_test_sync
+schedule: "@daily"
+tags: ["cdc"]
+testbed:
+  generateName: cdc-testbed-
+  reclaimPolicy:
+    gcStrategy:
+      onFailure:
+        artifact:
+          monitor: true
+          log: true
+        reserveEnv:
+          durationOnWorkingHour: '0h'
+        notification:
+          feishu: https://open.feishu.cn/open-apis/bot/v2/hook/4f6c6406-c963-4d52-8641-cca17aa734e9
+  items:
+  - name: upstream
+    type: TIDB_CLUSTER
+    spec:
+      imagePullPolicy: Always
+      pd:
+        replicas: 3
+        requests:
+          cpu: 2000m
+          memory: 8Gi
+        limits:
+          cpu: 2000m
+          memory: 8Gi
+        baseImage: hub.pingcap.net/qa/pd
+        version: master
+      tikv:
+        storageClassName: fast-disks
+        replicas: 3
+        requests:
+          cpu: 8000m
+          memory: 16Gi
+        limits:
+          cpu: 8000m
+          memory: 16Gi
+        baseImage: hub.pingcap.net/qa/tikv
+        version: master
+      tidb:
+        replicas: 1
+        requests:
+          cpu: 8000m
+          memory: 16Gi
+        limits:
+          cpu: 8000m
+          memory: 16Gi
+        baseImage: hub.pingcap.net/qa/tidb
+        version: master
+      ticdc:
+        replicas: 3
+        requests:
+          cpu: 8000m
+          memory: 16Gi
+        limits:
+          cpu: 8000m
+          memory: 16Gi
+        baseImage: hub.pingcap.net/qa/ticdc
+        version: 'TICDC_FEATURE_BRANCH_VERSION'
+      version: 'master'
+  - name: downstream
+    type: MYSQL_NODE
+    spec:
+      image: registry-mirror.pingcap.net/mysql/mysql-server:8.0.27-1.2.6-server
+      port: 3306
+      env:
+        MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        MYSQL_ROOT_HOST: "%"
+      resources:
+        requests:
+        memory: 4Gi
+        cpu: 4000m
+        storage: 500Gi
+      volumeMount:
+        mountPath: "/var/lib/mysql"         # mountPath of "storage" request
+  - name: workload
+    type: WORKLOAD_NODE
+    spec:
+      container:
+        name: cdcboundaryworkload
+        image: "hub.pingcap.net/qa/cdc-boundary-workload"
+        command:
+        - tail
+        - "-f"
+        - /dev/null
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: 4000m
+steps:
+- name: cdc-boundary-test-sync
+  caseName: cdc_boundary_test_sync
+  arguments:
+  - name: upstream
+    value: "{{testbed.upstream}}"
+  - name: downstream
+    value: "{{testbed.downstream}}"
+  - name: workload
+    value: "{{testbed.workload}}"
+failFast: false
