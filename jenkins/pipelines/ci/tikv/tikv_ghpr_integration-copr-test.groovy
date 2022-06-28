@@ -12,7 +12,7 @@ if (params.containsKey("release_test")) {
 
 def TIDB_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
-def COPR_TEST_BRANCH = "master"
+def COPR_TEST_BRANCH = ghprbTargetBranch
 
 if (ghprbPullTitle.find("Bump version") != null) {
     currentBuild.result = 'SUCCESS'
