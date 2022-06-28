@@ -4,7 +4,7 @@ if (params.containsKey("release_test")) {
     ghprbActualCommit = params.release_test__cdc_commit
     ghprbTargetBranch = params.release_test__release_branch
     ghprbPullId = ""
-    ghprbCommentBody = ""
+    ghprbCommentBody = params.release_test__comment_body
     ghprbPullLink = "release-test"
     ghprbPullTitle = "release-test"
     ghprbPullDescription = "release-test"
