@@ -54,7 +54,7 @@ def run_test_with_java_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'java', alwaysPullImage: false,
-                            image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:initial", ttyEnabled: true,
+                            image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:cached", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                     )
