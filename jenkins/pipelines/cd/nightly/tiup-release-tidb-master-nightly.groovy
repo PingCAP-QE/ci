@@ -1,7 +1,6 @@
 /*
 ** @RELEASE_TAG
 */
-
 def taskStartTimeInMillis = System.currentTimeMillis()
 def RELEASE_BRANCH = "master"
 
