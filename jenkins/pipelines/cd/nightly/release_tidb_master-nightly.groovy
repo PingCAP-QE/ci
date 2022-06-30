@@ -230,8 +230,8 @@ __EOF__
 }
 
 def upload_result_to_db() {
-    pipeline_build_id = params.PIPELINE_BUILD_ID.toLong()
-    pipeline_id = 8
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "8"
     pipeline_name = "Nightly Image Build to Dockerhub"
     status = currentBuild.result
     build_number = BUILD_NUMBER

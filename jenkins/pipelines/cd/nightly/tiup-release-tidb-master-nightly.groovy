@@ -274,8 +274,8 @@ def send_notify(long taskStartTimeInMillis) {
 }
 
 def upload_result_to_db() {
-    pipeline_build_id= params.PIPELINE_BUILD_ID.toLong()
-    pipeline_id= 9
+    pipeline_build_id= params.PIPELINE_BUILD_ID
+    pipeline_id= "9"
     pipeline_name= "Nightly TiUP Build"
     status= currentBuild.result
     build_number= BUILD_NUMBER
