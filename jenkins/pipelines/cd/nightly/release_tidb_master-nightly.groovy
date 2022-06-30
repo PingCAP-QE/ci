@@ -1,8 +1,12 @@
 env.DOCKER_HOST = "tcp://localhost:2375"
-def tidb_sha1, tikv_sha1, pd_sha1
+
 def IMPORTER_BRANCH = "master"
 def taskStartTimeInMillis = System.currentTimeMillis()
-def begin_time = new Date().format('yyyy-mm-dd hh:mm:ss')
+begin_time = new Date().format('yyyy-mm-dd hh:mm:ss')
+tidb_sha1 = ""
+tikv_sha1 = ""
+pd_sha1 = ""
+tidb_binlog_sha1 = ""
 
 def push_docker_image(item, dir_name) {
     def harbor_tmp_image_name = "hub.pingcap.net/image-sync/" + item
@@ -226,39 +230,39 @@ __EOF__
 }
 
 def upload_result_to_db() {
-    pipeline_build_id= params.PIPELINE_BUILD_ID.toLong()
-    pipeline_id= 8
-    pipeline_name= "Nightly Image Build to Dockerhub"
-    status= currentBuild.result
-    build_number= BUILD_NUMBER
-    job_name= JOB_NAME
-    artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + tidb_binlog_sha1 + ",lightning commit:" + tidb_sha1
-    begin_time= begin_time
-    end_time= new Date().format('yyyy-mm-dd hh:mm:ss')
-    triggered_by= "sre-bot"
-    component= "All"
-    arch= "linux-amd64"
-    artifact_type= "community image"
-    branch= "master"
-    version= "None"
-    build_type= "nightly-build"
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "8"
+    pipeline_name = "Nightly Image Build to Dockerhub"
+    status = currentBuild.result
+    build_number = BUILD_NUMBER
+    job_name = JOB_NAME
+    artifact_meta = "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + tidb_binlog_sha1 + ",lightning commit:" + tidb_sha1
+    begin_time = begin_time
+    end_time = new Date().format('yyyy-mm-dd hh:mm:ss')
+    triggered_by = "sre-bot"
+    component = "All"
+    arch = "linux-amd64"
+    artifact_type = "community image"
+    branch = "master"
+    version = "None"
+    build_type = "nightly-build"
 
-    build job: 'save_result_to_db',
+    build job: 'upload_result_to_db',
             wait: true,
             parameters: [
                     [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
                     [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value:  pipeline_name],
-                    [$class: 'StringParameterValue', name: 'STATUS', value:  status],
-                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value:  build_number],
-                    [$class: 'StringParameterValue', name: 'JOB_NAME', value:  job_name],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value: job_name],
                     [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
                     [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
-                    [$class: 'StringParameterValue', name: 'END_TIME', value:  end_time],
-                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value:  triggered_by],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value: end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value: triggered_by],
                     [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
-                    [$class: 'StringParameterValue', name: 'ARCH', value:  arch],
-                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  artifact_type],
+                    [$class: 'StringParameterValue', name: 'ARCH', value: arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value: artifact_type],
                     [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
                     [$class: 'StringParameterValue', name: 'VERSION', value: version],
                     [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type]
