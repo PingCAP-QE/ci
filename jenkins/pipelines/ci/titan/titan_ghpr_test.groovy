@@ -1,8 +1,22 @@
 pullId = params.get("ghprbPullId")
 commit = params.get("ghprbActualCommit")
+branch = params.get("ghprbTargetBranch")
+def specStr = "+refs/heads/*:refs/remotes/origin/*"
+if (pullId != null && pullId != "") {
+    specStr = "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*"
+}
 
-rocksdbBranch = "6.4.tikv"
+def rocksdbBranch = "6.29.tikv"
 compression = "-DWITH_SNAPPY=ON -DWITH_LZ4=ON -DWITH_ZLIB=ON -DWITH_ZSTD=ON"
+link_opt = "-DROCKSDB_BUILD_SHARED=OFF"
+if (branch == "tikv-3.x" ||
+    branch == "tikv-3.0" ||
+    branch == "tikv-4.x" ||
+    branch == "tikv-5.0-rc" ||
+    branch == "tikv-5.2" ||
+    branch == "tikv-6.1") {
+    rocksdbBranch = "6.4.tikv"
+}
 
 def run_with_x86_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
@@ -51,7 +65,7 @@ def checkout = {
                 branches: [[name: 'master']],
                 userRemoteConfigs: [[
                     url: 'https://github.com/tikv/titan.git',
-                    refspec: '+refs/pull/*/head:refs/remotes/origin/pr/*'
+                    refspec: specStr,
                 ]],
                 extensions: [
                     [$class: 'PruneStaleBranch'],
@@ -120,7 +134,7 @@ def run_test = { build_type, sanitizer, use_gcc8 ->
             sh """
                 ${devtoolset}
                 g++ --version
-                cmake . -L ${rocksdb_dir} ${compression} ${build_opt} ${sanitizer_opt} ${tools_opt}
+                cmake . -L ${rocksdb_dir} ${compression} ${build_opt} ${link_opt} ${sanitizer_opt} ${tools_opt}
                 VERBOSE=1 make -j
             """
         }
