@@ -291,7 +291,7 @@ def upload_result_to_db() {
     version= "Nightly"
     build_type= "nightly-build"
 
-    build job: 'save_result_to_db',
+    build job: 'upload_result_to_db',
             wait: true,
             parameters: [
                     [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
