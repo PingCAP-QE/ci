@@ -12,6 +12,8 @@ if (params.containsKey("release_test")) {
 
 def notRun = 1
 def CHUNK_COUNT = 2 // spawn two nodes to run tests
+def LEGACY_CHUNK_COUNT = 20
+def use_legacy_test = false
 
 pod_image_param = ghprbTargetBranch
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
@@ -58,6 +60,35 @@ def run_test_with_pod(Closure body) {
     }
 }
 
+def run_test_with_pod_legacy(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tikv"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: "2c", image: rust_image,
+                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '2', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                    ),
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins/agent/memvolume', memory: true)
+            ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "rust image: ${rust_image}"
+            body()
+        }
+    }
+}
 
 try {
 
@@ -201,28 +232,30 @@ stage("Prepare") {
                         if (should_skip == 0) {
                             throw new RuntimeException("ci skip")
                         }
+                        def make_status = sh (script: "cd \$HOME/tikv-src; make test_with_nextest --question", returnStatus: true)
+                        def nextest_status = sh (script: "cargo nextest --help", returnStatus: true)
+                        if (make_status != 2 && nextest_status == 0) {
+                            sh label: 'Build test artifact', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            export CARGO_INCREMENTAL=0
+                            export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            set -o pipefail
+                            # Build and generate a list of binaries
+                            CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
+                            # Cargo metadata
+                            cargo metadata --format-version 1 > test-metadata.json
+                            """
 
-                        sh label: 'Build test artifact', script: """
-                        cd \$HOME/tikv-src
-                        export RUSTFLAGS=-Dwarnings
-                        export FAIL_POINT=1
-                        export ROCKSDB_SYS_SSE=1
-                        export RUST_BACKTRACE=1
-                        export LOG_LEVEL=INFO
-                        export CARGO_INCREMENTAL=0
-                        export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
-                        echo using gcc 8
-                        source /opt/rh/devtoolset-8/enable
-                        set -o pipefail
-                        # Build and generate a list of binaries
-                        CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
-                        # Cargo metadata
-                        cargo metadata --format-version 1 > test-metadata.json
-                        """
-
-                        sh label: 'Post-build: Upload test artifacts', script: """
-                        cd \$HOME/tikv-src
-                        python <<EOF
+                            sh label: 'Post-build: Upload test artifacts', script: """
+                            cd \$HOME/tikv-src
+                            python <<EOF
 import sys
 import subprocess
 import json
@@ -255,11 +288,121 @@ pool.join()
 with open('test-binaries.json', 'w') as f:
     json.dump(merged_dict, f)
 EOF
-                        tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
-                        curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
-                        echo 1 > cached_build_passed
-                        curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
-                        """
+                            tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
+                            curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
+                            echo 1 > cached_build_passed
+                            curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                            """
+                        } else {
+                            use_legacy_test = true
+                            sh label: 'Build test artifact', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            export CARGO_INCREMENTAL=0
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            set -o pipefail
+                            test="test"
+                            if grep ci_test Makefile; then
+                                test="ci_test"
+                            fi
+                            if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
+                                set +o pipefail
+                            else
+                                if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
+                                    set +o pipefail
+                                else
+                                    EXTRA_CARGO_ARGS="--no-run" make test
+                                    exit 1
+                                fi
+                            fi
+                            """
+                            sh label: 'Post-build: Upload test artifacts', script: """
+                            cd \$HOME/tikv-src
+                            python <<EOF
+import sys
+import subprocess
+import json
+import multiprocessing
+chunk_count = ${LEGACY_CHUNK_COUNT}
+scores = list()
+def score(bin, l):
+    if "integration" in bin or "failpoint" in bin:
+        if "test_split_region" in l:
+            return 50
+        else:
+            return 20
+    elif "deps/tikv-" in bin:
+        return 10
+    else:
+        return 1
+def write_to(part):
+    f = open("test-chunk-%d" % part, 'w')
+    f.write("#/usr/bin/env bash\\n")
+    f.write("set -ex\\n")
+    return f
+def upload(bin):
+    return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER_URL}/upload"])
+total_score=0
+visited_files=set()
+with open('test.json', 'r') as f:
+    for l in f:
+        if "proc-macro" in l:
+            continue
+        meta = json.loads(l)
+        if "profile" in meta and meta["profile"]["test"]:
+            for bin in meta["filenames"]:
+                if bin in visited_files:
+                    continue
+                visited_files.add(bin)
+                cases = subprocess.check_output([bin, '--list']).splitlines()
+                if len(cases) < 2:
+                    continue
+                cases = list(c[:c.index(': ')] for c in cases if ': ' in c)
+                bin_score = sum(score(bin, c) for c in cases)
+                scores.append((bin, cases, bin_score))
+                total_score += bin_score
+chunk_score = total_score / chunk_count + 1
+current_chunk_score=0
+part=1
+writer = write_to(part)
+pool = multiprocessing.Pool(processes=2)
+scores.sort(key=lambda t: t[0])
+for bin, cases, bin_score in scores:
+    pool.apply_async(upload, (bin,))
+    if current_chunk_score + bin_score <= chunk_score:
+        writer.write("%s --test --nocapture\\n" % bin)
+        current_chunk_score += bin_score
+        continue
+    batch_cases = list()
+    for c in cases:
+        c_score = score(bin, c)
+        if current_chunk_score + c_score > chunk_score and part < chunk_count and batch_cases:
+            writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+            current_chunk_score = 0
+            part += 1
+            writer.close()
+            writer = write_to(part)
+            batch_cases = list()
+        batch_cases.append(c)
+        current_chunk_score += c_score
+    if batch_cases:
+        writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+pool.close()
+writer.close()
+pool.join()
+EOF
+                            chmod a+x test-chunk-*
+                            tar czf test-artifacts.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
+                            curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
+                            echo 1 > cached_build_passed
+                            curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                            """
+                        }
                     }
                 }
             }
@@ -285,21 +428,23 @@ stage('Test') {
                     println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                     deleteDir()
                     try {
+                        sh """
+                        # set -o pipefail
+                        ln -s `pwd` \$HOME/tikv-src
+                        uname -a
+                        mkdir -p target/debug
+                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                        tar xf test-artifacts.tar.gz
+                        ls -la
+                        """
                         timeout(15) {
                             sh """
-                            # set -o pipefail
-                            ln -s `pwd` \$HOME/tikv-src
-                            uname -a
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export RUST_BACKTRACE=1
                             export MALLOC_CONF=prof:true,prof_active:false
                             export CI=1
                             export LOG_FILE=\$HOME/tikv-src/target/my_test.log
-                            mkdir -p target/debug
-                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
-                            tar xf test-artifacts.tar.gz
-                            ls -la
                             for i in `cat test-binaries`; do
                                 curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
                                 chmod +x \$i;
@@ -313,6 +458,8 @@ stage('Test') {
                             fi
                             """
                         }
+                    } catch (Exception e) {
+                        throw e
                     } finally {
                         junit testResults: "*/target/nextest/ci/junit.xml", allowEmptyResults: true
                     }
@@ -321,11 +468,72 @@ stage('Test') {
         }
     }
 
+    def run_test_legacy = { chunk_suffix ->
+        run_test_with_pod_legacy {
+            dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                retry(3) {
+                    container("2c") {
+                        println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
+                        deleteDir()
+                        timeout(15) {
+                            sh """
+                            # set -o pipefail
+                            ln -s `pwd` \$HOME/tikv-src
+                            uname -a
+                            mkdir -p target/debug
+                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                            tar xf test-artifacts.tar.gz
+                            ls -la
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export RUST_BACKTRACE=1
+                            export MALLOC_CONF=prof:true,prof_active:false
+                            if [[ ! -f test-chunk-${chunk_suffix} ]]; then
+                                if [[ ${chunk_suffix} -eq ${LEGACY_CHUNK_COUNT} ]]; then
+                                exit
+                                else
+                                echo test-chunk-${chunk_suffix} not found
+                                exit 1
+                                fi
+                            fi
+                            for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                chmod +x \$i;
+                            done
+                            CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
+                            chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
+                            ok_count=`grep "test result: ok" tests.out | wc -l`
+                            if [ "\$chunk_count" -eq "\$ok_count" ]; then
+                                echo "test pass"
+                            else
+                                # test failed
+                                grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
+                                awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
+                                gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                exit 1
+                            fi
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     def tests = [:]
-    for (int i = 1; i <= CHUNK_COUNT; i ++) {
-        def k = i
-        tests["Part${k}"] = {
-            run_test(k)
+    if (use_legacy_test) {
+        for (int i = 1; i <= LEGACY_CHUNK_COUNT; i ++) {
+            def k = i
+            tests["Part${k}"] = {
+                run_test_legacy(k)
+            }
+        }
+    } else {
+        for (int i = 1; i <= CHUNK_COUNT; i ++) {
+            def k = i
+            tests["Part${k}"] = {
+                run_test(k)
+            }
         }
     }
 
