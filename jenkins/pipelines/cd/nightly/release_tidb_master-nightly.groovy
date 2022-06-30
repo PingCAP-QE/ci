@@ -2,6 +2,7 @@ env.DOCKER_HOST = "tcp://localhost:2375"
 def tidb_sha1, tikv_sha1, pd_sha1
 def IMPORTER_BRANCH = "master"
 def taskStartTimeInMillis = System.currentTimeMillis()
+def begin_time = new date().format('yyyy-mm-dd hh:mm:ss')
 
 def push_docker_image(item, dir_name) {
     def harbor_tmp_image_name = "hub.pingcap.net/image-sync/" + item
@@ -220,43 +221,48 @@ __EOF__
                         [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
                         [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
                 ]
+        upload_result_to_db()
     }
+}
 
+def upload_result_to_db() {
+    def result = [:]
+    result[pipeline_build_id] = params.PIPELINE_BUILD_ID.toLong()
+    result[pipeline_id] = 8
+    result[pipeline_name] = "Nightly Image Build to Dockerhub"
+    result[status] = currentBuild.result
+    result[build_number] = BUILD_NUMBER
+    result[job_name] = JOB_NAME
+    result[artifact_meta] = "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",lightning:" + tidb_sha1 + ",tidb-binlog:" + tidb_binlog_sha1
+    result[begin_time] = begin_time
+    result[end_time] = new date().format('yyyy-mm-dd hh:mm:ss')
+    result[triggered_by] = "sre-bot"
+    result[component] = "All"
+    result[arch] = "linux-amd64"
+    result[artifact_type] = "community image"
+    result[branch] = "master"
+    result[version] = "None"
+    result[build_type] = "nightly-build"
 
-    stage('Summary') {
-        def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-        def slackmsg = "[${env.JOB_NAME.replaceAll('%2F', '/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-                "Elapsed Time: `${duration}` Mins" + "\n" +
-                "tidb Version: `${TIDB_VERSION}`, Githash: `${tidb_sha1.take(7)}`" + "\n" +
-                "tikv Version: `${TIKV_VERSION}`, Githash: `${tikv_sha1.take(7)}`" + "\n" +
-                "pd   Version: `${PD_VERSION}`, Githash: `${pd_sha1.take(7)}`" + "\n" +
-                "tidb-lightning   Version: `${TIDB_LIGHTNING_VERSION}`, Githash: `${tidb_br_sha1.take(7)}`" + "\n" +
-                "tidb_binlog   Version: `${TIDB_BINLOG_VERSION}`, Githash: `${tidb_binlog_sha1.take(7)}`" + "\n" +
-                "TiDB Binary Download URL:" + "\n" +
-                "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-                "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
-                "TiDB Binary sha256   URL:" + "\n" +
-                "http://download.pingcap.org/tidb-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-                "http://download.pingcap.org/tidb-toolkit-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
-                "tidb Docker Image: `pingcap/tidb:${RELEASE_TAG}`" + "\n" +
-                "pd   Docker Image: `pingcap/pd:${RELEASE_TAG}`" + "\n" +
-                "tikv Docker Image: `pingcap/tikv:${RELEASE_TAG}`" + "\n" +
-                "tidb-lightning Docker Image: `pingcap/tidb-lightning:${RELEASE_TAG}`" + "\n" +
-                "tidb-binlog Docker Image: `pingcap/tidb-binlog:${RELEASE_TAG}`"
+    build job: 'save_result_to_db',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: result[pipeline_build_id]],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: result[pipeline_id]],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value:  result[pipeline_name]],
+                    [$class: 'StringParameterValue', name: 'STATUS', value:  result[status]],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value:  result[build_number]],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value:  result[job_name]],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: result[artifact_meta]],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: result[begin_time]],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value:  result[end_time]],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value:  result[triggered_by]],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: result[component]],
+                    [$class: 'StringParameterValue', name: 'ARCH', value:  result[arch]],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  result[artifact_type]],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: result[branch]],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: result[version]],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: result[build_type]]
+            ]
 
-        if (currentBuild.result != "SUCCESS") {
-            slackSend channel: '#binary_publish', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-            slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-
-        } else {
-            slackSend channel: '#binary_publish', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: slackmsg
-        }
-
-
-        def slackmsg_build = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-        if (currentBuild.result != "SUCCESS" && (branch == "master" || branch.startsWith("release") || branch.startsWith("refs/tags/v"))) {
-            slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg_build}"
-        }
-
-    }
 }
