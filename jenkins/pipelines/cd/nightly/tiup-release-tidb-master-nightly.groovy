@@ -8,6 +8,7 @@ def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_gith
 def cdc_githash, lightning_githash, dm_githash
 
 def taskStartTimeInMillis = System.currentTimeMillis()
+def begin_time = new date().format('yyyy-mm-dd hh:mm:ss')
 def RELEASE_BRANCH = "master"
 
 def OS_LINUX = "linux"
@@ -224,36 +225,40 @@ retry(2) {
         echo "${e}"
         echo "retry!!!"
     } finally {
-        def result = [:]
-        result["name"] = "【" + currentBuild.result + "】" + JOB_NAME
-        result["result"] = currentBuild.result.toLowerCase()
-        result["build_num"] = BUILD_NUMBER
-        result["type"] = "jenkinsci"
-        result["url"] = RUN_DISPLAY_URL
-        result["duration"] = System.currentTimeMillis() - taskStartTimeInMillis
-        result["start_time"] = taskStartTimeInMillis
-        result["trigger"] = "tiup nightly build"
-        if (currentBuild.result == "SUCCESS") {
-            result["notify_message"] = "【SUCCESS】TiUP release tidb master nightly success"
-        } else if (currentBuild.result == "FAILURE") {
-            result["notify_message"] = "【FAILURE】TiUP release tidb master nightly failed"
-        } else {
-            result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
-        }
+        send_notify(taskStartTimeInMillis)
+    }
+}
 
-        result["notify_receiver"] = ["purelind", "heibaijian", "derekstrong"]
+def send_notify(long taskStartTimeInMillis) {
+    def result = [:]
+    result["name"] = "【" + currentBuild.result + "】" + JOB_NAME
+    result["result"] = currentBuild.result.toLowerCase()
+    result["build_num"] = BUILD_NUMBER
+    result["type"] = "jenkinsci"
+    result["url"] = RUN_DISPLAY_URL
+    result["duration"] = System.currentTimeMillis() - taskStartTimeInMillis
+    result["start_time"] = taskStartTimeInMillis
+    result["trigger"] = "tiup nightly build"
+    if (currentBuild.result == "SUCCESS") {
+        result["notify_message"] = "【SUCCESS】TiUP release tidb master nightly success"
+    } else if (currentBuild.result == "FAILURE") {
+        result["notify_message"] = "【FAILURE】TiUP release tidb master nightly failed"
+    } else {
+        result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
+    }
 
-        node("lightweight_pod") {
-            container("golang") {
-                writeJSON file: 'result.json', json: result, pretty: 4
-                sh 'cat result.json'
-                archiveArtifacts artifacts: 'result.json', fingerprint: true
-                sh """
+    result["notify_receiver"] = ["purelind", "heibaijian", "derekstrong"]
+
+    node("lightweight_pod") {
+        container("golang") {
+            writeJSON file: 'result.json', json: result, pretty: 4
+            sh 'cat result.json'
+            archiveArtifacts artifacts: 'result.json', fingerprint: true
+            sh """
                 export LC_CTYPE="en_US.UTF-8"
                 wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci.py
                 python3 agent-jenkinsci.py result.json || true
             """
-            }
         }
     }
 }
