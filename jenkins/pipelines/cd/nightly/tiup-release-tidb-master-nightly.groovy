@@ -8,7 +8,7 @@ def br_githash, dumpling_githash, tiflash_githash, tidb_ctl_githash, binlog_gith
 def cdc_githash, lightning_githash, dm_githash
 
 def taskStartTimeInMillis = System.currentTimeMillis()
-def begin_time = new date().format('yyyy-mm-dd hh:mm:ss')
+def begin_time = new Date().format('yyyy-mm-dd hh:mm:ss')
 def RELEASE_BRANCH = "master"
 
 def OS_LINUX = "linux"

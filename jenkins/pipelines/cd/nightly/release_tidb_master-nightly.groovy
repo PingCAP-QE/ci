@@ -2,7 +2,7 @@ env.DOCKER_HOST = "tcp://localhost:2375"
 def tidb_sha1, tikv_sha1, pd_sha1
 def IMPORTER_BRANCH = "master"
 def taskStartTimeInMillis = System.currentTimeMillis()
-def begin_time = new date().format('yyyy-mm-dd hh:mm:ss')
+def begin_time = new Date().format('yyyy-mm-dd hh:mm:ss')
 
 def push_docker_image(item, dir_name) {
     def harbor_tmp_image_name = "hub.pingcap.net/image-sync/" + item
@@ -235,7 +235,7 @@ def upload_result_to_db() {
     result[job_name] = JOB_NAME
     result[artifact_meta] = "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",lightning:" + tidb_sha1 + ",tidb-binlog:" + tidb_binlog_sha1
     result[begin_time] = begin_time
-    result[end_time] = new date().format('yyyy-mm-dd hh:mm:ss')
+    result[end_time] = new Date().format('yyyy-mm-dd hh:mm:ss')
     result[triggered_by] = "sre-bot"
     result[component] = "All"
     result[arch] = "linux-amd64"
