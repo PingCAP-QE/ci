@@ -215,7 +215,7 @@ stage("Prepare") {
                         source /opt/rh/devtoolset-8/enable
                         set -o pipefail
                         # Build and generate a list of binaries
-                        CARGO_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test | grep -E '^{.+}\$' > test.json
+                        CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
                         # Cargo metadata
                         cargo metadata --format-version 1 > test-metadata.json
                         """
@@ -284,33 +284,37 @@ stage('Test') {
                 container("4c") {
                     println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                     deleteDir()
-                    timeout(15) {
-                        sh """
-                        # set -o pipefail
-                        ln -s `pwd` \$HOME/tikv-src
-                        uname -a
-                        export RUSTFLAGS=-Dwarnings
-                        export FAIL_POINT=1
-                        export RUST_BACKTRACE=1
-                        export MALLOC_CONF=prof:true,prof_active:false
-                        export CI=1
-                        export LOG_FILE=\$HOME/tikv-src/target/my_test.log
-                        mkdir -p target/debug
-                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
-                        tar xf test-artifacts.tar.gz
-                        ls -la
-                        for i in `cat test-binaries`; do
-                            curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
-                            chmod +x \$i;
-                        done
-                        if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 7; then
-                            echo "test pass"
-                        else
-                            # test failed
-                            gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
-                            exit 1
-                        fi
-                        """
+                    try {
+                        timeout(15) {
+                            sh """
+                            # set -o pipefail
+                            ln -s `pwd` \$HOME/tikv-src
+                            uname -a
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export RUST_BACKTRACE=1
+                            export MALLOC_CONF=prof:true,prof_active:false
+                            export CI=1
+                            export LOG_FILE=\$HOME/tikv-src/target/my_test.log
+                            mkdir -p target/debug
+                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                            tar xf test-artifacts.tar.gz
+                            ls -la
+                            for i in `cat test-binaries`; do
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                chmod +x \$i;
+                            done
+                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 7; then
+                                echo "test pass"
+                            else
+                                # test failed
+                                gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                exit 1
+                            fi
+                            """
+                        }
+                    } finally {
+                        junit testResults: "*/target/nextest/ci/junit.xml", allowEmptyResults: true
                     }
                 }
             }
