@@ -11,11 +11,11 @@ if (params.containsKey("release_test")) {
 }
 
 def notRun = 1
-def chunk_count = 20
+def CHUNK_COUNT = 2 // spawn two nodes to run tests
+def LEGACY_CHUNK_COUNT = 20
+def use_legacy_test = false
 
-def pod_image_param = ghprbTargetBranch
-
-
+pod_image_param = ghprbTargetBranch
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
 // remove suffix "-20210724", only use "release-4.0"
 if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").size() >= 3 ) {
@@ -24,130 +24,172 @@ if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch.split("-").siz
     ghprbTargetBranch = ghprbTargetBranch.substring(0, k)
     pod_image_param = ghprbTargetBranch
 }
-
 if (!ghprbTargetBranch.startsWith("release-")) {
     pod_image_param = "master"
 }
-println "ci image use  hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
+rust_image = "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
+println "ci image use ${rust_image}"
 
 def run_test_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
     def namespace = "jenkins-tikv"
-    def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.13:cached"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
-                        image: go_image, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '2000m', resourceRequestMemory: '14Gi',
+                        name: "4c", image: rust_image,
+                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
-                    )
+                    ),
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins/agent/memvolume', memory: true)
-                    ],
+            ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            println "go image: ${go_image}"
+            println "rust image: ${rust_image}"
             body()
         }
     }
 }
 
+def run_test_with_pod_legacy(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def namespace = "jenkins-tikv"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                        name: "2c", image: rust_image,
+                        alwaysPullImage: true, ttyEnabled: true, privileged: true,
+                        resourceRequestCpu: '2', resourceRequestMemory: '8Gi',
+                        command: '/bin/sh -c', args: 'cat',
+                    ),
+            ],
+            volumes: [
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins/agent/memvolume', memory: true)
+            ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "rust image: ${rust_image}"
+            body()
+        }
+    }
+}
 
 try {
-    stage("PreCheck") {
-        if (!params.force) {
-            run_test_with_pod{
-                container("golang") {
+
+stage("PreCheck") {
+    if (!params.force) {
+        def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
+        podTemplate(name: label, label: label, 
+            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                containerTemplate(name: "2c", image: rust_image,
+                    alwaysPullImage: true, privileged: true,
+                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
+                    ttyEnabled: true, command: 'cat'),
+            ],
+        ) {
+            node(label) {
+                container("2c") {
                     notRun = sh(returnStatus: true, script: """
                     if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
                     """)
                 }
             }
         }
-
-        if (notRun == 0) {
-            println "the ${ghprbActualCommit} has been tested"
-            currentBuild.result = 'SUCCESS'
-            throw new RuntimeException("hasBeenTested")
-        }
     }
+
+    if (notRun == 0) {
+        println "the ${ghprbActualCommit} has been tested"
+        currentBuild.result = 'SUCCESS'
+        throw new RuntimeException("hasBeenTested")
+    }
+}
 
 stage("Prepare") {
     def clippy = {
-    def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
-    podTemplate(name: label, label: label, 
-        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
-        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
-        containers: [
-            containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
-                alwaysPullImage: true, privileged: true,
-                resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
-                ttyEnabled: true, command: 'cat'),
-        ]) {
-        node(label) {
-            println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+        def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
+        podTemplate(name: label, label: label, 
+            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                containerTemplate(name: "4c", image: rust_image,
+                    alwaysPullImage: true, privileged: true,
+                    resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                    ttyEnabled: true, command: 'cat'),
+            ],
+        ) {
+            node(label) {
+                println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-            def is_cached_lint_passed = false
-            container("rust") {
-                is_cached_lint_passed = (sh(label: 'Try to skip linting', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed') == 0)
-                println "Skip linting: ${is_cached_lint_passed}"
-            }
+                def is_cached_lint_passed = false
+                container("4c") {
+                    is_cached_lint_passed = (sh(
+                        label: 'Try to skip linting', returnStatus: true,
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed") == 0)
+                    println "Skip linting: ${is_cached_lint_passed}"
+                }
 
-            if (!is_cached_lint_passed) {
-                container("rust") {
-                    sh label: 'Prepare workspace', script: """
+                if (!is_cached_lint_passed) {
+                    container("4c") {
+                        sh label: 'Prepare workspace', script: """
+                            cd \$HOME/tikv-src
+                            if [[ "${ghprbPullId}" == 0 ]]; then
+                                git fetch origin
+                            else
+                                git fetch origin refs/pull/${ghprbPullId}/head
+                            fi
+                            git checkout -f ${ghprbActualCommit}
+                        """
+
+                        def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
+                        if (should_skip == 0) {
+                            throw new RuntimeException("ci skip")
+                        }
+
+                        sh label: 'Run lint: format', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            make format && git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
+                        """
+
+                        sh label: 'Run lint: clippy', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            make clippy || (echo Please fix the clippy error; exit 1)
+                        """
+
+                        sh label: 'Post-lint: Save lint status', script: """
                         cd \$HOME/tikv-src
-                        if [[ "${ghprbPullId}" == 0 ]]; then
-                            git fetch origin
-                        else
-                            git fetch origin refs/pull/${ghprbPullId}/head
-                        fi
-                        git checkout -f ${ghprbActualCommit}
-                    """
-
-                    def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
-                    if (should_skip == 0) {
-                        throw new RuntimeException("ci skip")
+                        echo 1 > cached_lint_passed
+                        curl -F tikv_test/${ghprbActualCommit}/cached_lint_passed=@cached_lint_passed ${FILE_SERVER_URL}/upload
+                        """
                     }
-
-                    sh label: 'Run lint: format', script: """
-                        cd \$HOME/tikv-src
-                        export RUSTFLAGS=-Dwarnings
-                        make format && git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
-                    """
-
-                    sh label: 'Run lint: clippy', script: """
-                        cd \$HOME/tikv-src
-                        export RUSTFLAGS=-Dwarnings
-                        export FAIL_POINT=1
-                        export ROCKSDB_SYS_SSE=1
-                        export RUST_BACKTRACE=1
-                        export LOG_LEVEL=INFO
-                        echo using gcc 8
-                        source /opt/rh/devtoolset-8/enable
-
-                        make clippy || (echo Please fix the clippy error; exit 1)
-                    """
-
-                    sh label: 'Post-lint: Save lint status', script: """
-                    cd \$HOME/tikv-src
-                    echo 1 > cached_lint_passed
-                    curl -F tikv_test/${ghprbActualCommit}/cached_lint_passed=@cached_lint_passed ${FILE_SERVER_URL}/upload
-                    """
                 }
             }
         }
-    }
     }
 
     def build = {
@@ -156,90 +198,137 @@ stage("Prepare") {
             cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
-                containerTemplate(name: 'rust', 
-                    image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",
+                containerTemplate(name: "4c",
+                    image: rust_image,
                     alwaysPullImage: true, privileged: true,
                     resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
                     ttyEnabled: true, command: 'cat'),
-        ]) {
-        node(label) {
-            println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+            ],
+        ) {
+            node(label) {
+                println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
-            def is_artifact_existed = false
-            container("rust") {
-                is_artifact_existed = (sh(label: 'Try to skip building test artifact', returnStatus: true, script: 'curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed') == 0)
-                println "Skip building test artifact: ${is_artifact_existed}"
-            }
+                def is_artifact_existed = false
+                container("4c") {
+                    is_artifact_existed = (sh(
+                        label: 'Try to skip building test artifact', returnStatus: true,
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
+                    println "Skip building test artifact: ${is_artifact_existed}"
+                }
 
-            if (!is_artifact_existed) {
-                container("rust") {
-                    sh label: 'Prepare workspace', script: """
-                        cd \$HOME/tikv-src
-                        if [[ "${ghprbPullId}" == 0 ]]; then
-                            git fetch origin
-                        else
-                            git fetch origin refs/pull/${ghprbPullId}/head
-                        fi
-                        git checkout -f ${ghprbActualCommit}
-                    """
+                if (!is_artifact_existed) {
+                    container("4c") {
+                        sh label: 'Prepare workspace', script: """
+                            cd \$HOME/tikv-src
+                            if [[ "${ghprbPullId}" == 0 ]]; then
+                                git fetch origin
+                            else
+                                git fetch origin refs/pull/${ghprbPullId}/head
+                            fi
+                            git checkout -f ${ghprbActualCommit}
+                        """
 
-                    def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
-                    if (should_skip == 0) {
-                        throw new RuntimeException("ci skip")
-                    }
+                        def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
+                        if (should_skip == 0) {
+                            throw new RuntimeException("ci skip")
+                        }
+                        def make_status = sh (script: "cd \$HOME/tikv-src; make test_with_nextest --question", returnStatus: true)
+                        def nextest_status = sh (script: "cargo nextest --help", returnStatus: true)
+                        if (make_status != 2 && nextest_status == 0) {
+                            sh label: 'Build test artifact', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            export CARGO_INCREMENTAL=0
+                            export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            set -o pipefail
+                            # Build and generate a list of binaries
+                            CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
+                            # Cargo metadata
+                            cargo metadata --format-version 1 > test-metadata.json
+                            """
 
-                    sh label: 'Build test artifact', script: """
-                    cd \$HOME/tikv-src
-                    export RUSTFLAGS=-Dwarnings
-                    export FAIL_POINT=1
-                    export ROCKSDB_SYS_SSE=1
-                    export RUST_BACKTRACE=1
-                    export LOG_LEVEL=INFO
-                    export CARGO_INCREMENTAL=0
-
-                    echo using gcc 8
-                    source /opt/rh/devtoolset-8/enable
-
-                    set -o pipefail
-
-                    test="test"
-                    if grep ci_test Makefile; then
-                        test="ci_test"
-                    fi
-                    if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
-                        set +o pipefail
-                    else
-                        if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
-                            set +o pipefail
-                        else
-                            EXTRA_CARGO_ARGS="--no-run" make test
-                            exit 1
-                        fi
-                    fi
-                    """
-
-                    sh label: 'Post-build: Check SSE instructions', script: """
-                    cd \$HOME/tikv-src
-                    if [ -f scripts/check-sse4_2.sh ]; then
-                        sh scripts/check-sse4_2.sh
-                    fi
-                    """
-
-                    sh label: 'Post-build: Check Jemalloc linking', script: """
-                    cd \$HOME/tikv-src
-                    if [ -f scripts/check-bins-for-jemalloc.sh ]; then
-                        sh scripts/check-bins-for-jemalloc.sh
-                    fi
-                    """
-
-                    sh label: 'Post-build: Upload test artifacts', script: """
-                    cd \$HOME/tikv-src
-                    python <<EOF
+                            sh label: 'Post-build: Upload test artifacts', script: """
+                            cd \$HOME/tikv-src
+                            python <<EOF
 import sys
 import subprocess
 import json
 import multiprocessing
-chunk_count = ${chunk_count}
+def upload(bin):
+    return subprocess.check_call(["curl", "-F", "tikv_test/${ghprbActualCommit}%s=@%s" % (bin, bin), "${FILE_SERVER_URL}/upload"])
+merged_dict={ "rust-binaries": {} }
+visited_files=set()
+pool = multiprocessing.Pool(processes=4)
+with open('test-binaries', 'w') as writer:
+    with open('test.json', 'r') as f:
+        for l in f:
+            all = json.loads(l)
+            binaries = all["rust-binaries"]
+            if not "rust-build-meta" in merged_dict:
+                merged_dict["rust-build-meta"] = all["rust-build-meta"]
+            for (name, meta) in binaries.items():
+                if meta["kind"] == "proc-macro":
+                    continue
+                bin = meta["binary-path"]
+                
+                if bin in visited_files:
+                    continue
+                visited_files.add(bin)
+                merged_dict["rust-binaries"][name] = meta
+                writer.write("%s\\n" % bin)
+                pool.apply_async(upload, (bin,))
+pool.close()
+pool.join()
+with open('test-binaries.json', 'w') as f:
+    json.dump(merged_dict, f)
+EOF
+                            tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
+                            curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
+                            echo 1 > cached_build_passed
+                            curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                            """
+                        } else {
+                            use_legacy_test = true
+                            sh label: 'Build test artifact', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            export CARGO_INCREMENTAL=0
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            set -o pipefail
+                            test="test"
+                            if grep ci_test Makefile; then
+                                test="ci_test"
+                            fi
+                            if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
+                                set +o pipefail
+                            else
+                                if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
+                                    set +o pipefail
+                                else
+                                    EXTRA_CARGO_ARGS="--no-run" make test
+                                    exit 1
+                                fi
+                            fi
+                            """
+                            sh label: 'Post-build: Upload test artifacts', script: """
+                            cd \$HOME/tikv-src
+                            python <<EOF
+import sys
+import subprocess
+import json
+import multiprocessing
+chunk_count = ${LEGACY_CHUNK_COUNT}
 scores = list()
 def score(bin, l):
     if "integration" in bin or "failpoint" in bin:
@@ -277,9 +366,9 @@ with open('test.json', 'r') as f:
                 bin_score = sum(score(bin, c) for c in cases)
                 scores.append((bin, cases, bin_score))
                 total_score += bin_score
-chunk_score = total_score / chunk_count
+chunk_score = total_score / chunk_count + 1
 current_chunk_score=0
-part=0
+part=1
 writer = write_to(part)
 pool = multiprocessing.Pool(processes=2)
 scores.sort(key=lambda t: t[0])
@@ -307,16 +396,17 @@ pool.close()
 writer.close()
 pool.join()
 EOF
-                    chmod a+x test-chunk-*
-                    tar czf test-chunk.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
-                    curl -F tikv_test/${ghprbActualCommit}/test-chunk.tar.gz=@test-chunk.tar.gz ${FILE_SERVER_URL}/upload
-                    echo 1 > cached_build_passed
-                    curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
-                    """
+                            chmod a+x test-chunk-*
+                            tar czf test-artifacts.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
+                            curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
+                            echo 1 > cached_build_passed
+                            curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                            """
+                        }
+                    }
                 }
             }
         }
-    }
     }
 
     def prepare = [:]
@@ -332,10 +422,57 @@ EOF
 
 stage('Test') {
     def run_test = { chunk_suffix ->
-        retry(3) { 
-            run_test_with_pod {
-                dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                    container("golang") {
+        run_test_with_pod {
+            dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                container("4c") {
+                    println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
+                    deleteDir()
+                    try {
+                        sh """
+                        # set -o pipefail
+                        ln -s `pwd` \$HOME/tikv-src
+                        uname -a
+                        mkdir -p target/debug
+                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                        tar xf test-artifacts.tar.gz
+                        ls -la
+                        """
+                        timeout(15) {
+                            sh """
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export RUST_BACKTRACE=1
+                            export MALLOC_CONF=prof:true,prof_active:false
+                            export CI=1
+                            export LOG_FILE=\$HOME/tikv-src/target/my_test.log
+                            for i in `cat test-binaries`; do
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                chmod +x \$i;
+                            done
+                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 7; then
+                                echo "test pass"
+                            else
+                                # test failed
+                                gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                exit 1
+                            fi
+                            """
+                        }
+                    } catch (Exception e) {
+                        throw e
+                    } finally {
+                        junit testResults: "*/target/nextest/ci/junit.xml", allowEmptyResults: true
+                    }
+                }
+            }
+        }
+    }
+
+    def run_test_legacy = { chunk_suffix ->
+        run_test_with_pod_legacy {
+            dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
+                retry(3) {
+                    container("2c") {
                         println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                         deleteDir()
                         timeout(15) {
@@ -343,16 +480,16 @@ stage('Test') {
                             # set -o pipefail
                             ln -s `pwd` \$HOME/tikv-src
                             uname -a
+                            mkdir -p target/debug
+                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                            tar xf test-artifacts.tar.gz
+                            ls -la
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export RUST_BACKTRACE=1
                             export MALLOC_CONF=prof:true,prof_active:false
-                            mkdir -p target/debug
-                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-chunk.tar.gz
-                            tar xf test-chunk.tar.gz
-                            ls -la
                             if [[ ! -f test-chunk-${chunk_suffix} ]]; then
-                                if [[ ${chunk_suffix} -eq ${chunk_count} ]]; then
+                                if [[ ${chunk_suffix} -eq ${LEGACY_CHUNK_COUNT} ]]; then
                                 exit
                                 else
                                 echo test-chunk-${chunk_suffix} not found
@@ -384,26 +521,49 @@ stage('Test') {
     }
 
     def tests = [:]
-    for (int i = 0; i <= chunk_count; i ++) {
-        def k = i
-        tests["Part${k}"] = {
-            run_test(k)
+    if (use_legacy_test) {
+        for (int i = 1; i <= LEGACY_CHUNK_COUNT; i ++) {
+            def k = i
+            tests["Part${k}"] = {
+                run_test_legacy(k)
+            }
+        }
+    } else {
+        for (int i = 1; i <= CHUNK_COUNT; i ++) {
+            def k = i
+            tests["Part${k}"] = {
+                run_test(k)
+            }
         }
     }
 
     parallel tests
 }
+
 currentBuild.result = "SUCCESS"
 stage('Post-test') {
-    run_test_with_pod{
-        container("golang"){
-            sh """
-            echo "done" > done
-            curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-            """
+    def label="${JOB_NAME}_post_test_${BUILD_NUMBER}"
+    podTemplate(name: label, label: label, 
+        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+        workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+        containers: [
+            containerTemplate(name: "2c", image: rust_image,
+                alwaysPullImage: true, privileged: true,
+                resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
+                ttyEnabled: true, command: 'cat'),
+        ],
+    ) {
+        node(label) {
+            container("2c") {
+                sh """
+                echo "done" > done
+                curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+                """
+            }
         }
     }
 }
+
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
 } catch (Exception e) {

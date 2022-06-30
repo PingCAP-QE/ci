@@ -67,11 +67,13 @@ RUN cd tikv-src \
 # TODO: This should be configured by base image.
 RUN rustup set profile minimal
 
+RUN rustup update stable && rustup default stable \
+    && && cargo install cargo-nextest
+
 RUN cd tikv-src \
     && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
     && git checkout origin/${ghBranch} \
     && rustup component add rustfmt clippy llvm-tools-preview \
-    && cargo install cargo-nextest \
     && cargo fetch
 
 ENV CARGO_INCREMENTAL=0
