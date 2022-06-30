@@ -226,43 +226,42 @@ __EOF__
 }
 
 def upload_result_to_db() {
-    def result = [:]
-    result[pipeline_build_id] = params.PIPELINE_BUILD_ID.toLong()
-    result[pipeline_id] = 8
-    result[pipeline_name] = "Nightly Image Build to Dockerhub"
-    result[status] = currentBuild.result
-    result[build_number] = BUILD_NUMBER
-    result[job_name] = JOB_NAME
-    result[artifact_meta] = "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",lightning:" + tidb_sha1 + ",tidb-binlog:" + tidb_binlog_sha1
-    result[begin_time] = begin_time
-    result[end_time] = new Date().format('yyyy-mm-dd hh:mm:ss')
-    result[triggered_by] = "sre-bot"
-    result[component] = "All"
-    result[arch] = "linux-amd64"
-    result[artifact_type] = "community image"
-    result[branch] = "master"
-    result[version] = "None"
-    result[build_type] = "nightly-build"
+    pipeline_build_id= params.PIPELINE_BUILD_ID.toLong()
+    pipeline_id= 8
+    pipeline_name= "Nightly Image Build to Dockerhub"
+    status= currentBuild.result
+    build_number= BUILD_NUMBER
+    job_name= JOB_NAME
+    artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + tidb_binlog_sha1 + ",lightning commit:" + tidb_sha1
+    begin_time= begin_time
+    end_time= new Date().format('yyyy-mm-dd hh:mm:ss')
+    triggered_by= "sre-bot"
+    component= "All"
+    arch= "linux-amd64"
+    artifact_type= "community image"
+    branch= "master"
+    version= "None"
+    build_type= "nightly-build"
 
     build job: 'save_result_to_db',
             wait: true,
             parameters: [
-                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: result[pipeline_build_id]],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: result[pipeline_id]],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value:  result[pipeline_name]],
-                    [$class: 'StringParameterValue', name: 'STATUS', value:  result[status]],
-                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value:  result[build_number]],
-                    [$class: 'StringParameterValue', name: 'JOB_NAME', value:  result[job_name]],
-                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: result[artifact_meta]],
-                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: result[begin_time]],
-                    [$class: 'StringParameterValue', name: 'END_TIME', value:  result[end_time]],
-                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value:  result[triggered_by]],
-                    [$class: 'StringParameterValue', name: 'COMPONENT', value: result[component]],
-                    [$class: 'StringParameterValue', name: 'ARCH', value:  result[arch]],
-                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  result[artifact_type]],
-                    [$class: 'StringParameterValue', name: 'BRANCH', value: result[branch]],
-                    [$class: 'StringParameterValue', name: 'VERSION', value: result[version]],
-                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: result[build_type]]
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value:  pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value:  status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value:  build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value:  job_name],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value:  end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value:  triggered_by],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
+                    [$class: 'StringParameterValue', name: 'ARCH', value:  arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  artifact_type],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: version],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type]
             ]
 
 }
