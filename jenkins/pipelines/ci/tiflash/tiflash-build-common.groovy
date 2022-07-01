@@ -119,7 +119,7 @@ def getBuildIdentifier(repo_path) {
     if (!params.UPDATE_PROXY_CACHE) {
         proxy_flag = ""
     }
-    return "tiflash-build-${getToolchain(repo_path)}-${params.ARCH}-${params.OS}${ccache_flag}${proxy_flag}${params.EXTRA_SUFFIX}"
+    return "tiflash-build-${BUILD_NUMBER}-${getToolchain(repo_path)}-${params.ARCH}-${params.OS}${ccache_flag}${proxy_flag}${params.EXTRA_SUFFIX}"
 }
 
 def getBuildTarget() {
@@ -423,21 +423,27 @@ def resolveDependency(dep_name) {
 
 def dispatchRunEnv(repo_path, Closure body) {
     def identifier = getBuildIdentifier(repo_path)
+    def image_tag_suffix = ""
+    if (fileExists("${repo_path}/.toolchain.yml")) {
+        def config = readYaml(file: "${repo_path}/.toolchain.yml")
+        image_tag_suffix = config.image_tag_suffix
+        identifier = "${identifier}${image_tag_suffix}"
+    }
     if (params.OS == 'darwin') {
         node(identifier) {
             body()
         }
     } else if (params.ARCH == "amd64") {
         if (getToolchain(repo_path) == 'llvm') {
-            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64", body)
+            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64${image_tag_suffix}", body)
         } else {
-            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-builder-ci", body)
+            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-builder-ci${image_tag_suffix}", body)
         }
     } else {
         if (getToolchain(repo_path) == 'llvm') {
-            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-llvm-base:aarch64", body)
+            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-llvm-base:aarch64${image_tag_suffix}", body)
         } else {
-            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-builder:arm64", body)
+            runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-builder:arm64${image_tag_suffix}", body)
         }
     }
 }
