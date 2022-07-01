@@ -180,7 +180,7 @@ try {
                                     }
                                 }
                                 try {
-                                    timeout(20) {
+                                    timeout(40) {
                                         sh """
                                         ps aux
                                         set +e
