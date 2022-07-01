@@ -1,12 +1,29 @@
 
-def TIDB_BRANCH = ghprbTargetBranch
 
-// parse tidb branch
-def m1 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
+
+def (TIKV_BRANCH, PD_BRANCH, TIDB_BRANCH) = [ghprbTargetBranch, ghprbTargetBranch, ghprbTargetBranch]
+
+// parse tikv branch
+def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
-    TIDB_BRANCH = "${m3[0][1]}"
+    TIKV_BRANCH = "${m1[0][1]}"
 }
 m1 = null
+
+// parse pd branch
+def m2 = ghprbCommentBody =~ /pd\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m2) {
+    PD_BRANCH = "${m2[0][1]}"
+}
+m2 = null
+
+// parse tidb branch
+def m3 = ghprbCommentBody =~ /tidb\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m3) {
+    TIDB_BRANCH = "${m3[0][1]}"
+}
+m3 = null
+
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
@@ -73,6 +90,12 @@ try {
             def ws = pwd()
             def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
             def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${TIDB_BRANCH}/${tidb_sha1}/centos7/tidb-server.tar.gz"
+
+            def tikv_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
+            def pd_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
+            def tikv_url= "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+            def pd_url= "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+
             stage("Get commits and Set params") {
                 println "TIDB_BRANCH: ${TIDB_BRANCH}"
                 println "tidb_sha1: $tidb_sha1"
@@ -134,6 +157,79 @@ try {
             }
 
             stage("Tests") {
+                def run = { test_dir, mytest, test_cmd ->
+                    run_with_pod {
+                        def cur_ws = pwd()
+                        unstash "tidb-test"
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                            container("golang") {
+                                timeout(20) {
+                                    retry(3){
+                                    sh """
+                                    while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 1; done
+                                    curl ${tikv_url} | tar xz bin
+        
+                                    while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 1; done
+                                    curl ${pd_url} | tar xz bin
+        
+                                    mkdir -p ./tidb-src
+                                    curl ${tidb_url} | tar xz -C ./tidb-src
+                                    ln -s \$(pwd)/tidb-src "${cur_ws}/go/src/github.com/pingcap/tidb"
+                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                    """
+                                    }
+                                }
+                                try {
+                                    timeout(20) {
+                                        sh """
+                                        ps aux
+                                        set +e
+                                        killall -9 -r tidb-server
+                                        killall -9 -r tikv-server
+                                        killall -9 -r pd-server
+                                        rm -rf /tmp/tidb
+                                        rm -rf ./tikv ./pd
+                                        set -e
+                                        
+                                        bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                        sleep 10
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                        sleep 10
+                                        if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+    
+                                        export TIDB_SRC_PATH=${cur_ws}/go/src/github.com/pingcap/tidb
+                                        export log_level=debug
+                                        TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                        TIKV_PATH='127.0.0.1:2379' \
+                                        TIDB_TEST_STORE_NAME=tikv \
+                                        ${test_cmd}
+                                    """
+                                    }
+                                } catch (err) {
+                                    sh"""
+                                    cat mysql-test.out || true
+                                    """
+                                    sh """
+                                    cat pd_${mytest}.log
+                                    cat tikv_${mytest}.log
+                                    cat tidb*.log
+                                    """
+                                    throw err
+                                } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    set -e
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
                 parallel(
                     "test1": {
                         run_with_pod {
@@ -277,6 +373,14 @@ try {
                         println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_ghpr_mysql_test/detail/tidb_ghpr_mysql_test/${built.number}/pipeline"
                         if (built.getResult() != 'SUCCESS') {
                             error "mysql_test failed"
+                        }
+                    },
+                    if (ghprbTargetBranch == "master") {
+                        "integration-mysql-test-Cached": {
+                            run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1  ")
+                        },
+                        "integration-mysql-test": {
+                            run("mysql_test", "mysqltest", "./test.sh -backlist=1  ")
                         }
                     }
                 )
