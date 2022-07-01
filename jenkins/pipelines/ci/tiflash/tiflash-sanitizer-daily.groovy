@@ -11,6 +11,16 @@ properties([
                         name: 'SANITIZER',
                         trim: true,
             ),
+            string(
+                        defaultValue: '',
+                        name: 'TARGET_PULL_REQUEST',
+                        trim: true,
+            ),
+            string(
+                        defaultValue: '',
+                        name: 'TARGET_COMMIT_HASH',
+                        trim: true,
+            ),
     ]),
     pipelineTriggers([
         parameterizedCron('''
@@ -22,10 +32,17 @@ properties([
 
 def checkout() {
     def refspec = "+refs/heads/*:refs/remotes/origin/*"
+    if (params.TARGET_PULL_REQUEST) {
+        refspec = " +refs/pull/${params.TARGET_PULL_REQUEST}/*:refs/remotes/origin/pr/${params.TARGET_PULL_REQUEST}/*"
+    }
+    def target = "master"
+    if (params.TARGET_COMMIT_HASH) {
+        target = params.TARGET_COMMIT_HASH
+    }
     checkout(changelog: false, poll: false, scm: [
             $class                           : "GitSCM",
             branches                         : [
-                    [name: "master"],
+                    [name: target],
             ],
             userRemoteConfigs                : [
                     [
@@ -48,21 +65,19 @@ def checkout() {
     ])
 }
 
-def runBuilderClosure(label, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, containers: [
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
-                    alwaysPullImage: true, envVars: [
-                    envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-            ], ttyEnabled: true, command: 'cat'),
-            containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-llvm-base:amd64',
+def runBuilderClosure(label, cwd, Closure body) {
+    def image_tag_suffix = ""
+    if (fileExists("${cwd}/tiflash/.toolchain.yml")) {
+        def config = readYaml(file: "${cwd}/tiflash/.toolchain.yml")
+        image_tag_suffix = config.image_tag_suffix
+    }
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,
+        containers: [
+            containerTemplate(name: 'builder', image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64${image_tag_suffix}",
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
     ],
-    volumes: [
-            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-    ]
     ) {
         node(label) {
             body()
@@ -71,26 +86,25 @@ def runBuilderClosure(label, Closure body) {
 }
 
 def runCheckoutAndBuilderClosure(label, curws, Closure body) {
-    runBuilderClosure(label) {
-        dir("${curws}/tiflash") {
-            stage("Checkout") {
-                container("docker") {
-                    def repoDailyCache = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
-                    if (fileExists(repoDailyCache)) {
-                        println "get code from nfs to reduce clone time"
-                        sh """
-                        cp -R ${repoDailyCache}  ./
-                        tar -xzf ${repoDailyCache} --strip-components=1
-                        rm -f src-tics.tar.gz
-                        """
-                        sh "chown -R 1000:1000 ./"
-                    } else {
-                        sh "exit -1"
-                    }
-                }
-                checkout()
+    dir("${curws}/tiflash") {
+        stage("Checkout") {
+            def repoDailyCache = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
+            if (fileExists(repoDailyCache)) {
+                println "get code from nfs to reduce clone time"
+                sh """
+                cp -R ${repoDailyCache}  ./
+                tar -xzf ${repoDailyCache} --strip-components=1
+                rm -f src-tics.tar.gz
+                """
+                sh "chown -R 1000:1000 ./"
+            } else {
+                sh "exit -1"
             }
+            checkout()
         }
+        stash "tiflash-sanitizer-daily-${BUILD_NUMBER}"
+    }
+    runBuilderClosure(label, curws) {
         body()
     }
 }
@@ -140,6 +154,9 @@ ccache -z
     
 def runWithCache(type, cwd) {
     stage("preparation") {
+        dir("${cwd}/tiflash") {
+            unstash "tiflash-sanitizer-daily-${BUILD_NUMBER}"
+        }
         prepareBuildCache(type, cwd)
     }
     stage("build") {
@@ -193,7 +210,7 @@ UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/test
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tiflash"
+    def namespace = "jenkins-tiflash-schrodinger"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -209,7 +226,8 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22', serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     ],
     ) {
         node(label) {
@@ -251,7 +269,7 @@ run_with_pod {
         
             echo "${msg}"
         
-            if (result != "SUCCESS") {
+            if (result != "SUCCESS" && !params.TARGET_PULL_REQUEST) {
                 stage("sendLarkMessage") {
                     def result_mark = "❌"
                     def feishumsg = "tiflash-sanitizer-daily (${params.SANITIZER})\\n" +
@@ -262,28 +280,31 @@ run_with_pod {
                             "Build Link: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/${env.BUILD_NUMBER}/pipeline\\n" +
                             "Job Page: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-sanitizer-daily/detail/tiflash-sanitizer-daily/activity/"
                     print feishumsg
-                    withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                        sh """
-                        curl -X POST \$TOKEN -H 'Content-Type: application/json' \
-                        -d '{
-                            "msg_type": "text",
-                            "content": {
-                            "text": "$feishumsg"
-                            }
-                        }'
-                        """
+                    node("master") {
+                        withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
+                            sh """
+                            curl -X POST \$TOKEN -H 'Content-Type: application/json' \
+                            -d '{
+                                "msg_type": "text",
+                                "content": {
+                                "text": "$feishumsg"
+                                }
+                            }'
+                            """
+                        }
+                        withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
+                            sh """
+                            curl -X POST \$TOKEN -H 'Content-Type: application/json' \
+                            -d '{
+                                "msg_type": "text",
+                                "content": {
+                                "text": "$feishumsg"
+                                }
+                            }'
+                            """
+                        }
                     }
-                    withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
-                        sh """
-                        curl -X POST \$TOKEN -H 'Content-Type: application/json' \
-                        -d '{
-                            "msg_type": "text",
-                            "content": {
-                            "text": "$feishumsg"
-                            }
-                        }'
-                        """
-                    }
+                    error "failed"
                 }
             }
         }
