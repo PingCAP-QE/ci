@@ -73,7 +73,11 @@ def runBuilderClosure(label, image, Closure body) {
 
 def dispatchRunEnv(toolchain, identifier, Closure body) {
     if (toolchain == 'llvm') {
-        runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64", body)
+        def image_tag_suffix = ""
+        if (fileExists("/home/jenkins/agent/workspace/tiflash-build-common/tiflash/.toolchain.yml")) {
+            image_tag_suffix = readYaml(file: "/home/jenkins/agent/workspace/tiflash-build-common/tiflash/.toolchain.yml").image_tag_suffix
+        }
+        runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64${image_tag_suffix}", body)
     } else {
         runBuilderClosure(identifier, "hub.pingcap.net/tiflash/tiflash-builder-ci", body)
     }
@@ -165,56 +169,62 @@ run_with_pod {
         toolchain = readFile(file: 'toolchain').trim()
         echo "Built with ${toolchain}"
     }
+    
+    stage('Checkout') {
+        dir("/home/jenkins/agent/workspace/tiflash-build-common/tiflash") {
+            def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
+            if (fileExists(cache_path)) {
+                println "get code from nfs to reduce clone time"
+                sh """
+                set +x
+                cp -R ${cache_path}  ./
+                tar -xzf ${cache_path} --strip-components=1
+                rm -f src-tics.tar.gz
+                chown -R 1000:1000 ./
+                set -x
+                """
+            }
+            checkout(changelog: false, poll: false, scm: [
+                $class                           : "GitSCM",
+                branches                         : [
+                        [name: ghprbActualCommit],
+                ],
+                userRemoteConfigs                : [
+                        [
+                                url          : "git@github.com:pingcap/tiflash.git",
+                                refspec      : "+refs/heads/*:refs/remotes/origin/* +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                credentialsId: "github-sre-bot-ssh",
+                        ]
+                ],
+                extensions                       : [
+                        [$class             : 'SubmoduleOption',
+                        disableSubmodules  : toolchain == 'llvm',
+                        parentCredentials  : true,
+                        recursiveSubmodules: true,
+                        trackingSubmodules : false,
+                        reference          : ''],
+                        [$class: 'PruneStaleBranch'],
+                        [$class: 'CleanBeforeCheckout'],
+                ],
+                doGenerateSubmoduleConfigurations: false,
+            ])
+            stash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
+        }
+    }
+    
     dispatchRunEnv(toolchain, IDENTIFIER) {
         def cwd = pwd()
         def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
         def build_path = "/home/jenkins/agent/workspace/tiflash-build-common/build"
         def binary_path = "/tiflash"
         def parallelism = 12
-        stage('Checkout') {
+        stage('Get Artifacts') {
             dir(repo_path) {
-                def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
-                if (fileExists(cache_path)) {
-                    println "get code from nfs to reduce clone time"
-                    sh """
-                    set +x
-                    cp -R ${cache_path}  ./
-                    tar -xzf ${cache_path} --strip-components=1
-                    rm -f src-tics.tar.gz
-                    chown -R 1000:1000 ./
-                    set -x
-                    """
-                }
-                checkout(changelog: false, poll: false, scm: [
-                    $class                           : "GitSCM",
-                    branches                         : [
-                            [name: ghprbActualCommit],
-                    ],
-                    userRemoteConfigs                : [
-                            [
-                                    url          : "git@github.com:pingcap/tiflash.git",
-                                    refspec      : "+refs/heads/*:refs/remotes/origin/* +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                    credentialsId: "github-sre-bot-ssh",
-                            ]
-                    ],
-                    extensions                       : [
-                            [$class             : 'SubmoduleOption',
-                            disableSubmodules  : toolchain == 'llvm',
-                            parentCredentials  : true,
-                            recursiveSubmodules: true,
-                            trackingSubmodules : false,
-                            reference          : ''],
-                            [$class: 'PruneStaleBranch'],
-                            [$class: 'CleanBeforeCheckout'],
-                    ],
-                    doGenerateSubmoduleConfigurations: false,
-                ])
+                unstash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
                 sh """
                 ln -sf \$(realpath tests) /tests
                 """
             }
-        }
-        stage('Get Artifacts') {
             prepareArtifacts(built, false)
             sh """
             tar -xvaf tiflash.tar.gz
