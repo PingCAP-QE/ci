@@ -233,7 +233,7 @@ run_with_pod {
                 unstash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
                 sh """
                 mkdir -p ${repo_path}
-                tar --absolute-names -xvf tiflash-src.tar.gz
+                tar --absolute-names -xf tiflash-src.tar.gz
                 chown -R 1000:1000 /home/jenkins/agent/workspace/tiflash-build-common/
                 ls -lha ${repo_path}
                 ln -sf ${repo_path}/tests /tests
