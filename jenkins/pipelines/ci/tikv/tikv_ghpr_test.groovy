@@ -11,7 +11,7 @@ if (params.containsKey("release_test")) {
 }
 
 def notRun = 1
-def CHUNK_COUNT = 2 // spawn two nodes to run tests
+def CHUNK_COUNT = 2
 def LEGACY_CHUNK_COUNT = 20
 def use_legacy_test = false
 
@@ -40,9 +40,9 @@ def run_test_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: "4c", image: rust_image,
+                        name: "rust", image: rust_image,
                         alwaysPullImage: true, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '4', resourceRequestMemory: '8Gi',
+                        resourceRequestCpu: '8', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
                     ),
             ],
@@ -70,7 +70,7 @@ def run_test_with_pod_legacy(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: "2c", image: rust_image,
+                        name: "rust", image: rust_image,
                         alwaysPullImage: true, ttyEnabled: true, privileged: true,
                         resourceRequestCpu: '2', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
@@ -292,6 +292,8 @@ EOF
                             curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
                             echo 1 > cached_build_passed
                             curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                            echo 1 > is_nextest_build
+                            curl -F tikv_test/${ghprbActualCommit}/is_nextest_build=@is_nextest_build ${FILE_SERVER_URL}/upload
                             """
                         } else {
                             use_legacy_test = true
@@ -404,6 +406,10 @@ EOF
                             """
                         }
                     }
+                } else {
+                    use_legacy_test = !(sh(
+                        label: 'Check if nextest', returnStatus: true,
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/is_nextest_build") == 0)
                 }
             }
         }
@@ -424,7 +430,7 @@ stage('Test') {
     def run_test = { chunk_suffix ->
         run_test_with_pod {
             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
-                container("4c") {
+                container("rust") {
                     println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                     deleteDir()
                     try {
@@ -449,7 +455,7 @@ stage('Test') {
                                 curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
                                 chmod +x \$i;
                             done
-                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 7; then
+                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 8 --retries 2 --failure-output final; then
                                 echo "test pass"
                             else
                                 # test failed
@@ -461,7 +467,7 @@ stage('Test') {
                     } catch (Exception e) {
                         throw e
                     } finally {
-                        junit testResults: "*/target/nextest/ci/junit.xml", allowEmptyResults: true
+                        junit testResults: "**/target/nextest/ci/junit.xml", allowEmptyResults: true
                     }
                 }
             }
@@ -472,7 +478,7 @@ stage('Test') {
         run_test_with_pod_legacy {
             dir("/home/jenkins/agent/tikv-${ghprbTargetBranch}/build") {
                 retry(3) {
-                    container("2c") {
+                    container("rust") {
                         println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                         deleteDir()
                         timeout(15) {
