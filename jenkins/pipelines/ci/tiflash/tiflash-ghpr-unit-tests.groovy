@@ -208,6 +208,9 @@ run_with_pod {
                 ],
                 doGenerateSubmoduleConfigurations: false,
             ])
+        }
+        dir("/tmp/tiflash-data") {
+            sh "tar --absolute-names -caf tiflash-src.tar.gz /home/jenkins/agent/workspace/tiflash-build-common/tiflash"
             stash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
         }
     }
@@ -219,23 +222,31 @@ run_with_pod {
         def binary_path = "/tiflash"
         def parallelism = 12
         stage('Get Artifacts') {
-            dir(repo_path) {
-                unstash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
-                sh """
-                ln -sf \$(realpath tests) /tests
-                """
-            }
+        
             prepareArtifacts(built, false)
             sh """
             tar -xvaf tiflash.tar.gz
             ln -sf \$(realpath tiflash) /tiflash
             """
+            
+            dir("/tmp/tiflash-data") {
+                unstash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
+                sh """
+                mkdir -p ${repo_path}
+                tar --absolute-names -xf tiflash-src.tar.gz
+                chown -R 1000:1000 /home/jenkins/agent/workspace/tiflash-build-common/
+                ls -lha ${repo_path}
+                ln -sf ${repo_path}/tests /tests
+                """
+            }
+
             dir(repo_path) {
                 sh """
                 cp '${cwd}/source-patch.tar.xz' ./source-patch.tar.xz
                 tar -xaf ./source-patch.tar.xz
                 """
             }
+            
             dir(build_path) {
                 sh """
                 cp '${cwd}/build-data.tar.xz' ./build-data.tar.xz
