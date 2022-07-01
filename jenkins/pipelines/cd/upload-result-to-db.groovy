@@ -106,7 +106,7 @@ node("pipeline_data_collection_pod") {
         def finally_result = [
                 "pipeline_build_id": params.PIPELINE_BUILD_ID.toLong(),
                 "pipeline_id":params.PIPELINE_ID.toLong(),
-                "pipeline_name":params.PIPELINE_ID,
+                "pipeline_name":params.PIPELINE_NAME,
                 "status": params.STATUS,
                 "build_number": params.BUILD_NUMBER,
                 "job_name": params.JOB_NAME,

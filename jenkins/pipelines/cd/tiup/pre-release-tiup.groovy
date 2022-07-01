@@ -28,6 +28,7 @@ dm_sha1 = ""
 dumpling_sha1 = ""
 ng_monitoring_sha1 = ""
 tidb_ctl_githash = ""
+tidb_monitor_initializer_sha1=""
 enterprise_plugin_sha1 = ""
 
 def OS_LINUX = "linux"
@@ -37,6 +38,7 @@ def AMD64 = "amd64"
 def PLATFORM_CENTOS = "centos7"
 def PLATFORM_DARWIN = "darwin"
 def PLATFORM_DARWINARM = "darwin-arm64"
+begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
 
 def get_sha() {
     if (TIDB_PRM_ISSUE != "") {
@@ -88,6 +90,7 @@ def get_sha() {
     if (TIKV_BUMPVERION_HASH.length() == 40) {
         tikv_sha1 = TIKV_BUMPVERION_HASH
     }
+    tidb_monitor_initializer_sha1=sh(returnStdout: true, script: "python gethash.py -repo=monitoring -version=master").trim()
 
     println "tidb_sha1: ${tidb_sha1}"
     println "br_sha1: ${br_sha1}"
@@ -102,6 +105,7 @@ def get_sha() {
     println "tidb_ctl_hash: ${tidb_ctl_githash}"
     println "binlog_sha1: ${binlog_sha1}"
     println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
+    println "tidb_monitor_initializer_sha1: ${tidb_monitor_initializer_sha1}"
     println "enterprise_plugin_sha1: ${enterprise_plugin_sha1}"
     withCredentials([string(credentialsId: 'token-update-prm-issue', variable: 'GITHUB_TOKEN')]) {
         if (TIDB_PRM_ISSUE != "") {
@@ -373,6 +377,47 @@ run_with_pod {
                     ]
         }
     }
+}
+
+def upload_result_to_db() {
+    pipeline_build_id= params.PIPELINE_BUILD_ID
+    pipeline_id= "10"
+    pipeline_name= "RC-Build"
+    status= currentBuild.result
+    build_number= BUILD_NUMBER
+    job_name= JOB_NAME
+    artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",tiflash commit:" + tiflash_sha1+ ",dumpling commit:" + dumpling_sha1+ ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + binlog_sha1 +"ticdc commit:" + cdc_sha1 + ",dm commit:" + dm_sha1 + ",br commit:" + tidb_sha1 + ",lightning commit:" + tidb_sha1 + ",tidb-monitor-initializer commit:" + tidb_monitor_initializer_sha1 + ",ng-monitoring commit:" + ng_monitoring_sha1+",enterprise-plugin commit:"+enterprise_plugin_sha1
+    begin_time= begin_time
+    end_time= new Date().format('yyyy-MM-dd HH:mm:ss')
+    triggered_by= "sre-bot"
+    component= "All"
+    arch= "All"
+    artifact_type= "All"
+    branch= RELEASE_BRANCH
+    version= RELEASE_TAG
+    build_type= "rc-build"
+
+    build job: 'upload_result_to_db',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value:  pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value:  status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value:  build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value:  job_name],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value:  end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value:  triggered_by],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
+                    [$class: 'StringParameterValue', name: 'ARCH', value:  arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  artifact_type],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: version],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type]
+            ]
+
 }
 
 

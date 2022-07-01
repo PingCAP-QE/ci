@@ -15,7 +15,7 @@ def PLATFORM_DARWINARM = "darwin-arm64"
 
 def FORCE_REBUILD = false
 
-begin_time = new Date().format('yyyy-mm-dd hh:mm:ss')
+begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
 tidb_sha1=""
 tikv_sha1=""
 pd_sha1=""
@@ -281,7 +281,7 @@ def upload_result_to_db() {
     job_name= JOB_NAME
     artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + tidb_binlog_sha1 + ",tidb-tools commit:" + tidb_tools_sha1+"ticdc commit:" + cdc_sha1 + ",dm commit:" + dm_sha1 + ",br commit:" + tidb_sha1 + ",lightning commit:" + tidb_sha1 + ",tidb-ctl commit:" + tidb_ctl_githash + ",ng-monitoring commit:" + ng_monitoring_sha1
     begin_time= begin_time
-    end_time= new Date().format('yyyy-mm-dd hh:mm:ss')
+    end_time= new Date().format('yyyy-MM-dd HH:mm:ss')
     triggered_by= "sre-bot"
     component= "All"
     arch= "All"
