@@ -65,19 +65,22 @@ def checkout() {
     ])
 }
 
-def runBuilderClosure(label, cwd, Closure body) {
-    def image_tag_suffix = ""
-    if (fileExists("${cwd}/tiflash/.toolchain.yml")) {
-        def config = readYaml(file: "${cwd}/tiflash/.toolchain.yml")
-        image_tag_suffix = config.image_tag_suffix
-    }
+def runBuilderClosure(label, Closure body) {
     podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,
         containers: [
-            containerTemplate(name: 'builder', image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64${image_tag_suffix}",
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
+                    alwaysPullImage: true, envVars: [
+                    envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
+            ], ttyEnabled: true, command: 'cat'),
+            containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-llvm-base:amd64',
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
     ],
+    volumes: [
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+    ]
     ) {
         node(label) {
             body()
@@ -86,25 +89,26 @@ def runBuilderClosure(label, cwd, Closure body) {
 }
 
 def runCheckoutAndBuilderClosure(label, curws, Closure body) {
-    dir("${curws}/tiflash") {
-        stage("Checkout") {
-            def repoDailyCache = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
-            if (fileExists(repoDailyCache)) {
-                println "get code from nfs to reduce clone time"
-                sh """
-                cp -R ${repoDailyCache}  ./
-                tar -xzf ${repoDailyCache} --strip-components=1
-                rm -f src-tics.tar.gz
-                """
-                sh "chown -R 1000:1000 ./"
-            } else {
-                sh "exit -1"
+    runBuilderClosure(label) {
+        dir("${curws}/tiflash") {
+            stage("Checkout") {
+                container("docker") {
+                    def repoDailyCache = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
+                    if (fileExists(repoDailyCache)) {
+                        println "get code from nfs to reduce clone time"
+                        sh """
+                        cp -R ${repoDailyCache}  ./
+                        tar -xzf ${repoDailyCache} --strip-components=1
+                        rm -f src-tics.tar.gz
+                        """
+                        sh "chown -R 1000:1000 ./"
+                    } else {
+                        sh "exit -1"
+                    }
+                }
+                checkout()
             }
-            checkout()
         }
-        stash "tiflash-sanitizer-daily-${BUILD_NUMBER}"
-    }
-    runBuilderClosure(label, curws) {
         body()
     }
 }
@@ -154,9 +158,6 @@ ccache -z
     
 def runWithCache(type, cwd) {
     stage("preparation") {
-        dir("${cwd}/tiflash") {
-            unstash "tiflash-sanitizer-daily-${BUILD_NUMBER}"
-        }
         prepareBuildCache(type, cwd)
     }
     stage("build") {
@@ -226,8 +227,7 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22', serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
         node(label) {
