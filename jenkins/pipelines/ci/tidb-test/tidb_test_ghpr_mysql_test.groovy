@@ -246,7 +246,7 @@ try {
                             }
                             unstash "tidb-test"
                             dir("go/src/github.com/pingcap/tidb-test") {
-                                timeout(10) {
+                                timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
@@ -289,7 +289,7 @@ try {
                             }
                             unstash "tidb-test"
                             dir("go/src/github.com/pingcap/tidb-test") {
-                                timeout(10) {
+                                timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
@@ -332,7 +332,7 @@ try {
                             }
                             unstash "tidb-test"
                             dir("go/src/github.com/pingcap/tidb-test") {
-                                timeout(10) {
+                                timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
