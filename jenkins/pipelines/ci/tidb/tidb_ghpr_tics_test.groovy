@@ -124,7 +124,7 @@ try {
                             }
                         }
                         stage("Test") {
-                            timeout(time: 10, unit: 'MINUTES') {
+                            timeout(time: 20, unit: 'MINUTES') {
                                 container("docker") {
                                     def tikvTag= TIKV_BRANCH
                                     def pdTag = PD_BRANCH
