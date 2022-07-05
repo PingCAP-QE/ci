@@ -263,8 +263,8 @@ podTemplate(name: label, label: label, cloud: "kubernetes-ng", instanceCap: 12, 
             }
 
             groovy.lang.Closure run_tikvclient_test = { chunk_suffix ->
-            withCredentials([string(credentialsId: 'codecov-token-tispark', variable: 'CODECOV_TOKEN')]) { 
-                dir("go/src/github.com/pingcap/tispark") {      
+            withCredentials([string(credentialsId: 'codecov-token-tispark', variable: 'CODECOV_TOKEN')]) {
+                dir("go/src/github.com/pingcap/tispark") {
                         sh """
                             rm -rf /maven/.m2/repository/*
                             rm -rf /maven/.m2/settings.xml
@@ -274,11 +274,11 @@ podTemplate(name: label, label: label, cloud: "kubernetes-ng", instanceCap: 12, 
                         """
                         sh """
                             export MAVEN_OPTS="-Xmx6G -XX:MaxMetaspaceSize=1024M"
-                            mvn test ${MVN_PROFILE} -am -pl tikv-client
+                            mvn test ${MVN_PROFILE} -am -pl tikv-client -Dtest=**/txn/*,**/PDClientTest.java
                         """
                         sh 'curl -s https://codecov.io/bash | bash -s'
                     }
-                }      
+                }
             }
 
             groovy.lang.Closure run_intergration_test = { chunk_suffix, run_test ->
