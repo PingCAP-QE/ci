@@ -261,9 +261,11 @@ run_with_pod {
             dir(repo_path) {
                 sh """
                 mkdir -p /root/.cache
-                source /tests/docker/util.sh
-                export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
-                show_env
+                if [[ -f /tests/docker/util.sh ]]; then
+                    source /tests/docker/util.sh
+                    export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
+                    show_env
+                fi
                 ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${parallelism} /tests/run-gtest.sh
                 """
             }
