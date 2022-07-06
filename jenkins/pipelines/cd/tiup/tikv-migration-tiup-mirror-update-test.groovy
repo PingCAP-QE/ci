@@ -1,31 +1,31 @@
 /*
-* @RELEASE_TAG
-* @VERSION
-* @PROD_NAME // tikv-br, tikv-cdc, gc-worker
+* @RELEASE_TAG br-v1.0.0/cdc-v1.0.0/gc-worker-v1.0.0
 */
 
-def br_desc = "TiKV cluster backup restore tool"
 def tikv_migration_repo_url = "git@github.com:tikv/migration.git"
 def GIT_CREDENTIAL_ID = "github-sre-bot-ssh"
-def dir = ""
-if (PROD_NAME == "tikv-br") {
-    dir = "br"
-} else if (PROD_NAME == "tikv-cdc") {
-    dir = "cdc"
-} else if (PROD_NAME == "gc-worker") {
-    dir = "gc-worker"
-}
 
-def update = { name, version, os, arch ->
+def update = { os, arch ->
     sh """
-    cd ${dir}
-    rm -rf ${name}*.tar.gz
+    prod_dir=\${RELEASE_TAG%-v*}
+    name=tikv-\${RELEASE_TAG%-v*}
+    version=v\${RELEASE_TAG#*-v}
+    desc=""
+    if [ \${name} == "tikv-br" ]; then
+        desc="TiKV cluster backup restore tool"
+    elif [ \${name} == "tikv-cdc" ]; then
+        desc="TiKV-CDC is a change data capture tool for TiKV"
+    elif [ \${name} == "tikv-gc-worker" ]; then
+        desc="GC Worker is a component for TiKV to control the gc process"
+    fi
+    cd \${prod_dir}
+    rm -rf \${name}*.tar.gz
     [ -d package ] || mkdir package
 
-    tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz tikv-br
+    tar -C bin -czvf package/\${name}-\${version}-${os}-${arch}.tar.gz \${name}
     rm -rf bin
 
-    tiup mirror publish ${name} ${version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${br_desc}"
+    tiup mirror publish \${name} \${version} package/\${name}-\${version}-${os}-${arch}.tar.gz \${name} --standalone --arch ${arch} --os ${os} --desc="\${desc}"
     """
 }
 
@@ -60,7 +60,8 @@ node("${GO_BUILD_SLAVE}") {
             script {
                 sh "go version"
                 sh """
-                    cd ${dir}
+                    prod_dir=\${RELEASE_TAG%-v*}
+                    cd \${prod_dir}
                     make release
                 """
             }
@@ -74,23 +75,23 @@ node("${GO_BUILD_SLAVE}") {
         }
 
         if (params.ARCH_X86) {
-            stage("tiup release br linux amd64") {
-                update PROD_NAME, RELEASE_TAG, "linux", "amd64"
+            stage("tiup release tikv migration linux amd64") {
+                update "linux", "amd64"
             }
         }
         if (params.ARCH_ARM) {
-            stage("tiup release br linux arm64") {
-                update PROD_NAME, RELEASE_TAG, "linux", "arm64"
+            stage("tiup release tikv migration linux arm64") {
+                update "linux", "arm64"
             }
         }
         if (params.ARCH_MAC) {
-            stage("tiup release br darwin amd64") {
-                update PROD_NAME, RELEASE_TAG, "darwin", "amd64"
+            stage("tiup release tikv migration darwin amd64") {
+                update "darwin", "amd64"
             }
         }
         if (params.ARCH_MAC_ARM) {
-            stage("tiup release br darwin arm64") {
-                update PROD_NAME, RELEASE_TAG, "darwin", "arm64"
+            stage("tiup release tikv migration darwin arm64") {
+                update "darwin", "arm64"
             }
         }
     }
