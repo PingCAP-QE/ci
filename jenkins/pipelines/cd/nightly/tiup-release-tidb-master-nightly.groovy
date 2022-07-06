@@ -289,6 +289,7 @@ def upload_result_to_db() {
     branch= "master"
     version= "Nightly"
     build_type= "nightly-build"
+    push_gcr = "No"
 
     build job: 'upload_result_to_db',
             wait: true,
@@ -308,7 +309,8 @@ def upload_result_to_db() {
                     [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  artifact_type],
                     [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
                     [$class: 'StringParameterValue', name: 'VERSION', value: version],
-                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type]
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type],
+                    [$class: 'StringParameterValue', name: 'PUSH_GCR', value: push_gcr]
             ]
 
 }
