@@ -34,6 +34,12 @@ properties([
                 ),
                 string(
                         defaultValue: '',
+                        name: 'PUSH_GCR',
+                        description: '',
+                        trim: true
+                ),
+                string(
+                        defaultValue: '',
                         name: 'JOB_NAME',
                         description: '',
                         trim: true
@@ -119,7 +125,8 @@ node("pipeline_data_collection_pod") {
                 "artifact_type":params.ARTIFACT_TYPE,
                 "branch":params.BRANCH,
                 "version": params.VERSION,
-                "build_type": params.BUILD_TYPE
+                "build_type": params.BUILD_TYPE,
+                "push_gcr":params.PUSH_GCR
         ]
 
         collect_pipeline_info(finally_result)
