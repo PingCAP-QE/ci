@@ -87,7 +87,7 @@ def dispatchRunEnv(toolchain, identifier, Closure body) {
 def existsBuildCache() {
     def status = ""
     try {
-        def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,number,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22BUILD_TESTS%22%20and%20value=%22true%22]]])[1]"
+        def api = "https://ci.pingcap.net/job/tiflash-build-common/api/xml?tree=allBuilds[result,number,building,actions[parameters[name,value]]]&xpath=(//allBuild[action[parameter[name=%22TARGET_COMMIT_HASH%22%20and%20value=%22${ghprbActualCommit}%22]%20and%20parameter[name=%22ARCHIVE_BUILD_DATA%22%20and%20value=%22true%22]%20and%20parameter[name=%22BUILD_TESTS%22%20and%20value=%22true%22]]])[1]"
         def response = httpRequest api
         def content = response.getContent()
         if (content.contains('<building>false</building>') && content.contains('<result>SUCCESS</result>')) {
