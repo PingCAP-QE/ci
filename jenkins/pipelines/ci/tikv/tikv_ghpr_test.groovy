@@ -42,7 +42,7 @@ def run_test_with_pod(Closure body) {
                     containerTemplate(
                         name: "rust", image: rust_image,
                         alwaysPullImage: true, ttyEnabled: true, privileged: true,
-                        resourceRequestCpu: '8', resourceRequestMemory: '8Gi',
+                        resourceRequestCpu: '6', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
                     ),
             ],
@@ -213,6 +213,11 @@ stage("Prepare") {
                     is_artifact_existed = (sh(
                         label: 'Try to skip building test artifact', returnStatus: true,
                         script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
+                    if (is_artifact_existed) {
+                        use_legacy_test = !(sh(
+                            label: 'Check if nextest', returnStatus: true,
+                            script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/is_nextest_build") == 0)
+                    }
                     println "Skip building test artifact: ${is_artifact_existed}"
                 }
 
@@ -406,10 +411,6 @@ EOF
                             """
                         }
                     }
-                } else {
-                    use_legacy_test = !(sh(
-                        label: 'Check if nextest', returnStatus: true,
-                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/is_nextest_build") == 0)
                 }
             }
         }
