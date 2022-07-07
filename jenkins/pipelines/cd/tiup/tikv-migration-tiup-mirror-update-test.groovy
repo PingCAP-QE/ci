@@ -2,12 +2,22 @@
 * @RELEASE_TAG br-v1.0.0/cdc-v1.0.0/gc-worker-v1.0.0
 */
 
-def tikv_migration_repo_url = "git@github.com:tikv/migration.git"
-def GIT_CREDENTIAL_ID = "github-sre-bot-ssh"
+def tikv_migration_repo_url = "https://github.com/tikv/migration"
 
-def update = { os, arch ->
+def download = { os, arch ->
     sh """
-    prod_dir=\${RELEASE_TAG%-v*}
+    name=tikv-\${RELEASE_TAG%-v*}
+    version=v\${RELEASE_TAG#*-v}
+    [ -d package ] || mkdir package
+
+    package_name=\${name}-\${version}-${os}-${arch}.tar.gz
+    download_url=${tikv_migration_repo_url}/releases/download/${RELEASE_TAG}/\${package_name}
+    wget -P pakcage/ \${download_url}
+    """
+}
+
+def publish = { os, arch ->
+    sh """
     name=tikv-\${RELEASE_TAG%-v*}
     version=v\${RELEASE_TAG#*-v}
     desc=""
@@ -18,15 +28,14 @@ def update = { os, arch ->
     elif [ \${name} == "tikv-gc-worker" ]; then
         desc="GC Worker is a component for TiKV to control the gc process"
     fi
-    cd \${prod_dir}
-    rm -rf \${name}*.tar.gz
-    [ -d package ] || mkdir package
-
-    tar -C bin -czvf package/\${name}-\${version}-${os}-${arch}.tar.gz \${name}
-    rm -rf bin
 
     tiup mirror publish \${name} \${version} package/\${name}-\${version}-${os}-${arch}.tar.gz \${name} --standalone --arch ${arch} --os ${os} --desc="\${desc}"
     """
+}
+
+def update = { os, arch ->
+    download os, arch
+    publish os, arch
 }
 
 def String selectGoVersion(String branchORTag) {
@@ -44,27 +53,6 @@ node("${GO_BUILD_SLAVE}") {
         stage("Prepare") {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
-        }
-        stage("Clone Code") {
-            script {
-                // Clone and Checkout TAG
-                git credentialsId: GIT_CREDENTIAL_ID, url: tikv_migration_repo_url, branch: "main"
-                sh "git branch -a" // List all branches.
-                sh "git tag" // List all tags.
-                sh "git checkout ${RELEASE_TAG}" // Checkout to a specific tag in your repo.
-                sh "ls -lart ./*"  // Just to view all the files if needed
-            }
-        }
-
-        stage("Build Binary") {
-            script {
-                sh "go version"
-                sh """
-                    prod_dir=\${RELEASE_TAG%-v*}
-                    cd \${prod_dir}
-                    make release
-                """
-            }
         }
 
         checkout scm
