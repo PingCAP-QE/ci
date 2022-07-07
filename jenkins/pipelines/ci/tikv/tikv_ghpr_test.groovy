@@ -14,6 +14,14 @@ def notRun = 1
 def CHUNK_COUNT = 2
 def LEGACY_CHUNK_COUNT = 20
 def use_legacy_test = false
+def EXTRA_NEXTEST_ARGS = "-j 8"
+
+def m1 = ghprbCommentBody =~ /retry\s*=\s*([^\s\\]+)(\s|\\|$)/
+if (m1) {
+    EXTRA_NEXTEST_ARGS = "${EXTRA_NEXTEST_ARGS} --retries ${m1[0][1]}"
+}
+m1 = null
+println "EXTRA_NEXTEST_ARGS=${EXTRA_NEXTEST_ARGS}"
 
 pod_image_param = ghprbTargetBranch
 // example hotfix branch  release-4.0-20210724 | example release-5.1-hotfix-tiflash-patch1
@@ -456,7 +464,7 @@ stage('Test') {
                                 curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
                                 chmod +x \$i;
                             done
-                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} -j 8; then
+                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} ${EXTRA_NEXTEST_ARGS}; then
                                 echo "test pass"
                             else
                                 # test failed
