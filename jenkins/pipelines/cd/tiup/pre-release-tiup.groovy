@@ -392,7 +392,7 @@ def upload_result_to_db() {
     status= currentBuild.result
     build_number= BUILD_NUMBER
     job_name= JOB_NAME
-    artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",tiflash commit:" + tiflash_sha1+ ",dumpling commit:" + dumpling_sha1+ ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + binlog_sha1 +"ticdc commit:" + cdc_sha1 + ",dm commit:" + dm_sha1 + ",br commit:" + tidb_sha1 + ",lightning commit:" + tidb_sha1 + ",tidb-monitor-initializer commit:" + tidb_monitor_initializer_sha1 + ",ng-monitoring commit:" + ng_monitoring_sha1+",enterprise-plugin commit:"+enterprise_plugin_sha1
+    artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",tiflash commit:" + tiflash_sha1+ ",dumpling commit:" + dumpling_sha1+ ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + binlog_sha1 +",ticdc commit:" + cdc_sha1 + ",dm commit:" + dm_sha1 + ",br commit:" + tidb_sha1 + ",lightning commit:" + tidb_sha1 + ",tidb-monitor-initializer commit:" + tidb_monitor_initializer_sha1 + ",ng-monitoring commit:" + ng_monitoring_sha1+",enterprise-plugin commit:"+enterprise_plugin_sha1
     begin_time= begin_time
     end_time= new Date().format('yyyy-MM-dd HH:mm:ss')
     triggered_by= "sre-bot"
