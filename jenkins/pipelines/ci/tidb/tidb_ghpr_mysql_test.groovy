@@ -218,7 +218,7 @@ try {
 
                 dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                     try {
-                        timeout(10) {
+                        timeout(25) {
                             if (ghprbTargetBranch in ["master"]) {
                                 sh """
                                 set +e
