@@ -103,8 +103,6 @@ try {
                                     sh """
                                     archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
                                     if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
-                                    echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
-                                    apk add --update --no-cache lcov
                                     """
                                     sleep(time:5,unit:"SECONDS")
                                 }
