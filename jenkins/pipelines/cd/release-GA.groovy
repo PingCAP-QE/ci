@@ -211,7 +211,39 @@ try {
 
             ]
     getHash()
+    sync_images()
     upload_result_to_db()
+}
+
+def sync_images() {
+    releaseRepos = ["tidb", "tikv", "pd",
+                    "tidb-binlog", "tics", "ticdc",
+                    "monitoring", "enterprise-plugin"]
+
+    if (RELEASE_TAG >= "v5.2.0") {
+        echo "Release tag is : ${RELEASE_TAG}"
+    } else {
+        releaseRepos.add("br")
+    }
+
+    if (RELEASE_TAG >= "v5.3.0") {
+        releaseRepos.add("ng-monitoring")
+    } else {
+        releaseRepos.add("dumpling")
+    }
+
+    builds = [:]
+    for (repo in releaseRepos) {
+        builds[repo] = {
+            build job: 'jenkins-image-syncer',
+                    wait: true,
+                    parameters: [
+                            [$class: 'StringParameterValue', name: 'SOURCE_IMAGE', value: "hub.pingcap.net/image-sync/${repo}:${RELEASE_TAG}"],
+                            [$class: 'StringParameterValue', name: 'TARGET_IMAGE', value: "hub.pingcap.net/qa/${repo}:${RELEASE_TAG}"]
+                    ]
+        }
+    }
+    parallel builds
 }
 
 def getHash() {
