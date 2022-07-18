@@ -40,7 +40,7 @@ def run(label, Closure body) {
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                             resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                             resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/zyguan/docker:build-essential-java',
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/alpine-docker:tics-test',
                             alwaysPullImage: true, envVars: [
                                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                             ], ttyEnabled: true, command: 'cat'),
@@ -103,8 +103,6 @@ try {
                                     sh """
                                     archive_url=${FILE_SERVER_URL}/download/builds/pingcap/tics/cache/tics-repo_latest.tar.gz
                                     if [ ! -d contrib ]; then curl -sL \$archive_url | tar -zx --strip-components=1 || true; fi
-                                    echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
-                                    apk add --update --no-cache lcov
                                     """
                                     sleep(time:5,unit:"SECONDS")
                                 }
