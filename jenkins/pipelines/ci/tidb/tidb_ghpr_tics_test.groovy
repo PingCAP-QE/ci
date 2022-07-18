@@ -40,7 +40,7 @@ def run(label, Closure body) {
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                             resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                             resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
-            containerTemplate(name: 'docker', image: 'hub.pingcap.net/zyguan/docker:build-essential-java',
+            containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/alpine-docker:tics-test',
                             alwaysPullImage: true, envVars: [
                                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
                             ], ttyEnabled: true, command: 'cat'),
