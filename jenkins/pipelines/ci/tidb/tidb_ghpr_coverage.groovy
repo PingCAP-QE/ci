@@ -135,7 +135,6 @@ try {
 
 
         stage("Test & Coverage") {
-            def tidb_path = "${ws}/go/src/github.com/pingcap/tidb"
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     if (ghprbTargetBranch in ["master", "release-5.4"]) {
@@ -160,58 +159,67 @@ try {
                         """
                     }
 
-                    withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN'),
-                                    string(credentialsId: 'codecov-api-token', variable: 'CODECOV_API_TOKEN')]) {
-                        timeout(30) {
-                            if (ghprbTargetBranch in ["master", "release-5.4"]) { 
-                                if (ghprbPullId != null && ghprbPullId != "") {
-                                    sh """
-                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                    chmod +x codecov
-                                    ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER} 
-                                    """
-                                } else {
-                                    sh """
-                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                    chmod +x codecov
-                                    ./codecov -f "tidb.coverage" -f "br.coverage" -f "dumpling.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                                    """
-                                }
+                    withCredentials([
+                        string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN'),
+                        string(credentialsId: 'codecov-api-token', variable: 'CODECOV_API_TOKEN'),
+                    ]) {
+                        if (!["master", "release-5.4"].contains(ghprbTargetBranch)) {
+                            return
+                        }
 
-                                // wait until codecov upload finish
-                                sleep(time:100,unit:"SECONDS")
-                                retry(3) {
-                                    def response = httpRequest Authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
-                                    println('Status: '+response.status)
-                                    def obj = readJSON text:response.content
-                                    if (response.status == 200) {
-                                        println(obj.commit.totals)
-                                        currentBuild.description = "Lines coverage: ${obj.commit.totals.c.toFloat().round(2)}%"
-                                        println('Coverage: '+obj.commit.totals.c)
-                                        println("Files count: "+ obj.commit.totals.f)
-                                        println("Lines count: "+obj.commit.totals.n)
-                                        println("Hits count: "+obj.commit.totals.h)
-                                        println("Misses count: "+obj.commit.totals.m)
-                                        println("Paritials count: "+obj.commit.totals.p)
+                        timeout(time: 30, unit: 'MINUTES') {               
+                            sh """
+                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
+                            chmod +x codecov
+                            """
+                            def runCodecovCmd = "./codecov -f tidb.coverage -f br.coverage -f dumpling.coverage -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER}"
+                            if (ghprbPullId != null && ghprbPullId != "") {
+                                runCodecovCmd += " -P ${ghprbPullId}"
+                            } else {
+                                runCodecovCmd += " -B ${ghprbTargetBranch}"
+                            }
 
-                                        println('Coverage: '+obj.commit.totals.diff[5])
-                                        println("Files count: "+ obj.commit.totals.diff[0])
-                                        println("Lines count: "+obj.commit.totals.diff[1])
-                                        println("Hits count: "+obj.commit.totals.diff[2])
-                                        println("Misses count: "+obj.commit.totals.diff[3])
-                                        println("Paritials count: "+obj.commit.totals.diff[4])
-                                    } else {
-                                        println('Error: '+response.content)
-                                        println('Status not 200: '+response.status)
-                                    }
+                            // run and wait until codecov upload finish
+                            sh runCodecovCmd
+                            sleep(time:100,unit:"SECONDS")
+                            def response
+
+                            // get response
+                            retry(3) {
+                                response = httpRequest authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
+
+                                if (response.status >= 400) {
+                                    error(message: "Status: ${response.status}\nContent: \n${response.content}")
                                 }
                             }
+
+                            println('Status: '+response.status)
+                            println("Content: "+response.content)
+
+                            // print ok response                           
+                            def obj = readJSON text:response.content
+                            println(obj.commit.totals)
+                            println('Coverage: '+obj.commit.totals.c)
+                            println("Files count: "+ obj.commit.totals.f)
+                            println("Lines count: "+obj.commit.totals.n)
+                            println("Hits count: "+obj.commit.totals.h)
+                            println("Misses count: "+obj.commit.totals.m)
+                            println("Paritials count: "+obj.commit.totals.p)
+                            println('Coverage: '+obj.commit.totals.diff[5])
+                            println("Files count: "+ obj.commit.totals.diff[0])
+                            println("Lines count: "+obj.commit.totals.diff[1])
+                            println("Hits count: "+obj.commit.totals.diff[2])
+                            println("Misses count: "+obj.commit.totals.diff[3])
+                            println("Paritials count: "+obj.commit.totals.diff[4])         
+
+                            currentBuild.description = "Lines coverage: ${obj.commit.totals.c.toFloat().round(2)}%"                   
                         }
                     }
                 }
             }
         }
     }
+
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
