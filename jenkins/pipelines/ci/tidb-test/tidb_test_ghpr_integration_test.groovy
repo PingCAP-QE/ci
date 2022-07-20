@@ -433,6 +433,10 @@ run_with_toolkit_pod {
                 run_java("jooq_test", "jooqtest", "./test.sh")
             }
 
+            tests["mysql_connector_c Test"] = {
+                run("mysql_connector_c_test", "mysql_connector_c_test", "./test.sh")
+            }
+
             println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
             println "check if current commit is already build, if not wait for build done."
