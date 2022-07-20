@@ -317,9 +317,12 @@ node("github-status-updater") {
                         export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
                         export BREAK_MERGE_CI_GITHUB_API_TOKEN=${BREAK_MERGE_CI_GITHUB_API_TOKEN}
                         export COMMENT_PR_GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+                        export GITHUB_API_TOKEN_CHECK_DATA=${GITHUB_API_TOKEN}
                         rm -rf agent-tidb-mergeci.py
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
+                        wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent_upload_tidb_mergeci_commit_status.py 
                         python3 agent-tidb-mergeci.py ciResult.json ${FEISHU_BREAK_IT_ALERT_URL} ${FEISHU_ALERT_URL}
+                        python3 agent_upload_tidb_mergeci_commit_status.py ${TIDB_BRANCH} ${TIDB_COMMIT_ID} || true
                         """
                     } else {
                         sh """
