@@ -322,7 +322,7 @@ node("github-status-updater") {
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent_upload_tidb_mergeci_commit_status.py 
                         python3 agent-tidb-mergeci.py ciResult.json ${FEISHU_BREAK_IT_ALERT_URL} ${FEISHU_ALERT_URL}
-                        python3 agent_upload_tidb_mergeci_commit_status.py ${TIDB_BRANCH} ${TIDB_COMMIT_ID} 
+                        python3 agent_upload_tidb_mergeci_commit_status.py ${TIDB_BRANCH} ${TIDB_COMMIT_ID} || true
                         """
                     } else {
                         sh """
