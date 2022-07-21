@@ -64,8 +64,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tidb"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-ticdc"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -77,7 +77,7 @@ def run_with_pod(Closure body) {
                             name: 'golang', alwaysPullImage: false,
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             privileged: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                            resourceRequestCpu: '6000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     ),
@@ -182,7 +182,7 @@ try {
                     unstash 'tidb'
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            timeout(30) { 
+                            timeout(45) { 
                                 try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
