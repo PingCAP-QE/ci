@@ -70,7 +70,6 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
-            nodeSelector: 'role_type=slave',
             idleMinutes: 0,
             containers: [
                     containerTemplate(
