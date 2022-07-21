@@ -32,7 +32,7 @@ println "TIKV_BRANCH=${TIKV_BRANCH}"
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
-    def namespace = "jenkins-tidb"
+    def namespace = "jenkins-pd"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.13:cached-pigz'
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -219,16 +219,16 @@ spec:
 EOF
                     """
                     sh """
-                    ./kubectl -n jenkins-tidb get service | grep "grafana-expose-pd-pr-${ghprbPullId} " > /dev/null && ./kubectl -n jenkins-tidb delete service grafana-expose-pd-pr-${ghprbPullId}
-                    ./kubectl -n jenkins-tidb label pod ${NODE_NAME} --overwrite pr="pd-${ghprbPullId}"
-                    ./kubectl -n jenkins-tidb apply -f service.yaml
+                    ./kubectl -n jenkins-pd get service | grep "grafana-expose-pd-pr-${ghprbPullId} " > /dev/null && ./kubectl -n jenkins-pd delete service grafana-expose-pd-pr-${ghprbPullId}
+                    ./kubectl -n jenkins-pd label pod ${NODE_NAME} --overwrite pr="pd-${ghprbPullId}"
+                    ./kubectl -n jenkins-pd apply -f service.yaml
                     sleep 3
                     """
                     withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                         sh"""
-                        port=`./kubectl -n jenkins-tidb get service | grep  "grafana-expose-pd-pr-${ghprbPullId} " | awk '{print \$5}' | cut -d: -f2 | cut -d/ -f1`
+                        port=`./kubectl -n jenkins-pd get service | grep  "grafana-expose-pd-pr-${ghprbPullId} " | awk '{print \$5}' | cut -d: -f2 | cut -d/ -f1`
                         echo service port: \${port}
-                        ./comment-pr --token=$TOKEN --owner=tikv --repo=pd --number=${ghprbPullId} --comment="Visit the grafana server at: http://172.16.5.5:\${port}, it will last for 5 hours"
+                        ./comment-pr --token=$TOKEN --owner=tikv --repo=pd --number=${ghprbPullId} --comment="Visit the grafana server at: http://172.16.5.21:\${port}, it will last for 5 hours"
                         """
                     }
                     sh "sleep 18000"
@@ -245,7 +245,7 @@ EOF
                 } finally {
                     sh """
                     set +e
-                    ./kubectl -n jenkins-tidb delete service grafana-expose-pd-pr-${ghprbPullId}
+                    ./kubectl -n jenkins-pd delete service grafana-expose-pd-pr-${ghprbPullId}
                     killall -9 -r tidb-server
                     killall -9 -r tikv-server
                     killall -9 -r pd-server
