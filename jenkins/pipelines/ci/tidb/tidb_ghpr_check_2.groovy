@@ -176,59 +176,61 @@ try {
         }
 
         def run_real_tikv_tests = { test_suite ->
-            run_with_pod {
-                deleteDir()
-                unstash 'tidb'
-                container("golang") {
-                    dir("go/src/github.com/pingcap/tidb") {
-                        timeout(30) { 
-                            try {
-                                ws = pwd()
-                                def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                                def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                                tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+            retry(5) {
+                run_with_pod {
+                    deleteDir()
+                    unstash 'tidb'
+                    container("golang") {
+                        dir("go/src/github.com/pingcap/tidb") {
+                            timeout(30) { 
+                                try {
+                                    ws = pwd()
+                                    def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                                    def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                                    tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
 
-                                def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                                def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                                pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                sh """
-                                curl ${tikv_url} | tar xz
-                                curl ${pd_url} | tar xz bin
+                                    def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                                    def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                                    pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                    sh """
+                                    curl ${tikv_url} | tar xz
+                                    curl ${pd_url} | tar xz bin
 
-                                # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
-                                echo -e "[pessimistic-txn]\npipelined = false\n" > tikv.toml
-                                echo -e "[raftdb]\nmax-open-files = 20480\n" >> tikv.toml
-                                echo -e "[rocksdb]\nmax-open-files = 20480\n" >> tikv.toml
+                                    # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
+                                    echo -e "[pessimistic-txn]\npipelined = false\n" > tikv.toml
+                                    echo -e "[raftdb]\nmax-open-files = 20480\n" >> tikv.toml
+                                    echo -e "[rocksdb]\nmax-open-files = 20480\n" >> tikv.toml
 
-                                bin/pd-server --name=pd-0 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-0/data --peer-urls=http://127.0.0.1:2380 --advertise-peer-urls=http://127.0.0.1:2380 --client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd1.log &
-                                bin/pd-server --name=pd-1 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-1/data --peer-urls=http://127.0.0.1:2381 --advertise-peer-urls=http://127.0.0.1:2381 --client-urls=http://127.0.0.1:2382 --advertise-client-urls=http://127.0.0.1:2382  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd2.log &
-                                bin/pd-server --name=pd-2 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-2/data --peer-urls=http://127.0.0.1:2383 --advertise-peer-urls=http://127.0.0.1:2383 --client-urls=http://127.0.0.1:2384 --advertise-client-urls=http://127.0.0.1:2384  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd3.log &
-                                bin/tikv-server --addr=127.0.0.1:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20180 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-0/data -f  tikv1.log &
-                                bin/tikv-server --addr=127.0.0.1:20161 --advertise-addr=127.0.0.1:20161 --status-addr=127.0.0.1:20181 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-1/data -f  tikv2.log &
-                                bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-2/data -f  tikv3.log &
+                                    bin/pd-server --name=pd-0 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-0/data --peer-urls=http://127.0.0.1:2380 --advertise-peer-urls=http://127.0.0.1:2380 --client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd1.log &
+                                    bin/pd-server --name=pd-1 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-1/data --peer-urls=http://127.0.0.1:2381 --advertise-peer-urls=http://127.0.0.1:2381 --client-urls=http://127.0.0.1:2382 --advertise-client-urls=http://127.0.0.1:2382  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd2.log &
+                                    bin/pd-server --name=pd-2 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-2/data --peer-urls=http://127.0.0.1:2383 --advertise-peer-urls=http://127.0.0.1:2383 --client-urls=http://127.0.0.1:2384 --advertise-client-urls=http://127.0.0.1:2384  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd3.log &
+                                    bin/tikv-server --addr=127.0.0.1:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20180 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-0/data -f  tikv1.log &
+                                    bin/tikv-server --addr=127.0.0.1:20161 --advertise-addr=127.0.0.1:20161 --status-addr=127.0.0.1:20181 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-1/data -f  tikv2.log &
+                                    bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-2/data -f  tikv3.log &
 
-                                sleep 10
-                                export log_level=error
-                                make failpoint-enable
-                                go test ./tests/realtikvtest/${test_suite} -v -with-real-tikv -timeout 30m
-                                """
-                                } catch (Exception e){ 
-                                sh "cat ${ws}/pd1.log || true"
-                                sh "cat ${ws}/tikv1.log || true"
-                                sh "cat ${ws}/pd2.log || true"
-                                sh "cat ${ws}/tikv2.log || true"
-                                sh "cat ${ws}/pd3.log || true"
-                                sh "cat ${ws}/tikv3.log || true"
-                                throw e
-                                } finally {
-                                sh """
-                                set +e
-                                killall -9 -r -q tikv-server
-                                killall -9 -r -q pd-server
-                                set -e
-                                """
+                                    sleep 10
+                                    export log_level=error
+                                    make failpoint-enable
+                                    go test ./tests/realtikvtest/${test_suite} -v -with-real-tikv -timeout 30m
+                                    """
+                                    } catch (Exception e){ 
+                                    sh "cat ${ws}/pd1.log || true"
+                                    sh "cat ${ws}/tikv1.log || true"
+                                    sh "cat ${ws}/pd2.log || true"
+                                    sh "cat ${ws}/tikv2.log || true"
+                                    sh "cat ${ws}/pd3.log || true"
+                                    sh "cat ${ws}/tikv3.log || true"
+                                    throw e
+                                    } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r -q tikv-server
+                                    killall -9 -r -q pd-server
+                                    set -e
+                                    """
+                                    }
                                 }
-                            }
+                        }
                     }
                 }
             }
