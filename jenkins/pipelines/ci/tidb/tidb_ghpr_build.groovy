@@ -64,13 +64,23 @@ VOLUMES = [
     emptyDirVolume(mountPath: '/tmp', memory: false),
 ]
 
+def user_bazel(branch) {
+    if (branch in ["master"]) {
+        return true
+    }
+    if (branch.startsWith("release-") && branch >= "release-6.2") {
+        return true
+    }
+    return false
+}
+
 node("master") {
     deleteDir()
     def ws = pwd()
     sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
     def script_path = "${ws}/goversion-select-lib.groovy"
     def goversion_lib = load script_path
-    if (ghprbTargetBranch in ["master", "release-6.2"]) {
+    if (user_bazel(ghprbTargetBranch)) {
         GO_VERSION = "bazel_master"
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
@@ -189,7 +199,7 @@ try {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
                                 if (isBuildCheck){
-                                    if (ghprbTargetBranch in ["master", "release-6.2"]) {
+                                    if (user_bazel(ghprbTargetBranch))  {
                                         sh """
 	                                    if make bazel_build; then
                                             touch importer.done
@@ -208,7 +218,7 @@ try {
 	                                    """
                                     }
                                 }else{
-                                    if (ghprbTargetBranch in ["master", "release-6.2"]) {
+                                    if (user_bazel(ghprbTargetBranch))  {
                                         sh """
 	                                    if make bazel_build; then
                                             touch importer.done
