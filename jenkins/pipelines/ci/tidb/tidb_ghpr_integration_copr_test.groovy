@@ -18,6 +18,8 @@ def PD_BRANCH = "master"
 def COPR_TEST_BRANCH = "master"
 def TIKV_BRANCH = ghprbTargetBranch
 
+def refspecCoprTest = "+refs/heads/*:refs/remotes/origin/*"
+
 // parse tikv branch
 def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
@@ -40,6 +42,9 @@ if (m3) {
     COPR_TEST_BRANCH = "${m3[0][1]}"
 }
 m3 = null
+if (COPR_TEST_BRANCH.startsWith("pr/")) {
+    refspecCoprTest = "+refs/pull/*:refs/remotes/origin/pr/*"
+}
 println "COPR_TEST_BRANCH=${COPR_TEST_BRANCH}"
 
 // def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
@@ -125,6 +130,8 @@ try {
 
         stage('Prepare') {
             dir("copr-test") {
+                println "prepare copr-test"
+                println "corp-test branch: ${COPR_TEST_BRANCH}"
                 timeout(30) {
                     checkout(changelog: false, poll: false, scm: [
                             $class: "GitSCM",
@@ -132,7 +139,7 @@ try {
                             userRemoteConfigs: [
                                     [
                                             url: 'https://github.com/tikv/copr-test.git',
-                                            refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pr/*',
+                                            refspec: refspecCoprTest,
                                     ]
                             ],
                             extensions: [
