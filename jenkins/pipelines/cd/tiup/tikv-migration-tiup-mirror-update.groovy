@@ -34,7 +34,7 @@ def publish = { os, arch ->
         desc="GC Worker is a component for TiKV to control the gc process"
     fi
 
-    tiup mirrot set ${mirror_server}
+    tiup mirror set ${mirror_server}
     tiup mirror publish \${name} \${version} package/\${name}-\${version}-${os}-${arch}.tar.gz \${name} --standalone --arch ${arch} --os ${os} --desc="\${desc}"
     """
 }
