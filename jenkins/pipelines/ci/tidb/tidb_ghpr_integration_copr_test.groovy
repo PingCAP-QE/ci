@@ -20,6 +20,8 @@ def TIKV_BRANCH = ghprbTargetBranch
 
 def refspecCoprTest = "+refs/heads/*:refs/remotes/origin/*"
 
+println "coment body: ${ghprbCommentBody}"
+
 // parse tikv branch
 def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
