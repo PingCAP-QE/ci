@@ -17,7 +17,7 @@ def download = { os, arch ->
 
     package_name=\${name}-\${version}-${os}-${arch}.tar.gz
     download_url=${tikv_migration_repo_url}/releases/download/${RELEASE_TAG}/\${package_name}
-    wget -P pakcage/ \${download_url}
+    wget -P package/ \${download_url}
     """
 }
 
