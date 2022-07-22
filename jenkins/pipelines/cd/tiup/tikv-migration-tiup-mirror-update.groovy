@@ -1,8 +1,13 @@
 /*
-* @RELEASE_TAG br-v1.0.0/cdc-v1.0.0/gc-worker-v1.0.0
+* @ RELEASE_TAG br-v1.0.0/cdc-v1.0.0/gc-worker-v1.0.0
+* @ STAGING_SERVER false/true
 */
 
-def tikv_migration_repo_url = "https://github.com/tikv/migration"
+def tikv_migration_repo_url = "https://github.com/haojinming/migration"
+def mirror_server = "http://prod.tiup-server.pingcap.net"
+if STAGING_SERVER {
+    mirror_server = "http://staging.tiup-server.pingcap.net"
+}
 
 def download = { os, arch ->
     sh """
@@ -29,6 +34,7 @@ def publish = { os, arch ->
         desc="GC Worker is a component for TiKV to control the gc process"
     fi
 
+    tiup mirrot set ${mirror_server}
     tiup mirror publish \${name} \${version} package/\${name}-\${version}-${os}-${arch}.tar.gz \${name} --standalone --arch ${arch} --os ${os} --desc="\${desc}"
     """
 }
