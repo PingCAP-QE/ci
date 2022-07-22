@@ -4,9 +4,9 @@
 */
 
 def tikv_migration_repo_url = "https://github.com/haojinming/migration"
-def mirror_server = "http://prod.tiup-server.pingcap.net"
-if STAGING_SERVER {
-    mirror_server = "http://staging.tiup-server.pingcap.net"
+def mirror_server = "http://staging.tiup-server.pingcap.net"
+if !params.STAGING_SERVER {
+    mirror_server = "http://prod.tiup-server.pingcap.net"
 }
 
 def download = { os, arch ->
