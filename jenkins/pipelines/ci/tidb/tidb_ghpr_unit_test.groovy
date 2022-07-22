@@ -39,7 +39,7 @@ VOLUMES = [
 ]
 
 node("master") {
-    if (ghprbTargetBranch == "master") { 
+    if (ghprbTargetBranch in ["master", "release-6.2"]) { 
         GO_VERSION = "bazel_master"
         RESOURCE_REQUEST_CPU = '4000m'
     } else {
@@ -179,7 +179,7 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     try {
-                        if (ghprbTargetBranch == "master") { 
+                        if (ghprbTargetBranch in ["master", "release-6.2"]) { 
                             sh """
                                 ./build/jenkins_unit_test.sh
                             """
