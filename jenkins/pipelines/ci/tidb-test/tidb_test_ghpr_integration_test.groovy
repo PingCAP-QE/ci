@@ -433,6 +433,14 @@ run_with_toolkit_pod {
                 run_java("jooq_test", "jooqtest", "./test.sh")
             }
 
+            tests["TiDB JDBC8 Fast Test"] = {
+                run_java("tidb_jdbc_test/tidb_jdbc8_test", "tidbjdbc8test", "./test_fast.sh")
+            }
+
+            tests["TiDB JDBC8 Slow Test"] = {
+                run_java("tidb_jdbc_test/tidb_jdbc8_test", "tidbjdbc8test", "./test_slow.sh")
+            }
+            
             tests["mysql_connector_c Test"] = {
                 run("mysql_connector_c_test", "mysql_connector_c_test", "./test.sh")
             }
