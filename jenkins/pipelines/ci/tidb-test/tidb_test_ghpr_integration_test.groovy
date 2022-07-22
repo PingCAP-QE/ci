@@ -440,6 +440,10 @@ run_with_toolkit_pod {
             tests["TiDB JDBC8 Slow Test"] = {
                 run_java("tidb_jdbc_test/tidb_jdbc8_test", "tidbjdbc8test", "./test_slow.sh")
             }
+            
+            tests["mysql_connector_c Test"] = {
+                run("mysql_connector_c_test", "mysql_connector_c_test", "./test.sh")
+            }
 
             println tidb_params
             def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
