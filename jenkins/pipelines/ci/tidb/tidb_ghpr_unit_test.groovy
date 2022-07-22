@@ -38,8 +38,18 @@ VOLUMES = [
     emptyDirVolume(mountPath: '/tmp', memory: false),
 ]
 
+def user_bazel(branch) {
+    if (branch in ["master"]) {
+        return true
+    }
+    if (branch.startsWith("release-") && branch >= "release-6.2") {
+        return true
+    }
+    return false
+}
+
 node("master") {
-    if (ghprbTargetBranch in ["master", "release-6.2"]) { 
+    if (user_bazel(ghprbTargetBranch)) { 
         GO_VERSION = "bazel_master"
         RESOURCE_REQUEST_CPU = '4000m'
     } else {
@@ -179,7 +189,7 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     try {
-                        if (ghprbTargetBranch in ["master", "release-6.2"]) { 
+                        if (user_bazel(ghprbTargetBranch)) { 
                             sh """
                                 ./build/jenkins_unit_test.sh
                             """
@@ -218,7 +228,7 @@ try {
                         archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
-                        if (ghprbTargetBranch == "master") {
+                        if (user_bazel(ghprbTargetBranch)) { 
                             junit testResults: "**/bazel.xml", allowEmptyResults: true
                             // upload_test_result("test_coverage/bazel.xml")
                         } else {
@@ -231,7 +241,7 @@ try {
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(5) {
                             if (ghprbPullId != null && ghprbPullId != "") {
-                                if (ghprbTargetBranch == "master") {
+                                if (user_bazel(ghprbTargetBranch)) { 
                                     sh """
                                     codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
                                     """
@@ -243,7 +253,7 @@ try {
                                     """
                                 }
                             } else {
-                                if (ghprbTargetBranch == "master") {
+                                if (user_bazel(ghprbTargetBranch)) { 
                                     sh """
                                     codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                     """
