@@ -70,7 +70,7 @@ node("master") {
     sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
     def script_path = "${ws}/goversion-select-lib.groovy"
     def goversion_lib = load script_path
-    if (ghprbTargetBranch == "master") {
+    if (ghprbTargetBranch in ["master", "release-6.2"]) {
         GO_VERSION = "bazel_master"
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
@@ -189,7 +189,7 @@ try {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
                                 if (isBuildCheck){
-                                    if (ghprbTargetBranch == "master") {
+                                    if (ghprbTargetBranch in ["master", "release-6.2"]) {
                                         sh """
 	                                    if make bazel_build; then
                                             touch importer.done
@@ -208,7 +208,7 @@ try {
 	                                    """
                                     }
                                 }else{
-                                    if (ghprbTargetBranch == "master") {
+                                    if (ghprbTargetBranch in ["master", "release-6.2"]) {
                                         sh """
 	                                    if make bazel_build; then
                                             touch importer.done
