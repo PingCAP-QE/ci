@@ -12,10 +12,10 @@ if (params.containsKey("release_test")) {
 }
 
 def TIDB_BRANCH = ghprbTargetBranch
-// def PD_BRANCH = ghprbTargetBranch
 def PD_BRANCH = "master"
-// def COPR_TEST_BRANCH = ghprbTargetBranch
+
 def COPR_TEST_BRANCH = "master"
+def COPR_TEST_PR_ID = ""
 def TIKV_BRANCH = ghprbTargetBranch
 
 def refspecCoprTest = "+refs/heads/*:refs/remotes/origin/*"
@@ -42,10 +42,14 @@ if (m3) {
     COPR_TEST_BRANCH = "${m3[0][1]}"
 }
 m3 = null
+
 if (COPR_TEST_BRANCH.startsWith("pr/")) {
-    refspecCoprTest = "+refs/pull/*:refs/remotes/origin/pr/*"
+    COPR_TEST_PR_ID = COPR_TEST_BRANCH.substring(3)
+    refspecCoprTest = "+refs/pull/${COPR_TEST_PR_ID}/head:refs/remotes/origin/PR-${COPR_TEST_PR_ID}"
+    COPR_TEST_PR_ID = COPR_TEST_BRANCH.substring(3)
 }
 println "COPR_TEST_BRANCH=${COPR_TEST_BRANCH}"
+println "COPR_TEST_PR_ID=${COPR_TEST_PR_ID}"
 
 // def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
 def release = "release"
@@ -132,8 +136,14 @@ try {
             dir("copr-test") {
                 println "prepare copr-test"
                 println "corp-test branch: ${COPR_TEST_BRANCH}"
+                println "refspec: ${refspecCoprTest}"
                 timeout(30) {
-                    checkout(changelog: false, poll: false, scm: [
+                    if (COPR_TEST_PR_ID != "") {
+                        checkout([$class: 'GitSCM', branches: [[name: "FETCH_HEAD"]],
+                        extensions: [[$class: 'LocalBranch']],
+                        userRemoteConfigs: [[refspec: refspecCoprTest, url: 'https://github.com/tikv/copr-test.git']]])
+                    } else {
+                        checkout(changelog: false, poll: false, scm: [
                             $class: "GitSCM",
                             branches: [ [ name: COPR_TEST_BRANCH ] ],
                             userRemoteConfigs: [
@@ -146,7 +156,8 @@ try {
                                     [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'],
                                     [$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]
                             ],
-                    ])
+                        ])
+                    }
                 }
             }
             container("golang") {
