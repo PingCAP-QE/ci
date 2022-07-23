@@ -297,7 +297,7 @@ try {
                         }
 
                         try {
-                            timeout(25) {
+                            timeout(55) {
                                 sh """
                                 set +e
                                 killall -9 -r tidb-server
