@@ -292,7 +292,7 @@ try {
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             try {
-                                timeout(25) {
+                                timeout(50) {
                                     sh """
                                 set +e
                                 killall -9 -r tidb-server
@@ -448,7 +448,7 @@ try {
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             try {
-                                timeout(25) {
+                                timeout(50) {
                                     sh """
                                     set +e
                                     killall -9 -r tidb-server
