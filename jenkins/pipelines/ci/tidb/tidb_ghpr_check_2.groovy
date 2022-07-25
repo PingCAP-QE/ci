@@ -148,7 +148,7 @@ try {
                             }
                         sh "git checkout -f ${ghprbActualCommit}"
                         sh """
-                        GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                        GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
                         """
                     }
                 }
