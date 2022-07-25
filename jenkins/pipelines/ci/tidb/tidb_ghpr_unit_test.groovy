@@ -238,7 +238,7 @@ try {
                                 def id=UUID.randomUUID().toString()
                                 def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
                                 sh """
-                                curl -F ${filepath}=@test_coverage/bazel.xml${FILE_SERVER_URL}/upload
+                                curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
                                 """
                                 resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
                             } catch (Exception e) {
