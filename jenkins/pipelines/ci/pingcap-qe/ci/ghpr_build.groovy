@@ -8,8 +8,16 @@ pipeline {
         stage('run example') {
             steps{
                 echo(message: env.BUILD_NUMBER)
-                sh '[ $((${env.BUILD_NUMBER} % 2)) -eq 0 ]' // random failed with 50% percent.
+                sh '[ $(($(date +%s) % 2)) -eq 0 ]' // random failed with 50% percent.
             }
         }
+    }
+    post{
+        success {
+            echo "passed ........"
+        }
+        failure {
+            echo "failed~~~~~"
+        }        
     }
 }
