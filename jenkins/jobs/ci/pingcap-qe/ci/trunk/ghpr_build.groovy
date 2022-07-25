@@ -48,7 +48,13 @@ pipelineJob('wip_ci_ghpr_build') {
             lightweight(true)
             scriptPath("jenkins/pipelines/ci/pingcap-qe/ci/ghpr_build.groovy")
             scm {
-                git("https://github.com/PingCAP-QE/ci.git", "feature/ci-dir-structure")
+                git{
+                    remote {
+                        url("https://github.com/PingCAP-QE/ci.git")
+                        credentials("a6f8c5ac-6082-4ad1-b84d-562cc1c37682")
+                    }
+                    branch("feature/ci-dir-structure")
+                }
             }
         }
     }
