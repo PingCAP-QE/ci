@@ -268,7 +268,7 @@ try {
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
-                                    # GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                                    # GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
                                     ls -alh ./bin/
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
@@ -332,7 +332,7 @@ try {
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
-                                    # GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                                    # GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
                                     ls -alh ./bin/
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
