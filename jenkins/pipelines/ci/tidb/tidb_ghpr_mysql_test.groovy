@@ -25,37 +25,6 @@ if (params.containsKey("upstreamJob")) {
     println "ghprbActualCommit: ${ghprbActualCommit}"
 }
 
-
-CI_RUN_PART_TEST_CASES = """
-    with_non_recursive window_min_max temp_table mariadb_cte_recursive 
-    mariadb_cte_nonrecursive json_functions gcol_view gcol_supported_sql_funcs 
-    expression_index date_time_ddl show timestamp_insert 
-    infoschema datetime_insert alias 
-    alter_table alter_table_PK auto_increment 
-    bigint bool builtin charset comment_table 
-    composite_index concurrent_ddl count_distinct 
-    count_distinct2 create_database create_index 
-    create_table datetime_update daylight_saving_time 
-    ddl_i18n_utf8 decimal do drop echo exec_selection 
-    field_length func_concat gcol_alter_table 
-    gcol_blocked_sql_funcs gcol_dependenies_on_vcol 
-    gcol_ins_upd gcol_non_stored_columns gcol_partition gcol_select 
-    grant_dynamic groupby having in index index_merge2 
-    index_merge_delete insert insert_select issue_11208 issue_165 
-    issue_20571 issue_207 issue_227 issue_266 issue_294 join json 
-    like math mysql_replace operator orderby partition_bug18198 
-    partition_hash partition_innodb partition_list partition_range 
-    precedence prepare qualified regexp replace select_qualified 
-    single_delete_update sqllogic str_quoted sub_query sub_query_more 
-    time timestamp_update tpcc transaction_isolation_func type 
-    type_binary type_uint union update update_stmt variable 
-    with_recursive with_recursive_bugs xd
-    index_merge_sqlgen_exprs index_merge_sqlgen_exprs_orandor_1_no_out_trans index_merge1
-    """
-
-
-
-
 def TIDB_TEST_BRANCH = ghprbTargetBranch
 // parse tidb_test branch
 def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -109,6 +78,11 @@ if (ghprbTargetBranch in ["br-stream"]) {
     println "Skip mysql_test ci for feature branch: ${ghprbTargetBranch}"
     return 0
 }
+
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
 
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
@@ -195,7 +169,6 @@ try {
             def log_path = "mysql-test.out*"
             deleteDir()
             println "work space path:\n${ws}"
-            println "run some mysql tests as below:\n ${CI_RUN_PART_TEST_CASES}"
 
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
@@ -271,6 +244,17 @@ try {
                     } finally {
                         if (ghprbTargetBranch == "master") {
                             junit testResults: "**/result.xml"
+                            try {
+                                def id=UUID.randomUUID().toString()
+                                def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+                                sh """
+                                curl -F ${filepath}=@result.xml ${FILE_SERVER_URL}/upload
+                                """
+                                resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+                            } catch (Exception e) {
+                                // upload test case result to fileserver, do not block ci
+                                print "upload test result to fileserver failed, continue."
+                            }
                         }
                     }
                 }
@@ -303,6 +287,30 @@ catch (Exception e) {
         slackcolor = 'danger'
         echo "${e}"
     }
+} finally {
+    taskFinishTime = System.currentTimeMillis()
+    build job: 'upload-pipelinerun-data',
+        wait: false,
+        parameters: [
+                [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${env.RUN_DISPLAY_URL}"],
+                [$class: 'StringParameterValue', name: 'REPO', value: "${ghprbGhRepository}"],
+                [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: ""],
+                [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+    ]
 }
 
 
