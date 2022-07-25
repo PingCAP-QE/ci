@@ -51,7 +51,7 @@ pipelineJob('wip_ci_ghpr_build') {
                 git{
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
-                        credentials("a6f8c5ac-6082-4ad1-b84d-562cc1c37682")
+                        credentials("github-sre-bot")
                     }
                     branch("feature/ci-dir-structure")
                 }
