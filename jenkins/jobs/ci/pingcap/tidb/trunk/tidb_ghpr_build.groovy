@@ -82,7 +82,7 @@ pipelineJob('wip_tidb_ghpr_build') {
                         url("https://github.com/PingCAP-QE/ci.git")
                         credentials("github-sre-bot")
                     }
-                    branch("feature/ci-dir-structure")
+                    branch("main")
                 }
             }
         }
