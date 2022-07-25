@@ -376,7 +376,7 @@ try {
         }
 
         tests["Integration MySQL Test Cached"] = {
-            if (TIDB_TEST_BRANCH in in ["master", "release-6.2"]) {
+            if (TIDB_TEST_BRANCH in ["master", "release-6.2"]) {
                 run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1")
             } else {
                 run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
