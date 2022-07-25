@@ -5,13 +5,13 @@ pipelineJob('wip_tidb_ghpr_build') {
         daysToKeep(180)
         numToKeep(2000)
     }
-       parameters {
+    parameters {
         stringParam("ghprbActualCommit")
         stringParam("ghprbPullId")
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb/")
+        githubProjectUrl("https://github.com/pingcap/tidb")
         pipelineTriggers {
             triggers {
                 ghprbTrigger {
