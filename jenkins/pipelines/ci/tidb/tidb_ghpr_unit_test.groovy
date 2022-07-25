@@ -66,6 +66,10 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
 label = "tidb_ghpr_unit_test-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
@@ -230,6 +234,17 @@ try {
                     } finally {
                         if (user_bazel(ghprbTargetBranch)) { 
                             junit testResults: "**/bazel.xml", allowEmptyResults: true
+                            try {
+                                def id=UUID.randomUUID().toString()
+                                def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+                                sh """
+                                curl -F ${filepath}=@bazel.xml ${FILE_SERVER_URL}/upload
+                                """
+                                resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+                            } catch (Exception e) {
+                                // upload test case result to fileserver, do not block ci
+                                print "upload test result to fileserver failed, continue."
+                            }
                             // upload_test_result("test_coverage/bazel.xml")
                         } else {
                             junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
@@ -312,7 +327,31 @@ catch (Exception e) {
         slackcolor = 'danger'
         echo "${e}"
     }
-} 
+} finally {
+    taskFinishTime = System.currentTimeMillis()
+    build job: 'upload-pipelinerun-data',
+        wait: false,
+        parameters: [
+                [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${env.RUN_DISPLAY_URL}"],
+                [$class: 'StringParameterValue', name: 'REPO', value: "${ghprbGhRepository}"],
+                [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: ""],
+                [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+    ]
+}
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
