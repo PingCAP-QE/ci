@@ -260,7 +260,7 @@ def tests(sink_type, node_label) {
  */
 def download_binaries() {
     final defaultDependencyBranch = "master"
-    final defaultTiDbDependencyBranch = "release-6.0" // FIXME(wuhuizuo): need change it every time when new release came out?
+    final defaultTiDbDependencyBranch = "release-6.1"    // FIXME(wuhuizuo): need change it every time when new release came out?
     def releaseBranchReg = /^release\-(\d+)\.(\d+)/      // example: release-6.1
     def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719 
 
