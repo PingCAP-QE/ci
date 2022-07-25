@@ -11,6 +11,8 @@ pipelineJob('wip_ci_ghpr_build') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId("a6f8c5ac-6082-4ad1-b84d-562cc1c37682")
+                    triggerPhrase("/self-test")
+                    skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("PingCAP-QE")
