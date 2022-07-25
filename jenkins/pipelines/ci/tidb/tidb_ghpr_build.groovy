@@ -1,9 +1,3 @@
-@Library('tipipeline') _
-@Library('tipipeline') import pingcap.tipipeline.Echo.hello
-
-log.info("info from share library's globa var function")
-hello
-
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
     ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
@@ -207,7 +201,7 @@ try {
                                 if (isBuildCheck){
                                     if (user_bazel(ghprbTargetBranch))  {
                                         sh """
-                                        if make bazel_build; then
+	                                    if make bazel_build; then
                                             touch importer.done
                                             touch tidb-server-check.done
                                         else 
@@ -218,15 +212,15 @@ try {
                                         """
                                     } else {
                                         sh """
-                                        nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-                                        nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-                                        make
-                                        """
+	                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                    nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+	                                    make
+	                                    """
                                     }
                                 }else{
                                     if (user_bazel(ghprbTargetBranch))  {
                                         sh """
-                                        if make bazel_build; then
+	                                    if make bazel_build; then
                                             touch importer.done
                                             touch tidb-server-check.done
                                         else 
@@ -237,11 +231,11 @@ try {
                                         """
                                     } else {
                                         sh """
-                                        nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-                                        nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &                                    
-                                        make
-                                        touch tidb-server-check.done
-                                        """
+	                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+	                                    nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &	                                
+	                                    make
+	                                    touch tidb-server-check.done
+	                                    """
                                     }
                                 }
 
@@ -301,9 +295,9 @@ try {
                             dir("go/src/github.com/pingcap/tidb") {
                                 timeout(10) {
                                     sh """
-                                    curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                    curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
-                                    """
+									curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+	                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload									
+	                                """
                                 }
                             }
                         }
