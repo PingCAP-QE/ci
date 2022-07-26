@@ -440,6 +440,10 @@ run_with_toolkit_pod {
             tests["TiDB JDBC8 Slow Test"] = {
                 run_java("tidb_jdbc_test/tidb_jdbc8_test", "tidbjdbc8test", "./test_slow.sh")
             }
+
+            tests["TiDB JDBC Unique Test"] = {
+                run_java("tidb_jdbc_test/tidb_jdbc_unique_test", "tidbuniquetest", "./test.sh")
+            }
             
             tests["mysql_connector_c Test"] = {
                 run("mysql_connector_c_test", "mysql_connector_c_test", "./test.sh")
