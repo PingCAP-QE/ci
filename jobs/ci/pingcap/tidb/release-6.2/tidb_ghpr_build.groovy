@@ -38,9 +38,9 @@ pipelineJob('wip_tidb_ghpr_build') {
                     autoCloseFailedPullRequests(false)
 
                     // useless, but can not delete.
-                    // commitStatusContext("idc-jenkins-ci-tidb/build")
-                    // msgSuccess("Jenkins job succeeded.")
-                    // msgFailure("Jenkins job failed.")
+                    commitStatusContext("")
+                    msgSuccess("Jenkins job succeeded.")
+                    msgFailure("Jenkins job failed.")
 
                     extensions {        
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
