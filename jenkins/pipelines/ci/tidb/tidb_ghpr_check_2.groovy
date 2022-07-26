@@ -278,6 +278,7 @@ try {
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
+                                    export TIDB_TEST_STORE_NAME="tikv"
                                     chmod +x cmd/explaintest/run-tests.sh
                                     cd cmd/explaintest && ls -alh
                                     ./run-tests.sh -d y
@@ -342,6 +343,7 @@ try {
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
+                                    export TIDB_TEST_STORE_NAME="tikv"
                                     chmod +x cmd/explaintest/run-tests.sh
                                     cd cmd/explaintest && ls -alh
                                     ./run-tests.sh -d n
