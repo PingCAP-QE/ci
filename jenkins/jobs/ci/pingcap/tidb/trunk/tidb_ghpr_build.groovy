@@ -39,35 +39,21 @@ pipelineJob('wip_tidb_ghpr_build') {
 
 
                     // useless, but can not delete.
-                    commitStatusContext("idc-jenkins-ci-tidb/build")
-                    msgSuccess("Jenkins job succeeded.")
-                    msgFailure("Jenkins job failed.")
+                    // commitStatusContext("idc-jenkins-ci-tidb/build")
+                    // msgSuccess("Jenkins job succeeded.")
+                    // msgFailure("Jenkins job failed.")
 
                     extensions {        
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
-                        ghprbSimpleStatus {
-                            commitStatusContext("idc-jenkins-ci-tidb/build")
-                            statusUrl('${RUN_DISPLAY_URL}')
-                            startedStatus("Jenkins job is running.")
-                            triggeredStatus("Jenkins job triggered.")
-                        //     completedStatus {
-                        //         ghprbBuildResultMessage {
-                        //             result("SUCCESS")
-                        //             message("Jenkins job succeeded.")
-                        //         }
-                        //         ghprbBuildResultMessage {
-                        //             result("ERROR")
-                        //             message("Jenkins job meets something wrong.")
-                        //         }
-                        //         ghprbBuildResultMessage {
-                        //             result("FAILURE")
-                        //             message("Jenkins job failed.")
-                        //         }                        
-                        //     }
-                            addTestResults(false)
-                            showMatrixStatus(false)
-                        }
-                        // ghprbNoCommitStatus() // enable this line when enable project and not tested stability.
+                        // ghprbSimpleStatus {
+                        //     commitStatusContext("idc-jenkins-ci-tidb/build")
+                        //     statusUrl('${RUN_DISPLAY_URL}')
+                        //     startedStatus("Jenkins job is running.")
+                        //     triggeredStatus("Jenkins job triggered.")                        
+                        //     addTestResults(false)
+                        //     showMatrixStatus(false)
+                        // }
+                        ghprbNoCommitStatus() // enable this line when enable project and not tested stability.
                     }
                 }
             }
