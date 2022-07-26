@@ -125,8 +125,8 @@ try {
                         mv bin/dm* ${target}/bin/
                         """
                         
-                        // DM changed the folder after a PR later than v6.2.0
-                        if ((branch.startsWith("release-") && branch <= "release-6.2") || (branch.startsWith("v") && branch <= "v6.2.0")) {
+                        // DM changed the folder after a PR later than v6.2.0. Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
+                        if ((branch.startsWith("release-") && branch < "release-6.3") || (branch.startsWith("v") && branch < "v6.3")) {
                             sh """
                             mv dm/dm/master/task_basic.yaml ${target}/conf/
                             mv dm/dm/master/task_advanced.yaml ${target}/conf/
