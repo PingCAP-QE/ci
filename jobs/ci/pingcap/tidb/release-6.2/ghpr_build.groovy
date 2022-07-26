@@ -1,6 +1,5 @@
 // REF: https://<you-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('wip_tidb_ghpr_build') {
-    disabled(true)
     logRotator {
         daysToKeep(180)
         numToKeep(2000)
