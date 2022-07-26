@@ -1,9 +1,3 @@
-@Library('tipipeline') _
-@Library('tipipeline') import pingcap.tipipeline.Echo.hello
-
-log.info("info from share library's globa var function")
-hello
-
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
     ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
