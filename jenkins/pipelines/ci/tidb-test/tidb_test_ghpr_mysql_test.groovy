@@ -252,14 +252,14 @@ try {
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                         export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
                                         cd mysql_test && ./build.sh
-                                        ./test.sh -backlist=1
+                                        ./test.sh -backlist=1 -part=1
                                         pwd && ls -l
                                         """
                                         sh """
                                         pwd && ls -l
-                                        cp mysql_test/result.xml test3_result.xml
+                                        cp mysql_test/result.xml test1_result.xml
                                         """
-                                        junit testResults: "**/test3_result.xml"
+                                        junit testResults: "**/test1_result.xml"
                                     } else {
                                         sh """
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
@@ -295,14 +295,14 @@ try {
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                         export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
                                         cd mysql_test && ./build.sh
-                                        ./test.sh -backlist=1
+                                        ./test.sh -backlist=1 -part=2
                                         pwd && ls -l
                                         """
                                         sh """
                                         pwd && ls -l
-                                        cp mysql_test/result.xml test3_result.xml
+                                        cp mysql_test/result.xml test2_result.xml
                                         """
-                                        junit testResults: "**/test3_result.xml"
+                                        junit testResults: "**/test2_result.xml"
                                     } else {
                                         sh """
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
@@ -338,7 +338,7 @@ try {
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                         export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
                                         cd mysql_test && ./build.sh
-                                        ./test.sh -backlist=1
+                                        ./test.sh -backlist=1 -part=3
                                         pwd && ls -l
                                         """
                                         sh """
@@ -346,6 +346,49 @@ try {
                                         cp mysql_test/result.xml test3_result.xml
                                         """
                                         junit testResults: "**/test3_result.xml"
+                                    } else {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh
+                                        pwd && ls -l
+                                        """
+                                    }
+                                }
+                            }
+                        }
+                        }
+                    },
+                    "test4": {
+                        run_with_pod {
+                        container("golang") {
+                            dir("go/src/github.com/pingcap/tidb") {
+                                timeout(10) {
+                                    retry(3){
+                                        sh """
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
+                                        curl ${tidb_url} | tar xz
+                                        """
+                                    }
+                                }
+                            }
+                            unstash "tidb-test"
+                            dir("go/src/github.com/pingcap/tidb-test") {
+                                timeout(20) {
+                                    if (ghprbTargetBranch == "master") {
+                                        sh """
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server
+                                        cd mysql_test && ./build.sh
+                                        ./test.sh -backlist=1 -part=4
+                                        pwd && ls -l
+                                        """
+                                        sh """
+                                        pwd && ls -l
+                                        cp mysql_test/result.xml test4_result.xml
+                                        """
+                                        junit testResults: "**/test4_result.xml"
                                     } else {
                                         sh """
                                         export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
