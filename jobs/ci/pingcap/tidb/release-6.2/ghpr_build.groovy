@@ -37,22 +37,22 @@ pipelineJob('wip_tidb_ghpr_build') {
                     autoCloseFailedPullRequests(false)
 
                     // useless, but can not delete.
-                    commitStatusContext("")
-                    msgSuccess("Jenkins job succeeded.")
-                    msgFailure("Jenkins job failed.")
+                    commitStatusContext("--none--")
+                    msgSuccess("--none--")
+                    msgFailure("--none--")
 
-                    extensions {        
-                        ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
-                        // ghprbSimpleStatus {
-                        //     commitStatusContext("idc-jenkins-ci-tidb/build")
-                        //     statusUrl('${RUN_DISPLAY_URL}')
-                        //     startedStatus("Jenkins job is running.")
-                        //     triggeredStatus("Jenkins job triggered.")                        
-                        //     addTestResults(false)
-                        //     showMatrixStatus(false)
-                        // }
-                        ghprbNoCommitStatus() // enable this line when enable project and not tested stability.
-                    }
+                    // extensions {
+                    //     ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
+                    //     ghprbNoCommitStatus() // enable this line when enable project and not tested stability.
+                    //     ghprbSimpleStatus {
+                    //         commitStatusContext("--none--")
+                    //         statusUrl("--none--")
+                    //         startedStatus("--none--")
+                    //         triggeredStatus("--none--")                        
+                    //         addTestResults(false)
+                    //         showMatrixStatus(false)
+                    //     }
+                    // }
                 }
             }
         }
