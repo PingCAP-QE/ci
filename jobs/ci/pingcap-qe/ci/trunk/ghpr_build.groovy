@@ -53,7 +53,6 @@ pipelineJob('wip_ci_ghpr_build') {
  
     definition {
         cpsScm {
-            lightweight(true)
             scriptPath("jenkins/pipelines/ci/pingcap-qe/ci/ghpr_build.groovy")
             scm {
                 git{
