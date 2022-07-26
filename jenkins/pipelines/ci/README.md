@@ -1,5 +1,6 @@
 # CI pipeline files
 
+**Current only change files in `<org>/<repo>/*`!!!**
 ## New dir structure
 
 - using `<org>/<repo>/<branch-special>/<pipeline-name>.groovy` structure.
@@ -12,3 +13,4 @@
     1. detach the soft link `release-6/` to `trunk`
     2. create copy `trunk/` to `release-6/`
     3. update files in `release-7/` or `trunk`(real path).
+
