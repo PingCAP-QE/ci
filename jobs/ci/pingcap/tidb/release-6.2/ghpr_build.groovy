@@ -44,11 +44,13 @@ pipelineJob('wip_tidb_ghpr_build') {
 
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
+                        ghprbNoCommitStatus() // debug: disable status update
                         ghprbSimpleStatus {
-                            commitStatusContext("idc-jenkins-ci-tidb/build")
-                            statusUrl('${RUN_DISPLAY_URL}')
-                            startedStatus("Jenkins job is running.")
-                            triggeredStatus("Jenkins job triggered.")                        
+                            commitStatusContext("gray-build") // debug: no block the pr.
+                            commitStatusContext("") // using default
+                            statusUrl("--none--") // debug: disappear build url
+                            startedStatus("")
+                            triggeredStatus("")
                             addTestResults(false)
                             showMatrixStatus(false)
                         }
@@ -71,15 +73,4 @@ pipelineJob('wip_tidb_ghpr_build') {
             }
         }
     }
-
-    // // finnal disable github commit status reporting.
-    // configure { project ->
-    //     project / 
-    //     'properties' /
-    //     'org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty' / 
-    //     'triggers' /
-    //     'org.jenkinsci.plugins.ghprb.GhprbTrigger' {
-    //         extensions {}
-    //     }        
-    // }
 }
