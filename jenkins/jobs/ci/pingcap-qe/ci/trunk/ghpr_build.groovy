@@ -46,14 +46,14 @@ pipelineJob('wip_ci_ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("jenkins/pipelines/ci/pingcap-qe/ci/ghpr_build.groovy")
+            scriptPath("jenkins/pipelines/ci/ci-sl/ghpr_build.groovy")
             scm {
                 git{
                     remote {
-                        url("https://github.com/PingCAP-QE/ci.git")
-                        credentials("github-sre-bot")
+                        url("git@github.com:PingCAP-QE/ci.git")
+                        credentials("github-sre-bot-ssh")
                     }
-                    branch("main")
+                    branch("feature/ci-dir-structure")
                 }
             }
         }
