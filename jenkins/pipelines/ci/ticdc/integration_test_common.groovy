@@ -259,18 +259,35 @@ def tests(sink_type, node_label) {
  * Download the integration test-related binaries.
  */
 def download_binaries() {
-    def dependencyBranch = ghprbTargetBranch
-    def tidbDependencyBranch = ghprbTargetBranch
-    def match = ghprbTargetBranch =~ /^release\-(\d+)\.(\d+)/
-    if (match.matches()) {
-        println "target branch is release branch, dependency use release branch to download binaries"
-    } else {
-        dependencyBranch = "master"
-        tidbDependencyBranch = "release-6.0"
-        println "target branch is not release branch, dependency tidb use release-6.0 branch to download binaries"
-        println "target branch is not release branch, dependency use master branch instead"
+    final defaultDependencyBranch = "master"
+    final defaultTiDbDependencyBranch = "release-6.0" // FIXME(wuhuizuo): need change it every time when new release came out?
+    def releaseBranchReg = /^release\-(\d+)\.(\d+)/      // example: release-6.1
+    def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719 
+
+    def dependencyBranch
+    def tidbDependencyBranch
+
+    switch( ghprbTargetBranch ) {
+        case ~releaseBranchReg: 
+            println "target branch is release branch, dependency use ${ghprbTargetBranch} branch to download binaries"
+            dependencyBranch = ghprbTargetBranch
+            tidbDependencyBranch = ghprbTargetBranch
+
+            break
+        case ~hotfixBranchReg:
+            def relBr = ghprbTargetBranch.replaceFirst(/-\d+$/, "")
+            println "target branch is hotfix branch, dependency use ${relBr} branch to download binaries"
+            dependencyBranch = relBr
+            tidbDependencyBranch = relBr
+
+            break
+        default: 
+            dependencyBranch = defaultDependencyBranch
+            tidbDependencyBranch = defaultTiDbDependencyBranch
+            println "target branch is not release branch, dependency tidb use ${tidbDependencyBranch} branch to download binaries"
+            println "target branch is not release branch, dependency use ${dependencyBranch} branch instead"
     }
-    match = null
+
     def TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", tidbDependencyBranch)
     def TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", dependencyBranch)
     def PD_BRANCH = params.getOrDefault("release_test__pd_commit", dependencyBranch)

@@ -12,9 +12,9 @@ if (params.containsKey("release_test")) {
 }
 
 def TIDB_BRANCH = ghprbTargetBranch
-def PD_BRANCH = "master"
+def PD_BRANCH = ghprbTargetBranch
 
-def COPR_TEST_BRANCH = "master"
+def COPR_TEST_BRANCH = ghprbTargetBranch
 def COPR_TEST_PR_ID = ""
 def TIKV_BRANCH = ghprbTargetBranch
 

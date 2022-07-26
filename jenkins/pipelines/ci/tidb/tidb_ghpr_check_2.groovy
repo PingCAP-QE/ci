@@ -62,6 +62,11 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
+
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
@@ -148,7 +153,7 @@ try {
                             }
                         sh "git checkout -f ${ghprbActualCommit}"
                         sh """
-                        GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                        GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
                         """
                     }
                 }
@@ -268,11 +273,12 @@ try {
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
-                                    # GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                                    # GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
                                     ls -alh ./bin/
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
+                                    export TIDB_TEST_STORE_NAME="tikv"
                                     chmod +x cmd/explaintest/run-tests.sh
                                     cd cmd/explaintest && ls -alh
                                     ./run-tests.sh -d y
@@ -332,11 +338,12 @@ try {
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
-                                    # GO111MODULE=on go build -race -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                                    # GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
                                     ls -alh ./bin/
 
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
+                                    export TIDB_TEST_STORE_NAME="tikv"
                                     chmod +x cmd/explaintest/run-tests.sh
                                     cd cmd/explaintest && ls -alh
                                     ./run-tests.sh -d n
@@ -416,6 +423,30 @@ catch (Exception e) {
         slackcolor = 'danger'
         echo "${e}"
     }
+} finally {
+    taskFinishTime = System.currentTimeMillis()
+    build job: 'upload-pipelinerun-data',
+        wait: false,
+        parameters: [
+                [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${env.RUN_DISPLAY_URL}"],
+                [$class: 'StringParameterValue', name: 'REPO', value: "${ghprbGhRepository}"],
+                [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: ghprbPullAuthorLogin],
+                [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: ""],
+                [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+    ]
 }
 
 if (params.containsKey("triggered_by_upstream_ci")) {
