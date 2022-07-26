@@ -36,7 +36,15 @@ pipelineJob('wip_ci_ghpr_build') {
                     msgSuccess("Jenkins job succeeded.")
                     msgFailure("Jenkins job failed.")
                     extensions {        
-                        ghprbCancelBuildsOnUpdate { overrideGlobal(true) }                        
+                        ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
+                        ghprbSimpleStatus {
+                            commitStatusContext("self-test")
+                            statusUrl('${RUN_DISPLAY_URL}')
+                            startedStatus("Jenkins job is running.")
+                            triggeredStatus("Jenkins job triggered.")
+                            addTestResults(false)
+                            showMatrixStatus(false)
+                        }
                     }
                 }
             }
