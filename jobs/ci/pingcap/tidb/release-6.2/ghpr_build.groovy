@@ -1,5 +1,6 @@
 // REF: https://<you-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('wip_tidb_ghpr_build') {
+    disabled(true)
     logRotator {
         daysToKeep(180)
         numToKeep(2000)
@@ -41,18 +42,17 @@ pipelineJob('wip_tidb_ghpr_build') {
                     msgSuccess("--none--")
                     msgFailure("--none--")
 
-                    // extensions {
-                    //     ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
-                    //     ghprbNoCommitStatus() // enable this line when enable project and not tested stability.
-                    //     ghprbSimpleStatus {
-                    //         commitStatusContext("--none--")
-                    //         statusUrl("--none--")
-                    //         startedStatus("--none--")
-                    //         triggeredStatus("--none--")                        
-                    //         addTestResults(false)
-                    //         showMatrixStatus(false)
-                    //     }
-                    // }
+                    extensions {
+                        ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
+                        ghprbSimpleStatus {
+                            commitStatusContext("idc-jenkins-ci-tidb/build")
+                            statusUrl('${RUN_DISPLAY_URL}')
+                            startedStatus("Jenkins job is running.")
+                            triggeredStatus("Jenkins job triggered.")                        
+                            addTestResults(false)
+                            showMatrixStatus(false)
+                        }
+                    }
                 }
             }
         }
@@ -71,4 +71,15 @@ pipelineJob('wip_tidb_ghpr_build') {
             }
         }
     }
+
+    // // finnal disable github commit status reporting.
+    // configure { project ->
+    //     project / 
+    //     'properties' /
+    //     'org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty' / 
+    //     'triggers' /
+    //     'org.jenkinsci.plugins.ghprb.GhprbTrigger' {
+    //         extensions {}
+    //     }        
+    // }
 }
