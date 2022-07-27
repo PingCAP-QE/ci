@@ -79,7 +79,7 @@ if (ghprbTargetBranch in ["br-stream"]) {
     return 0
 }
 
-def parallel_run_test(branch) {
+def parallel_run_mysql_test(branch) {
     if (branch in ["master"]) {
         return true
     }
