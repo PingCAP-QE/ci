@@ -26,12 +26,12 @@ pipelineJob('wip_tidb_ghpr_build') {
                     whiteListTargetBranches {
                         ghprbBranch {
                             branch('master')
-                            branch('release-6\.[2-9].*')
+                            branch('release-6\\.[2-9].*')
                         }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions("*\.md")
+                    excludedRegions('*\\.md')
                     only html/jpeg/gif files have been committed to the GitHub repository a build will not occur.
 
                     blackListLabels("")
