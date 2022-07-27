@@ -44,9 +44,8 @@ pipelineJob('wip_tidb_ghpr_build') {
 
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
-                        ghprbNoCommitStatus() // debug: disable status update
                         ghprbSimpleStatus {
-                            commitStatusContext("ignore-gray-build") // debug: no block the pr.
+                            commitStatusContext("IGNORE-gray-build") // debug: no block the pr.
                             statusUrl("")
                             startedStatus("")
                             triggeredStatus("")
