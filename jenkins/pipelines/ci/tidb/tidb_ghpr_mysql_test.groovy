@@ -219,7 +219,7 @@ try {
                             """
                             throw err
                         } finally {
-                            if (parallel_run_test(ghprbTargetBranch)) {
+                            if (parallel_run_mysql_test(ghprbTargetBranch)) {
                                 junit testResults: "**/result.xml"
                             }
                         }
@@ -230,7 +230,7 @@ try {
         def tests = [:]
         run_test_with_pod {
             container("golang") {
-                if (parallel_run_test(ghprbTargetBranch)) {
+                if (parallel_run_mysql_test(ghprbTargetBranch)) {
                     println "run test in parallel with 4 parts"
                     tests["test part1"] = {run("mysql_test", "./test.sh -backlist=1 -part=1")}
                     tests["test part2"] = {run("mysql_test", "./test.sh -backlist=1 -part=2")}
