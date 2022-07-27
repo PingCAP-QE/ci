@@ -128,56 +128,58 @@ pipeline {
             failFast true
             parallel {            
                 stage("Build and upload TiDB") {
-                    stage("Build"){
-                        options {
-                            timeout(time: 10, unit: 'MINUTES')
-                        }
-                        steps {
-                            dir("go/src/github.com/pingcap/tidb") {
-                                sh "make bazel_build"
+                    stages {
+                        stage("Build"){
+                            options {
+                                timeout(time: 10, unit: 'MINUTES')
+                            }
+                            steps {
+                                dir("go/src/github.com/pingcap/tidb") {
+                                    sh "make bazel_build"
+                                }
                             }
                         }
-                    }
-                    stage("Upload") {
-                        steps {                                        
-                            dir("go/src/github.com/pingcap/tidb") {
-                                // create tidb-server tarball
-                                sh """
-                                rm -rf .git
-                                tar czvf tidb-server.tar.gz ./*
-                                echo "pr/${ghprbActualCommit}" > sha1
-                                echo "done" > done
-                                """
+                        stage("Upload") {
+                            steps {                                        
+                                dir("go/src/github.com/pingcap/tidb") {
+                                    // create tidb-server tarball
+                                    sh """
+                                    rm -rf .git
+                                    tar czvf tidb-server.tar.gz ./*
+                                    echo "pr/${ghprbActualCommit}" > sha1
+                                    echo "done" > done
+                                    """
 
-                                // upload to tidb dir
-                                timeout(10) {
-                                    script {
-                                        def filepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                        def donepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                                        def refspath = "refs/pingcap/tidb/pr/${ghprbPullId}/sha1"
-                                        // if (params.containsKey("triggered_by_upstream_ci")) {
-                                        //     refspath = "refs/pingcap/tidb/pr/branch-${ghprbTargetBranch}/sha1"
-                                        // }
+                                    // upload to tidb dir
+                                    timeout(10) {
+                                        script {
+                                            def filepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                            def donepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+                                            def refspath = "refs/pingcap/tidb/pr/${ghprbPullId}/sha1"
+                                            // if (params.containsKey("triggered_by_upstream_ci")) {
+                                            //     refspath = "refs/pingcap/tidb/pr/branch-${ghprbTargetBranch}/sha1"
+                                            // }
 
-                                        sh """
-                                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                        curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
-                                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                                        """
+                                            sh """
+                                            curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                                            curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
+                                            curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                                            """
+                                        }                                
+                                    }
+                                
+                                    // upload to tidb-checker dir
+                                    timeout(10) {
+                                        script {
+                                            def filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                            def donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+                                            sh """
+                                            curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                                            curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
+                                            """
+                                        }
                                     }                                
                                 }
-                            
-                                // upload to tidb-checker dir
-                                timeout(10) {
-                                    script {
-                                        def filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                        def donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
-                                        sh """
-                                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                        curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
-                                        """
-                                    }
-                                }                                
                             }
                         }
                     }
