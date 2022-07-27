@@ -24,15 +24,12 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
                     whiteListTargetBranches {
-                        ghprbBranch {
-                            branch('master')
-                            branch('release-6\\.[2-9].*')
-                        }
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('release-6\\.[2-9].*') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
                     excludedRegions('*\\.md')
-                    only html/jpeg/gif files have been committed to the GitHub repository a build will not occur.
 
                     blackListLabels("")
                     whiteListLabels("")
@@ -72,7 +69,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
  
     definition {
         cpsScm {
-            scriptPath("pipelines/pingcap/tidb/release-6.2/ghpr_build.groovy")
+            scriptPath("pipelines/pingcap/tidb/latest/ghpr_build.groovy")
             scm {
                 git{
                     remote {

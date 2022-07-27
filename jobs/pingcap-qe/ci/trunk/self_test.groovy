@@ -1,5 +1,5 @@
 // REF: https://<you-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap-qe/ci/self-test') {
+pipelineJob('pingcap-qe/ci/self_test') {
     logRotator {
         daysToKeep(7)
         numToKeep(100)
@@ -38,7 +38,7 @@ pipelineJob('pingcap-qe/ci/self-test') {
                     extensions {        
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("self-test")
+                            commitStatusContext("self_test")
                             statusUrl('')
                             startedStatus('')
                             triggeredStatus('')

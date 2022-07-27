@@ -1,3 +1,3 @@
-folder('tidb') {
-    description("Folder for pingcap/tidb project")
+folder('pingcap/tidb') {
+    description("Folder for pipelines of pingcap/tidb repo")
 }
