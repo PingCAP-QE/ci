@@ -1,4 +1,4 @@
-// REF: https://<you-jenkins-server>/plugin/job-dsl/api-viewer/index.html
+// REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('wip_tidb_ghpr_build') {
     disabled(true)
     logRotator {
@@ -22,6 +22,17 @@ pipelineJob('wip_tidb_ghpr_build') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
+                    whiteListTargetBranches {
+                        ghprbBranch {
+                            branch('master')
+                            branch('release-6\.[2-9].*')
+                        }
+                    }
+                    // ignore when only those file changed.(
+                    //   multi line regex
+                    excludedRegions("*\.md")
+                    only html/jpeg/gif files have been committed to the GitHub repository a build will not occur.
+
                     blackListLabels("")
                     whiteListLabels("")
                     adminlist("")
