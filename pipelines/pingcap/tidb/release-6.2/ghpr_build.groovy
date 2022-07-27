@@ -83,9 +83,14 @@ pipeline {
                             }
                             if(!fileExists("Makefile")) {
                                 sh """
+                                # debug
+                                hostname
+                                uname -a
+                                wget --version
+
                                 rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                                 rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/tidb.tar.gz -q --show-progress
+                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz ${FILE_SERVER_URL}/download/cicd/daily-cache-code/tidb.tar.gz -q --show-progress
                                 tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
                                 """
                             }
@@ -251,7 +256,7 @@ pipeline {
                                 go build
                                 """
                             }
-                        }                        
+                        }
                         dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                             sh """
                             GO111MODULE=on go mod tidy
