@@ -68,7 +68,7 @@ pipelineJob('wip_tidb_ghpr_build') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("main")
+                    branch("feature/refactor-tidb-verify-ci-tidb-ghpr-build")
                 }
             }
         }
