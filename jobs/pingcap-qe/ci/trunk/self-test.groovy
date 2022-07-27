@@ -1,5 +1,5 @@
 // REF: https://<you-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('wip_ci_ghpr_build') {
+pipelineJob('pingcap-qe/ci/self-test') {
     logRotator {
         daysToKeep(7)
         numToKeep(100)
@@ -39,9 +39,9 @@ pipelineJob('wip_ci_ghpr_build') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext("self-test")
-                            statusUrl('${RUN_DISPLAY_URL}')
-                            startedStatus("Jenkins job is running.")
-                            triggeredStatus("Jenkins job triggered.")
+                            statusUrl('')
+                            startedStatus('')
+                            triggeredStatus('')
                             addTestResults(false)
                             showMatrixStatus(false)
                         }

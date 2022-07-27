@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('wip_tidb_ghpr_build') {
+pipelineJob('pingcap/tidb/ghpr_build') {
     disabled(true)
     logRotator {
         daysToKeep(180)
