@@ -16,7 +16,7 @@ pipelineJob('wip_tidb_ghpr_build') {
             triggers {
                 ghprbTrigger {
                     cron('H/5 * * * *')
-                    gitHubAuthId("a6f8c5ac-6082-4ad1-b84d-562cc1c37682") // sre-bot.
+                    gitHubAuthId("8b25795b-a680-4dce-9904-89ef40d73159") // tidb-ci-bot.
                     triggerPhrase(".*/(merge|run(-all-tests|-build).*)")
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
@@ -46,9 +46,8 @@ pipelineJob('wip_tidb_ghpr_build') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbNoCommitStatus() // debug: disable status update
                         ghprbSimpleStatus {
-                            commitStatusContext("gray-build") // debug: no block the pr.
-                            commitStatusContext("") // using default
-                            statusUrl("--none--") // debug: disappear build url
+                            commitStatusContext("SKIP-gray-build") // debug: no block the pr.
+                            statusUrl("")
                             startedStatus("")
                             triggeredStatus("")
                             addTestResults(false)
