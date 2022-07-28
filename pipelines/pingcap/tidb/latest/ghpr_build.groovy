@@ -5,6 +5,7 @@ final K8S_COULD = "kubernetes-ng"
 final K8S_NAMESPACE = "jenkins-tidb"
 final K8S_LABEL = "tidb-ghpr-build-${BUILD_NUMBER}"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
 final SLACK_TOKEN_CREDENTIAL_ID = 'slack-pingcap-token'
 final POD_TEMPLATE = '''
@@ -49,38 +50,36 @@ pipeline {
     stages {
         stage('debug info') {
             steps {
-                sh "printenv"
-                println "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                sh label: 'Debug info', script: """
+                printenv
+                echo "-------------------------"
+                echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash
+                """
             }
         }
         stage('Checkout') {
             steps {
-                dir("go/src/github.com/pingcap/tidb") {                         
+                dir("tidb") {                         
                     retry(2) {
-                        script {                        
-                            def specStr = "+refs/heads/*:refs/remotes/origin/*"
-                            if (ghprbPullId != null && ghprbPullId != "") {
-                                specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-                            }
-
-                            def ret = checkout(
-                                changelog: false,
-                                poll: false, 
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                    doGenerateSubmoduleConfigurations: false, 
-                                    extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], 
-                                    submoduleCfg: [], 
-                                    userRemoteConfigs: [[credentialsId: GIT_CREDENTIALS_ID, refspec: specStr, url: 'git@github.com:pingcap/tidb.git']],
-                                ]
-                            )
-
-                            // if checkout failed, fallback to fetch all the PR data
-                            if (ret) {
-                                echo "checkout failed, retry.."
-                                sleep 5                        
-                            }
-                        }                              
+                        checkout(
+                            changelog: false,
+                            poll: false, 
+                            scm: [
+                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                doGenerateSubmoduleConfigurations: false, 
+                                extensions: [
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'], 
+                                    [$class: 'CloneOption', timeout: 5],
+                                ], 
+                                submoduleCfg: [], 
+                                userRemoteConfigs: [[
+                                    credentialsId: GIT_CREDENTIALS_ID, 
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                    url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
+                                ]],
+                            ]
+                        )
                     }
                 }
             }
@@ -95,36 +94,43 @@ pipeline {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
                             steps {
-                                dir("go/src/github.com/pingcap/tidb") {
-                                    sh "make bazel_build"
-                                }
+                                dir("tidb") { sh "make bazel_build" }
+                            }                            
+                            post {       
+                                // TODO: statics and report logic should not put in pipelines.
+                                // Instead should only send a cloud event to a external service.
+                                always {
+                                    dir("tidb") {
+                                        archiveArtifacts(
+                                            artifacts: 'importer.log,tidb-server-check.log',
+                                            allowEmptyArchive: true,
+                                        )
+                                    }            
+                                }       
                             }
                         }
                         stage("Upload") {
                             steps {                                        
-                                dir("go/src/github.com/pingcap/tidb") {
-                                    sh(label: "create tidb-server tarball", script: """
+                                dir("tidb") {
+                                    sh label: "create tidb-server tarball", script: """
                                         rm -rf .git
                                         tar czvf tidb-server.tar.gz ./*
                                         echo "pr/${ghprbActualCommit}" > sha1
                                         echo "done" > done
-                                    """)
+                                        """
 
                                     // upload to tidb dir
                                     timeout(10) {
                                         script {
                                             def filepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                                             def donepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                                            def refspath = "refs/pingcap/tidb/pr/${ghprbPullId}/sha1"
-                                            // if (params.containsKey("triggered_by_upstream_ci")) {
-                                            //     refspath = "refs/pingcap/tidb/pr/branch-${ghprbTargetBranch}/sha1"
-                                            // }
+                                            def refspath = "refs/pingcap/tidb/pr/${ghprbPullId}/sha1"                                         
 
-                                            sh(label: 'upload to tidb dir', script: """
+                                            sh label: 'upload to tidb dir', script: """
                                                 curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                                                 curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
                                                 curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                                            """)
+                                                """
                                         }                                
                                     }
                                 
@@ -133,10 +139,10 @@ pipeline {
                                         script {
                                             def filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                                             def donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
-                                            sh(label: 'upload to tidb-checker dir', script: """
+                                            sh label: 'upload to tidb-checker dir', script: """
                                                 curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                                                 curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
-                                            """)
+                                                """
                                         }
                                     } 
                                 }                               
@@ -149,11 +155,11 @@ pipeline {
                         // todo: may be no need to copy
                         //     timeout(time: 5, unit: 'MINUTES') {
                         //         sh """
-                        //         mkdir -p ${env.WORKSPACE}/go/src/github.com/pingcap/tidb-build-plugin/
-                        //         cp -R ./* ${env.WORKSPACE}/go/src/github.com/pingcap/tidb-build-plugin/
+                        //         mkdir -p ${env.WORKSPACE}/tidb-build-plugin/
+                        //         cp -R ./* ${env.WORKSPACE}/tidb-build-plugin/
                         //         """
                         //     }
-                        dir("go/src/github.com/pingcap/enterprise-plugin") {
+                        dir("enterprise-plugin") {
                             script {
                                 // examples: 
                                 //  - release-6.2
@@ -190,74 +196,29 @@ pipeline {
                                 )
                             }
                         }
-                        // dir("go/src/github.com/pingcap/tidb-build-plugin") {
-                        dir("go/src/github.com/pingcap/tidb") {
+                        dir("tidb") {
                             timeout(time: 20, unit: 'MINUTES') {
-                                sh(label: 'build pluginpkg tool', script: """
+                                sh label: 'build pluginpkg tool', script: """
                                     cd cmd/pluginpkg
                                     go build
-                                """)
+                                    """
                             }
                         }
-                        dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
-                            sh(label: 'build plugin whitelist', script: """
+                        dir("enterprise-plugin/whitelist") {
+                            sh label: 'build plugin whitelist', script: """
                                 GO111MODULE=on go mod tidy
-                                # ${env.WORKSPACE}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                ${env.WORKSPACE}/go/src/github.com/pingcap/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                            """)
+                                ${env.WORKSPACE}/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                """
                         }
-                        dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
-                            sh(label: 'build plugin: audit', script: """
+                        dir("enterprise-plugin/audit") {
+                            sh label: 'build plugin: audit', script: """
                                 GO111MODULE=on go mod tidy
-                                # ${env.WORKSPACE}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                ${env.WORKSPACE}/go/src/github.com/pingcap/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                            """)
-                        }
+                                ${env.WORKSPACE}/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                """
                         }
                     }
                 }
             }
         }
-
-    // TODO: statics and report logic should not put in pipelines.
-    // Instead should only send a cloud event to a external service.
-    post {       
-        always {
-            dir("go/src/github.com/pingcap/tidb") {
-                archiveArtifacts(
-                    artifacts: 'importer.log,tidb-server-check.log',
-                    allowEmptyArchive: true,
-                )
-            }
-            script {
-                echo "Send slack here ..."
-                def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-                def slackmsg = """  [#${ghprbPullId}: ${ghprbPullTitle}]
-                                    ${ghprbPullLink}
-                                    ${ghprbPullDescription}
-                                    Build Result: `${currentBuild.result}`
-                                    Elapsed Time: `${duration} mins`
-                                    ${env.RUN_DISPLAY_URL}
-                    """.stripIndent()
-
-                if (currentBuild.result != "SUCCESS") {
-                    slackSend(
-                        channel: '#jenkins-ci', 
-                        color: 'danger', // red color
-                        teamDomain: 'pingcap', 
-                        tokenCredentialId: SLACK_TOKEN_CREDENTIAL_ID, 
-                        message: slackmsg
-                    )
-                } else if (duration >= 3 && ghprbTargetBranch == GIT_TRUNK_BRANCH) {
-                    slackSend(
-                        channel: '#jenkins-ci-3-minutes', 
-                        color: 'warning', // yellow color
-                        teamDomain: 'pingcap', 
-                        tokenCredentialId: SLACK_TOKEN_CREDENTIAL_ID, 
-                        message: slackmsg
-                    )
-                }
-            }
-        }       
     }
-    }
+}
