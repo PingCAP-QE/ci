@@ -33,7 +33,7 @@ spec:
       emptyDir: {}
 '''
 
-// TODO(flarezuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
+// TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 pipeline {
     agent {
         kubernetes {
