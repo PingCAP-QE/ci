@@ -59,7 +59,7 @@ pipelineJob('pingcap-qe/ci/self_test') {
                     remote { 
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("feature/refactor-tidb-verify-ci-tidb-ghpr-build")
+                    branch("main")
                 }
             }
         }
