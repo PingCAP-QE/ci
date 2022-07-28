@@ -58,36 +58,89 @@ pipeline {
             }
         }
         stage('Checkout') {
-            steps {
-                dir("tidb") {                         
-                    retry(2) {
-                        checkout(
-                            changelog: false,
-                            poll: false, 
-                            scm: [
-                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                doGenerateSubmoduleConfigurations: false, 
-                                extensions: [
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'], 
-                                    [$class: 'CloneOption', timeout: 5],
-                                ], 
-                                submoduleCfg: [], 
-                                userRemoteConfigs: [[
-                                    credentialsId: GIT_CREDENTIALS_ID, 
-                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                    url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
-                                ]],
-                            ]
-                        )
+            parallel {   
+                stage("tidb") {
+                    steps {
+                        dir("tidb") {                         
+                            retry(2) {
+                                checkout(
+                                    changelog: false,
+                                    poll: false, 
+                                    scm: [
+                                        $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                        doGenerateSubmoduleConfigurations: false, 
+                                        extensions: [
+                                            [$class: 'PruneStaleBranch'],
+                                            [$class: 'CleanBeforeCheckout'], 
+                                            [$class: 'CloneOption', timeout: 5],
+                                        ], 
+                                        submoduleCfg: [], 
+                                        userRemoteConfigs: [[
+                                            credentialsId: GIT_CREDENTIALS_ID, 
+                                            refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                            url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
+                                        ]],
+                                    ]
+                                )
+                            }
+                        }
                     }
                 }
+                stage("enterprise-plugin") {
+                    steps {
+                        dir("enterprise-plugin") {
+                            script {
+                                // examples: 
+                                //  - release-6.2
+                                //  - release-6.2-20220801
+                                //  - 6.2.0-pitr-dev
+                                def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+                                def commentBodyReg = /\bplugin\s*=\s*([^\s\\]+)(\s|\\|$)/
+
+                                def pluginBranch = ghprbTargetBranch
+                                if (ghprbCommentBody =~ ghprbTargetBranch) {
+                                    pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
+                                } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
+                                    pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
+                                }  
+
+                                def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
+                                // transfer plugin branch from pr/28 to origin/pr/28/head
+                                if (pluginBranch.startsWith("pr/")) {
+                                    pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
+                                    pluginBranch = "origin/${pluginBranch}/head"
+                                }
+
+                                checkout(
+                                    changelog: false, 
+                                    poll: true, 
+                                    scm: [
+                                        $class: 'GitSCM', 
+                                        branches: [[name: "${pluginBranch}"]], 
+                                        doGenerateSubmoduleConfigurations: false, 
+                                        extensions: [
+                                            [$class: 'PruneStaleBranch'], 
+                                            [$class: 'CleanBeforeCheckout'], 
+                                            [$class: 'CloneOption', timeout: 2],
+                                        ], 
+                                        submoduleCfg: [], 
+                                        userRemoteConfigs: [[
+                                            credentialsId: GIT_CREDENTIALS_ID, 
+                                            refspec: pluginSpec, 
+                                            url: 'git@github.com:pingcap/enterprise-plugin.git',
+                                        ]]
+                                    ]
+                                )
+                            }
+                        }
+                    }                    
+                }  
             }
         }
         stage("Build tidb-server and plugin"){
             failFast true
             parallel {            
-                stage("Build and upload TiDB") {
+                stage("Build tidb-server") {
                     stages {
                         stage("Build"){
                             options {
@@ -122,9 +175,9 @@ pipeline {
                                     // upload to tidb dir
                                     timeout(10) {
                                         script {
-                                            def filepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                            def donepath = "builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                                            def refspath = "refs/pingcap/tidb/pr/${ghprbPullId}/sha1"                                         
+                                            def filepath = "builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                            def donepath = "builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/done"
+                                            def refspath = "refs/${GIT_FULL_REPO_NAME}/pr/${ghprbPullId}/sha1"                                         
 
                                             sh label: 'upload to tidb dir', script: """
                                                 curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
@@ -150,52 +203,8 @@ pipeline {
                         }
                     }
                 }
-                stage ("Build plugins") {
+                stage("Build plugins") {
                     steps {
-                        // todo: may be no need to copy
-                        //     timeout(time: 5, unit: 'MINUTES') {
-                        //         sh """
-                        //         mkdir -p ${env.WORKSPACE}/tidb-build-plugin/
-                        //         cp -R ./* ${env.WORKSPACE}/tidb-build-plugin/
-                        //         """
-                        //     }
-                        dir("enterprise-plugin") {
-                            script {
-                                // examples: 
-                                //  - release-6.2
-                                //  - release-6.2-20220801
-                                //  - 6.2.0-pitr-dev
-                                def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
-                                def commentBodyReg = /\bplugin\s*=\s*([^\s\\]+)(\s|\\|$)/
-
-                                def pluginBranch = ghprbTargetBranch
-                                if (ghprbCommentBody =~ ghprbTargetBranch) {
-                                    pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
-                                } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                                    pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
-                                }  
-
-                                def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
-                                // transfer plugin branch from pr/28 to origin/pr/28/head
-                                if (pluginBranch.startsWith("pr/")) {
-                                    pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
-                                    pluginBranch = "origin/${pluginBranch}/head"
-                                }
-
-                                checkout(
-                                    changelog: false, 
-                                    poll: true, 
-                                    scm: [
-                                        $class: 'GitSCM', 
-                                        branches: [[name: "${pluginBranch}"]], 
-                                        doGenerateSubmoduleConfigurations: false, 
-                                        extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], 
-                                        submoduleCfg: [], 
-                                        userRemoteConfigs: [[credentialsId: GIT_CREDENTIALS_ID, refspec: pluginSpec, url: 'git@github.com:pingcap/enterprise-plugin.git']]
-                                    ]
-                                )
-                            }
-                        }
                         dir("tidb") {
                             timeout(time: 20, unit: 'MINUTES') {
                                 sh label: 'build pluginpkg tool', script: """
