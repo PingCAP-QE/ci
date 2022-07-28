@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
 pipelineJob('pingcap/tidb/ghpr_unit_test') {
+    disabled(true)
     logRotator {
         daysToKeep(180)
         numToKeep(1500)
@@ -79,7 +80,7 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("feature/refactor-tidb-verify-ci-tidb-ghpr-build")
+                    branch("main")
                 }
             }
         }
