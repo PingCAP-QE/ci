@@ -35,14 +35,13 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('*\\.md')
+                    excludedRegions('.*\\.md')
 
                     blackListLabels("")
                     whiteListLabels("")
                     adminlist("")
                     blackListCommitAuthor("")
                     includedRegions("")
-                    excludedRegions("")
                     commentFilePath("")
 
                     allowMembersOfWhitelistedOrgsAsAdmin(true)
