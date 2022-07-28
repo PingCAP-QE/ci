@@ -6,7 +6,9 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final K8S_LABEL = "tidb_ghpr_unit_test-${BUILD_NUMBER}"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
+final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
+final CODECOV_TOKEN_CREDENTIAL_ID = 'codecov-token-tidb'
 final SLACK_TOKEN_CREDENTIAL_ID = 'slack-pingcap-token'
 final POD_TEMPLATE = '''
 apiVersion: v1
@@ -52,7 +54,7 @@ pipeline {
             label K8S_LABEL
             cloud K8S_COULD
             namespace K8S_NAMESPACE
-            defaultContainer "golang"
+            defaultContainer 'golang'
             yaml POD_TEMPLATE
         }
     }
@@ -60,108 +62,83 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
+        stage('debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                printenv
+                echo "-------------------------"
+                echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash
+                """
+            }
+        }
         stage('Checkout') {
             steps {
                 retry(2) {
-                    script {
-                        def specStr = "+refs/heads/*:refs/remotes/origin/*"
-                        if (ghprbPullId != null && ghprbPullId != "") {
-                            specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-                        }
-
-                        def ret = checkout(
-                            changelog: false,
-                            poll: false, 
-                            scm: [
-                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                doGenerateSubmoduleConfigurations: false, 
-                                extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], 
-                                submoduleCfg: [], 
-                                userRemoteConfigs: [[credentialsId: GIT_CREDENTIALS_ID, refspec: specStr, url: 'git@github.com:pingcap/tidb.git']],
-                            ]
-                        )
-
-                        // if checkout failed, fallback to fetch all the PR data
-                        if (ret) {
-                            echo "checkout failed, retry.."
-                            sleep 5                        
-                        }
-                    }                              
+                    checkout(
+                        changelog: false,
+                        poll: false, 
+                        scm: [
+                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                            doGenerateSubmoduleConfigurations: false, 
+                            extensions: [
+                                [$class: 'PruneStaleBranch'], 
+                                [$class: 'CleanBeforeCheckout'], 
+                                [$class: 'CloneOption', timeout: 5],
+                            ], 
+                            submoduleCfg: [], 
+                            userRemoteConfigs: [[
+                                credentialsId: GIT_CREDENTIALS_ID, 
+                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                url: "git@github.com:${GIT_FULL_REPO_NAME}.git"
+                            ]],
+                        ]
+                    )
                 }
             }
         }
-
-        stage("Test") {
-            steps {
-                sh './build/jenkins_unit_test.sh'
-            }           
+        stage('Test') {
+            environment { 
+                CODECOV_TOKEN = credentials(CODECOV_TOKEN_CREDENTIAL_ID)
+            }
+            steps { 
+                sh './build/jenkins_unit_test.sh' 
+            }
             post {
                 unsuccessful {
                     archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
                     archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
                 }
-                always {
+               always {
+                    // archive test report to Jenkins.
                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+
+                    // upload coverage report to file server
                     script {
                         def id = UUID.randomUUID().toString()
                         def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
                         retry(3) {
-                            sh """
+                            sh(label: "upload coverage report to ${FILE_SERVER_URL}", script: """
                             curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
                             echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
                             """
                         }
                     }
-                }
-                
-            }
-        }
-        stage("Upload coverage report and notify on github") {
-            when{ expression { return (ghprbPullId != null && ghprbPullId != "") } }
-            options {
-                timeout(time: 1, unit: 'MINUTES')
-            }
-            environment { 
-                GITHUB_TOKEN = credentials(GIT_OPENAPI_CREDENTIALS_ID)
-            }
-            steps {
-                         withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
-                        timeout(5) {
-                            if (ghprbPullId != null && ghprbPullId != "") {
-                                if (user_bazel(ghprbTargetBranch)) { 
-                                    sh """
-                                    codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
-                                    """
-                                } else {
-                                    sh """
-                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                    chmod +x codecov
-                                    ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage"  -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
-                                    """
-                                }
-                            } else {
-                                if (user_bazel(ghprbTargetBranch)) { 
-                                    sh """
-                                    codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                                    """
-                                } else {
-                                    sh """
-                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                    chmod +x codecov
-                                    ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                                    """
-                                }     
-                            }
+
+                    // upload covrage to codecov.io and notify on github.
+                    timeout(time: 1, unit: 'MINUTES') {
+                        sh "codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}"
+                        container(name: 'ruby') {
+                            sh """#!/bin/bash                            
+                            ruby --version
+                            gem --version
+
+                            detail_url="https://codecov.io/github/${GIT_FULL_REPO_NAME}/commit/${ghprbActualCommit}"
+
+                            wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
+                            ruby comment-on-pr.rb "${GIT_FULL_REPO_NAME}" "${ghprbPullId}" "Code Coverage Details: $detail_url" true "Code Coverage Details:"
+                            """
                         }
                     }
-
-                container(name: 'ruby') {
-                    sh """#!/bin/bash
-                    ruby --version
-                    gem --version
-                    wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
-                    ruby comment-on-pr.rb "pingcap/tidb" "${ghprbPullId}"  "Code Coverage Details: https://codecov.io/github/pingcap/tidb/commit/${ghprbActualCommit}" true "Code Coverage Details:"
-                    """
                 }
             }
         }
