@@ -24,8 +24,14 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('release-6\\.[2-9].*') }
+                        // - master
+                        // - release-6.2
+                        // - release-6.2.0
+                        // - release-6.2-20221212
+                        // - release-6.2.0-20221314                       
+                        // - 6.2-*
+                        // - 6.2.0-*
+                        ghprbBranch { branch('^master|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex

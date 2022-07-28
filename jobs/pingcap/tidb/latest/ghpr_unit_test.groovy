@@ -24,8 +24,14 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                     whitelist('')
                     orgslist('')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        // ghprbBranch { branch('release-6\\.[2-9].*') }
+                        // - master
+                        // - release-6.2
+                        // - release-6.2.0
+                        // - release-6.2-20221212
+                        // - release-6.2.0-20221314                       
+                        // - 6.2-*
+                        // - 6.2.0-*
+                        ghprbBranch { branch('^master|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
