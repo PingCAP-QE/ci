@@ -1,5 +1,5 @@
 // REF: https://<you-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('wip_ci_ghpr_build') {
+pipelineJob('pingcap-qe/ci/self_test') {
     logRotator {
         daysToKeep(7)
         numToKeep(100)
@@ -38,10 +38,10 @@ pipelineJob('wip_ci_ghpr_build') {
                     extensions {        
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("self-test")
-                            statusUrl('${RUN_DISPLAY_URL}')
-                            startedStatus("Jenkins job is running.")
-                            triggeredStatus("Jenkins job triggered.")
+                            commitStatusContext("self_test")
+                            statusUrl('')
+                            startedStatus('')
+                            triggeredStatus('')
                             addTestResults(false)
                             showMatrixStatus(false)
                         }
@@ -53,13 +53,13 @@ pipelineJob('wip_ci_ghpr_build') {
  
     definition {
         cpsScm {
-            scriptPath("jenkins/pipelines/ci/pingcap-qe/ci/ghpr_build.groovy")
+            scriptPath("pipelines/pingcap-qe/ci/ghpr_build.groovy")
             scm {
                 git{
                     remote { 
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("main")
+                    branch("feature/refactor-tidb-verify-ci-tidb-ghpr-build")
                 }
             }
         }
