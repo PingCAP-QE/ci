@@ -3,6 +3,7 @@
 // should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes-ng"
 final K8S_NAMESPACE = "jenkins-tidb"
+final K8S_LABEL = "tidb-ghpr-build-${BUILD_NUMBER}"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_TRUNK_BRANCH = "master"
 final SLACK_TOKEN_CREDENTIAL_ID = 'slack-pingcap-token'
@@ -15,9 +16,9 @@ spec:
       image: "hub.pingcap.net/wangweizhen/tidb_image:20220718"
       tty: true
       resources:
-      requests:
-        memory: 8Gi
-        cpu: 2
+        requests:
+          memory: 8Gi
+          cpu: 2
       command: [/bin/sh, -c]
       args: [cat]
       env:
@@ -26,38 +27,34 @@ spec:
       volumeMounts:
         - name: tmp
           mountPath: /tmp
-        - name: cached-code
-          mountPath: /home/jenkins/agent/ci-cached-code-daily
   volumes:
     - name: tmp
-      emptyDir: {}      
-    - name: cached-code
-      nfs:
-        server: "172.16.5.22"
-        path: /mnt/ci.pingcap.net-nfs/git
-        readOnly: false
+      emptyDir: {}
 '''
 
 // TODO(flarezuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 pipeline {
     agent {
         kubernetes {
-            label "tidb-ghpr-build-${BUILD_NUMBER}"
+            label K8S_LABEL
             cloud K8S_COULD
             namespace K8S_NAMESPACE
-            defaultContainer "golang"
+            defaultContainer 'golang'
             yaml POD_TEMPLATE
         }
     }
+    options {
+        timeout(time: 15, unit: 'MINUTES')
+    }
     stages {
-        stage("debug info") {
+        stage('debug info') {
             steps {
                 sh "printenv"
                 println "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
             }
-        }        
-        stage("Checkout") {
-            steps {         
+        }
+        stage('Checkout') {
+            steps {
                 dir("go/src/github.com/pingcap/tidb") {                         
                     retry(2) {
                         script {                        
@@ -216,11 +213,11 @@ pipeline {
                                 ${env.WORKSPACE}/go/src/github.com/pingcap/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
                             """)
                         }
+                        }
                     }
                 }
             }
         }
-    }
 
     // TODO: statics and report logic should not put in pipelines.
     // Instead should only send a cloud event to a external service.
@@ -263,4 +260,4 @@ pipeline {
             }
         }       
     }
-}
+    }
