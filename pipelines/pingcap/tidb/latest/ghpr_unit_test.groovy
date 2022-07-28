@@ -27,9 +27,6 @@ spec:
       env:
         - name: GOPATH
           value: /go
-      volumeMounts:
-        - name: jenkins-home
-          mountPath: /home/jenkins
     - name: ruby
       image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest"
       tty: true
@@ -98,10 +95,7 @@ pipeline {
                 }
             }
         }
-        stage('Test') {
-            environment { 
-                CODECOV_TOKEN = credentials(CODECOV_TOKEN_CREDENTIAL_ID)
-            }
+        stage('Test') {            
             steps { 
                 sh './build/jenkins_unit_test.sh' 
             }
@@ -119,7 +113,7 @@ pipeline {
                         def id = UUID.randomUUID().toString()
                         def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
                         retry(3) {
-                            sh(label: "upload coverage report to ${FILE_SERVER_URL}", script: """
+                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
                             curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
                             echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
                             """
@@ -128,18 +122,20 @@ pipeline {
 
                     // upload covrage to codecov.io and notify on github.
                     timeout(time: 1, unit: 'MINUTES') {
-                        sh "codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}"
-                        container(name: 'ruby') {
-                            sh """#!/bin/bash                            
-                            ruby --version
-                            gem --version
-
-                            detail_url="https://codecov.io/github/${GIT_FULL_REPO_NAME}/commit/${ghprbActualCommit}"
-
-                            wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
-                            ruby comment-on-pr.rb "${GIT_FULL_REPO_NAME}" "${ghprbPullId}" "Code Coverage Details: $detail_url" true "Code Coverage Details:"
-                            """
+                        withCredentials([string(credentialsId: CODECOV_TOKEN_CREDENTIAL_ID, variable: 'CODECOV_TOKEN')]) {
+                            sh "codecov -f ./coverage.dat -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}"
                         }
+                    }
+                    container(name: 'ruby') {
+                        sh label: 'comment coverage report link on github PR', script: """#!/bin/bash
+                        ruby --version
+                        gem --version
+
+                        detail_url="https://codecov.io/github/${GIT_FULL_REPO_NAME}/commit/${ghprbActualCommit}"
+
+                        wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
+                        ruby comment-on-pr.rb "${GIT_FULL_REPO_NAME}" "${ghprbPullId}" "Code Coverage Details: $detail_url" true "Code Coverage Details:"
+                        """
                     }
                 }
             }
