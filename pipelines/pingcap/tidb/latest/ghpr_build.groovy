@@ -58,6 +58,8 @@ pipeline {
             }
         }
         stage('Checkout') {
+            // FIXME(wuhuizuo): catch AbortException and set the job abort status
+            // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             parallel {   
                 stage("tidb") {
                     steps {
