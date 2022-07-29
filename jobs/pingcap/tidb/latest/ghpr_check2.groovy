@@ -31,7 +31,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                         // - release-6.2.0-20221314                       
                         // - 6.2-*
                         // - 6.2.0-*
-                        ghprbBranch { branch('^master|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('master') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
