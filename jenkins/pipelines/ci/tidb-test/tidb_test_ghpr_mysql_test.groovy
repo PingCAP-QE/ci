@@ -403,21 +403,6 @@ try {
                         }
                         }
                     },
-                    "trigger tidb_ghpr_mysql_test": {
-                        def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
-                        println "check if current commit is already build, if not wait for build done."
-                        timeout(10) {
-                            sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_download_url}; do sleep 3; done
-                            echo "tidb_test build finished: ${ghprbActualCommit}"
-                            """
-                        }
-                        def built = build(job: "tidb_ghpr_mysql_test", propagate: false, parameters: basic_params, wait: true)
-                        println "https://ci.pingcap.net/blue/organizations/jenkins/tidb_ghpr_mysql_test/detail/tidb_ghpr_mysql_test/${built.number}/pipeline"
-                        if (built.getResult() != 'SUCCESS') {
-                            error "mysql_test failed"
-                        }
-                    },
                     "integration-mysql-test-Cached": {
                         if (ghprbTargetBranch == "master") {
                             run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1  ")
