@@ -372,6 +372,7 @@ def run_make_coverage() {
             unstash 'integration-cov-ha'
             unstash 'integration-cov-others'
             unstash 'integration-cov-others_2'
+            unstash 'integration-cov-others_3'
         } catch (Exception e) {
             println e
         }
@@ -709,6 +710,14 @@ pipeline {
                     steps {
                         script {
                             run_single_it_test('others_2')
+                        }
+                    }
+                }
+                
+                stage('IT-others-3') {
+                    steps {
+                        script {
+                            run_single_it_test('others_3')
                         }
                     }
                 }
