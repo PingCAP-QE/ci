@@ -60,7 +60,7 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext("IGNORE-gray-unit-test") // debug: no block the pr.
-                            statusUrl("")
+                            statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
                             addTestResults(false)
