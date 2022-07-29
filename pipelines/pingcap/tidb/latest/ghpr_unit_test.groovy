@@ -3,7 +3,6 @@
 // should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes-ng"
 final K8S_NAMESPACE = "jenkins-tidb"
-final K8S_LABEL = "tidb_ghpr_unit_test-${BUILD_NUMBER}"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
@@ -48,7 +47,6 @@ spec:
 pipeline {
     agent {
         kubernetes {
-            label K8S_LABEL
             cloud K8S_COULD
             namespace K8S_NAMESPACE
             defaultContainer 'golang'
