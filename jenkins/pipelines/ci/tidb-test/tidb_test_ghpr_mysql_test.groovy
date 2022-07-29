@@ -403,20 +403,20 @@ try {
                         }
                         }
                     },
-                    "integration-mysql-test-Cached": {
-                        if (ghprbTargetBranch == "master") {
-                            run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1  ")
-                        } else {
-                            println "skip"
-                        }
-                    },
-                    "integration-mysql-test": {
-                        if (ghprbTargetBranch == "master") {
-                            run("mysql_test", "mysqltest", "./test.sh -backlist=1  ")
-                        } else {
-                            println "skip"
-                        }
-                    }
+//                     "integration-mysql-test-Cached": {
+//                         if (ghprbTargetBranch == "master") {
+//                             run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1  ")
+//                         } else {
+//                             println "skip"
+//                         }
+//                     },
+//                     "integration-mysql-test": {
+//                         if (ghprbTargetBranch == "master") {
+//                             run("mysql_test", "mysqltest", "./test.sh -backlist=1  ")
+//                         } else {
+//                             println "skip"
+//                         }
+//                     }
                 )
             }
         }
