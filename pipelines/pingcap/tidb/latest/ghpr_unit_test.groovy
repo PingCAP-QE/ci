@@ -8,7 +8,6 @@ final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
 final CODECOV_TOKEN_CREDENTIAL_ID = 'codecov-token-tidb'
-final SLACK_TOKEN_CREDENTIAL_ID = 'slack-pingcap-token'
 final POD_TEMPLATE = '''
 apiVersion: v1
 kind: Pod

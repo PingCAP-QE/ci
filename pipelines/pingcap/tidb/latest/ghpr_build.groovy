@@ -6,7 +6,6 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
-final SLACK_TOKEN_CREDENTIAL_ID = 'slack-pingcap-token'
 final POD_TEMPLATE = '''
 apiVersion: v1
 kind: Pod
