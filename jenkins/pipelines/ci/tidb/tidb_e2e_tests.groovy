@@ -143,7 +143,7 @@ try {
                 stage("Build"){
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            timeout(10) {
+                            timeout(20) {
                                 try {
                                     sh """
                                     cd tests/graceshutdown
