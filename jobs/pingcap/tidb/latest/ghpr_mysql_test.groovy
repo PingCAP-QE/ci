@@ -2,7 +2,6 @@
 // For trunk and latest release branches.
 pipelineJob('pingcap/tidb/ghpr_mysql_test') {
     disabled(true)
-    descrip
     logRotator {
         daysToKeep(180)
         numToKeep(1500)
