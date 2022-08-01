@@ -150,7 +150,15 @@ def run_with_memory_volume_pod(Closure body) {
         }
     }
 }
-
+def parallel_run_mysql_test(branch) {
+    if (branch in ["master"]) {
+        return true
+    }
+    if (branch.startsWith("release-") && branch >= "release-6.2") {
+        return true
+    }
+    return false
+}
 
 
 all_task_result = []
@@ -563,31 +571,97 @@ try {
                 }
             }
 
-            tests["Integration MySQL Test"] = {
-                try {
-                    if (TIDB_TEST_BRANCH in ["master", "release-6.2"]) {
-                        run("mysql_test", "mysqltest", "./test.sh -backlist=1  ")
-                    } else {
-                        run("mysql_test", "mysqltest", "./test.sh")
+            if (parallel_run_mysql_test(ghprbTargetBranch)) {
+                tests["Integration MySQL Test1"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "./test.sh -backlist=1 -part=1")
+                        all_task_result << ["name": "MySQL Test1", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test1", "status": "failed", "error": err.message]
+                        throw err
                     }
-                    all_task_result << ["name": "MySQL Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "MySQL Test", "status": "failed", "error": err.message]
-                    throw err
                 }
-            }
-
-            tests["Integration MySQL Test Cached"] = {
-                try {
-                    if (TIDB_TEST_BRANCH in ["master", "release-6.2"]) {
-                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1")
-                    } else {
-                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
+                tests["Integration MySQL Test2"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "./test.sh -backlist=1 -part=2")
+                        all_task_result << ["name": "MySQL Test2", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test2", "status": "failed", "error": err.message]
+                        throw err
                     }
-                    all_task_result << ["name": "MySQL Test Cached", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "MySQL Test Cached", "status": "failed", "error": err.message]
-                    throw err
+                }
+                tests["Integration MySQL Tes3"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "./test.sh -backlist=1 -part=3")
+                        all_task_result << ["name": "MySQL Test3", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test3", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+                tests["Integration MySQL Tes4"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "./test.sh -backlist=1 -part=4")
+                        all_task_result << ["name": "MySQL Test4", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test4", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+                tests["Integration MySQL Test Cached1"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1 -part=1")
+                        all_task_result << ["name": "MySQL Test Cached1", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test Cached1", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+                tests["Integration MySQL Test Cached2"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1 -part=2")
+                        all_task_result << ["name": "MySQL Test Cached2", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test Cached2", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+                tests["Integration MySQL Test Cached3"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1 -part=3")
+                        all_task_result << ["name": "MySQL Test Cached3", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test Cached3", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+                tests["Integration MySQL Test Cached4"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh -backlist=1 -part=4")
+                        all_task_result << ["name": "MySQL Test Cached4", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test Cached4", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+            } else {
+                tests["Integration MySQL Test"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "./test.sh")
+                        all_task_result << ["name": "MySQL Test", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test", "status": "failed", "error": err.message]
+                        throw err
+                    }
+                }
+                tests["Integration MySQL Test Cached"] = {
+                    try {
+                        run("mysql_test", "mysqltest", "CACHE_ENABLED=1 ./test.sh")
+                        all_task_result << ["name": "MySQL Test Cached", "status": "success", "error": ""]
+                    } catch (err) {
+                        all_task_result << ["name": "MySQL Test Cached", "status": "failed", "error": err.message]
+                        throw err
+                    }
                 }
             }
 

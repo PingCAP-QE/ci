@@ -301,19 +301,8 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
-
-                                if [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "master"  ]; then
-                                    echo "run mysql-test on master branch in witelist-mode"
-                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                    ./test.sh -backlist=1
-                                elif [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "release-6.2"  ]; then
-                                    echo "run mysql-test on master branch in witelist-mode"
-                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                    ./test.sh -backlist=1
-                                else
-                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                    ./test.sh
-                                fi;
+                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                ./test.sh
 
                                 set +e
                                 killall -9 -r tidb-server
@@ -712,17 +701,6 @@ EOF
                     all_task_result << ["name": "Analyze Test", "status": "failed", "error": err.message]
                     throw err
                 }
-            }
-
-            tests["Mysql Test"] = {
-                try {
-                    run("mysql_test", "mysql-test.out*")
-                    all_task_result << ["name": "Mysql Test", "status": "success", "error": ""]
-                } catch (err) {
-                    println "Mysql Test failed"
-                    all_task_result << ["name": "Mysql Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
             }
 
             if ( ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-") ) {
