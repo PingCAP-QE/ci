@@ -237,7 +237,7 @@ try {
                     tests["test part3"] = {run("mysql_test", "./test.sh -backlist=1 -part=3")}
                     tests["test part4"] = {run("mysql_test", "./test.sh -backlist=1 -part=4")}
                 } else {
-                    tests["mysql-test"] = run("mysql_test", "./test.sh")
+                    tests["mysql test"] = {run("mysql_test", "./test.sh")}
                 }
             }
         }
