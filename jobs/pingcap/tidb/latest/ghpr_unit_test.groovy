@@ -20,6 +20,8 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159') // tidb-ci-bot.
                     
                     // triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
+                    // onlyTriggerPhrase(false)
+
                     // ### debug
                     triggerPhrase('^/gray-debug')
                     onlyTriggerPhrase(true)
@@ -52,7 +54,6 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                     allowMembersOfWhitelistedOrgsAsAdmin(true)
                     permitAll(true)
                     useGitHubHooks(true)
-                    onlyTriggerPhrase(false)
                     displayBuildErrorsOnDownstreamBuilds(false)
                     autoCloseFailedPullRequests(false)
 

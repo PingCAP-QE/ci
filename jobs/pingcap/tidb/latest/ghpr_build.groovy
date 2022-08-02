@@ -21,6 +21,8 @@ pipelineJob('pingcap/tidb/ghpr_build') {
 
                     // ### prod
                     // triggerPhrase('.*/(merge|run-(all-tests|build).*)')
+                    // onlyTriggerPhrase(false)
+
                     // ### debug
                     triggerPhrase('^/gray-debug')
                     onlyTriggerPhrase(true)
@@ -53,7 +55,6 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     allowMembersOfWhitelistedOrgsAsAdmin(true)
                     permitAll(true)
                     useGitHubHooks(true)
-                    onlyTriggerPhrase(false)
                     displayBuildErrorsOnDownstreamBuilds(false)
                     autoCloseFailedPullRequests(false)
 

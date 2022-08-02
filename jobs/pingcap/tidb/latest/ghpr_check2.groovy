@@ -20,10 +20,10 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159') // tidb-ci-bot.
                     
                     // triggerPhrase('.*/(merge|run-(all-tests|check[-_]dev[-_]?2))')
+                    // onlyTriggerPhrase(false)
                     // ### debug
                     triggerPhrase('^/gray-debug')
                     onlyTriggerPhrase(true)
-
 
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
@@ -53,7 +53,6 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     allowMembersOfWhitelistedOrgsAsAdmin(true)
                     permitAll(true)
                     useGitHubHooks(true)
-                    onlyTriggerPhrase(false)
                     displayBuildErrorsOnDownstreamBuilds(false)
                     autoCloseFailedPullRequests(false)
 
