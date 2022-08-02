@@ -18,7 +18,13 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159') // tidb-ci-bot.
-                    triggerPhrase('.*/(merge|run-(all-tests|build).*)')
+
+                    // ### prod
+                    // triggerPhrase('.*/(merge|run-(all-tests|build).*)')
+                    // ### debug
+                    triggerPhrase('^/gray-debug')
+                    onlyTriggerPhrase(true)
+
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
