@@ -65,6 +65,8 @@ VOLUMES = [
 ]
 
 def user_bazel(branch) {
+    // build bazel build take too long time, so we use original go build
+    return false
     if (branch in ["master"]) {
         return true
     }
@@ -77,7 +79,7 @@ def user_bazel(branch) {
 node("master") {
     deleteDir()
     def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
+    sh "curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
     def script_path = "${ws}/goversion-select-lib.groovy"
     def goversion_lib = load script_path
     if (user_bazel(ghprbTargetBranch)) {
