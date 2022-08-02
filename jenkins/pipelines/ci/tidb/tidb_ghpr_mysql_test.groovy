@@ -134,7 +134,7 @@ try {
             println "work space path:\n${ws}"
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
-                    timeout(10) {
+                    timeout(35) {
                         retry(3){
                             deleteDir()
                             sh """
