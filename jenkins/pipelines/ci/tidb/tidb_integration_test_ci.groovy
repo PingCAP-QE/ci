@@ -208,6 +208,13 @@ node("github-status-updater") {
                                 throw new Exception("tidb_ghpr_integration_cdc_test failed")
                             }
                         },
+                        tidb_e2e_tests: {
+                            def result = build(job: "tidb_e2e_tests", parameters: default_params, wait: true, propagate: false)
+                            triggered_job_result << ["name": "tidb_e2e_tests", "type": "tidb-merge-ci-checker" , "result": result]
+                            if (result.getResult() != "SUCCESS") {
+                                throw new Exception("tidb_e2e_tests failed")
+                            }
+                        },
 
                         // TODO : enable this job when tidb unit test more stable
                         // bb7133 is working on it
