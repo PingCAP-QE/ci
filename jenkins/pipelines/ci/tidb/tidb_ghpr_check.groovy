@@ -31,14 +31,14 @@ RESOURCE_REQUEST_CPU = '4000m'
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
-    def goversion_lib = load('goversion-select-lib.groovy')
     if (ghprbTargetBranch in ["master"]) {
         GO_VERSION = "bazel_master"
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '1000m'
     } else {
+        def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+        sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+        def goversion_lib = load('goversion-select-lib.groovy')
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
