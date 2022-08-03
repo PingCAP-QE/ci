@@ -227,9 +227,9 @@ def run_tls_source_it_test(String case_name) {
                                 rm -rf cov_dir
                                 mkdir -p cov_dir
                                 ls /tmp/dm_test
-                                cp /tmp/dm_test/cov*out cov_dir || true
+                                cp /tmp/dm_test/cov*out cov_dir
                                 """
-                    }catch (Exception e) {
+                    } catch (Exception e) {
                         sh """
                                     echo "${case_name} test faild print all log..."
                                     for log in `ls /tmp/dm_test/*/*/log/*.log`; do
@@ -242,7 +242,11 @@ def run_tls_source_it_test(String case_name) {
                         throw e
                     }
                 }
-                stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "integration-cov-${case_name}"
+                try {
+                    stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "integration-cov-${case_name}"
+                } catch (Exception e) {
+                    println e
+                }
             }
         }
     }
@@ -324,7 +328,11 @@ def run_single_it_test(String case_name) {
                         throw e
                     }
                 }
-                stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "integration-cov-${case_name}"
+                try {
+                    stash includes: 'go/src/github.com/pingcap/dm/cov_dir/**', name: "integration-cov-${case_name}"
+                } catch (Exception e) {
+                    println e
+                }
             }
         }
     }
