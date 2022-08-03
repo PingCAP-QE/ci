@@ -54,13 +54,13 @@ node("master") {
         RESOURCE_REQUEST_CPU = '4000m'
     } else {
         deleteDir()
-        def ws = pwd()
-        sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-        def script_path = "${ws}/goversion-select-lib.groovy"
-        def goversion_lib = load script_path
+        def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+        sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+        def goversion_lib = load('goversion-select-lib.groovy')
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
         VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
     }
+    
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
