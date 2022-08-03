@@ -227,7 +227,7 @@ def run_tls_source_it_test(String case_name) {
                                 rm -rf cov_dir
                                 mkdir -p cov_dir
                                 ls /tmp/dm_test
-                                cp /tmp/dm_test/cov*out cov_dir
+                                cp /tmp/dm_test/cov*out cov_dir || true
                                 """
                     }catch (Exception e) {
                         sh """
