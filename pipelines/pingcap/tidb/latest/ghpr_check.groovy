@@ -3,7 +3,7 @@
 // should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes"
 final K8S_NAMESPACE = "apps"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+// final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
@@ -71,9 +71,8 @@ pipeline {
                                     ], 
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        credentialsId: GIT_CREDENTIALS_ID,
                                         refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                        url: "git@github.com:${GIT_FULL_REPO_NAME}.git"
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
                                     ]],
                                 ]
                             )

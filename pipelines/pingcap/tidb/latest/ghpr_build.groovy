@@ -78,9 +78,8 @@ pipeline {
                                                 ],
                                                 submoduleCfg: [],
                                                 userRemoteConfigs: [[
-                                                    credentialsId: GIT_CREDENTIALS_ID, 
                                                     refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                                    url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
+                                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                                 ]],
                                             ]
                                         )
