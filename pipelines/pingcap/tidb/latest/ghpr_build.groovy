@@ -6,7 +6,9 @@ final K8S_NAMESPACE = "apps"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
-final POD_TEMPLATE = '''
+final ENV_GOPATH = "/home/jenkins/agent/go"
+final ENV_GOCACHE = "/home/jenkins/agent/.cache/go-build"
+final POD_TEMPLATE = """
 apiVersion: v1
 kind: Pod
 spec:
@@ -22,14 +24,16 @@ spec:
       args: [cat]
       env:
         - name: GOPATH
-          value: /go
+          value: ${ENV_GOPATH}
+        - name: GOCACHE
+          value: ${ENV_GOCACHE}
       volumeMounts:
         - name: tmp
           mountPath: /tmp
   volumes:
     - name: tmp
       emptyDir: {}
-'''
+"""
 
 // TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 pipeline {
@@ -50,6 +54,8 @@ pipeline {
                 sh label: 'Debug info', script: """
                 printenv
                 echo "-------------------------"
+                go env
+                echo "-------------------------"
                 echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
             }
@@ -62,6 +68,7 @@ pipeline {
                     steps {
                         dir("tidb") {
                             // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
+                            // FIXME(wuhuizuo): https://github.com/j3t/jenkins-pipeline-cache-plugin/issues/12
                             cache(path: "./.git", key: "pingcap-tidb-cache-gitdir-${ghprbActualCommit}",restoreKeys: ['pingcap-tidb-cache-gitdir-']) {
                                 cache(path: "./", key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
                                     retry(2) {
@@ -146,7 +153,7 @@ pipeline {
         }
         stage("Build tidb-server and plugin"){
             failFast true
-            parallel {            
+            parallel {
                 stage("Build tidb-server") {
                     stages {
                         stage("Build"){
@@ -154,8 +161,14 @@ pipeline {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
                             steps {
-                                dir("tidb") { sh "make bazel_build" }
-                            }                            
+                                cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
+                                    cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
+                                        dir("tidb") {
+                                            sh "make bazel_build"
+                                        }
+                                    }
+                                }
+                            }
                             post {       
                                 // TODO: statics and report logic should not put in pipelines.
                                 // Instead should only send a cloud event to a external service.
@@ -212,25 +225,27 @@ pipeline {
                 }
                 stage("Build plugins") {
                     steps {
-                        dir("tidb") {
-                            timeout(time: 20, unit: 'MINUTES') {
-                                sh label: 'build pluginpkg tool', script: """
-                                    cd cmd/pluginpkg
-                                    go build
-                                    """
+                        cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
+                            cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
+                                timeout(time: 20, unit: 'MINUTES') {
+                                    sh label: 'build pluginpkg tool', script: '''
+                                        cd tidb/cmd/pluginpkg
+                                        go build
+                                        '''
+                                }
+                                dir('enterprise-plugin/whitelist') {
+                                    sh label: 'build plugin whitelist', script: '''
+                                        GO111MODULE=on go mod tidy
+                                        ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                        '''
+                                }
+                                dir('enterprise-plugin/audit') {
+                                    sh label: 'build plugin: audit', script: '''
+                                        GO111MODULE=on go mod tidy
+                                        ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                        '''
+                                }
                             }
-                        }
-                        dir("enterprise-plugin/whitelist") {
-                            sh label: 'build plugin whitelist', script: """
-                                GO111MODULE=on go mod tidy
-                                ${env.WORKSPACE}/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                """
-                        }
-                        dir("enterprise-plugin/audit") {
-                            sh label: 'build plugin: audit', script: """
-                                GO111MODULE=on go mod tidy
-                                ${env.WORKSPACE}/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                """
                         }
                     }
                 }
