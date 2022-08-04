@@ -60,27 +60,32 @@ pipeline {
             parallel {   
                 stage("tidb") {
                     steps {
-                        dir("tidb") {                         
-                            retry(2) {
-                                checkout(
-                                    changelog: false,
-                                    poll: false, 
-                                    scm: [
-                                        $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                        doGenerateSubmoduleConfigurations: false, 
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'],
-                                            [$class: 'CleanBeforeCheckout'], 
-                                            [$class: 'CloneOption', timeout: 5],
-                                        ], 
-                                        submoduleCfg: [], 
-                                        userRemoteConfigs: [[
-                                            credentialsId: GIT_CREDENTIALS_ID, 
-                                            refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                            url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
-                                        ]],
-                                    ]
-                                )
+                        dir("tidb") {
+                            // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
+                            cache(path: "./.git", key: "pingcap-tidb-cache-gitdir-${ghprbActualCommit}",restoreKeys: ['pingcap-tidb-cache-gitdir-']) {
+                                cache(path: "./", key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                                    retry(2) {
+                                        checkout(
+                                            changelog: false,
+                                            poll: false,
+                                            scm: [
+                                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                                doGenerateSubmoduleConfigurations: false, 
+                                                extensions: [
+                                                    [$class: 'PruneStaleBranch'],
+                                                    [$class: 'CleanBeforeCheckout'], 
+                                                    [$class: 'CloneOption', timeout: 5],
+                                                ],
+                                                submoduleCfg: [],
+                                                userRemoteConfigs: [[
+                                                    credentialsId: GIT_CREDENTIALS_ID, 
+                                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                                    url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
+                                                ]],
+                                            ]
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -110,26 +115,30 @@ pipeline {
                                     pluginBranch = "origin/${pluginBranch}/head"
                                 }
 
-                                checkout(
-                                    changelog: false, 
-                                    poll: true, 
-                                    scm: [
-                                        $class: 'GitSCM', 
-                                        branches: [[name: "${pluginBranch}"]], 
-                                        doGenerateSubmoduleConfigurations: false, 
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'], 
-                                            [$class: 'CleanBeforeCheckout'], 
-                                            [$class: 'CloneOption', timeout: 2],
-                                        ], 
-                                        submoduleCfg: [], 
-                                        userRemoteConfigs: [[
-                                            credentialsId: GIT_CREDENTIALS_ID, 
-                                            refspec: pluginSpec, 
-                                            url: 'git@github.com:pingcap/enterprise-plugin.git',
-                                        ]]
-                                    ]
-                                )
+                                cache(path: "./.git", key: "pingcap-enterprise-plugin-cache-gitdir-${ghprbActualCommit}",restoreKeys: ['pingcap-enterprise-plugin-cache-gitdir-']) {
+                                    cache(path: "./", key: "pingcap-enterprise-plugin-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-enterprise-plugin-cache-src-']) {
+                                        checkout(
+                                            changelog: false,
+                                            poll: true, 
+                                            scm: [
+                                                $class: 'GitSCM',
+                                                branches: [[name: "${pluginBranch}"]], 
+                                                doGenerateSubmoduleConfigurations: false, 
+                                                extensions: [
+                                                    [$class: 'PruneStaleBranch'], 
+                                                    [$class: 'CleanBeforeCheckout'], 
+                                                    [$class: 'CloneOption', timeout: 2],
+                                                ], 
+                                                submoduleCfg: [],
+                                                userRemoteConfigs: [[
+                                                    credentialsId: GIT_CREDENTIALS_ID, 
+                                                    refspec: pluginSpec,
+                                                    url: 'git@github.com:pingcap/enterprise-plugin.git',
+                                                ]]
+                                            ]
+                                        )
+                                    }
+                                }
                             }
                         }
                     }                    

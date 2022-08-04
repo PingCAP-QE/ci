@@ -69,26 +69,30 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                retry(2) {
-                    checkout(
-                        changelog: false,
-                        poll: false, 
-                        scm: [
-                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                            doGenerateSubmoduleConfigurations: false, 
-                            extensions: [
-                                [$class: 'PruneStaleBranch'], 
-                                [$class: 'CleanBeforeCheckout'], 
-                                [$class: 'CloneOption', timeout: 5],
-                            ], 
-                            submoduleCfg: [], 
-                            userRemoteConfigs: [[
-                                credentialsId: GIT_CREDENTIALS_ID, 
-                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                url: "git@github.com:${GIT_FULL_REPO_NAME}.git"
-                            ]],
-                        ]
-                    )
+                cache(path: "./.git", key: "pingcap-tidb-cache-gitdir-${ghprbActualCommit}",restoreKeys: ['pingcap-tidb-cache-gitdir-']) {
+                    cache(path: "./", key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false, 
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                    doGenerateSubmoduleConfigurations: false, 
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'], 
+                                        [$class: 'CleanBeforeCheckout'], 
+                                        [$class: 'CloneOption', timeout: 5],
+                                    ], 
+                                    submoduleCfg: [], 
+                                    userRemoteConfigs: [[
+                                        credentialsId: GIT_CREDENTIALS_ID, 
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                        url: "git@github.com:${GIT_FULL_REPO_NAME}.git"
+                                    ]],
+                                ]
+                            )
+                        }
+                    }
                 }
             }
         }
