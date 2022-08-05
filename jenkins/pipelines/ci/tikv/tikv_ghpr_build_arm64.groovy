@@ -29,6 +29,10 @@ m1 = null
 binary = "builds/pingcap/test/tikv/${ghprbActualCommit}/centos7/tikv-linux-arm64.tar.gz"
 binary_existed = -1
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
 
 def release_one_arm64(repo,hash) {
     echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
@@ -87,7 +91,7 @@ try{
         // /release : not comment binary download url
         // /release comment=true : comment binary download url
 
-        if ( needComment.toBoolean() ) {
+        if (needComment.toBoolean() ) {
             node("master") {
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
                     sh """
@@ -100,8 +104,40 @@ try{
             }
         }
     }
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    currentBuild.result = "ABORTED"
 } catch (Exception e) {
-    currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
-    echo "${e}"
+    errorDescription = e.getMessage()
+    if (errorDescription == "hasBeenTested" || errorDescription == "ci skip") {
+        currentBuild.result = 'SUCCESS'
+    } else {
+        currentBuild.result = "FAILURE"
+        echo "${e}"
+    }
+} finally {
+    stage("upload-pipeline-data") {
+        taskFinishTime = System.currentTimeMillis()
+        build job: 'upload-pipelinerun-data',
+            wait: false,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'REPO', value: "tikv/tikv"],
+                    [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                    [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                    [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                    [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                    [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                    [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "2000m"],
+                    [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
+                    [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+        ]
+    }
 }

@@ -38,6 +38,11 @@ if (!ghprbTargetBranch.startsWith("release-")) {
 rust_image = "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest"
 println "ci image use ${rust_image}"
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
+
 def run_test_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
@@ -589,7 +594,35 @@ stage('Post-test') {
         currentBuild.result = "FAILURE"
         echo "${e}"
     }
+} finally {
+    stage("upload-pipeline-data") {
+        taskFinishTime = System.currentTimeMillis()
+        build job: 'upload-pipelinerun-data',
+            wait: false,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'REPO', value: "tikv/tikv"],
+                    [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                    [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                    [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                    [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                    [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                    [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "2000m"],
+                    [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
+                    [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+        ]
+    }
 }
+
+
 
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {

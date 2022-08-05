@@ -35,6 +35,12 @@ def specStr = "+refs/heads/*:refs/remotes/origin/*"
 if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
+println "specStr=${specStr}"
+
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
 
 def run_build_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
@@ -82,32 +88,34 @@ try {
         deleteDir()
 
         stage("Checkout") {
-            // update cache
-            dir("/home/jenkins/agent/git/tikv") {
-                if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    deleteDir()
+            container("rust") {
+                // update cache
+                dir("tikv") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        deleteDir()
+                    }
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
+                    sh """
+                        rm ~/.gitconfig || true
+                        git checkout -f ${ghprbActualCommit}
+                    """
                 }
-                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:tikv/tikv.git']]]
             }
         }
 
         stage("Build") {
-            dir("tikv") {
-                container("rust") {
+            container("rust") {
+                dir("tikv") {
                     timeout(120) {
-                        sh """
-                            rm ~/.gitconfig || true
-                            cp -R /home/jenkins/agent/git/tikv/. ./
-                            git checkout -f ${ghprbActualCommit}
-                            echo using gcc 8
-                            source /opt/rh/devtoolset-8/enable
-                            CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
-                            # use make release
-                            mkdir -p bin
-                            cp /home/jenkins/agent/.target/release/tikv-server bin/
-                            cp /home/jenkins/agent/.target/release/tikv-ctl bin
-                        """
-
+                    sh """
+                        echo using gcc 8
+                        source /opt/rh/devtoolset-8/enable
+                        CARGO_TARGET_DIR=/home/jenkins/agent/.target ROCKSDB_SYS_STATIC=1 make ${release}
+                        # use make release
+                        mkdir -p bin
+                        cp /home/jenkins/agent/.target/release/tikv-server bin/
+                        cp /home/jenkins/agent/.target/release/tikv-ctl bin
+                    """
                     }
                 }
             }
@@ -154,10 +162,55 @@ try {
         }
     }
     currentBuild.result = "SUCCESS"
+}catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    println e
+    // this ambiguous condition means a user probably aborted
+    currentBuild.result = "ABORTED"
+} catch (hudson.AbortException e) {
+    println e
+    // this ambiguous condition means during a shell step, user probably aborted
+    if (e.getMessage().contains('script returned exit code 143')) {
+        currentBuild.result = "ABORTED"
+    } else {
+        currentBuild.result = "FAILURE"
+    }
+} catch (InterruptedException e) {
+    println e
+    currentBuild.result = "ABORTED"
 } catch (Exception e) {
-    currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
-    echo "${e}"
+    if (e.getMessage().equals("hasBeenTested")) {
+        currentBuild.result = "SUCCESS"
+    } else {
+        currentBuild.result = "FAILURE"
+        slackcolor = 'danger'
+        echo "${e}"
+    }
+} finally {
+    stage("upload-pipeline-data") {
+        taskFinishTime = System.currentTimeMillis()
+        build job: 'upload-pipelinerun-data',
+            wait: false,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'REPO', value: "tikv/tikv"],
+                    [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                    [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                    [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                    [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                    [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                    [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "2000m"],
+                    [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
+                    [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+        ]
+    }
 }
 
 
