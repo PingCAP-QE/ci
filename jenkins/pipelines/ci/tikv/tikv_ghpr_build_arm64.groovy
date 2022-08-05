@@ -104,10 +104,16 @@ try{
             }
         }
     }
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    currentBuild.result = "ABORTED"
 } catch (Exception e) {
-    currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
-    echo "${e}"
+    errorDescription = e.getMessage()
+    if (errorDescription == "hasBeenTested" || errorDescription == "ci skip") {
+        currentBuild.result = 'SUCCESS'
+    } else {
+        currentBuild.result = "FAILURE"
+        echo "${e}"
+    }
 } finally {
     stage("upload-pipeline-data") {
         taskFinishTime = System.currentTimeMillis()
