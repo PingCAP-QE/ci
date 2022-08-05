@@ -17,6 +17,11 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
+
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
@@ -135,17 +140,43 @@ try {
         }
     }
     currentBuild.result = "SUCCESS"
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    currentBuild.result = "ABORTED"
+    echo "${e}"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
     echo "${e}"
-}
-
-stage("upload status"){
-    node("master"){
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
+} finally { 
+    stage("upload-pipeline-data") {
+        taskFinishTime = System.currentTimeMillis()
+        build job: 'upload-pipelinerun-data',
+            wait: false,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'REPO', value: "tikv/pd"],
+                    [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                    [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                    [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                    [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                    [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                    [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "2000m"],
+                    [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
+                    [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+        ]
     }
 }
+
+
+
+
 
 stage('Summary') {
     echo "Send slack here ..."
