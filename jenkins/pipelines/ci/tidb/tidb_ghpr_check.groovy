@@ -28,6 +28,11 @@ GO_IMAGE_MAP = [
     "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220805",
 ]
 RESOURCE_REQUEST_CPU = '4000m'
+VOLUMES = [
+    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+    emptyDirVolume(mountPath: '/tmp', memory: false),
+]
 
 node("master") {
     deleteDir()
@@ -40,6 +45,7 @@ node("master") {
         sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
         def goversion_lib = load('goversion-select-lib.groovy')
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+        VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
     }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
@@ -62,19 +68,14 @@ def run_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
+                        name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
-            volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+            volumes: VOLUMES,
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -95,19 +96,14 @@ def run_with_heavy_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
+                        name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '6000m', resourceRequestMemory: '12Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
-            volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+            volumes: VOLUMES,
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
