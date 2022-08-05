@@ -98,7 +98,7 @@ def run_with_heavy_pod(Closure body) {
                     containerTemplate(
                         name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                        resourceRequestCpu: '6000m', resourceRequestMemory: '12Gi',
+                        resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '12Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
