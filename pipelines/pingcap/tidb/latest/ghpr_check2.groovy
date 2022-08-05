@@ -37,6 +37,9 @@ pipeline {
             yaml POD_TEMPLATE
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     options {
         timeout(time: 20, unit: 'MINUTES')
     }
@@ -82,7 +85,7 @@ pipeline {
                 }
             }
         }
-        stage("Prepare binnaries and scripts") {            
+        stage("Prepare binnaries and scripts") {
             steps {
                 dir('git') {
                     sh label: 'tidb-server', script: 'go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'

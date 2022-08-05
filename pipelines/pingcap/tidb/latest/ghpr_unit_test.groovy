@@ -52,6 +52,9 @@ pipeline {
             yaml POD_TEMPLATE
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }    
     options {
         timeout(time: 20, unit: 'MINUTES')
     }
@@ -114,9 +117,9 @@ pipeline {
                         def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
                         retry(3) {
                             sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
-                            curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
-                            echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
-                            """
+                                curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
+                                echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
+                                """
                         }
                     }
 
@@ -131,13 +134,13 @@ pipeline {
                     container(name: 'ruby') {
                         withCredentials([string(credentialsId: GIT_OPENAPI_CREDENTIALS_ID, variable: 'GITHUB_TOKEN')]) {
                             sh label: 'comment coverage report link on github PR', script: """#!/bin/bash
-                            detail_url="https://codecov.io/github/${GIT_FULL_REPO_NAME}/commit/${ghprbActualCommit}"
-                            wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
-                            ruby comment-on-pr.rb \
-                                ${GIT_FULL_REPO_NAME} \
-                                ${ghprbPullId} \
-                                "Code Coverage Details: \$detail_url" true "Code Coverage Details:"
-                            """
+                                detail_url="https://codecov.io/github/${GIT_FULL_REPO_NAME}/commit/${ghprbActualCommit}"
+                                wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
+                                ruby comment-on-pr.rb \
+                                    ${GIT_FULL_REPO_NAME} \
+                                    ${ghprbPullId} \
+                                    "Code Coverage Details: \$detail_url" true "Code Coverage Details:"
+                                """
                         }
                     }
                 }

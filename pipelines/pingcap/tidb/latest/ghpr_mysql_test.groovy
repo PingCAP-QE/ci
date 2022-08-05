@@ -43,6 +43,9 @@ pipeline {
             yaml POD_TEMPLATE
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     options {
         timeout(time: 15, unit: 'MINUTES')
     }
@@ -54,8 +57,8 @@ pipeline {
                     script {
                         retry(3){
                             sh label: 'get tidb-server binnary', script: """
-                                tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                                tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                tidb_done_url="\${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+                                tidb_url="\${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                                 while ! curl --output /dev/null --silent --head --fail \${tidb_done_url}; do sleep 1; done
                                 curl \${tidb_url} | tar xz
                                 """
@@ -69,14 +72,14 @@ pipeline {
                         def pluginBranch = ghprbTargetBranch
                         if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
                             pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
-                        }  
+                        }                        
                         sh label: 'download tidb-test and build mysql_test', script: """
                             TIDB_TEST_BRANCH="${ghprbTargetBranch}"                            
-                            tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/\${TIDB_TEST_BRANCH}/sha1"
+                            tidb_test_refs="\${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/\${TIDB_TEST_BRANCH}/sha1"
                             while ! curl --output /dev/null --silent --head --fail \${tidb_test_refs}; do sleep 5; done
                             tidb_test_sha1="$(curl '\${tidb_test_refs}')"
 
-                            tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                            tidb_test_url="\${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                             while ! curl --output /dev/null --silent --head --fail \${tidb_test_url}; do sleep 5; done
                             curl \${tidb_test_url} | tar xz
 

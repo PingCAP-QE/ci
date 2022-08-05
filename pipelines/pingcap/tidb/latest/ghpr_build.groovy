@@ -45,6 +45,9 @@ pipeline {
             yaml POD_TEMPLATE
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     options {
         timeout(time: 15, unit: 'MINUTES')
     }
@@ -183,6 +186,9 @@ pipeline {
                             }
                         }
                         stage("Upload") {
+                            options {
+                                timeout(time: 10, unit: 'MINUTES')
+                            }
                             steps {                                        
                                 dir("tidb") {
                                     sh label: "create tidb-server tarball", script: """
@@ -191,33 +197,20 @@ pipeline {
                                         echo "pr/${ghprbActualCommit}" > sha1
                                         echo "done" > done
                                         """
-
-                                    // upload to tidb dir
-                                    timeout(10) {
-                                        script {
-                                            def filepath = "builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                            def donepath = "builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/done"
-                                            def refspath = "refs/${GIT_FULL_REPO_NAME}/pr/${ghprbPullId}/sha1"                                         
-
-                                            sh label: 'upload to tidb dir', script: """
-                                                curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
-                                                curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                                                """
-                                        }                                
-                                    }
-                                
-                                    // upload to tidb-checker dir
-                                    timeout(10) {
-                                        script {
-                                            def filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                            def donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
-                                            sh label: 'upload to tidb-checker dir', script: """
-                                                curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
-                                                """
-                                        }
-                                    } 
+                                    sh label: 'upload to tidb dir', script: """
+                                        filepath="builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                        donepath="builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/done"
+                                        refspath="refs/${GIT_FULL_REPO_NAME}/pr/${ghprbPullId}/sha1"
+                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
+                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
+                                        curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
+                                        """
+                                    sh label: 'upload to tidb-checker dir', script: """
+                                        filepath="builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                        donepath="builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
+                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload                                    
+                                        """
                                 }                               
                             }
                         }
