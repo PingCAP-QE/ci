@@ -240,20 +240,20 @@ node("lightweight_pod") {
                     test_release2_4("release-4.0")
                     break
                 case 2:
-                    test_master(master, "release-5.0")
+                    test_master("release-5.0")
                     test_release2_5("release-5.0")
                     break
                 case 3:
-                    test_master(master, "release-5.4")
+                    test_master("release-5.4")
                     test_release3_0("release-5.4")
                     break
                 case 4:
-                    test_master(master, "release-6.1")
+                    test_master("release-6.1")
                     test_release2_4("release-6.1")
                     break
                 case 5:
-                    test_master(master, "master")
-                    test_release2_5(release_2_5, "master")
+                    test_master("master")
+                    test_release2_5("master")
                     break
                 case 6:
                     test_release2_4("master")
