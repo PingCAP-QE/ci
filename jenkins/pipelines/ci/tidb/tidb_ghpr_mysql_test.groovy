@@ -92,6 +92,37 @@ def taskStartTimeInMillis = System.currentTimeMillis()
 def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
+ciErrorCode = 0
+
+def upload_test_result(reportDir) {
+    if (!fileExists(reportDir)){
+        return
+    }
+    try {
+        id=UUID.randomUUID().toString()
+        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+        resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+        sh """
+        curl -F ${filepath}=@${reportDir} ${FILE_SERVER_URL}/upload
+        """
+        def downloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+        def all_results = [
+            jenkins_job_name: "${JOB_NAME}",
+            jenkins_url: "${env.RUN_DISPLAY_URL}",
+            repo: "${ghprbGhRepository}",
+            commit_id: ghprbActualCommit,
+            branch: ghprbTargetBranch,
+            junit_report_url: downloadPath,
+            pull_request: ghprbPullId.toInteger(),
+            author: ghprbPullAuthorLogin
+        ]
+        def json = groovy.json.JsonOutput.toJson(all_results)
+        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.4.15:30792/report/", validResponseCodes: '200'
+    }catch (Exception e) {
+        // upload test case result to tipipeline, do not block ci
+        print "upload test result to tipipeline failed, continue."
+    }
+}
 
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
@@ -220,6 +251,7 @@ try {
                         } finally {
                             if (parallel_run_mysql_test(ghprbTargetBranch)) {
                                 junit testResults: "**/result.xml"
+                                upload_test_result("result.xml")
                             }
                         }
                     }
@@ -290,6 +322,7 @@ catch (Exception e) {
                 [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: ""],
                 [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
                 [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                [$class: 'StringParameterValue', name: 'PIPLINE_RUN_ERROR_CODE', value: "${ciErrorCode}"],
     ]
 }
 
