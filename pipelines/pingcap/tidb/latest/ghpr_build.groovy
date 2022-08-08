@@ -42,7 +42,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 150, unit: 'MINUTES')
+        timeout(time: 30, unit: 'MINUTES')
     }
     stages {
         stage('debug info') {
@@ -64,29 +64,26 @@ pipeline {
                     steps {
                         dir("tidb") {
                             // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
-                            // FIXME(wuhuizuo): https://github.com/j3t/jenkins-pipeline-cache-plugin/issues/12
-                            cache(path: "./.git", key: "pingcap-tidb-cache-gitdir-${ghprbActualCommit}",restoreKeys: ['pingcap-tidb-cache-gitdir-']) {
-                                cache(path: "./", key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
-                                    retry(2) {
-                                        checkout(
-                                            changelog: false,
-                                            poll: false,
-                                            scm: [
-                                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                                doGenerateSubmoduleConfigurations: false, 
-                                                extensions: [
-                                                    [$class: 'PruneStaleBranch'],
-                                                    [$class: 'CleanBeforeCheckout'], 
-                                                    [$class: 'CloneOption', timeout: 5],
-                                                ],
-                                                submoduleCfg: [],
-                                                userRemoteConfigs: [[
-                                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                                ]],
-                                            ]
-                                        )
-                                    }
+                            cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                                retry(2) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: false,
+                                        scm: [
+                                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                            doGenerateSubmoduleConfigurations: false, 
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'], 
+                                                [$class: 'CloneOption', timeout: 15],
+                                            ],
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                                url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
+                                            ]],
+                                        ]
+                                    )
                                 }
                             }
                         }
@@ -117,29 +114,27 @@ pipeline {
                                     pluginBranch = "origin/${pluginBranch}/head"
                                 }
 
-                                cache(path: "./.git", key: "pingcap-enterprise-plugin-cache-gitdir-${ghprbActualCommit}",restoreKeys: ['pingcap-enterprise-plugin-cache-gitdir-']) {
-                                    cache(path: "./", key: "pingcap-enterprise-plugin-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-enterprise-plugin-cache-src-']) {
-                                        checkout(
-                                            changelog: false,
-                                            poll: true, 
-                                            scm: [
-                                                $class: 'GitSCM',
-                                                branches: [[name: "${pluginBranch}"]], 
-                                                doGenerateSubmoduleConfigurations: false, 
-                                                extensions: [
-                                                    [$class: 'PruneStaleBranch'], 
-                                                    [$class: 'CleanBeforeCheckout'], 
-                                                    [$class: 'CloneOption', timeout: 2],
-                                                ], 
-                                                submoduleCfg: [],
-                                                userRemoteConfigs: [[
-                                                    credentialsId: GIT_CREDENTIALS_ID, 
-                                                    refspec: pluginSpec,
-                                                    url: 'git@github.com:pingcap/enterprise-plugin.git',
-                                                ]]
-                                            ]
-                                        )
-                                    }
+                                cache(path: "./", filter: '**/*', key: "pingcap-enterprise-plugin-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-enterprise-plugin-cache-src-']) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: true,
+                                        scm: [
+                                            $class: 'GitSCM',
+                                            branches: [[name: pluginBranch]],
+                                            doGenerateSubmoduleConfigurations: false, 
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'], 
+                                                [$class: 'CleanBeforeCheckout'], 
+                                                [$class: 'CloneOption', timeout: 2],
+                                            ], 
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                credentialsId: GIT_CREDENTIALS_ID, 
+                                                refspec: pluginSpec,
+                                                url: 'git@github.com:pingcap/enterprise-plugin.git',
+                                            ]]
+                                        ]
+                                    )
                                 }
                             }
                         }
@@ -211,27 +206,23 @@ pipeline {
                 }
                 stage("Build plugins") {
                     steps {
-                        cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
-                            cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
-                                timeout(time: 20, unit: 'MINUTES') {
-                                    sh label: 'build pluginpkg tool', script: '''
-                                        cd tidb/cmd/pluginpkg
-                                        go build
-                                        '''
-                                }
-                                dir('enterprise-plugin/whitelist') {
-                                    sh label: 'build plugin whitelist', script: '''
-                                        GO111MODULE=on go mod tidy
-                                        ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                        '''
-                                }
-                                dir('enterprise-plugin/audit') {
-                                    sh label: 'build plugin: audit', script: '''
-                                        GO111MODULE=on go mod tidy
-                                        ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                        '''
-                                }
-                            }
+                        timeout(time: 20, unit: 'MINUTES') {
+                            sh label: 'build pluginpkg tool', script: '''
+                                cd tidb/cmd/pluginpkg
+                                go build
+                                '''
+                        }
+                        dir('enterprise-plugin/whitelist') {
+                            sh label: 'build plugin whitelist', script: '''
+                                GO111MODULE=on go mod tidy
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                '''
+                        }
+                        dir('enterprise-plugin/audit') {
+                            sh label: 'build plugin: audit', script: '''
+                                GO111MODULE=on go mod tidy
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                '''
                         }
                     }
                 }
