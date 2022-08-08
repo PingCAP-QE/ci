@@ -44,16 +44,7 @@ def update = { os, arch ->
     publish os, arch
 }
 
-def String selectGoVersion(String branchORTag) {
-    return "go1.18"
-}
-
 def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
-def goVersion = selectGoVersion(RELEASE_TAG)
-if ( goVersion == "go1.16" ) {
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-}
-
 node("${GO_BUILD_SLAVE}") {
     container("golang") {
         stage("Prepare") {
