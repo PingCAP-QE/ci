@@ -152,12 +152,10 @@ pipeline {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
                             steps {
-                                cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
-                                    cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
-                                        dir("tidb") {
-                                            sh "make bazel_build"
-                                        }
-                                    }
+                                // cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
+                                // cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
+                                dir("tidb") {                                     
+                                    sh "make bazel_build"                           
                                 }
                             }
                             post {       
@@ -170,14 +168,14 @@ pipeline {
                                             allowEmptyArchive: true,
                                         )
                                     }            
-                                }       
+                                }
                             }
                         }
                         stage("Upload") {
                             options {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
-                            steps {                                        
+                            steps {
                                 dir("tidb") {
                                     sh label: "create tidb-server tarball", script: """
                                         rm -rf .git
@@ -199,7 +197,7 @@ pipeline {
                                         curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
                                         curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload                                    
                                         """
-                                }                               
+                                }
                             }
                         }
                     }
