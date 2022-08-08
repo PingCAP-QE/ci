@@ -337,7 +337,7 @@ def run_tls_source_it_test(String case_name) {
                             rm -rf cov_dir
                             mkdir -p cov_dir
                             ls /tmp/dm_test
-                            cp /tmp/dm_test/cov*out cov_dir
+                            cp /tmp/dm_test/cov*out cov_dir || true
                             """
                 }catch (Exception e) {
                     sh """
@@ -352,7 +352,11 @@ def run_tls_source_it_test(String case_name) {
                     throw e
                 }
             }
-            stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
+            try {
+                stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
+            } catch (Exception e) {
+                println e
+            }
         }
     }
 }
@@ -384,7 +388,7 @@ def run_single_it_test(String case_name) {
                             rm -rf cov_dir
                             mkdir -p cov_dir
                             ls /tmp/dm_test
-                            cp /tmp/dm_test/cov*out cov_dir
+                            cp /tmp/dm_test/cov*out cov_dir || true
                             """
                 }catch (Exception e) {
                     sh """
@@ -399,7 +403,11 @@ def run_single_it_test(String case_name) {
                     throw e
                 }
             }
-            stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
+            try {
+                stash includes: 'go/src/github.com/pingcap/tiflow/cov_dir/**', name: "integration-cov-${case_name}"
+            } catch (Exception e) {
+                println e
+            }
         }
     }
 }
@@ -445,6 +453,7 @@ def run_make_coverage() {
             unstash 'integration-cov-ha'
             unstash 'integration-cov-others'
             unstash 'integration-cov-others_2'
+            unstash 'integration-cov-others_3'
         } catch (Exception e) {
             println e
         }
@@ -780,6 +789,14 @@ pipeline {
                     steps {
                         script {
                             run_single_it_test('others_2')
+                        }
+                    }
+                }
+
+                stage('IT-others-3') {
+                    steps {
+                        script {
+                            run_single_it_test('others_3')
                         }
                     }
                 }
