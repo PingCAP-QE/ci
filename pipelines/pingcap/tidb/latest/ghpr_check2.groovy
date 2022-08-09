@@ -94,13 +94,13 @@ pipeline {
                     withEnv(["TIKV_BRANCH=${ghprbTargetBranch}", "PD_BRANCH=${ghprbTargetBranch}"]) {
                         sh label: 'pd-server', script: '''
                             refs="${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                            sha1="$(curl ${refs} | head 1)"
+                            sha1="$(curl --fail ${refs} | head -1)"
                             url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${sha1}/centos7/tikv-server.tar.gz"
                             curl --fail ${url} | tar xz
                             '''               
                         sh label: 'pd-server', script: '''
                             refs="${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                            sha1="$(curl --fail ${refs} | head 1)"
+                            sha1="$(curl --fail ${refs} | head -1)"
                             url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${sha1}/centos7/pd-server.tar.gz"
                             curl --fail ${url} | tar xz bin
                             '''
