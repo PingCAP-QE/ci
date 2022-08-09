@@ -22,7 +22,7 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                     // triggerPhrase('^(?=.*/(merge|run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
                     // onlyTriggerPhrase(false)
                     // ### debug
-                    triggerPhrase('^/gray-debug')
+                    triggerPhrase('/gray-debug')
                     onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
@@ -41,8 +41,9 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('.*\\.md')
-
+                    // excludedRegions('.*\\.md')
+                    excludedRegions('')
+                    
                     blackListLabels("") // list of GitHub labels for which the build should not be triggered.
                     whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
                     adminlist("")
@@ -85,7 +86,7 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("main")
+                    branch("feature/cache-checkout")
                 }
             }
         }

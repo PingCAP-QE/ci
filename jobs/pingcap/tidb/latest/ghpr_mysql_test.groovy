@@ -23,7 +23,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     // onlyTriggerPhrase(false)
 
                     // ### debug
-                    triggerPhrase('^/gray-debug')
+                    triggerPhrase('/gray-debug')
                     onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
@@ -42,7 +42,8 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('.*\\.md')
+                    // excludedRegions('.*\\.md')
+                    excludedRegions('')
 
                     blackListLabels("")
                     whiteListLabels("")
@@ -86,7 +87,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("main")
+                    branch("feature/cache-checkout")
                 }
             }
         }

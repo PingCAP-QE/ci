@@ -24,7 +24,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     // onlyTriggerPhrase(false)
 
                     // ### debug
-                    triggerPhrase('^/gray-debug')
+                    triggerPhrase('/gray-debug')
                     onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
@@ -43,7 +43,8 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('.*\\.md')
+                    // excludedRegions('.*\\.md')
+                    excludedRegions('')
 
                     blackListLabels("")
                     whiteListLabels("")
@@ -87,7 +88,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("main")
+                    branch("feature/cache-checkout")
                 }
             }
         }
