@@ -37,8 +37,6 @@ pipeline {
         kubernetes {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
-            defaultContainer 'golang'
-            yaml POD_TEMPLATE
         }
     }
     environment {
@@ -46,50 +44,10 @@ pipeline {
     }
     options {
         timeout(time: 15, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
     }
     stages {
-        stage('Prepare') {
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir("tidb") {
-                    retry(3){
-                        sh label: 'get tidb-server binnary', script: '''#! /usr/bin/env bash
-                            tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                            tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                            curl --fail ${tidb_url} | tar xz
-                            '''
-                    }
-                }
-                dir("tidb-test") {                    
-                    sh label: 'download tidb-test and build mysql_test', script: '''#! /usr/bin/env bash
-
-                        TIDB_TEST_BRANCH=${ghprbTargetBranch}
-                        releaseOrHotfixBranchReg="^(release-)?([0-9]+\\.[0-9]+)(\\.[0-9]+\\-.+)?"
-                        if [[ "$TIDB_TEST_BRANCH" =~ $releaseOrHotfixBranchReg ]]; then
-                            TIDB_TEST_BRANCH="release-${BASH_REMATCH[1]}"
-                        fi
-
-                        tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
-                        echo "${tidb_test_refs}"
-                        while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
-                        tidb_test_sha1="$(curl --fail ${tidb_test_refs})"
-
-                        tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
-                        while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                        curl --fail ${tidb_test_url} | tar xz
-
-                        cd mysql_test
-                        TIDB_SRC_PATH=$(realpath ../../tidb) ./build.sh
-                        '''
-                }
-                // TODO(wuhuizuo): store files:
-                // - tidb/bin/tidb-server
-                // - tidb-test/mysql-test
-            }
-        }
         stage('MySQL Tests') {
-            failFast true
             matrix {
                 axes {
                     axis {
@@ -97,12 +55,60 @@ pipeline {
                         values '1', '2', '3', '4'
                     }
                 }
+                agent{
+                    kubernetes {
+                        cloud K8S_COULD
+                        namespace K8S_NAMESPACE
+                        defaultContainer 'golang'
+                        yaml POD_TEMPLATE
+                    }
+                }
                 stages {
+                    stage('Prepare') {
+                        options { timeout(time: 10, unit: 'MINUTES') }
+                        steps {
+                            dir("tidb") {
+                                retry(3){
+                                    sh label: 'get tidb-server binnary', script: '''#! /usr/bin/env bash
+                                        tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+                                        tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                        curl --fail ${tidb_url} | tar xz
+                                        '''
+                                }
+                            }
+                            dir("tidb-test") {
+                                sh label: 'download tidb-test and build mysql_test', script: '''#! /usr/bin/env bash
+
+                                    TIDB_TEST_BRANCH=${ghprbTargetBranch}
+                                    releaseOrHotfixBranchReg="^(release-)?([0-9]+\\.[0-9]+)(\\.[0-9]+\\-.+)?"
+                                    if [[ "$TIDB_TEST_BRANCH" =~ $releaseOrHotfixBranchReg ]]; then
+                                        TIDB_TEST_BRANCH="release-${BASH_REMATCH[1]}"
+                                    fi
+
+                                    tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                                    echo "${tidb_test_refs}"
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
+                                    tidb_test_sha1="$(curl --fail ${tidb_test_refs})"
+
+                                    tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
+                                    curl --fail ${tidb_test_url} | tar xz
+
+                                    cd mysql_test
+                                    TIDB_SRC_PATH=$(realpath ../../tidb) ./build.sh
+                                    '''
+                            }
+                            // TODO(wuhuizuo): store files:
+                            // - tidb/bin/tidb-server
+                            // - tidb-test/mysql-test
+                        }
+                    }
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir("tidb-test/mysql_test") {
-                                sh '''#! /usr/bin/env bash
+                                sh label: "part ${PART}", script: '''#! /usr/bin/env bash
 
                                 pwd && ls -alh
                                 exit_code=0
