@@ -3,7 +3,7 @@
 * @ STAGING_SERVER false/true
 */
 
-def tikv_migration_repo_url = "https://github.com/haojinming/migration"
+def tikv_migration_repo_url = "https://github.com/tikv/migration"
 def mirror_server = "http://staging.tiup-server.pingcap.net"
 if (!params.STAGING_SERVER) {
     mirror_server = "http://prod.tiup-server.pingcap.net"
