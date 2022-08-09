@@ -57,7 +57,7 @@ pipeline {
                             tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
                             tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                             while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                            curl ${tidb_url} | tar xz
+                            curl --fail ${tidb_url} | tar xz
                             '''
                     }
                 }
@@ -79,7 +79,7 @@ pipeline {
                         curl ${tidb_test_url} | tar xz
 
                         cd mysql_test
-                        TIDB_SRC_PATH=../tidb ./build.sh
+                        TIDB_SRC_PATH=$(realpath ../../tidb) ./build.sh
                         '''
                 }
                 // TODO(wuhuizuo): store files:
