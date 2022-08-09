@@ -54,37 +54,36 @@ pipeline {
                 dir("tidb") {
                     script {
                         retry(3){
-                            sh label: 'get tidb-server binnary', script: """
-                                tidb_done_url="\${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                                tidb_url="\${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                while ! curl --output /dev/null --silent --head --fail \${tidb_done_url}; do sleep 1; done
-                                curl \${tidb_url} | tar xz
-                                """
+                            sh label: 'get tidb-server binnary', script: '''
+                                tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+                                tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                curl ${tidb_url} | tar xz
+                                '''
                         }
                     }
                 }
-                dir("tidb-test") {
-                    script {
-                        def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+                dir("tidb-test") {                    
+                    sh label: 'download tidb-test and build mysql_test', script: '''
+                        #! /usr/bin/env bash
 
-                        def pluginBranch = ghprbTargetBranch
-                        if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                            pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
-                        }                        
-                        sh label: 'download tidb-test and build mysql_test', script: """
-                            TIDB_TEST_BRANCH=${ghprbTargetBranch}
-                            tidb_test_refs="\${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/\${TIDB_TEST_BRANCH}/sha1"
-                            while ! curl --output /dev/null --silent --head --fail \${tidb_test_refs}; do sleep 5; done
-                            tidb_test_sha1="$(curl '\${tidb_test_refs}')"
+                        TIDB_TEST_BRANCH=${ghprbTargetBranch}
+                        releaseOrHotfixBranchReg="^(release-)?([0-9]+\.[0-9]+)(\.[0-9]+\-.+)?"                           
+                        if [[ "$TIDB_TEST_BRANCH" =~ $releaseOrHotfixBranchReg ]]; then
+                            TIDB_TEST_BRANCH="release-${BASH_REMATCH[1]}"
+                        fi
 
-                            tidb_test_url="\${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
-                            while ! curl --output /dev/null --silent --head --fail \${tidb_test_url}; do sleep 5; done
-                            curl \${tidb_test_url} | tar xz
+                        tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
+                        tidb_test_sha1="$(curl '${tidb_test_refs}')"
 
-                            cd mysql_test
-                            TIDB_SRC_PATH=../tidb ./build.sh
-                            """
-                    }
+                        tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
+                        curl ${tidb_test_url} | tar xz
+
+                        cd mysql_test
+                        TIDB_SRC_PATH=../tidb ./build.sh
+                        '''
                 }
                 // TODO(wuhuizuo): store files:
                 // - tidb/bin/tidb-server
