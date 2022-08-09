@@ -4,10 +4,7 @@
 final K8S_COULD = "kubernetes"
 final K8S_NAMESPACE = "apps"
 // final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_TRUNK_BRANCH = "master"
-final CODECOV_TOKEN_CREDENTIAL_ID = 'codecov-token-tidb'
 final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
 final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
 final POD_TEMPLATE = """
@@ -37,6 +34,8 @@ pipeline {
         kubernetes {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
+            defaultContainer 'golang'
+            yaml POD_TEMPLATE
         }
     }
     environment {
@@ -52,7 +51,7 @@ pipeline {
                 axes {
                     axis {
                         name 'SCRIPT_AND_ARGS'
-                        values( 
+                        values(
                             'explaintest.sh y', 
                             'explaintest.sh n', 
                             'run_real_tikv_tests.sh brietest', 
