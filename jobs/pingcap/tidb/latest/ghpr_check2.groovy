@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
 pipelineJob('pingcap/tidb/ghpr_check2') {
-    disabled(true)
+    // disabled(true)
     logRotator {
         daysToKeep(180)
         numToKeep(1500)
@@ -80,7 +80,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
  
     definition {
         cpsScm {
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_check.groovy")
+            scriptPath("pipelines/pingcap/tidb/latest/ghpr_check2.groovy")
             scm {
                 git{
                     remote {
