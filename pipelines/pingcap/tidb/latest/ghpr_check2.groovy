@@ -122,7 +122,7 @@ pipeline {
                     steps { 
                         dir("checks-collation-enabled") {
                             unstash("tidb")
-                            sh '${WORKSPACE}/scripts/pingcap/tidb/explaiintest.sh y'                            
+                            sh '${WORKSPACE}/scripts/pingcap/tidb/explaintest.sh y'                            
                         }
                     }
                     post {                        
