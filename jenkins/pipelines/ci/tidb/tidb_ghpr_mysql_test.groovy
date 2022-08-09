@@ -39,7 +39,7 @@ POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
@@ -49,10 +49,9 @@ POD_LABEL_MAP = [
 
 node("master") {
     deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
@@ -79,10 +78,51 @@ if (ghprbTargetBranch in ["br-stream"]) {
     return 0
 }
 
+def parallel_run_mysql_test(branch) {
+    if (branch in ["master"]) {
+        return true
+    }
+    if (branch.startsWith("release-") && branch >= "release-6.2") {
+        return true
+    }
+    return false
+}
+
 def taskStartTimeInMillis = System.currentTimeMillis()
 def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
+ciErrorCode = 0
+
+def upload_test_result(reportDir) {
+    if (!fileExists(reportDir)){
+        return
+    }
+    try {
+        id=UUID.randomUUID().toString()
+        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+        resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+        sh """
+        curl -F ${filepath}=@${reportDir} ${FILE_SERVER_URL}/upload
+        """
+        def downloadPath = "${FILE_SERVER_URL}/download/${filepath}"
+        def all_results = [
+            jenkins_job_name: "${JOB_NAME}",
+            jenkins_url: "${env.RUN_DISPLAY_URL}",
+            repo: "${ghprbGhRepository}",
+            commit_id: ghprbActualCommit,
+            branch: ghprbTargetBranch,
+            junit_report_url: downloadPath,
+            pull_request: ghprbPullId.toInteger(),
+            author: ghprbPullAuthorLogin
+        ]
+        def json = groovy.json.JsonOutput.toJson(all_results)
+        response = httpRequest consoleLogResponseBody: true, contentType: 'APPLICATION_JSON', httpMode: 'POST', requestBody: json, url: "http://172.16.4.15:30792/report/", validResponseCodes: '200'
+    }catch (Exception e) {
+        // upload test case result to tipipeline, do not block ci
+        print "upload test result to tipipeline failed, continue."
+    }
+}
 
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
@@ -124,7 +164,7 @@ try {
             println "work space path:\n${ws}"
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
-                    timeout(10) {
+                    timeout(35) {
                         retry(3){
                             deleteDir()
                             sh """
@@ -152,7 +192,7 @@ try {
 
                         sh """
                             echo "stash tidb-test"
-                            cd .. && tar -cf $TIDB_TEST_STASH_FILE tidb-test/
+                            cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
                             curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
                     }
@@ -163,105 +203,77 @@ try {
     }
 
     stage('MySQL Test') {
-        run_test_with_pod {
-            def ws = pwd()
-            def test_dir = "mysql_test"
-            def log_path = "mysql-test.out*"
-            deleteDir()
-            println "work space path:\n${ws}"
-
-            container("golang") {
-                dir("go/src/github.com/pingcap/tidb") {
-                    timeout(10) {
-                        retry(3){
-                            deleteDir()
-                            sh """
-                                while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                curl ${tidb_url} | tar xz
-                            """
-                        }
-                    }
-                }
-                dir("go/src/github.com/pingcap") {
-                    sh """
-                        echo "unstash tidb"
-                        curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                    """
-                }
-
-                dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
-                    try {
-                        timeout(25) {
-                            if (ghprbTargetBranch in ["master", "release-6.2"]) {
+        def run = { test_dir, test_cmd ->
+            run_test_with_pod {
+                def ws = pwd()
+                def log_path = "mysql-test.out*"
+                deleteDir()
+                println "work space path:\n${ws}"
+                container("golang") {
+                    dir("go/src/github.com/pingcap/tidb") {
+                        timeout(10) {
+                            retry(3){
+                                deleteDir()
                                 sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh -backlist=1
-
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
-                            } else {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh
-
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    curl ${tidb_url} | tar xz
                                 """
                             }
                         }
-                    } catch (err) {
-                        sh "cat ${log_path}"
+                    }
+                    dir("go/src/github.com/pingcap") {
                         sh """
-                        set +e
-                        killall -9 -r tidb-server
-                        killall -9 -r tikv-server
-                        killall -9 -r pd-server
-                        rm -rf /tmp/tidb
-                        set -e
+                            echo "unstash tidb"
+                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar xz
+                            pwd && ls -alh
                         """
-                        throw err
-                    } finally {
-                        if (ghprbTargetBranch == "master") {
-                            junit testResults: "**/result.xml"
-                            try {
-                                def id=UUID.randomUUID().toString()
-                                def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
-                                sh """
-                                curl -F ${filepath}=@result.xml ${FILE_SERVER_URL}/upload
-                                """
-                                resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
-                            } catch (Exception e) {
-                                // upload test case result to fileserver, do not block ci
-                                print "upload test result to fileserver failed, continue."
+                    }
+                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        try {
+                            timeout(25) {
+                            sh """
+                            pwd && ls -alh
+                            TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                            ${test_cmd}
+                            """ 
+                            }
+                        } catch (err) {
+                            sh "cat ${log_path}"
+                            sh """
+                            set +e
+                            killall -9 -r tidb-server
+                            killall -9 -r tikv-server
+                            killall -9 -r pd-server
+                            rm -rf /tmp/tidb
+                            set -e
+                            """
+                            throw err
+                        } finally {
+                            if (parallel_run_mysql_test(ghprbTargetBranch)) {
+                                junit testResults: "**/result.xml"
+                                upload_test_result("result.xml")
                             }
                         }
                     }
                 }
             }
         }
+        def tests = [:]
+        run_test_with_pod {
+            container("golang") {
+                if (parallel_run_mysql_test(ghprbTargetBranch)) {
+                    println "run test in parallel with 4 parts"
+                    tests["test part1"] = {run("mysql_test", "./test.sh -backlist=1 -part=1")}
+                    tests["test part2"] = {run("mysql_test", "./test.sh -backlist=1 -part=2")}
+                    tests["test part3"] = {run("mysql_test", "./test.sh -backlist=1 -part=3")}
+                    tests["test part4"] = {run("mysql_test", "./test.sh -backlist=1 -part=4")}
+                } else {
+                    tests["mysql test"] = {run("mysql_test", "./test.sh")}
+                }
+            }
+        }
+        parallel tests
     }
-
     currentBuild.result = "SUCCESS"
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     println e
@@ -310,6 +322,7 @@ catch (Exception e) {
                 [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: ""],
                 [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
                 [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                [$class: 'StringParameterValue', name: 'PIPLINE_RUN_ERROR_CODE', value: "${ciErrorCode}"],
     ]
 }
 

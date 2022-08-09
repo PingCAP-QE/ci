@@ -76,7 +76,7 @@ POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
@@ -87,10 +87,9 @@ POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 node("master") {
     deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
@@ -301,19 +300,8 @@ try {
                                 rm -rf /tmp/tidb
                                 set -e
                                 awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
-
-                                if [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "master"  ]; then
-                                    echo "run mysql-test on master branch in witelist-mode"
-                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                    ./test.sh -backlist=1
-                                elif [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "release-6.2"  ]; then
-                                    echo "run mysql-test on master branch in witelist-mode"
-                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                    ./test.sh -backlist=1
-                                else
-                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                    ./test.sh
-                                fi;
+                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                ./test.sh
 
                                 set +e
                                 killall -9 -r tidb-server
@@ -712,17 +700,6 @@ EOF
                     all_task_result << ["name": "Analyze Test", "status": "failed", "error": err.message]
                     throw err
                 }
-            }
-
-            tests["Mysql Test"] = {
-                try {
-                    run("mysql_test", "mysql-test.out*")
-                    all_task_result << ["name": "Mysql Test", "status": "success", "error": ""]
-                } catch (err) {
-                    println "Mysql Test failed"
-                    all_task_result << ["name": "Mysql Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
             }
 
             if ( ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-") ) {

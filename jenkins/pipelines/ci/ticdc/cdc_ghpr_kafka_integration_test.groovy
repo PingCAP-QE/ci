@@ -22,7 +22,7 @@ POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
@@ -38,6 +38,11 @@ TEST_POD_LABEL_MAP = [
 feature_branch_use_go13 = []
 feature_branch_use_go16 = ["hz-poc", "ft-data-inconsistency", "br-stream"]
 feature_branch_use_go18 = ["release-multi-source", "fb/latency"]
+
+def taskStartTimeInMillis = System.currentTimeMillis()
+def k8sPodReadyTime = System.currentTimeMillis()
+def taskFinishTime = System.currentTimeMillis()
+resultDownloadPath = ""
 
 // Version Selector
 // branch or tag
@@ -392,6 +397,32 @@ if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_
             echo("default params: ${default_params}")
             build(job: "tiflow_update_commit_status", parameters: default_params, wait: true)
         }
+    }
+} else {
+    stage("upload-pipeline-data") {
+        taskFinishTime = System.currentTimeMillis()
+        build job: 'upload-pipelinerun-data',
+            wait: false,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'REPO', value: "pingcap/tiflow"],
+                    [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                    [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                    [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                    [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                    [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
+                    [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                    [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                    [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                    [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "4000m"],
+                    [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
+                    [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+        ]
     }
 }
 

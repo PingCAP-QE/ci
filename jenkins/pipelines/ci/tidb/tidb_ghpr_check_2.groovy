@@ -47,15 +47,14 @@ POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
 ]
 
 node("master") {
     deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
@@ -66,6 +65,7 @@ def taskStartTimeInMillis = System.currentTimeMillis()
 def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
+ciErrorCode = 0
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
@@ -107,56 +107,62 @@ try {
     run_with_pod {
         def ws = pwd()
         stage("Checkout") {
-            // update code
-            dir("/home/jenkins/agent/code-archive") {
-                // delete to clean workspace in case of agent pod reused lead to conflict.
-                deleteDir()
-                // copy code from nfs cache
-                container("golang") {
-                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
-                        timeout(5) {
-                            sh """
-                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
-                                mkdir -p ${ws}/go/src/github.com/pingcap/tidb
-                                tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
-                            """
-                        }
-                    }
-                    dir("${ws}/go/src/github.com/pingcap/tidb") {
-                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
-                            echo "Clean dir then get tidb src code from fileserver"
-                            deleteDir()
-                        }
-                        if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
-                            dir("${ws}/go/src/github.com/pingcap/tidb") {
+
+            try {
+                dir("/home/jenkins/agent/code-archive") {
+                    // delete to clean workspace in case of agent pod reused lead to conflict.
+                    deleteDir()
+                    // copy code from nfs cache
+                    container("golang") {
+                        if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
+                            timeout(5) {
                                 sh """
-                                    rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                                    rm -rf /home/jenkins/agent/code-archive/tidb
-                                    wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz -q --show-progress
-                                    tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                                    cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
+                                    mkdir -p ${ws}/go/src/github.com/pingcap/tidb
+                                    tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
                                 """
                             }
                         }
-                        try {
-                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                        }   catch (info) {
-                                retry(2) {
-                                    echo "checkout failed, retry.."
-                                    sleep 5
-                                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                        deleteDir()
-                                    }
-                                    // if checkout one pr failed, we fallback to fetch all thre pr data
-                                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        dir("${ws}/go/src/github.com/pingcap/tidb") {
+                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
+                                echo "Clean dir then get tidb src code from fileserver"
+                                deleteDir()
+                            }
+                            if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
+                                dir("${ws}/go/src/github.com/pingcap/tidb") {
+                                    sh """
+                                        rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
+                                        rm -rf /home/jenkins/agent/code-archive/tidb
+                                        wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz -q --show-progress
+                                        tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                                    """
                                 }
                             }
-                        sh "git checkout -f ${ghprbActualCommit}"
-                        sh """
-                        GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
-                        """
+                            try {
+                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                            }   catch (info) {
+                                    retry(2) {
+                                        echo "checkout failed, retry.."
+                                        sleep 5
+                                        if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                            deleteDir()
+                                        }
+                                        // if checkout one pr failed, we fallback to fetch all thre pr data
+                                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                                    }
+                                }
+                            sh "git checkout -f ${ghprbActualCommit}"
+                            sh """
+                            GO111MODULE=on go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server
+                            """
+                        }
                     }
                 }
+            } catch (e) {
+                println "Checkout failed: ${e}"
+                ciErrorCode = 1
+                throw e
             }
             stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
         }
@@ -247,7 +253,7 @@ try {
                     unstash 'tidb'
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") { 
-                             timeout(15) { 
+                             timeout(30) { 
                                  try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
@@ -312,7 +318,7 @@ try {
                     unstash 'tidb'
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") { 
-                             timeout(15) { 
+                             timeout(30) { 
                                  try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
@@ -446,6 +452,7 @@ catch (Exception e) {
                 [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: ""],
                 [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
                 [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                [$class: 'StringParameterValue', name: 'PIPLINE_RUN_ERROR_CODE', value: "${ciErrorCode}"],
     ]
 }
 
