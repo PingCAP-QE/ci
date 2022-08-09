@@ -71,12 +71,13 @@ pipeline {
                         fi
 
                         tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        echo "${tidb_test_refs}"
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
-                        tidb_test_sha1="$(curl '${tidb_test_refs}')"
+                        tidb_test_sha1="$(curl --fail ${tidb_test_refs})"
 
                         tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                        curl ${tidb_test_url} | tar xz
+                        curl --fail ${tidb_test_url} | tar xz
 
                         cd mysql_test
                         TIDB_SRC_PATH=$(realpath ../../tidb) ./build.sh

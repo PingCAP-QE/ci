@@ -16,7 +16,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220805"
       tty: true
       resources:
         requests:
@@ -96,13 +96,13 @@ pipeline {
                             refs="${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
                             sha1="$(curl ${refs} | head 1)"
                             url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${sha1}/centos7/tikv-server.tar.gz"
-                            curl ${url} | tar xz
+                            curl --fail ${url} | tar xz
                             '''               
                         sh label: 'pd-server', script: '''
                             refs="${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                            sha1="$(curl ${refs} | head 1)"
+                            sha1="$(curl --fail ${refs} | head 1)"
                             url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${sha1}/centos7/pd-server.tar.gz"
-                            curl ${url} | tar xz bin
+                            curl --fail ${url} | tar xz bin
                             '''
                     }
                     stash includes: "**", name: "tidb"
