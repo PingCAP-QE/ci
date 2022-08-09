@@ -52,15 +52,13 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    script {
-                        retry(3){
-                            sh label: 'get tidb-server binnary', script: '''#! /usr/bin/env bash
-                                tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-                                tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                curl ${tidb_url} | tar xz
-                                '''
-                        }
+                    retry(3){
+                        sh label: 'get tidb-server binnary', script: '''#! /usr/bin/env bash
+                            tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
+                            tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                            curl ${tidb_url} | tar xz
+                            '''
                     }
                 }
                 dir("tidb-test") {                    
@@ -87,13 +85,16 @@ pipeline {
                 // TODO(wuhuizuo): store files:
                 // - tidb/bin/tidb-server
                 // - tidb-test/mysql-test
+            }
         }
         stage('MySQL Tests') {
             failFast true
             matrix {
-                axis {
-                    name 'PART'
-                    values '1', '2', '3', '4'
+                axes {
+                    axis {
+                        name 'PART'
+                        values '1', '2', '3', '4'
+                    }
                 }
                 stages {
                     stage("Test") {
@@ -131,6 +132,7 @@ pipeline {
                         }
                     }
                 }
-            }   
+            }        
+        }
     }
 }
