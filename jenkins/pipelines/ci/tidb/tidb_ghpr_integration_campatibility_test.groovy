@@ -85,8 +85,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tidb-mergeci"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-ticdc"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -116,26 +116,10 @@ def run_with_pod(Closure body) {
 }
 
 all_task_result = []
-def notRun = 1
 
 try {
-    stage("Pre-check"){
-        if (!params.force){
-            node("master"){
-                notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-            }
-        }
-
-        if (notRun == 0){
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
 
     stage('Prepare') {
-
         run_with_pod {
             def ws = pwd()
             deleteDir()
