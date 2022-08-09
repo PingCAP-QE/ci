@@ -41,9 +41,6 @@ spec:
           memory: 1Gi
       command: [/bin/sh, -c]
       args: [cat]
-      env:
-        - name: GOPATH
-          value: /go
 """
 
 // TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.

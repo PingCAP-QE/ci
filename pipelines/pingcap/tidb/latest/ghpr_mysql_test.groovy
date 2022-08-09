@@ -6,7 +6,9 @@ final K8S_NAMESPACE = "apps"
 // final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_TRUNK_BRANCH = "master"
-final POD_TEMPLATE = '''
+final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
+final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
+final POD_TEMPLATE = """
 apiVersion: v1
 kind: Pod
 spec:
@@ -22,14 +24,10 @@ spec:
       args: [cat]
       env:
         - name: GOPATH
-          value: /go
-      volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-  volumes:
-    - name: tmp
-      emptyDir: {}
-'''
+          value: ${ENV_GOPATH}
+        - name: GOCACHE
+          value: ${ENV_GOCACHE} 
+"""
 
 
 // TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
@@ -74,7 +72,7 @@ pipeline {
                             pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
                         }                        
                         sh label: 'download tidb-test and build mysql_test', script: """
-                            TIDB_TEST_BRANCH="${ghprbTargetBranch}"                            
+                            TIDB_TEST_BRANCH=${ghprbTargetBranch}
                             tidb_test_refs="\${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/\${TIDB_TEST_BRANCH}/sha1"
                             while ! curl --output /dev/null --silent --head --fail \${tidb_test_refs}; do sleep 5; done
                             tidb_test_sha1="$(curl '\${tidb_test_refs}')"
