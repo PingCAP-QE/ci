@@ -54,7 +54,7 @@ pipeline {
                 dir("tidb") {
                     script {
                         retry(3){
-                            sh label: 'get tidb-server binnary', script: '''
+                            sh label: 'get tidb-server binnary', script: '''#! /usr/bin/env bash
                                 tidb_done_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
                                 tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
@@ -64,11 +64,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {                    
-                    sh label: 'download tidb-test and build mysql_test', script: '''
-                        #! /usr/bin/env bash
+                    sh label: 'download tidb-test and build mysql_test', script: '''#! /usr/bin/env bash
 
                         TIDB_TEST_BRANCH=${ghprbTargetBranch}
-                        releaseOrHotfixBranchReg="^(release-)?([0-9]+\.[0-9]+)(\.[0-9]+\-.+)?"                           
+                        releaseOrHotfixBranchReg="^(release-)?([0-9]+\\.[0-9]+)(\\.[0-9]+\\-.+)?"
                         if [[ "$TIDB_TEST_BRANCH" =~ $releaseOrHotfixBranchReg ]]; then
                             TIDB_TEST_BRANCH="release-${BASH_REMATCH[1]}"
                         fi
@@ -101,12 +100,12 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir("tidb-test/mysql_test") {
-                                sh """#! /usr/bin/env bash
+                                sh '''#! /usr/bin/env bash
 
                                 pwd && ls -alh
                                 exit_code=0
                                 { # try block
-                                    TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}
+                                    TIDB_SERVER_PATH=../../tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}
                                 } || { # catch block
                                     exit_code="$?"  # exit code of last command which is 44
                                 }
@@ -119,7 +118,7 @@ pipeline {
                                 if [[ "exit_code" != '0' ]]; then
                                     exit \${exit_code}
                                 fi
-                                """
+                                '''
                             }
                         }
                         post{
