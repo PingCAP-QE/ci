@@ -107,7 +107,9 @@ pipeline {
                             dir('tidb') {
                                 cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
                                     cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
-                                        sh label: 'tidb-server', script: 'go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
+                                        cache(path: "./", filter: "bin/*", key: "pingcap-tidb-bin-${ghprbActualCommit}_tidb-server") {
+                                            sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
+                                        }
                                     }
                                 }
                                 withEnv(["TIKV_BRANCH=${ghprbTargetBranch}", "PD_BRANCH=${ghprbTargetBranch}"]) {
