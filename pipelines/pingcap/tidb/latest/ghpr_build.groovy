@@ -1,12 +1,12 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_TRUNK_BRANCH = "master"
-final POD_TEMPLATE = '''
+final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
+final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
+final POD_TEMPLATE = """
 apiVersion: v1
 kind: Pod
 spec:
@@ -22,16 +22,11 @@ spec:
       args: [cat]
       env:
         - name: GOPATH
-          value: /go
-      volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-  volumes:
-    - name: tmp
-      emptyDir: {}
-'''
+          value: ${ENV_GOPATH}
+        - name: GOCACHE
+          value: ${ENV_GOCACHE}
+"""
 
-// TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 pipeline {
     agent {
         kubernetes {
@@ -41,14 +36,19 @@ pipeline {
             yaml POD_TEMPLATE
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     options {
-        timeout(time: 15, unit: 'MINUTES')
+        timeout(time: 30, unit: 'MINUTES')
     }
     stages {
         stage('debug info') {
             steps {
                 sh label: 'Debug info', script: """
                 printenv
+                echo "-------------------------"
+                go env
                 echo "-------------------------"
                 echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -60,27 +60,29 @@ pipeline {
             parallel {   
                 stage("tidb") {
                     steps {
-                        dir("tidb") {                         
-                            retry(2) {
-                                checkout(
-                                    changelog: false,
-                                    poll: false, 
-                                    scm: [
-                                        $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                        doGenerateSubmoduleConfigurations: false, 
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'],
-                                            [$class: 'CleanBeforeCheckout'], 
-                                            [$class: 'CloneOption', timeout: 5],
-                                        ], 
-                                        submoduleCfg: [], 
-                                        userRemoteConfigs: [[
-                                            credentialsId: GIT_CREDENTIALS_ID, 
-                                            refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                            url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
-                                        ]],
-                                    ]
-                                )
+                        dir("tidb") {
+                            // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
+                            cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                                retry(2) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: false,
+                                        scm: [
+                                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                            doGenerateSubmoduleConfigurations: false, 
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'], 
+                                                [$class: 'CloneOption', timeout: 15],
+                                            ],
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                                url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
+                                            ]],
+                                        ]
+                                    )
+                                }
                             }
                         }
                     }
@@ -110,26 +112,28 @@ pipeline {
                                     pluginBranch = "origin/${pluginBranch}/head"
                                 }
 
-                                checkout(
-                                    changelog: false, 
-                                    poll: true, 
-                                    scm: [
-                                        $class: 'GitSCM', 
-                                        branches: [[name: "${pluginBranch}"]], 
-                                        doGenerateSubmoduleConfigurations: false, 
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'], 
-                                            [$class: 'CleanBeforeCheckout'], 
-                                            [$class: 'CloneOption', timeout: 2],
-                                        ], 
-                                        submoduleCfg: [], 
-                                        userRemoteConfigs: [[
-                                            credentialsId: GIT_CREDENTIALS_ID, 
-                                            refspec: pluginSpec, 
-                                            url: 'git@github.com:pingcap/enterprise-plugin.git',
-                                        ]]
-                                    ]
-                                )
+                                cache(path: "./", filter: '**/*', key: "pingcap-enterprise-plugin-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-enterprise-plugin-cache-src-']) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: true,
+                                        scm: [
+                                            $class: 'GitSCM',
+                                            branches: [[name: pluginBranch]],
+                                            doGenerateSubmoduleConfigurations: false, 
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'], 
+                                                [$class: 'CleanBeforeCheckout'], 
+                                                [$class: 'CloneOption', timeout: 2],
+                                            ], 
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                credentialsId: GIT_CREDENTIALS_ID, 
+                                                refspec: pluginSpec,
+                                                url: 'git@github.com:pingcap/enterprise-plugin.git',
+                                            ]]
+                                        ]
+                                    )
+                                }
                             }
                         }
                     }                    
@@ -138,7 +142,7 @@ pipeline {
         }
         stage("Build tidb-server and plugin"){
             failFast true
-            parallel {            
+            parallel {
                 stage("Build tidb-server") {
                     stages {
                         stage("Build"){
@@ -146,8 +150,10 @@ pipeline {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
                             steps {
-                                dir("tidb") { sh "make bazel_build" }
-                            }                            
+                                dir("tidb") {                                     
+                                    sh "make bazel_build"                           
+                                }
+                            }
                             post {       
                                 // TODO: statics and report logic should not put in pipelines.
                                 // Instead should only send a cloud event to a external service.
@@ -158,11 +164,14 @@ pipeline {
                                             allowEmptyArchive: true,
                                         )
                                     }            
-                                }       
+                                }
                             }
                         }
                         stage("Upload") {
-                            steps {                                        
+                            options {
+                                timeout(time: 10, unit: 'MINUTES')
+                            }
+                            steps {
                                 dir("tidb") {
                                     sh label: "create tidb-server tarball", script: """
                                         rm -rf .git
@@ -170,59 +179,44 @@ pipeline {
                                         echo "pr/${ghprbActualCommit}" > sha1
                                         echo "done" > done
                                         """
-
-                                    // upload to tidb dir
-                                    timeout(10) {
-                                        script {
-                                            def filepath = "builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                            def donepath = "builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/done"
-                                            def refspath = "refs/${GIT_FULL_REPO_NAME}/pr/${ghprbPullId}/sha1"                                         
-
-                                            sh label: 'upload to tidb dir', script: """
-                                                curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
-                                                curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                                                """
-                                        }                                
-                                    }
-                                
-                                    // upload to tidb-checker dir
-                                    timeout(10) {
-                                        script {
-                                            def filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                            def donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
-                                            sh label: 'upload to tidb-checker dir', script: """
-                                                curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
-                                                """
-                                        }
-                                    } 
-                                }                               
+                                    sh label: 'upload to tidb dir', script: """
+                                        filepath="builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                        donepath="builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/done"
+                                        refspath="refs/${GIT_FULL_REPO_NAME}/pr/${ghprbPullId}/sha1"
+                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
+                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
+                                        curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
+                                        """
+                                    sh label: 'upload to tidb-checker dir', script: """
+                                        filepath="builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                                        donepath="builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
+                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload                                    
+                                        """
+                                }
                             }
                         }
                     }
                 }
                 stage("Build plugins") {
                     steps {
-                        dir("tidb") {
-                            timeout(time: 20, unit: 'MINUTES') {
-                                sh label: 'build pluginpkg tool', script: """
-                                    cd cmd/pluginpkg
-                                    go build
-                                    """
-                            }
+                        timeout(time: 20, unit: 'MINUTES') {
+                            sh label: 'build pluginpkg tool', script: '''
+                                cd tidb/cmd/pluginpkg
+                                go build
+                                '''
                         }
-                        dir("enterprise-plugin/whitelist") {
-                            sh label: 'build plugin whitelist', script: """
+                        dir('enterprise-plugin/whitelist') {
+                            sh label: 'build plugin whitelist', script: '''
                                 GO111MODULE=on go mod tidy
-                                ${env.WORKSPACE}/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                """
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                '''
                         }
-                        dir("enterprise-plugin/audit") {
-                            sh label: 'build plugin: audit', script: """
+                        dir('enterprise-plugin/audit') {
+                            sh label: 'build plugin: audit', script: '''
                                 GO111MODULE=on go mod tidy
-                                ${env.WORKSPACE}/tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                """
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                '''
                         }
                     }
                 }
