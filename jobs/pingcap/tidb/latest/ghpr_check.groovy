@@ -41,8 +41,7 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    // excludedRegions('.*\\.md')
-                    excludedRegions('')
+                    excludedRegions('.*\\.md')
                     
                     blackListLabels("") // list of GitHub labels for which the build should not be triggered.
                     whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
@@ -86,7 +85,7 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("feature/cache-checkout")
+                    branch("main")
                 }
             }
         }

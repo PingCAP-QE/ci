@@ -42,8 +42,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    // excludedRegions('.*\\.md')
-                    excludedRegions('')
+                    excludedRegions('.*\\.md')
 
                     blackListLabels("")
                     whiteListLabels("")
@@ -87,7 +86,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     remote {
                         url("https://github.com/PingCAP-QE/ci.git")
                     }
-                    branch("feature/cache-checkout")
+                    branch("main")
                 }
             }
         }
