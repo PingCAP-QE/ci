@@ -50,22 +50,21 @@ println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 all_task_result = []
-POD_NAMESPACE = "jenkins-tidb-mergeci"
+POD_NAMESPACE = "jenkins-ticdc"
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
 ]
 
 node("master") {
     deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
@@ -84,7 +83,7 @@ def run_with_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-go1180-${BUILD_NUMBER}"
     }
 
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -124,7 +123,7 @@ def run_with_memory_volume_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-memory-volume-go1180-${BUILD_NUMBER}"
     }
     
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,

@@ -241,44 +241,20 @@ retry(2) {
         echo "${e}"
         echo "retry!!!"
     } finally {
-        send_notify(taskStartTimeInMillis)
+        build job: 'send_notify',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'RESULT_JOB_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_RESULT', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'RESULT_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_RUN_DISPLAY_URL', value: "${RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
+            ]
         upload_result_to_db()
     }
 }
 
-def send_notify(long taskStartTimeInMillis) {
-    def result = [:]
-    result["name"] = "【" + currentBuild.result + "】" + JOB_NAME
-    result["result"] = currentBuild.result.toLowerCase()
-    result["build_num"] = BUILD_NUMBER
-    result["type"] = "jenkinsci"
-    result["url"] = RUN_DISPLAY_URL
-    result["duration"] = System.currentTimeMillis() - taskStartTimeInMillis
-    result["start_time"] = taskStartTimeInMillis
-    result["trigger"] = "tiup nightly build"
-    if (currentBuild.result == "SUCCESS") {
-        result["notify_message"] = "【SUCCESS】TiUP release tidb master nightly success"
-    } else if (currentBuild.result == "FAILURE") {
-        result["notify_message"] = "【FAILURE】TiUP release tidb master nightly failed"
-    } else {
-        result["notify_message"] = "【ABORTED】TiUP release tidb master nightly aborted"
-    }
-
-    result["notify_receiver"] = ["purelind", "heibaijian", "derekstrong"]
-
-    node("lightweight_pod") {
-        container("golang") {
-            writeJSON file: 'result.json', json: result, pretty: 4
-            sh 'cat result.json'
-            archiveArtifacts artifacts: 'result.json', fingerprint: true
-            sh """
-                export LC_CTYPE="en_US.UTF-8"
-                wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci.py
-                python3 agent-jenkinsci.py result.json || true
-            """
-        }
-    }
-}
 
 def upload_result_to_db() {
     pipeline_build_id = params.PIPELINE_BUILD_ID

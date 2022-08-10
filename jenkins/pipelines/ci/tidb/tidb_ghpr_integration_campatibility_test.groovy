@@ -63,7 +63,7 @@ POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
@@ -73,10 +73,9 @@ POD_LABEL_MAP = [
 
 node("master") {
     deleteDir()
-    def ws = pwd()
-    sh "curl -O https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy"
-    def script_path = "${ws}/goversion-select-lib.groovy"
-    def goversion_lib = load script_path
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
@@ -86,8 +85,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tidb-mergeci"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-ticdc"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -117,26 +116,10 @@ def run_with_pod(Closure body) {
 }
 
 all_task_result = []
-def notRun = 1
 
 try {
-    stage("Pre-check"){
-        if (!params.force){
-            node("master"){
-                notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-            }
-        }
-
-        if (notRun == 0){
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
 
     stage('Prepare') {
-
         run_with_pod {
             def ws = pwd()
             deleteDir()
