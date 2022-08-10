@@ -1,10 +1,9 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-final K8S_COULD = "kubernetes"
-final K8S_NAMESPACE = "apps"
+final K8S_COULD = "kubernetes-ksyun"
+final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_TRUNK_BRANCH = "master"
 final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
 final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
 final POD_TEMPLATE = """
@@ -28,7 +27,6 @@ spec:
           value: ${ENV_GOCACHE}
 """
 
-// TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 pipeline {
     agent {
         kubernetes {
@@ -152,8 +150,6 @@ pipeline {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
                             steps {
-                                // cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
-                                // cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
                                 dir("tidb") {                                     
                                     sh "make bazel_build"                           
                                 }

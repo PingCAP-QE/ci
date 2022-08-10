@@ -1,11 +1,9 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and release-6.2.x branches
-final K8S_COULD = "kubernetes"
-final K8S_NAMESPACE = "apps"
-// final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final K8S_COULD = "kubernetes-ksyun"
+final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_TRUNK_BRANCH = "master"
 final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
 final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
 final POD_TEMPLATE = """
@@ -30,7 +28,6 @@ spec:
 """
 
 
-// TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
     agent {
