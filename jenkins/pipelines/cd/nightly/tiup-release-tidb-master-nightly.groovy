@@ -26,6 +26,7 @@ dm_sha1 = ""
 tiflash_sha1 = ""
 tidb_ctl_githash = ""
 ng_monitoring_sha1 = ""
+String PRODUCED_VERSION
 
 
 retry(2) {
@@ -207,12 +208,13 @@ retry(2) {
             RELEASE_TAG = "nightly"
 
             stage("TiUP build") {
-                build job: "tiup-mirror-online-ga",
+                def job = build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
+                PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
             }
 
             stage("Tiup nightly test") {
@@ -228,7 +230,7 @@ retry(2) {
                     build job: "tiup-check-online-version",
                             wait: true,
                             parameters: [
-                                    [$class: 'StringParameterValue', name: 'VERSION', value: RELEASE_TAG],
+                                    [$class: 'StringParameterValue', name: 'VERSION', value: PRODUCED_VERSION],
                             ]
                 }
                 parallel builds

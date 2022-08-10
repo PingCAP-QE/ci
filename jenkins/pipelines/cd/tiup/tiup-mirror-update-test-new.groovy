@@ -610,3 +610,5 @@ node("build_go1130") {
         }
     }
 }
+
+env.PRODUCED_VERSION = tidb_version
