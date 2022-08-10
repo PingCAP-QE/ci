@@ -33,6 +33,16 @@ pipeline {
                         sh validateScript
                     }
                 }
+                stage('mac') {
+                    agent {
+                        node {
+                            label 'mac'
+                        }
+                    }
+                    steps {
+                        sh validateScript
+                    }
+                }
             }
         }
     }
