@@ -43,7 +43,7 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-ticdc"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
@@ -52,7 +52,7 @@ def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,

@@ -69,7 +69,7 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-ticdc"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-integration-common-test"
@@ -82,7 +82,7 @@ def run_with_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "tidb-ghpr-integration-common-test-go1180-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -121,7 +121,7 @@ def run_with_memory_volume_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "tidb-ghpr-integration-common-test-memory-volume-go1180-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,

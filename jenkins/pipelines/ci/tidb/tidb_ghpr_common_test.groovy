@@ -83,7 +83,7 @@ POD_LABEL_MAP = [
     "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
 ]
-POD_NAMESPACE = "jenkins-ticdc"
+POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 node("master") {
     deleteDir()
@@ -102,10 +102,10 @@ def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
 
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
-            namespace: "jenkins-ticdc",
+            namespace: "jenkins-tidb-mergeci",
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -132,10 +132,10 @@ def run_test_with_pod(Closure body) {
 
 def run_with_lightweight_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-lightweight"
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
-            namespace: "jenkins-ticdc",
+            namespace: "jenkins-tidb-mergeci",
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -156,7 +156,7 @@ def run_with_lightweight_pod(Closure body) {
 
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
