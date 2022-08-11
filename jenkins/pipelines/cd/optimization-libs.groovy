@@ -164,10 +164,26 @@ def get_image_str_for_enterprise(product, arch, tag, if_release, if_multi_arch) 
 }
 
 //new
+
+def upload_enterprise_plugin_binary(arch, plugin_hash, plugin_binary) {
+    def enterprise_plugin_source = "enterprise-plugin-linux-${arch}-enterprise"
+    def enterprise_plugin_target = "enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise"
+
+    if (arch == "amd64") {
+        sh """
+            wget ${FILE_SERVER_URL}/download/${plugin_binary}
+            export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+            upload.py ${enterprise_plugin_source}.tar.gz ${enterprise_plugin_target}.tar.gz
+            aws s3 cp ${enterprise_plugin_source}.tar.gz s3://download.pingcap.org/${enterprise_plugin_target}.tar.gz --acl public-read
+        """
+    }
+}
+
 def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if_multi_arch) {
     // build tidb enterprise image with plugin
     binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/centos7/${product}-linux-${arch}-enterprise.tar.gz"
     plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
+
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
     if (product == "tidb" && arch == "amd64") {
@@ -193,6 +209,9 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
     build job: "docker-common-check",
             wait: true,
             parameters: paramsDocker
+    // 上传 enterprise-plugin 到 s3
+    // todo: 20220811, 暂定 enterprise-plugin 在 RC 阶段上传，因为组件上传到 s3 上时，并没有开放给用户，用户是在 GA 发版完成后，通知前台更新用户获取入口才开放, 且 RC 到 GA 没有变化，所以暂时放在 RC 中
+    // upload_enterprise_plugin_binary(arch, plugin_hash, plugin_binary)
 }
 
 //new
