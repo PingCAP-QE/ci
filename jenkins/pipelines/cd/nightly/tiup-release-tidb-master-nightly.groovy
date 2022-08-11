@@ -228,7 +228,7 @@ retry(2) {
                 }
                 builds["tiup-check-online-version"] = {
                     build job: "tiup-check-online-version",
-                            wait: true,
+                            wait: false, // dry-run
                             parameters: [
                                     [$class: 'StringParameterValue', name: 'VERSION', value: PRODUCED_VERSION],
                             ]
