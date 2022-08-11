@@ -12,7 +12,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:20220805"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220810"
       tty: true
       resources:
         requests:
@@ -52,11 +52,11 @@ pipeline {
                         values(
                             'explaintest.sh y', 
                             'explaintest.sh n', 
-                            'run_real_tikv_tests.sh brietest', 
-                            'run_real_tikv_tests.sh pessimistictest', 
-                            'run_real_tikv_tests.sh sessiontest', 
-                            'run_real_tikv_tests.sh statisticstest',
-                            'run_real_tikv_tests.sh txntest',
+                            'run_real_tikv_tests.sh bazel_brietest', 
+                            'run_real_tikv_tests.sh bazel_pessimistictest', 
+                            'run_real_tikv_tests.sh bazel_sessiontest', 
+                            'run_real_tikv_tests.sh bazel_statisticstest',
+                            'run_real_tikv_tests.sh bazel_txntest',
                             )
                     }
                 }
