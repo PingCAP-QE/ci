@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
 pipelineJob('pingcap/tidb/ghpr_check2') {
-    disabled(true)
+    // disabled(true)
     logRotator {
         daysToKeep(180)
         numToKeep(1500)
@@ -22,7 +22,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     // triggerPhrase('.*/(merge|run-(all-tests|check[-_]dev[-_]?2))')
                     // onlyTriggerPhrase(false)
                     // ### debug
-                    triggerPhrase('^/gray-debug')
+                    triggerPhrase('/gray-debug')
                     onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
@@ -42,7 +42,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     // ignore when only those file changed.(
                     //   multi line regex
                     excludedRegions('.*\\.md')
-
+                    
                     blackListLabels("") // list of GitHub labels for which the build should not be triggered.
                     whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
                     adminlist("")
@@ -79,7 +79,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
  
     definition {
         cpsScm {
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_check.groovy")
+            scriptPath("pipelines/pingcap/tidb/latest/ghpr_check2.groovy")
             scm {
                 git{
                     remote {

@@ -3,18 +3,16 @@
 // should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_TRUNK_BRANCH = "master"
-final CODECOV_TOKEN_CREDENTIAL_ID = 'codecov-token-tidb'
-final POD_TEMPLATE = '''
+final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
+final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
+final POD_TEMPLATE = """
 apiVersion: v1
 kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220805"
       tty: true
       resources:
         requests:
@@ -24,11 +22,13 @@ spec:
       command: [/bin/sh, -c]
       args: [cat]
       env:
+      env:
         - name: GOPATH
-          value: /go    
-'''
+          value: ${ENV_GOPATH}
+        - name: GOCACHE
+          value: ${ENV_GOCACHE} 
+"""
 
-// TODO(wuhuizuo): cache git code with https://plugins.jenkins.io/jobcacher/ and S3 service.
 pipeline {
     agent {
         kubernetes {
@@ -55,27 +55,28 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                retry(2) {
-                    checkout(
-                        changelog: false,
-                        poll: false, 
-                        scm: [
-                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                            doGenerateSubmoduleConfigurations: false, 
-                            extensions: [
-                                [$class: 'PruneStaleBranch'], 
-                                [$class: 'CleanBeforeCheckout'], 
-                                [$class: 'CloneOption', timeout: 5],
-                            ], 
-                            submoduleCfg: [], 
-                            userRemoteConfigs: [[
-                                credentialsId: GIT_CREDENTIALS_ID, 
-                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                url: "git@github.com:${GIT_FULL_REPO_NAME}.git"
-                            ]],
-                        ]
-                    )
-                }
+                cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                    retry(2) {
+                        checkout(
+                            changelog: false,
+                            poll: false,
+                            scm: [
+                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                                    [$class: 'CloneOption', timeout: 5],
+                                ], 
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                ]],
+                            ]
+                        )
+                    }
+                 }
             }
         }                
         stage("Checks") {

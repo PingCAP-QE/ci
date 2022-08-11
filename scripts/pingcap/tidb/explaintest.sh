@@ -23,7 +23,11 @@ EOF
 
     chmod +x cmd/explaintest/run-tests.sh
 
-    TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server" TIKV_PATH="${tikv_addr1}" cmd/explaintest/run-tests.sh -d "$@"
+    export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
+    export TIKV_PATH="${tikv_addr1}"
+    pushd cmd/explaintest
+        ./run-tests.sh -d "$@"
+    popd
 }
 
 function cleanup() {

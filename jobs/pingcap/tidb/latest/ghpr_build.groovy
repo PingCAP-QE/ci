@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
 pipelineJob('pingcap/tidb/ghpr_build') {
-    disabled(true)
+    // disabled(true)
     logRotator {
         daysToKeep(180)
         numToKeep(2000)
@@ -24,7 +24,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     // onlyTriggerPhrase(false)
 
                     // ### debug
-                    triggerPhrase('^/gray-debug')
+                    triggerPhrase('/gray-debug')
                     onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
