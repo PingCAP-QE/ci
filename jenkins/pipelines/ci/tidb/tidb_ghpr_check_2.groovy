@@ -48,14 +48,21 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220810",
 ]
-
+ALWAYS_PULL_IMAGE=true
 node("master") {
-    deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
-    def goversion_lib = load('goversion-select-lib.groovy')
-    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    if (user_bazel(ghprbTargetBranch)) {
+        GO_VERSION = "bazel_master"
+        ALWAYS_PULL_IMAGE = false
+        RESOURCE_REQUEST_CPU = '2000m'
+    } else {
+        deleteDir()
+        def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+        sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+        def goversion_lib = load('goversion-select-lib.groovy')
+        GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    }
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
@@ -78,7 +85,7 @@ def run_with_pod(Closure body) {
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
+                            name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             privileged: true,
                             resourceRequestCpu: '6000m', resourceRequestMemory: '8Gi',
@@ -86,7 +93,7 @@ def run_with_pod(Closure body) {
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     ),
                     containerTemplate(
-                            name: 'jnlp', image: "${jnlp_docker_image}", alwaysPullImage: false,
+                            name: 'jnlp', image: "${jnlp_docker_image}", alwaysPullImage: ALWAYS_PULL_IMAGE,
                             resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
                     ),
             ],
@@ -192,8 +199,54 @@ try {
                     unstash 'tidb'
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
-                            timeout(45) { 
-                                try {
+                            timeout(45) {
+                                if (ghprbTargetBranch == "master") {
+                                    try {
+                                    ws = pwd()
+                                    def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
+                                    def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
+                                    tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+
+                                    def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
+                                    def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
+                                    pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                                    sh """
+                                    curl ${tikv_url} | tar xz
+                                    curl ${pd_url} | tar xz bin
+
+                                    # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
+                                    echo -e "[pessimistic-txn]\npipelined = false\n" > tikv.toml
+                                    echo -e "[raftdb]\nmax-open-files = 20480\n" >> tikv.toml
+                                    echo -e "[rocksdb]\nmax-open-files = 20480\n" >> tikv.toml
+
+                                    bin/pd-server --name=pd-0 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-0/data --peer-urls=http://127.0.0.1:2380 --advertise-peer-urls=http://127.0.0.1:2380 --client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd1.log &
+                                    bin/pd-server --name=pd-1 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-1/data --peer-urls=http://127.0.0.1:2381 --advertise-peer-urls=http://127.0.0.1:2381 --client-urls=http://127.0.0.1:2382 --advertise-client-urls=http://127.0.0.1:2382  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd2.log &
+                                    bin/pd-server --name=pd-2 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-2/data --peer-urls=http://127.0.0.1:2383 --advertise-peer-urls=http://127.0.0.1:2383 --client-urls=http://127.0.0.1:2384 --advertise-client-urls=http://127.0.0.1:2384  --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 -force-new-cluster &> pd3.log &
+                                    bin/tikv-server --addr=127.0.0.1:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20180 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-0/data -f  tikv1.log &
+                                    bin/tikv-server --addr=127.0.0.1:20161 --advertise-addr=127.0.0.1:20161 --status-addr=127.0.0.1:20181 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-1/data -f  tikv2.log &
+                                    bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-2/data -f  tikv3.log &
+
+                                    sleep 10
+                                    make bazel_${test_suite}
+                                    """
+                                    } catch (Exception e){ 
+                                    sh "cat ${ws}/pd1.log || true"
+                                    sh "cat ${ws}/tikv1.log || true"
+                                    sh "cat ${ws}/pd2.log || true"
+                                    sh "cat ${ws}/tikv2.log || true"
+                                    sh "cat ${ws}/pd3.log || true"
+                                    sh "cat ${ws}/tikv3.log || true"
+                                    throw e
+                                    } finally {
+                                    sh """
+                                    set +e
+                                    killall -9 -r -q tikv-server
+                                    killall -9 -r -q pd-server
+                                    set -e
+                                    """
+                                    }
+                                } else {
+                                    try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
                                     def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
@@ -240,6 +293,7 @@ try {
                                     """
                                     }
                                 }
+                            }   
                         }
                     }
                 }
