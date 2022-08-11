@@ -200,7 +200,7 @@ try {
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(45) {
-                                if () {
+                                if (ghprbTargetBranch == "master") {
                                     try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
@@ -293,9 +293,7 @@ try {
                                     """
                                     }
                                 }
-                                }
-
-                                
+                            }   
                         }
                     }
                 }
