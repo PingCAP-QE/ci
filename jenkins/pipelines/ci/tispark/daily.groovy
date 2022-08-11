@@ -34,11 +34,15 @@ def test_master(version) {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
+            },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
             },
     )
 }
