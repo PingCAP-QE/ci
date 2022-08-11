@@ -52,7 +52,7 @@ GO_IMAGE_MAP = [
 ]
 ALWAYS_PULL_IMAGE=true
 node("master") {
-    if (user_bazel(ghprbTargetBranch)) {
+    if (ghprbTargetBranch in ["master"]) {
         GO_VERSION = "bazel_master"
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
