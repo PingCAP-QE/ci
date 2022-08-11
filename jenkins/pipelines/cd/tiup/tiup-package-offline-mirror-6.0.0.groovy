@@ -104,6 +104,16 @@ def package_enterprise = { arch ->
     tar -czf tiflash-${VERSION}-linux-${arch}.tar.gz tiflash
     tiup mirror publish tiflash ${VERSION} tiflash-${VERSION}-linux-${arch}.tar.gz tiflash/tiflash --arch ${arch} --os linux --desc="The TiFlash Columnar Storage Engine"
     """
+    if (release_tag >= "v6.1.0") {
+        println "current release_tag is ${release_tag}, need to remove commits dir after v6.1.0 tiup enterprise offline server package"
+        // remove the useless files
+        // releative issue : https://github.com/PingCAP-QE/ci/issues/1254
+        sh """
+        cd ${dst}
+        tree ./commits/
+        rm -rf commits/
+        """
+    }
 
     sh """
     echo '\$bin_dir/tiup telemetry disable &> /dev/null' >> $dst/local_install.sh
