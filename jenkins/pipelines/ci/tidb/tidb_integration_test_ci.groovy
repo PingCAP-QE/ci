@@ -314,6 +314,7 @@ node("github-status-updater") {
                 sh 'cat ciResult.json'
                 archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
                 withCredentials([string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN'),
+                                 string(credentialsId: 'sre-bot-token', variable: 'GITHUB_API_TOKEN_CHECK_DATA'),
                                  string(credentialsId: 'break-mergeci-github-token', variable: 'BREAK_MERGE_CI_GITHUB_API_TOKEN'),
                                  string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
                                  string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
@@ -338,6 +339,8 @@ node("github-status-updater") {
                         export COMMENT_PR_GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
                         rm -rf agent-tidb-mergeci.py
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci.py
+                        wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent_upload_tidb_mergeci_commit_status.py
+                        python3 agent_upload_tidb_mergeci_commit_status.py ${TIDB_BRANCH} ${TIDB_COMMIT_ID} || true
                         python3 agent-tidb-mergeci.py ciResult.json || true
                         """
                     }
