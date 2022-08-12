@@ -129,7 +129,7 @@ def package_tools = { plat, arch ->
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     """
 
-    if (plat == "community") {
+    if (plat == "community" || plat == "enterprise") {
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz

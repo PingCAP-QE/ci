@@ -89,6 +89,13 @@ def package_enterprise = { arch ->
     curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     echo "upload $dst successed!"
     """
+
+    sh """
+    export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+    upload.py ${dst}.tar.gz ${dst}.tar.gz
+    aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
+    echo "upload $dst successed!"
+    """
 }
 
 def package_tools = { plat, arch ->
@@ -129,7 +136,7 @@ def package_tools = { plat, arch ->
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     """
 
-    if(plat == "community") {
+    if(plat == "community" || plat == "enterprise") {
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz
