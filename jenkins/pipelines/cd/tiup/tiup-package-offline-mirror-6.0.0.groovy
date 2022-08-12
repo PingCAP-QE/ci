@@ -29,14 +29,30 @@ def clone_server_package = { arch, dst ->
 }
 
 def clone_toolkit_package = { arch, dst ->
-    sh """
-    tiup mirror set https://tiup-mirrors.pingcap.com
-    tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
-    --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
-    --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
-    --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
-    --PCC latest --pump $VERSION --drainer $VERSION 
-    """
+    // Add some monitor tools to the toolkit package for offline mirror >= v6.1.1
+    // TODO: which package is server, --cluster latest?
+    // issue : https://github.com/PingCAP-QE/ci/issues/1256
+    if (release_tag >= "v6.1.1") {
+        sh """
+        tiup mirror set https://tiup-mirrors.pingcap.com
+        tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
+        --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
+        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
+        --grafana $VERSION --alertmanager latest \
+        --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
+        --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
+        --PCC latest --pump $VERSION --drainer $VERSION --server latest
+        """
+    } else {
+        sh """
+        tiup mirror set https://tiup-mirrors.pingcap.com
+        tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
+        --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
+        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
+        --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
+        --PCC latest --pump $VERSION --drainer $VERSION 
+        """
+    }
 }
 
 def package_community = { arch ->
