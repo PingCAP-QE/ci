@@ -41,7 +41,7 @@ def clone_toolkit_package = { arch, dst ->
         --grafana $VERSION --alertmanager latest \
         --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
         --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
-        --PCC latest --pump $VERSION --drainer $VERSION 
+        --PCC latest --pump $VERSION --drainer $VERSION --server latest
         """
     } else {
         sh """
