@@ -190,10 +190,8 @@ try {
                     }
                     parallel publishs
                 }
-
             }
         }
-
         currentBuild.result = "SUCCESS"
     }
 } catch (Exception e) {
