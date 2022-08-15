@@ -56,8 +56,8 @@ def pack = { version, os, arch ->
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
     fi
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_proxy_details.json
-    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}metrics/grafana/tiflash_proxy_summary.json
-    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}metrics/grafana/tiflash_summary.json
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_proxy_summary.json
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_summary.json
 
     cd ..
     tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
