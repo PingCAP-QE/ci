@@ -17,7 +17,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
             triggers {
                 ghprbTrigger {
                     cron('H/5 * * * *')
-                    gitHubAuthId('') // tidb-ci-bot.
+                    gitHubAuthId('') // using the default only one.
 
                     // ### prod
                     triggerPhrase('.*/(merge|run-(all-tests|build).*)')
