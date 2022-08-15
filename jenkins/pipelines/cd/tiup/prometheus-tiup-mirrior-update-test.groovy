@@ -122,14 +122,14 @@ node("build_go1130") {
         checkout scm
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
-        if (RELEASE_BRANCH != "") {
-            tag = RELEASE_BRANCH
-        }
         stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
         def tag = RELEASE_TAG
+        if (RELEASE_BRANCH != "") {
+            tag = RELEASE_BRANCH
+        }
         
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
         ng_monitoring_sha1 = ""
