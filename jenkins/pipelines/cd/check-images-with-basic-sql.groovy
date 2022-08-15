@@ -17,7 +17,18 @@ pipeline {
     }
     agent {
         kubernetes {
-            yamlFile 'tcctl-pod.yaml'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: tcctl
+      image: hub.pingcap.net/qa/tcctl
+      command:
+        - sleep
+      args:
+        - infinity
+'''
         }
     }
     environment {
