@@ -1,31 +1,3 @@
-def checkoutTiCS(branch) {
-    checkout(changelog: false, poll: true, scm: [
-            $class                           : "GitSCM",
-            branches                         : [
-                    [name: "${branch}"],
-            ],
-            userRemoteConfigs                : [
-                    [
-                            url          : "git@github.com:pingcap/tics.git",
-                            refspec      : "+refs/heads/*:refs/remotes/origin/*",
-                            credentialsId: "github-sre-bot-ssh",
-                    ]
-            ],
-            extensions                       : [
-                    [$class             : 'SubmoduleOption',
-                     disableSubmodules  : true,
-                     parentCredentials  : true,
-                     recursiveSubmodules: true,
-                     trackingSubmodules : false,
-                     reference          : ''],
-                    [$class: 'PruneStaleBranch'],
-                    [$class: 'CleanBeforeCheckout'],
-                    [$class: 'LocalBranch']
-            ],
-            doGenerateSubmoduleConfigurations: false,
-    ])
-    // checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name:  "${branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'LocalBranch'],[$class: 'CloneOption', noTags: true]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/heads/*:refs/remotes/origin/*", url: 'git@github.com:pingcap/tics.git']]]
-}
 
 
 def name="ng-monitoring"
@@ -104,6 +76,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/tikv/tikv/${tag}/metrics/alertmanager/tikv.accelerate.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/alertmanager/binlog.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflow/${tag}/metrics/alertmanager/ticdc.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/alertmanager/tiflash.rules.yml || true; \
     
     if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
         wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/alertmanager/lightning.rules.yml || true; \
@@ -115,8 +88,8 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/blacker.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/bypass.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/kafka.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/node.rules.yml || true; \
-    cp ../metrics/alertmanager/tiflash.rules.yml . || true; 
+    wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/node.rules.yml || true;
+
 
     cd ..
 
@@ -155,12 +128,6 @@ node("build_go1130") {
 
         def tag = RELEASE_TAG
         
-        stage("Checkout tics") {
-            if (RELEASE_BRANCH != "") {
-                tag = RELEASE_BRANCH
-            }
-            checkoutTiCS(tag)
-        }
         sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
         ng_monitoring_sha1 = ""
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
