@@ -26,17 +26,27 @@ pipeline {
                 stage('linux/arm64') {
                     agent {
                         node {
-                            label 'arm'
+                            label 'linux && arm64'
                         }
                     }
                     steps {
                         sh validateScript
                     }
                 }
-                stage('mac') {
+                stage('darwin/arm64') {
                     agent {
                         node {
-                            label 'mac'
+                            label 'darwin && arm64'
+                        }
+                    }
+                    steps {
+                        sh validateScript
+                    }
+                }
+                stage('darwin/amd64') {
+                    agent {
+                        node {
+                            label 'darwin && amd64'
                         }
                     }
                     steps {
