@@ -1,7 +1,7 @@
 
 
 def name="ng-monitoring"
-def ng_monitoring_sha1, tarball_name
+def ng_monitoring_sha1
 
 def download = { version, os, arch ->
     if (os == "darwin" && arch == "arm64") {
@@ -13,7 +13,7 @@ def download = { version, os, arch ->
         wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
         """
     }
-
+    def platform = ""
     if (os == "linux") {
         platform = "centos7"
     }
@@ -26,7 +26,7 @@ def download = { version, os, arch ->
         platform = "darwin-arm64"
     }
 
-    tarball_name = "${name}-${os}-${arch}.tar.gz"
+    def tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
     rm -rf ${tarball_name}
@@ -39,13 +39,14 @@ def download = { version, os, arch ->
 
     if ( RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${RELEASE_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${RELEASE_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     }
 
 }
 
 def unpack = { version, os, arch ->
+    def tarball_name = "${name}-${os}-${arch}.tar.gz"
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
@@ -112,15 +113,50 @@ def update = { version, os, arch ->
     pack version, os, arch
 }
 
-node("build_go1130") {
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def namespace = "jenkins-cd"
+    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    podTemplate(label: label,
+            cloud: cloud,
+            namespace: namespace,
+            idleMinutes: 0,
+            containers: [
+                    containerTemplate(
+                            name: 'golang', alwaysPullImage: true,
+                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            
+                    )
+            ],
+            volumes: [
+                            emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    ],
+    ) {
+        node(label) {
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            body()
+        }
+    }
+}
+
+run_with_pod {
     container("golang") {
         stage("Prepare") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
         }
-
-        checkout scm
-        def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+        retry(5) {
+            sh """
+            wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
+            """
+        }
+        
+        def util = load "tiup_utils.groovy"
 
         stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
@@ -145,28 +181,50 @@ node("build_go1130") {
             VERSION = "2.27.1"
         }
 
+        multi_os_update = [:]
         if (params.ARCH_X86) {
-            stage("TiUP build prometheus on linux/amd64") {
-                update VERSION, "linux", "amd64"
+            multi_os_update["linux/amd64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "linux", "amd64"
+                    }
+                }
             }
         }
         if (params.ARCH_ARM) {
-            stage("TiUP build prometheus on linux/arm64") {
-                update VERSION, "linux", "arm64"
+            multi_os_update["linux/arm64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "linux", "arm64"
+                    }
+                }
             }
         }
         if (params.ARCH_MAC) {
-            stage("TiUP build prometheus on darwin/amd64") {
-                update VERSION, "darwin", "amd64"
+            multi_os_update["darwin/amd64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "darwin", "amd64"
+                    }
+                }
             }
         }
         if (params.ARCH_MAC_ARM) {
             if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
-                stage("TiUP build prometheus on darwin/arm64") {
-                    // prometheus did not provide the binary we need so we upgrade it.
-                    update "2.28.1", "darwin", "arm64"
+                multi_os_update["darwin/arm64"] = {
+                    run_with_pod {
+                        container("golang") {
+                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                            // prometheus did not provide the binary we need so we upgrade it.
+                            update "2.28.1", "darwin", "arm64"
+                        }
+                    }
                 }
             }
         }
+        parallel multi_os_update
     }
 }

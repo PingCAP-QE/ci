@@ -1,30 +1,3 @@
-def checkoutTiflash(branch) {
-    checkout(changelog: false, poll: true, scm: [
-            $class                           : "GitSCM",
-            branches                         : [
-                    [name: "${branch}"],
-            ],
-            userRemoteConfigs                : [
-                    [
-                            url          : "git@github.com:pingcap/tiflash.git",
-                            refspec      : "+refs/heads/*:refs/remotes/origin/*",
-                            credentialsId: "github-sre-bot-ssh",
-                    ]
-            ],
-            extensions                       : [
-                    [$class             : 'SubmoduleOption',
-                     disableSubmodules  : true,
-                     parentCredentials  : true,
-                     recursiveSubmodules: false,
-                     trackingSubmodules : false,
-                     reference          : ''],
-                    [$class: 'PruneStaleBranch'],
-                    [$class: 'CleanBeforeCheckout'],
-                    [$class: 'LocalBranch']
-            ],
-            doGenerateSubmoduleConfigurations: false,
-    ])
-}
 
 def download = { version, os, arch ->
     if (os == "darwin" && arch == "arm64") {
@@ -61,12 +34,14 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/overview.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/performance_overview.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/tidb_runtime.json || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/grafana/pd.json || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/grafana/pd.json || true;
+
     wget -qnc https://github.com/tikv/tikv/archive/${tag}.zip
-    unzip ${tag}.zip
+    unzip -q ${tag}.zip
     rm -rf ${tag}.zip
     cp tikv-*/metrics/grafana/*.json .
     rm -rf tikv-*
+    
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/grafana/binlog.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflow/${tag}/metrics/grafana/ticdc.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/disk_performance.json || true; \
@@ -80,7 +55,10 @@ def pack = { version, os, arch ->
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/lightning.json || true; \
         wget -qnc https://raw.githubusercontent.com/pingcap/br/${tag}/metrics/grafana/br.json || true; \
     fi
-    cp ../tiflash/metrics/grafana/* .
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_proxy_details.json
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_proxy_summary.json
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_summary.json
+
     cd ..
     tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
     tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
@@ -90,8 +68,8 @@ def pack = { version, os, arch ->
 
 def update = { version, os, arch ->
     sh """
-        rm -rf ./grafana*
-        """
+    rm -rf ./grafana*
+    """
     download version, os, arch
     unpack version, os, arch
     pack version, os, arch
@@ -130,29 +108,26 @@ def run_with_pod(Closure body) {
     }
 }
 
-node("build_go1130") {
+run_with_pod {
     container("golang") {
         stage("Prepare") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
         }
-
-        checkout scm
-        def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+        retry(5) {
+            sh """
+            wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
+            """
+        }
+        
+        def util = load "tiup_utils.groovy"
 
         stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
-        stage("Checkout tiflash") {
-            dir("tiflash") {
-                def tag = RELEASE_TAG
-                if (RELEASE_BRANCH != "") {
-                    tag = RELEASE_BRANCH
-                }
-                checkoutTiflash(tag)
-            }
-            stash includes: "tiflash/**", name: "tiflash"
+        def tag = RELEASE_TAG
+        if (RELEASE_BRANCH != "") {
+            tag = RELEASE_BRANCH
         }
 
         multi_os_update = [:]
@@ -161,7 +136,6 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        unstash "tiflash"
                         update VERSION, "linux", "amd64"
                     }
                 }
@@ -172,7 +146,6 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        unstash "tiflash"
                         update VERSION, "linux", "arm64"
                     }
                 }
@@ -183,7 +156,6 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        unstash "tiflash"
                         update VERSION, "darwin", "amd64"
                     }
                 }
@@ -194,7 +166,6 @@ node("build_go1130") {
                 run_with_pod {
                     container("golang") {
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        unstash "tiflash"
                         // grafana did not provide the binary we need so we upgrade it.
                         update "7.5.10", "darwin", "arm64"
                     }
