@@ -640,3 +640,6 @@ def upload_pipeline_run_data() {
             ]
     }
 }
+
+env.PRODUCED_VERSION = tidb_version
+
