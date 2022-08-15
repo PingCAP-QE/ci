@@ -122,6 +122,9 @@ node("build_go1130") {
         checkout scm
         def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
 
+        if (RELEASE_BRANCH != "") {
+            tag = RELEASE_BRANCH
+        }
         stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
