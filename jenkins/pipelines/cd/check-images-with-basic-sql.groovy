@@ -31,8 +31,8 @@ spec:
 '''
             defaultContainer 'tcctl'
         }
-        options { skipDefaultCheckout() }
     }
+    options { skipDefaultCheckout() }
     environment {
         token = credentials('tcms-token')
     }
