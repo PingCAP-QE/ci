@@ -44,6 +44,9 @@ def dm_master_desc = "dm-master component of Data Migration Platform"
 def dm_worker_desc = "dm-worker component of Data Migration Platform"
 def dmctl_desc = "dmctl component of Data Migration Platform"
 
+def taskStartTimeInMillis = System.currentTimeMillis()
+def taskFinishTimeInMillis = System.currentTimeMillis()
+
 def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
@@ -313,6 +316,7 @@ def run_with_pod(Closure body) {
     }
 }
 
+try {
 node("build_go1130") {
     container("golang") {
         timeout(360) {
@@ -608,5 +612,31 @@ node("build_go1130") {
                 }
             }
         }
+    }
+}
+currentBuild.result = "SUCCESS"
+}  catch (Exception e) {
+    currentBuild.result = "FAILURE"
+} finally {
+    upload_pipeline_run_data()
+}
+
+def upload_pipeline_run_data() {
+    stage("Upload pipeline run data") {
+        taskFinishTimeInMillis = System.currentTimeMillis()
+        build job: 'upload_result_to_db',
+            wait: false,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_TYPE', value: "tiup online"],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: currentBuild.result],
+                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_ID', value: "${BUILD_NUMBER}"],
+                    [$class: 'StringParameterValue', name: 'JENKINS_RUN_URL', value: "${env.RUN_DISPLAY_URL}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_REVOKER', value: "sre-bot"],
+                    [$class: 'StringParameterValue', name: 'ERROR_CODE', value: "0"],
+                    [$class: 'StringParameterValue', name: 'ERROR_SUMMARY', value: ""],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_START_TIME', value: taskStartTimeInMillis],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_END_TIME', value: taskFinishTimeInMillis],
+            ]
     }
 }
