@@ -63,7 +63,7 @@ def download = { name, hash, os, arch ->
     tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${tarball_name}
+    wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${tarball_name}
     """
 }
 
@@ -256,14 +256,14 @@ def update_ctl = { version, os, arch ->
         if (RELEASE_TAG != "nightly") {
             // download cdc and lightning cached tar.gz to get ctl binary
             sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${RELEASE_TAG}/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${RELEASE_TAG}/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${RELEASE_TAG}/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
             // nightly version
         } else {
             sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/master/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/br/master/${lightning_sha1}/${platform}/${lightning_tarball_name}
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/master/${ticdc_sha1}/${platform}/ticdc-${os}-${arch}.tar.gz
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/master/${lightning_sha1}/${platform}/${lightning_tarball_name}
             """
         }
         sh """
