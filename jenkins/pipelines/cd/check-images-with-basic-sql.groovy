@@ -1,3 +1,4 @@
+package cd
 // Uses Declarative syntax to run commands inside a container.
 components = ['tidb', 'tikv', 'pd', 'tiflash']
 
@@ -18,19 +19,7 @@ pipeline {
     }
     agent {
         kubernetes {
-            yaml '''
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: tcctl
-    image: hub.pingcap.net/qa/tcctl
-    command:
-    - sleep
-    args:
-    - infinity
-'''
-            defaultContainer 'tcctl'
+            yamlFile 'tcctl-pod.yaml'
         }
     }
     environment {
