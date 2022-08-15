@@ -111,12 +111,15 @@ def run_with_pod(Closure body) {
 node("build_go1130") {
     container("golang") {
         stage("Prepare") {
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
         }
-
-        checkout scm
-        def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
+        retry(5) {
+            sh """
+            wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
+            """
+        }
+        
+        def util = load "tiup_utils.groovy"
 
         stage("Install tiup") {
             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
