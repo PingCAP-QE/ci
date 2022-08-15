@@ -145,28 +145,50 @@ node("build_go1130") {
             VERSION = "2.27.1"
         }
 
+        multi_os_update = [:]
         if (params.ARCH_X86) {
-            stage("TiUP build prometheus on linux/amd64") {
-                update VERSION, "linux", "amd64"
+            multi_os_update["linux/amd64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "linux", "amd64"
+                    }
+                }
             }
         }
         if (params.ARCH_ARM) {
-            stage("TiUP build prometheus on linux/arm64") {
-                update VERSION, "linux", "arm64"
+            multi_os_update["linux/arm64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "linux", "arm64"
+                    }
+                }
             }
         }
         if (params.ARCH_MAC) {
-            stage("TiUP build prometheus on darwin/amd64") {
-                update VERSION, "darwin", "amd64"
+            multi_os_update["darwin/amd64"] = {
+                run_with_pod {
+                    container("golang") {
+                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                        update VERSION, "darwin", "amd64"
+                    }
+                }
             }
         }
         if (params.ARCH_MAC_ARM) {
             if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
-                stage("TiUP build prometheus on darwin/arm64") {
-                    // prometheus did not provide the binary we need so we upgrade it.
-                    update "2.28.1", "darwin", "arm64"
+                multi_os_update["darwin/arm64"] = {
+                    run_with_pod {
+                        container("golang") {
+                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
+                            // prometheus did not provide the binary we need so we upgrade it.
+                            update "2.28.1", "darwin", "arm64"
+                        }
+                    }
                 }
             }
         }
+        parallel multi_os_update
     }
 }
