@@ -1,5 +1,3 @@
-package cd
-// Uses Declarative syntax to run commands inside a container.
 components = ['tidb', 'tikv', 'pd', 'tiflash']
 
 def componentsVersions(String hotfixVersion, String component){
