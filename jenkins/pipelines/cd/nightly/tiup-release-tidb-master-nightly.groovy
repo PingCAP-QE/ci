@@ -16,18 +16,17 @@ def PLATFORM_DARWINARM = "darwin-arm64"
 def FORCE_REBUILD = false
 
 begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
-tidb_sha1=""
-tikv_sha1=""
-pd_sha1=""
-tidb_binlog_sha1=""
-tidb_tools_sha1=""
-cdc_sha1=""
-dm_sha1=""
-tiflash_sha1=""
-tidb_ctl_githash=""
-ng_monitoring_sha1=""
-
-
+tidb_sha1 = ""
+tikv_sha1 = ""
+pd_sha1 = ""
+tidb_binlog_sha1 = ""
+tidb_tools_sha1 = ""
+cdc_sha1 = ""
+dm_sha1 = ""
+tiflash_sha1 = ""
+tidb_ctl_githash = ""
+ng_monitoring_sha1 = ""
+String PRODUCED_VERSION
 
 
 retry(2) {
@@ -209,21 +208,32 @@ retry(2) {
             RELEASE_TAG = "nightly"
 
             stage("TiUP build") {
-                build job: "tiup-mirror-online-ga",
+                def job = build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                 [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
+                PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
             }
 
             stage("Tiup nightly test") {
-                build job: "tiup-mirror-test",
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS],
-                                [$class: 'StringParameterValue', name: 'VERSION', value: RELEASE_TAG],
-                        ]
+                def builds = [:]
+                builds["tiup-mirror-test"] = {
+                    build job: "tiup-mirror-test",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'TIUP_MIRRORS', value: TIUP_MIRRORS]
+                            ]
+                }
+                builds["tiup-check-online-version"] = {
+                    build job: "tiup-check-online-version",
+                            wait: false, // dry-run
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'VERSION', value: PRODUCED_VERSION],
+                            ]
+                }
+                parallel builds
             }
 
             currentBuild.result = "SUCCESS"
@@ -249,22 +259,22 @@ retry(2) {
 
 
 def upload_result_to_db() {
-    pipeline_build_id= params.PIPELINE_BUILD_ID
-    pipeline_id= "9"
-    pipeline_name= "Nightly TiUP Build"
-    status= currentBuild.result
-    build_number= BUILD_NUMBER
-    job_name= JOB_NAME
-    artifact_meta= "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + tidb_binlog_sha1 + ",tidb-tools commit:" + tidb_tools_sha1+"ticdc commit:" + cdc_sha1 + ",dm commit:" + dm_sha1 + ",br commit:" + tidb_sha1 + ",lightning commit:" + tidb_sha1 + ",tidb-ctl commit:" + tidb_ctl_githash + ",ng-monitoring commit:" + ng_monitoring_sha1
-    begin_time= begin_time
-    end_time= new Date().format('yyyy-MM-dd HH:mm:ss')
-    triggered_by= "sre-bot"
-    component= "All"
-    arch= "All"
-    artifact_type= "TiUP online mirror"
-    branch= "master"
-    version= "Nightly"
-    build_type= "nightly-build"
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "9"
+    pipeline_name = "Nightly TiUP Build"
+    status = currentBuild.result
+    build_number = BUILD_NUMBER
+    job_name = JOB_NAME
+    artifact_meta = "tidb commit:" + tidb_sha1 + ",tikv commit:" + tikv_sha1 + ",pd commit:" + pd_sha1 + ",tidb-binlog commit:" + tidb_binlog_sha1 + ",tidb-tools commit:" + tidb_tools_sha1 + "ticdc commit:" + cdc_sha1 + ",dm commit:" + dm_sha1 + ",br commit:" + tidb_sha1 + ",lightning commit:" + tidb_sha1 + ",tidb-ctl commit:" + tidb_ctl_githash + ",ng-monitoring commit:" + ng_monitoring_sha1
+    begin_time = begin_time
+    end_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+    triggered_by = "sre-bot"
+    component = "All"
+    arch = "All"
+    artifact_type = "TiUP online mirror"
+    branch = "master"
+    version = "Nightly"
+    build_type = "nightly-build"
     push_gcr = "No"
 
     build job: 'upload_result_to_db',
@@ -272,17 +282,17 @@ def upload_result_to_db() {
             parameters: [
                     [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
                     [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value:  pipeline_name],
-                    [$class: 'StringParameterValue', name: 'STATUS', value:  status],
-                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value:  build_number],
-                    [$class: 'StringParameterValue', name: 'JOB_NAME', value:  job_name],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value: job_name],
                     [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
                     [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
-                    [$class: 'StringParameterValue', name: 'END_TIME', value:  end_time],
-                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value:  triggered_by],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value: end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value: triggered_by],
                     [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
-                    [$class: 'StringParameterValue', name: 'ARCH', value:  arch],
-                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value:  artifact_type],
+                    [$class: 'StringParameterValue', name: 'ARCH', value: arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value: artifact_type],
                     [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
                     [$class: 'StringParameterValue', name: 'VERSION', value: version],
                     [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type],
