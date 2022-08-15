@@ -3,7 +3,7 @@
 // should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
-final GIT_OPENAPI_CREDENTIALS_ID = 'sre-bot-token'
+final GIT_OPENAPI_CREDENTIALS_ID = 'github-bot-token'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final CODECOV_TOKEN_CREDENTIAL_ID = 'codecov-token-tidb'
 final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
