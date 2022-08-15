@@ -13,7 +13,7 @@ def download = { version, os, arch ->
         wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
         """
     }
-
+    def platform = ""
     if (os == "linux") {
         platform = "centos7"
     }
