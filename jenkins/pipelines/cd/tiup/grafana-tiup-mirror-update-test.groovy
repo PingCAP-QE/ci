@@ -37,7 +37,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/grafana/pd.json || true;
 
     wget -qnc https://github.com/tikv/tikv/archive/${tag}.zip
-    unzip ${tag}.zip
+    unzip -q ${tag}.zip
     rm -rf ${tag}.zip
     cp tikv-*/metrics/grafana/*.json .
     rm -rf tikv-*
