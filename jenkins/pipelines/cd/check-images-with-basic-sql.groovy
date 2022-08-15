@@ -1,6 +1,6 @@
 components = ['tidb', 'tikv', 'pd', 'tiflash']
 
-def componentsVersions(String hotfixVersion, String component){
+def componentsVersions(String hotfixVersion, String component) {
     String baseVersion = hotfixVersion.split("-")[0]
     def componentsVersions = [:]
     for (comp in components) {
@@ -33,14 +33,16 @@ spec:
         }
     }
     environment {
-        token     = credentials('tcms-token')
+        token = credentials('tcms-token')
     }
     stages {
         stage('Main') {
             steps {
-                container("tcctl"){
-                    def versions = componentsVersions(params.hotfixVersion, params.component)
-                    sh "tcctl svc run tidb-basic-sql-check -a tidbVersion=${versions.tidb},tikvVersion=${versions.tikv},pdVersion=${versions.pd},tiflashVersion=${versions.tiflash} -o -"
+                container("tcctl") {
+                    script {
+                        def versions = componentsVersions(params.hotfixVersion, params.component)
+                        sh "tcctl svc run tidb-basic-sql-check -a tidbVersion=${versions.tidb},tikvVersion=${versions.tikv},pdVersion=${versions.pd},tiflashVersion=${versions.tiflash} -o -"
+                    }
                 }
             }
         }
