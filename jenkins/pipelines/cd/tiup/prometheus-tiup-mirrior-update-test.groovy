@@ -1,7 +1,7 @@
 
 
 def name="ng-monitoring"
-def ng_monitoring_sha1, tarball_name
+def ng_monitoring_sha1
 
 def download = { version, os, arch ->
     if (os == "darwin" && arch == "arm64") {
@@ -26,7 +26,7 @@ def download = { version, os, arch ->
         platform = "darwin-arm64"
     }
 
-    tarball_name = "${name}-${os}-${arch}.tar.gz"
+    def tarball_name = "${name}-${os}-${arch}.tar.gz"
 
     sh """
     rm -rf ${tarball_name}
@@ -39,13 +39,14 @@ def download = { version, os, arch ->
 
     if ( RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
         sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${RELEASE_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
+            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${RELEASE_TAG}/${ng_monitoring_sha1}/${platform}/${tarball_name}
         """
     }
 
 }
 
 def unpack = { version, os, arch ->
+    def tarball_name = "${name}-${os}-${arch}.tar.gz"
     sh """
     tar -zxf prometheus-${version}.${os}-${arch}.tar.gz
     """
