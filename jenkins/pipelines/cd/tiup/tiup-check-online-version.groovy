@@ -2,7 +2,7 @@ def validateScript = """
 curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
 export PATH=\$PATH:\$HOME/.tiup/bin
 tiup mirror reset
-tiup install tikv:${params.VERSION} tidb:${params.VERSION} pd:${params.VERSION} tiflash:${params.VERSION} cdc:${params.VERSION} dm:${params.VERSION}
+tiup install tikv:${params.VERSION} tidb:${params.VERSION} pd:${params.VERSION} tiflash:${params.VERSION} cdc:${params.VERSION}
 """
 
 pipeline {
