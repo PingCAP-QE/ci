@@ -29,7 +29,7 @@ spec:
       args:
         - infinity
 '''
-            defaultContainer tcctl
+            defaultContainer 'tcctl'
         }
     }
     environment {
@@ -38,11 +38,9 @@ spec:
     stages {
         stage('Main') {
             steps {
-                container("tcctl") {
-                    script {
-                        def versions = componentsVersions(params.hotfixVersion, params.component)
-                        sh "tcctl svc run tidb-basic-sql-check -a tidbVersion=${versions.tidb},tikvVersion=${versions.tikv},pdVersion=${versions.pd},tiflashVersion=${versions.tiflash} -o -"
-                    }
+                script {
+                    def versions = componentsVersions(params.hotfixVersion, params.component)
+                    sh "tcctl svc run tidb-basic-sql-check -a tidbVersion=${versions.tidb},tikvVersion=${versions.tikv},pdVersion=${versions.pd},tiflashVersion=${versions.tiflash} -o -"
                 }
             }
         }
