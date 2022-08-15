@@ -44,8 +44,8 @@ def dm_master_desc = "dm-master component of Data Migration Platform"
 def dm_worker_desc = "dm-worker component of Data Migration Platform"
 def dmctl_desc = "dmctl component of Data Migration Platform"
 
-def taskStartTimeInMillis = System.currentTimeMillis()
-def taskFinishTimeInMillis = System.currentTimeMillis()
+taskStartTimeInMillis = System.currentTimeMillis()
+taskFinishTimeInMillis = System.currentTimeMillis()
 
 def download = { name, hash, os, arch ->
     if (os == "linux") {
@@ -635,8 +635,8 @@ def upload_pipeline_run_data() {
                     [$class: 'StringParameterValue', name: 'PIPELINE_REVOKER', value: "sre-bot"],
                     [$class: 'StringParameterValue', name: 'ERROR_CODE', value: "0"],
                     [$class: 'StringParameterValue', name: 'ERROR_SUMMARY', value: ""],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_START_TIME', value: taskStartTimeInMillis],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_END_TIME', value: taskFinishTimeInMillis],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_START_TIME', value: "${taskStartTimeInMillis}"],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_END_TIME', value: "${taskFinishTimeInMillis}"],
             ]
     }
 }
