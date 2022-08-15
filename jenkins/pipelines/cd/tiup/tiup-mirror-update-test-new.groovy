@@ -624,7 +624,7 @@ currentBuild.result = "SUCCESS"
 def upload_pipeline_run_data() {
     stage("Upload pipeline run data") {
         taskFinishTimeInMillis = System.currentTimeMillis()
-        build job: 'upload_result_to_db',
+        build job: 'upload-pipeline-run-data-to-db',
             wait: false,
             parameters: [
                     [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
