@@ -68,8 +68,8 @@ def pack = { version, os, arch ->
 
 def update = { version, os, arch ->
     sh """
-        rm -rf ./grafana*
-        """
+    rm -rf ./grafana*
+    """
     download version, os, arch
     unpack version, os, arch
     pack version, os, arch
@@ -108,7 +108,7 @@ def run_with_pod(Closure body) {
     }
 }
 
-node("build_go1130") {
+run_with_pod {
     container("golang") {
         stage("Prepare") {
             deleteDir()
