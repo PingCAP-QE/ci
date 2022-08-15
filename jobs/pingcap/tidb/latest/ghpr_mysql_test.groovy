@@ -17,14 +17,14 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
             triggers {
                 ghprbTrigger {
                     cron('H/5 * * * *')
-                    gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159') // tidb-ci-bot.
+                    gitHubAuthId('') // using the default only one.
                     
-                    // triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
-                    // onlyTriggerPhrase(false)
+                    triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
+                    onlyTriggerPhrase(false)
 
                     // ### debug
-                    triggerPhrase('/gray-debug')
-                    onlyTriggerPhrase(true)
+                    // triggerPhrase('/gray-debug')
+                    // onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')

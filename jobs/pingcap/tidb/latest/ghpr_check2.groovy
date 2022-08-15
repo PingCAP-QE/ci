@@ -17,13 +17,13 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
             triggers {
                 ghprbTrigger {
                     cron('H/5 * * * *')
-                    gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159') // tidb-ci-bot.
+                    gitHubAuthId('') // using the default only one.
                     
-                    // triggerPhrase('.*/(merge|run-(all-tests|check[-_]dev[-_]?2))')
-                    // onlyTriggerPhrase(false)
+                    triggerPhrase('.*/(merge|run-(all-tests|check[-_]dev[-_]?2))')
+                    onlyTriggerPhrase(false)
                     // ### debug
-                    triggerPhrase('/gray-debug')
-                    onlyTriggerPhrase(true)
+                    // triggerPhrase('/gray-debug')
+                    // onlyTriggerPhrase(true)
 
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
