@@ -72,26 +72,28 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
-                    retry(2) {
-                        checkout(
-                            changelog: false,
-                            poll: false, 
-                            scm: [
-                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'],
-                                    [$class: 'CloneOption', timeout: 5],
-                                ],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[
-                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                ]],
-                            ]
-                        )
+                dir('tidb') {
+                    cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false, 
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 5],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                    ]],
+                                ]
+                            )
+                        }
                     }
                 }
             }
@@ -100,35 +102,41 @@ pipeline {
             steps {
                  cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
                     cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
-                        sh './build/jenkins_unit_test.sh' 
+                        dir('tidb') {
+                            sh './build/jenkins_unit_test.sh' 
+                        }
                     }
                  }
             }
             post {
                 unsuccessful {
-                    archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
-                    archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
+                    dir('tidb') {
+                        archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
+                        archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
+                    }
                 }
                 always {
-                    // archive test report to Jenkins.
-                    junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                    dir('tidb') {
+                        // archive test report to Jenkins.
+                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
 
-                    // upload coverage report to file server
-                    script {
-                        def id = UUID.randomUUID().toString()
-                        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
-                        retry(3) {
-                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
-                                curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
-                                echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
-                                """
+                        // upload coverage report to file server
+                        script {
+                            def id = UUID.randomUUID().toString()
+                            def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+                            retry(3) {
+                                sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
+                                    curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
+                                    echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
+                                    """
+                            }
                         }
-                    }
 
-                    // upload covrage to codecov.io and notify on github.
-                    timeout(time: 1, unit: 'MINUTES') {
-                        withCredentials([string(credentialsId: CODECOV_TOKEN_CREDENTIAL_ID, variable: 'CODECOV_TOKEN')]) {
-                            sh "codecov -f ./coverage.dat -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}"
+                        // upload covrage to codecov.io and notify on github.
+                        timeout(time: 1, unit: 'MINUTES') {
+                            withCredentials([string(credentialsId: CODECOV_TOKEN_CREDENTIAL_ID, variable: 'CODECOV_TOKEN')]) {
+                                sh "codecov -f ./coverage.dat -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}"
+                            }
                         }
                     }
 
