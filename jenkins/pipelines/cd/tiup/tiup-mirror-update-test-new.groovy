@@ -555,7 +555,10 @@ node("build_go1130") {
                     container("golang") { 
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
-                            sleep $((RANDOM % 10))
+                            deleteDir()
+                            sh """
+                            sleep \$((RANDOM % 10))
+                            """ 
                             update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
                             update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
                             update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
@@ -574,7 +577,10 @@ node("build_go1130") {
                     container("golang") { 
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
-                            sleep $((RANDOM % 10))
+                            deleteDir()
+                            sh """
+                            sleep \$((RANDOM % 10))
+                            """ 
                             update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
                             update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
                             update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
@@ -593,7 +599,10 @@ node("build_go1130") {
                     container("golang") { 
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
-                            sleep $((RANDOM % 10))
+                            deleteDir()
+                            sh """
+                            sleep \$((RANDOM % 10))
+                            """ 
                             update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
                             update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
                             update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
@@ -613,7 +622,10 @@ node("build_go1130") {
                         container("golang") { 
                             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                             retry(3) { 
-                                sleep $((RANDOM % 10))
+                                deleteDir()
+                                sh """
+                                sleep \$((RANDOM % 10))
+                                """ 
                                 update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
                                 update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
                                 update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
