@@ -107,11 +107,11 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
-            ttyEnabled: true,
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
+                        shell: "script -qefc /bin/sh /dev/null",
                         resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     

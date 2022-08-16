@@ -131,7 +131,6 @@ def run_test_with_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
-            ttyEnabled: true,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
