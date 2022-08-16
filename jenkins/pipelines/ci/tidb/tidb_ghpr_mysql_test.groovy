@@ -131,6 +131,9 @@ def run_test_with_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            envVars: [
+              envVar(key: 'TERM', value: 'xterm-256color')
+            ],
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
