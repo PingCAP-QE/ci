@@ -215,9 +215,20 @@ catchError {
                 deleteDir()
 
                 dir("${ws}/go/src/github.com/pingcap/tiflow") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tiflow"
-                        deleteDir()
+                    def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tiflow.tar.gz"
+                    def cacheExisted = sh(returnStatus: true, script: """
+                        if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                        """)
+                    if (cacheExisted == 0) {
+                        println "get code from fileserver to reduce clone time"
+                        println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                        sh """
+                        curl -O ${codeCacheInFileserverUrl}
+                        tar -xzf src-tiflow.tar.gz --strip-components=1
+                        rm -f src-tiflow.tar.gz
+                        """
+                    } else {
+                        println "get code from github"
                     }
                     try {
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
@@ -225,9 +236,6 @@ catchError {
                         retry(2) {
                             echo "checkout failed, retry.."
                             sleep 5
-                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                deleteDir()
-                            }
                             checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
                         }
                     }
