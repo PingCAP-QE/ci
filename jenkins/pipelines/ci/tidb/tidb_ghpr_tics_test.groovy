@@ -37,9 +37,7 @@ def checkoutTiflash(commit, pullId) {
 
 def run(label, Closure body) {
     podTemplate(name: label, label: label, cloud: "kubernetes-ng", namespace: "jenkins-tidb-mergeci", instanceCap: 20, 
-            envVars: [
-              envVar(key: 'TERM', value: 'xterm-256color')
-            ],
+            ttyEnabled: true,
             nodeSelector: "role_type=slave",
             containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,

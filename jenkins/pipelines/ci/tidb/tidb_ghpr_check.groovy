@@ -67,9 +67,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
-            envVars: [
-              envVar(key: 'TERM', value: 'xterm-256color')
-            ],
+            ttyEnabled: true,
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: ALWAYS_PULL_IMAGE,

@@ -21,9 +21,7 @@ def run_with_pod(Closure body) {
     def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,namespace: POD_NAMESPACE,idleMinutes: 0,
-            envVars: [
-              envVar(key: 'TERM', value: 'xterm-256color')
-            ],
+            ttyEnabled: true,
             containers: [
                 containerTemplate(
                     name: 'golang', alwaysPullImage: false,image: "${POD_GO_IMAGE}", ttyEnabled: true,
