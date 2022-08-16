@@ -34,7 +34,7 @@ spec:
     }
     options { skipDefaultCheckout() }
     environment {
-        token = credentials('tcms-token')
+        TOKEN = credentials('tcms-token')
     }
     stages {
         stage('Main') {
