@@ -80,7 +80,7 @@ pipeline {
                     }
                 }
             }
-        }                
+        }
         stage("Checks") {
             parallel {
                 stage('check') {
@@ -90,10 +90,10 @@ pipeline {
                     steps{ dir('tidb') {sh 'make checklist' } }
                 }
                 stage('explaintest') {
-                    steps{ dir('tidb') {sh 'make explaintest' }                        
+                    steps{ dir('tidb') {sh 'make explaintest' } }
                 }
                 stage("test_part_parser") {
-                    steps { dir('tidb') {sh 'make test_part_parser' } }                        
+                    steps { dir('tidb') {sh 'make test_part_parser' } }
                 }
                 stage("gogenerate") {
                     steps { dir('tidb') {sh 'make gogenerate' } }
