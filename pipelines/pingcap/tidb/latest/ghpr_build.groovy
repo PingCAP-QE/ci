@@ -41,6 +41,7 @@ pipeline {
     }
     options {
         timeout(time: 30, unit: 'MINUTES')
+        ansiColor('xterm')
     }
     stages {
         stage('debug info') {
