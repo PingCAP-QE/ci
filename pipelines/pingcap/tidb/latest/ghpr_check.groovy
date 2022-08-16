@@ -55,46 +55,48 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
-                    retry(2) {
-                        checkout(
-                            changelog: false,
-                            poll: false,
-                            scm: [
-                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'],
-                                    [$class: 'CloneOption', timeout: 5],
-                                ], 
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[
-                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                ]],
-                            ]
-                        )
+                dir('tidb') {
+                    cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 5],
+                                    ], 
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                    ]],
+                                ]
+                            )
+                        }
                     }
-                 }
+                }
             }
         }                
         stage("Checks") {
             parallel {
                 stage('check') {
-                    steps { sh 'make check' }
+                    steps { dir('tidb') { sh 'make check' } }
                 }
                 stage("checklist") {
-                    steps{ sh 'make checklist' }
+                    steps{ dir('tidb') {sh 'make checklist' } }
                 }
                 stage('explaintest') {
-                    steps{ sh 'make explaintest' }                        
+                    steps{ dir('tidb') {sh 'make explaintest' }                        
                 }
                 stage("test_part_parser") {
-                    steps { sh 'make test_part_parser' }                        
+                    steps { dir('tidb') {sh 'make test_part_parser' } }                        
                 }
                 stage("gogenerate") {
-                    steps { sh 'make gogenerate' }
+                    steps { dir('tidb') {sh 'make gogenerate' } }
                 }
             }
         }
