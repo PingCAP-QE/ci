@@ -50,6 +50,15 @@ GO_IMAGE_MAP = [
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
     "master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
 ]
+
+def user_bazel(branch) {
+    // set the feature branch at here.
+    if (branch in ["master"]) {
+        return GO_IMAGE_MAP["master"]
+    }
+    return ""
+}
+
 ALWAYS_PULL_IMAGE=true
 node("master") {
     image = user_bazel(ghprbTargetBranch)
