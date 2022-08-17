@@ -24,13 +24,15 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
-    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
+    "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
+    "master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
 ]
 POD_LABEL_MAP = [
     "go1.13": "tidb-ghpr-unit-test-go1130-${BUILD_NUMBER}",
     "go1.16": "tidb-ghpr-unit-test-go1160-${BUILD_NUMBER}",
     "go1.18": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
-    "bazel_master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
+    "release-6.2": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
+    "master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
 ]
 VOLUMES = [
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
@@ -50,8 +52,9 @@ def user_bazel(branch) {
 
 node("master") {
     image = user_bazel(ghprbTargetBranch)
-    if (image != "") { 
-        GO_VERSION = "bazel_master"
+    if (image != "") {
+        POD_GO_IMAGE = image
+        GO_VERSION = ghprbTargetBranch
         RESOURCE_REQUEST_CPU = '4000m'
     } else {
         deleteDir()
@@ -60,9 +63,9 @@ node("master") {
         def goversion_lib = load('goversion-select-lib.groovy')
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
         VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
+        POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     }
     
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
@@ -200,8 +203,7 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     try {
-                        image = user_bazel(ghprbTargetBranch)
-                        if (image != "") { 
+                        if (user_bazel(ghprbTargetBranch) != "") { 
                             sh """
                                 ./build/jenkins_unit_test.sh
                             """
@@ -240,7 +242,7 @@ try {
                         archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
-                        if (user_bazel(ghprbTargetBranch)) { 
+                        if (user_bazel(ghprbTargetBranch) != "") { 
                             junit testResults: "**/bazel.xml", allowEmptyResults: true
                             try {
                                 def id=UUID.randomUUID().toString()
