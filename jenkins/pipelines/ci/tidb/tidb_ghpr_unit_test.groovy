@@ -40,16 +40,17 @@ VOLUMES = [
 
 def user_bazel(branch) {
     if (branch in ["master"]) {
-        return true
+        return GO_IMAGE_MAP["master"]
     }
     if (branch.startsWith("release-") && branch >= "release-6.2") {
-        return true
+        return GO_IMAGE_MAP[branch]
     }
-    return false
+    return ""
 }
 
 node("master") {
-    if (user_bazel(ghprbTargetBranch)) { 
+    image = user_bazel(ghprbTargetBranch)
+    if (image != "") { 
         GO_VERSION = "bazel_master"
         RESOURCE_REQUEST_CPU = '4000m'
     } else {
@@ -199,7 +200,8 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     try {
-                        if (user_bazel(ghprbTargetBranch)) { 
+                        image = user_bazel(ghprbTargetBranch)
+                        if (image != "") { 
                             sh """
                                 ./build/jenkins_unit_test.sh
                             """
@@ -262,7 +264,7 @@ try {
                     withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
                         timeout(5) {
                             if (ghprbPullId != null && ghprbPullId != "") {
-                                if (user_bazel(ghprbTargetBranch)) { 
+                                if (user_bazel(ghprbTargetBranch) != "") { 
                                     sh """
                                     codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
                                     """
@@ -274,7 +276,7 @@ try {
                                     """
                                 }
                             } else {
-                                if (user_bazel(ghprbTargetBranch)) { 
+                                if (user_bazel(ghprbTargetBranch) != "") { 
                                     sh """
                                     codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
                                     """

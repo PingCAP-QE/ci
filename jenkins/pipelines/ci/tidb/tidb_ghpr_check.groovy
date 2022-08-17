@@ -35,10 +35,18 @@ VOLUMES = [
     emptyDirVolume(mountPath: '/tmp', memory: false),
 ]
 
+def user_bazel(branch) {
+    if (branch in ["master"]) {
+        return GO_IMAGE_MAP["master"]
+    }
+    return ""
+}
+
 node("master") {
     deleteDir()
-    if (ghprbTargetBranch in ["master"]) {
-        GO_VERSION = "bazel_master"
+    image = user_bazel(ghprbTargetBranch)
+    if (image != "") {
+        GO_VERSION = image
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '1000m'
     } else {
