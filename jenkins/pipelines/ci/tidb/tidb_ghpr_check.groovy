@@ -25,7 +25,7 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
-    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
+    "master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
 ]
 ALWAYS_PULL_IMAGE = true
 RESOURCE_REQUEST_CPU = '4000m'
@@ -35,10 +35,20 @@ VOLUMES = [
     emptyDirVolume(mountPath: '/tmp', memory: false),
 ]
 
+def user_bazel(branch) {
+    // set the feature branch at here.
+    if (branch in ["master"]) {
+        return GO_IMAGE_MAP["master"]
+    }
+    return ""
+}
+
 node("master") {
     deleteDir()
-    if (ghprbTargetBranch in ["master"]) {
-        GO_VERSION = "bazel_master"
+    image = user_bazel(ghprbTargetBranch)
+    if (image != "") {
+        POD_GO_IMAGE = image
+        GO_VERSION = ghprbTargetBranch
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '1000m'
     } else {
@@ -46,8 +56,8 @@ node("master") {
         sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
         def goversion_lib = load('goversion-select-lib.groovy')
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+        POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     }
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }

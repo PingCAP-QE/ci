@@ -56,7 +56,8 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
-    "bazel_master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
+    "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
+    "master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
 ]
 VOLUMES = [
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
@@ -65,18 +66,21 @@ VOLUMES = [
 ]
 
 def user_bazel(branch) {
+    // set the feature branch at here.
     if (branch in ["master"]) {
-        return true
+        return GO_IMAGE_MAP["master"]
     }
     if (branch.startsWith("release-") && branch >= "release-6.2") {
-        return true
+        return GO_IMAGE_MAP[branch]
     }
-    return false
+    return ""
 }
 
 node("master") {      
-    if (user_bazel(ghprbTargetBranch)) {
-        GO_VERSION = "bazel_master"
+    image = user_bazel(ghprbTargetBranch)
+    if (image != "") {
+        POD_GO_IMAGE = image
+        GO_VERSION = ghprbTargetBranch
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
     } else {
@@ -86,9 +90,9 @@ node("master") {
         def goversion_lib = load('goversion-select-lib.groovy')
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
         VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
+        POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     }
 
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
@@ -209,7 +213,7 @@ try {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
                                 if (isBuildCheck){
-                                    if (user_bazel(ghprbTargetBranch))  {
+                                    if (user_bazel(ghprbTargetBranch) != "")  {
                                         sh """
                                         if make bazel_build; then
                                             touch importer.done
@@ -228,7 +232,7 @@ try {
                                         """
                                     }
                                 }else{
-                                    if (user_bazel(ghprbTargetBranch))  {
+                                    if (user_bazel(ghprbTargetBranch) != "")  {
                                         sh """
                                         if make bazel_build; then
                                             touch importer.done
