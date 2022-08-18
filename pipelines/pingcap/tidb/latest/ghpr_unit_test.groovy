@@ -28,14 +28,9 @@ spec:
         - name: GOCACHE
           value: ${ENV_GOCACHE}
       volumeMounts:
-        - mountPath: /data/bazel
+        - mountPath: /data/
           name: bazel
           readOnly: true
-  volumes:
-    - name: bazel
-      secret:
-        name: bazel
-        secretName: bazel          
     - name: ruby
       image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest"
       tty: true
@@ -48,6 +43,11 @@ spec:
           memory: 1Gi
       command: [/bin/sh, -c]
       args: [cat]
+  volumes:
+    - name: bazel
+      secret:
+        secretName: bazel
+        optional: true
 """
 
 pipeline {
