@@ -37,7 +37,7 @@ VOLUMES = [
 
 def user_bazel(branch) {
     // set the feature branch at here.
-    if (branch in ["master"]) {
+    if (branch in ["master", "feature/distribute-reorg"]) {
         return GO_IMAGE_MAP["master"]
     }
     return ""
