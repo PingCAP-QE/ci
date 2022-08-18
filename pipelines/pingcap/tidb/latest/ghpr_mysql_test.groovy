@@ -27,7 +27,7 @@ spec:
           value: ${ENV_GOCACHE}
       volumeMounts:
         - mountPath: /data/bazel
-          name: name
+          name: bazel
           readOnly: true
   volumes:
     - name: bazel
