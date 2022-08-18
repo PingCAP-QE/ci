@@ -24,7 +24,16 @@ spec:
         - name: GOPATH
           value: ${ENV_GOPATH}
         - name: GOCACHE
-          value: ${ENV_GOCACHE} 
+          value: ${ENV_GOCACHE}
+      volumeMounts:
+        - mountPath: /data/bazel
+          name: name
+          readOnly: true
+  volumes:
+    - name: bazel
+      secret:
+        name: bazel
+        secretName: bazel
 """
 
 pipeline {

@@ -27,6 +27,15 @@ spec:
           value: ${ENV_GOPATH}
         - name: GOCACHE
           value: ${ENV_GOCACHE}
+      volumeMounts:
+        - mountPath: /data/bazel
+          name: name
+          readOnly: true
+  volumes:
+    - name: bazel
+      secret:
+        name: bazel
+        secretName: bazel          
     - name: ruby
       image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest"
       tty: true
