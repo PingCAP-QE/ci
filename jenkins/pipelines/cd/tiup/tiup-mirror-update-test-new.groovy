@@ -647,6 +647,7 @@ node("build_go1130") {
 }
 currentBuild.result = "SUCCESS"
 }  catch (Exception e) {
+    println "${e}"
     currentBuild.result = "FAILURE"
 } finally {
     upload_pipeline_run_data()
