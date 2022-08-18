@@ -26,14 +26,14 @@ spec:
         - name: GOCACHE
           value: ${ENV_GOCACHE}
       volumeMounts:
-        - mountPath: /data/bazel
+        - mountPath: /data/
           name: bazel
           readOnly: true
   volumes:
     - name: bazel
       secret:
-        name: bazel
-        secretName: bazel          
+        secretName: bazel
+        optional: true
 """
 
 pipeline {
