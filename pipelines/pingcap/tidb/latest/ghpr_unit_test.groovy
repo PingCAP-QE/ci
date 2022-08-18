@@ -82,7 +82,7 @@ pipeline {
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -109,8 +109,8 @@ pipeline {
         }
         stage('Test') {            
             steps {
-                 cache(path: "${ENV_GOPATH}/pkg/mod", key: "pingcap-tidb-gomodcache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gomodcache-']) {
-                    cache(path: ENV_GOCACHE, key: "pingcap-tidb-gocache-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-gocache-']) {
+                 cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
+                    cache(path: ENV_GOCACHE, key: "gocache/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['gocache/pingcap/tidb/rev']) {
                         dir('tidb') {
                             sh './build/jenkins_unit_test.sh' 
                         }
