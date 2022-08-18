@@ -71,7 +71,7 @@ pipeline {
                     steps {
                         dir("tidb") {
                             // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
-                            cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                                 retry(2) {
                                     checkout(
                                         changelog: false,
@@ -121,7 +121,7 @@ pipeline {
                                     pluginBranch = "origin/${pluginBranch}/head"
                                 }
 
-                                cache(path: "./", filter: '**/*', key: "pingcap-enterprise-plugin-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-enterprise-plugin-cache-src-']) {
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
                                     checkout(
                                         changelog: false,
                                         poll: true,
