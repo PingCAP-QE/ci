@@ -36,8 +36,8 @@ VOLUMES = [
 ]
 
 def user_bazel(branch) {
-    // set the feature branch at here.
-    if (branch in ["master"] || branch.matches("^feature[/_].*")) {
+    if (branch in ["master"] || 
+        branch.matches("^feature[/_].*") /* feature branches */) {
         return GO_IMAGE_MAP["master"]
     }
     return ""
