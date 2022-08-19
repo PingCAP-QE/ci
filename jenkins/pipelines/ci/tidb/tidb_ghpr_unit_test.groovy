@@ -55,7 +55,6 @@ node("master") {
     image = user_bazel(ghprbTargetBranch)
     if (image != "") {
         POD_GO_IMAGE = image
-        GO_VERSION = ghprbTargetBranch
         RESOURCE_REQUEST_CPU = '4000m'
     } else {
         deleteDir()

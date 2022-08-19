@@ -64,7 +64,6 @@ node("master") {
     image = user_bazel(ghprbTargetBranch)
     if (image != "") {
         POD_GO_IMAGE = image
-        GO_VERSION = ghprbTargetBranch
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
     } else {
