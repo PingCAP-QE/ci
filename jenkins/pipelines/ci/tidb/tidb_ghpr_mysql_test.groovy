@@ -1,3 +1,8 @@
+final releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+final featureBranchReg = /^feature[\/_].+/
+final commentBodyReg = /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
+final trunkBranch = 'master'
+
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
     ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
@@ -24,15 +29,6 @@ if (params.containsKey("upstreamJob")) {
     println "ghprbCommentBody: ${ghprbCommentBody}"
     println "ghprbActualCommit: ${ghprbActualCommit}"
 }
-
-def TIDB_TEST_BRANCH = ghprbTargetBranch
-// parse tidb_test branch
-def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m3) {
-    TIDB_TEST_BRANCH = "${m3[0][1]}"
-}
-m3 = null
-println "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
@@ -177,6 +173,16 @@ try {
 
                 dir("go/src/github.com/pingcap/tidb-test") {
                     timeout(10) {
+                        def TIDB_TEST_BRANCH = ghprbTargetBranch
+                        if (ghprbCommentBody =~ commentBodyReg) {
+                            TIDB_TEST_BRANCH = (ghprbCommentBody =~ commentBodyReg)[0][1]
+                        } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
+                            TIDB_TEST_BRANCH = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
+                        } else if (ghprbTargetBranch =~ featureBranchReg) {
+                            TIDB_TEST_BRANCH = trunkBranch
+                        }
+                        println "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
+
                         def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         sh """
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
