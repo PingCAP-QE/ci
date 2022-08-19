@@ -75,10 +75,9 @@ if (ghprbTargetBranch in ["br-stream"]) {
 }
 
 def parallel_run_mysql_test(branch) {
-    if (branch in ["master"]) {
-        return true
-    }
-    if (branch.startsWith("release-") && branch >= "release-6.2") {
+    if (branch in ["master"] ||
+            branch.matches("^feature[/_].*") /* feature branches */ ||
+            (branch.startsWith("release-") && branch >= "release-6.2")) {
         return true
     }
     return false
