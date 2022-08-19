@@ -52,8 +52,7 @@ GO_IMAGE_MAP = [
 ]
 
 def user_bazel(branch) {
-    // set the feature branch at here.
-    if (branch in ["master"] || branch.matches("^feature[/_].*")) {
+    if (branch in ["master"] || branch.matches("^feature[/_].*") /* feature branches */) {
         return GO_IMAGE_MAP["master"]
     }
     return ""
@@ -64,7 +63,6 @@ node("master") {
     image = user_bazel(ghprbTargetBranch)
     if (image != "") {
         POD_GO_IMAGE = image
-        GO_VERSION = ghprbTargetBranch
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
     } else {
