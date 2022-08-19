@@ -176,7 +176,7 @@ try {
                         if (ghprbCommentBody =~ commentBodyReg) {
                             TIDB_TEST_BRANCH = (ghprbCommentBody =~ commentBodyReg)[0][1]
                         } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                            TIDB_TEST_BRANCH = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
+                            TIDB_TEST_BRANCH = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][0]
                         } else if (ghprbTargetBranch =~ featureBranchReg) {
                             TIDB_TEST_BRANCH = trunkBranch
                         }
