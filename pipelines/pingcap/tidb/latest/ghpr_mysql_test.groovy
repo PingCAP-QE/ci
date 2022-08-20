@@ -89,7 +89,7 @@ pipeline {
                                     TIDB_TEST_BRANCH=${ghprbTargetBranch}
                                     releaseOrHotfixBranchReg="^(release-)?([0-9]+\\.[0-9]+)(\\.[0-9]+\\-.+)?"
                                     if [[ "$TIDB_TEST_BRANCH" =~ $releaseOrHotfixBranchReg ]]; then
-                                        TIDB_TEST_BRANCH="release-${BASH_REMATCH[1]}"
+                                        TIDB_TEST_BRANCH="release-${BASH_REMATCH[2]}"
                                     fi
 
                                     tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"

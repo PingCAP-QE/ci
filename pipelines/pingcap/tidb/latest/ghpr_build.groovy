@@ -108,10 +108,10 @@ pipeline {
                                 def commentBodyReg = /\bplugin\s*=\s*([^\s\\]+)(\s|\\|$)/
 
                                 def pluginBranch = ghprbTargetBranch
-                                if (ghprbCommentBody =~ ghprbTargetBranch) {
+                                if (ghprbCommentBody ==~ ghprbTargetBranch) {
                                     pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
-                                } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                                    pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
+                                } else if (ghprbTargetBranch ==~ releaseOrHotfixBranchReg) {
+                                    pluginBranch = String.format('release-%s', (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
                                 }  
 
                                 def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
