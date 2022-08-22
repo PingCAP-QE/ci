@@ -173,11 +173,11 @@ try {
                 dir("go/src/github.com/pingcap/tidb-test") {
                     timeout(10) {
                         def TIDB_TEST_BRANCH = ghprbTargetBranch
-                        if (ghprbCommentBody ==~ commentBodyReg) {
+                        if (ghprbCommentBody =~ commentBodyReg) {
                             TIDB_TEST_BRANCH = (ghprbCommentBody =~ commentBodyReg)[0][1]
-                        } else if (ghprbTargetBranch ==~ releaseOrHotfixBranchReg) {
+                        } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
                             TIDB_TEST_BRANCH = String.format('release-%s', (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
-                        } else if (ghprbTargetBranch ==~ featureBranchReg) {
+                        } else if (ghprbTargetBranch =~ featureBranchReg) {
                             TIDB_TEST_BRANCH = trunkBranch
                         }
                         println "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
