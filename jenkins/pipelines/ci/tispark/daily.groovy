@@ -57,7 +57,7 @@ def test_release2_5(version) {
 
 
             test3: {
-                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1")
+                test_base("release-2.5", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1")
             },
     )
 }
@@ -89,11 +89,11 @@ def test_release3_0(version) {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
     )
 }
@@ -108,11 +108,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     version = "release-6.1"
@@ -122,11 +122,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
 
@@ -137,11 +137,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     version = "release-5.3"
@@ -151,11 +151,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     version = "release-5.2"
@@ -165,11 +165,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     version = "release-5.1"
@@ -179,11 +179,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     version = "release-5.0"
@@ -194,11 +194,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     version = "release-4.0"
@@ -209,11 +209,11 @@ def release_master() {
             },
 
             test2: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.1")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2.1")
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark3.2")
             },
     )
     // tiflash test
