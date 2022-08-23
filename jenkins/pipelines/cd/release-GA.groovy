@@ -106,7 +106,7 @@ try {
                         parallel publishs
                     }
                     stage('sync enterprise image to gcr') {
-                        def source = "hub.pingcap.net/enterprise/"
+                        def source = "pingcap/"
                         if (DEBUG_MODE == "true") {
                             source = "hub.pingcap.net/ga-debug-enterprise/"
                         }
