@@ -5,6 +5,20 @@ if (DEBUG_MODE == "true") {
     release_tag = params.RELEASE_BRANCH
 
 }
+
+lts_versions = ["v6.1"]
+
+def is_lts_version = { version ->
+    for (lts_version in lts_versions) {
+        if (version.contains(lts_version)) {
+            println "is lts version: $version"
+            return true
+        }
+    }
+    println "is not lts version: $version"
+    return false
+}
+
 def get_hash = { repo ->
     if (DEBUG_MODE == "true") {
         if(repo=="tidb-tools"){
@@ -127,8 +141,9 @@ def package_enterprise = { arch ->
         // releative issue : https://github.com/PingCAP-QE/ci/issues/1254
         sh """
         cd ${dst}
-        tree ./commits/
+        ls commits/ || true
         rm -rf commits/
+        cd -
         """
     }
 
@@ -139,12 +154,15 @@ def package_enterprise = { arch ->
     echo "upload $dst successed!"
     """
 
-    sh """
-    export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
-    upload.py ${dst}.tar.gz ${dst}.tar.gz
-    aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
-    echo "upload $dst successed!"
-    """
+    if (is_lts_version(release_tag)) {
+        println "This is LTS version, need upload enterprise package to aws s3"
+        sh """
+        export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+        upload.py ${dst}.tar.gz ${dst}.tar.gz
+        aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
+        echo "upload $dst successed!"
+        """
+    }
 }
 
 def package_tools = { plat, arch ->
@@ -209,7 +227,15 @@ def package_tools = { plat, arch ->
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     """
 
-    if (plat == "community" || plat == "enterprise") {
+    if (plat == "community") {
+        sh """
+        export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+        upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz
+        aws s3 cp ${toolkit_dir}.tar.gz s3://download.pingcap.org/${toolkit_dir}.tar.gz --acl public-read
+        """
+    }
+    if (is_lts_version(release_tag) && plat == "enterprise" ) { 
+        println "This is LTS version, need upload enterprise toolkit package to aws s3"
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz
