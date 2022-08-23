@@ -455,6 +455,11 @@ try {
             tests["Real TiKV Tests - txntest"] = {
                 run_real_tikv_tests("txntest")
             }
+            if (ghprbSourceBranch == "new_dev_branch") {
+                tests["Real TiKV Tests - addindexlittest"] = {
+                    run_real_tikv_tests("addindexlittest")
+                }
+            }
         }
         parallel tests
 
