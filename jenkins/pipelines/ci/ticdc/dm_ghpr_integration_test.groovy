@@ -219,7 +219,7 @@ def checkout_and_stash_dm_code() {
                     println "get code from fileserver to reduce clone time"
                     println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
                     sh """
-                    curl -O ${codeCacheInFileserverUrl}
+                    curl -C - --retry 3 -fO ${codeCacheInFileserverUrl}
                     tar -xzf src-tiflow.tar.gz --strip-components=1
                     rm -f src-tiflow.tar.gz
                     """
@@ -271,16 +271,16 @@ def build_dm_bin() {
                 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
 
-                tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+                sh "curl -C - --retry 3 -f -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
                 sh 'mkdir -p tidb-server'
                 sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
                 sh 'mv tidb-server/bin/tidb-server bin/'
                 sh 'rm -r tidb-server'
                 sh 'rm -r tidb-server.tar.gz'
 
-                tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
-                sh "curl -C - --retry 3 -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
+                tools_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
+                sh "curl -C - --retry 3 -f -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
                 sh 'mkdir -p tidb-tools'
                 sh 'tar -zxf tidb-tools.tar.gz -C tidb-tools'
                 sh 'mv tidb-tools/bin/sync_diff_inspector bin/'
@@ -288,11 +288,11 @@ def build_dm_bin() {
                 sh 'rm -r tidb-tools.tar.gz'
 
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
-                sh 'curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
+                sh 'curl -C - --retry 3 -f -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz'
                 sh 'mv gh-ost bin/'
 
                 // minio
-                sh 'curl -L http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
+                sh 'curl -C - --retry 3 -f -L http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
                 sh 'mv minio bin/'
             }
             dir("${ws}") {

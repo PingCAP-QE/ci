@@ -71,7 +71,7 @@ run_with_pod {
     container("golang") {
         def ws = pwd()
         sh """
-        curl -O ${COVERAGE_FILE}
+        curl -f -O ${COVERAGE_FILE}
         tar -xvf tiflow_coverage.tar.gz
         ls -alh
         """

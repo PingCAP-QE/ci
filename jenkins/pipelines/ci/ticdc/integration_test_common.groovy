@@ -70,7 +70,7 @@ def prepare_binaries() {
                     sh """
                     cd go/src/github.com/pingcap/tiflow
                     ls -alh
-                    curl -o ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                    curl -C - --retry 3 -f -o ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
                     tar -xvf ticdc_bin.tar.gz
                     chmod +x bin/cdc
                     ./bin/cdc version
@@ -328,12 +328,12 @@ def download_binaries() {
     println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
 
     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-    def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-    def tikv_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
-    def pd_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
+    def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+    def tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
+    def pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
     def tiflash_sha1 = TIFLASH_COMMIT
     if (TIFLASH_COMMIT == null) {
-        tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
+        tiflash_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
     }
     def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
     def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
@@ -378,24 +378,24 @@ def download_binaries() {
         pd_url="${pd_url}"
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
-        curl \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
+        curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
         # tar -xvf tidb.tar.gz -C ./tmp bin/tidb-server
-        curl \${pd_url} | tar xz -C ./tmp bin/*
-        curl \${tikv_url} | tar xz -C ./tmp bin/tikv-server
-        curl \${minio_url} | tar xz -C ./tmp/bin minio
+        curl -C - --retry 3 -f \${pd_url} | tar xz -C ./tmp bin/*
+        curl -C - --retry 3 -f \${tikv_url} | tar xz -C ./tmp bin/tikv-server
+        curl -C - --retry 3 -f \${minio_url} | tar xz -C ./tmp/bin minio
         mv tmp/bin/* third_bin
-        curl \${tiflash_url} | tar xz -C third_bin
+        curl -C - --retry 3 -f \${tiflash_url} | tar xz -C third_bin
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin
-        curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
-        curl -C - --retry 3 -L ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
+        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
+        curl -C - --retry 3 -fL ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
         mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl ${sync_diff_download_url} | tar xz -C ./third_bin
-        curl -L ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
+        curl -C - --retry 3 -f ${sync_diff_download_url} | tar xz -C ./third_bin
+        curl -C - --retry 3 -fL ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
         mv jq third_bin
         chmod a+x third_bin/*
         rm -rf tmp
-        curl -L ${FILE_SERVER_URL}/download/${cacheBinaryPath} | tar xvz -C .
+        curl -C - --retry 3 -fL ${FILE_SERVER_URL}/download/${cacheBinaryPath} | tar xvz -C .
         mv ./third_bin/* ./bin
         rm -rf third_bin
     """
