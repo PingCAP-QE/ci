@@ -134,18 +134,18 @@ podTemplate(name: label, label: label, cloud: "kubernetes-ng", instanceCap: 12, 
                     deleteDir()
 
                     // tidb
-                    def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                    sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
+                    def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+                    sh "curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
                     // tikv
-                    def tikv_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
-                    sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
+                    def tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
+                    sh "curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
                     // pd
-                    def pd_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
-                    sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
+                    def pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
+                    sh "curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
                     // tiflash
                     if (TEST_TIFLASH != "false") {
-                        def tiflash_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
-                        sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz | tar xz"
+                        def tiflash_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()
+                        sh "curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${TIFLASH_BRANCH}/${tiflash_sha1}/centos7/tiflash.tar.gz | tar xz"
                         stash includes: "tiflash/**", name: "tiflash_binary"
                     }
                     // alter-primary-key
@@ -252,7 +252,7 @@ podTemplate(name: label, label: label, cloud: "kubernetes-ng", instanceCap: 12, 
                         rm -rf /maven/.m2/settings.xml
                         rm -rf ~/.m2/settings.xml
                         archive_url=http://fileserver.pingcap.net/download/builds/pingcap/tispark/cache/tispark-m2-cache-latest.tar.gz
-                        if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
+                        if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -C - --retry 3 -sfL \$archive_url | tar -zx -C /maven || true; fi
                     """
                     sh """
                         export MAVEN_OPTS="-Xmx6G -XX:MaxMetaspaceSize=1024M"
@@ -270,7 +270,7 @@ podTemplate(name: label, label: label, cloud: "kubernetes-ng", instanceCap: 12, 
                             rm -rf /maven/.m2/settings.xml
                             rm -rf ~/.m2/settings.xml
                             archive_url=http://fileserver.pingcap.net/download/builds/pingcap/tispark/cache/tispark-m2-cache-latest.tar.gz
-                            if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
+                            if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -C - --retry 3 -sfL \$archive_url | tar -zx -C /maven || true; fi
                         """
                         sh """
                             export MAVEN_OPTS="-Xmx6G -XX:MaxMetaspaceSize=1024M"

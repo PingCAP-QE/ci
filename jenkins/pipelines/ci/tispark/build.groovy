@@ -33,7 +33,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
                         dir("/home/jenkins/agent/git/tispark") {
                             sh """
                             archive_url=http://fileserver.pingcap.net/download/builds/pingcap/tispark/cache/tispark-m2-cache-latest.tar.gz
-                            if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -sL \$archive_url | tar -zx -C /maven || true; fi
+                            if [ ! "\$(ls -A /maven/.m2/repository)" ]; then curl -C - --retry 3 -sfL \$archive_url | tar -zx -C /maven || true; fi
                             """
                             if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                                 deleteDir()
