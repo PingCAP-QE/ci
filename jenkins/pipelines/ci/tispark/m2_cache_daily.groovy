@@ -51,7 +51,7 @@ podTemplate(label: label,
                 ls -all /maven/.m2/repository
                 tar -zcf $archive -C  /maven .m2
                 ls -all
-                curl -F builds/pingcap/tispark/cache/$archive=@$archive fileserver.pingcap.net/upload
+                curl -f -F builds/pingcap/tispark/cache/$archive=@$archive fileserver.pingcap.net/upload
                 echo "http://fileserver.pingcap.net/download/builds/pingcap/tispark/cache/$archive"
                 """
             }
