@@ -17,5 +17,6 @@
 .idea/
 lib/
 .DS_Store
+.vscode/
 
 *.iml
