@@ -218,7 +218,7 @@ run_with_pod {
             ])
         }
         dir("/tmp/tiflash-data") {
-            sh "rm -rf /home/jenkins/agent/workspace/tiflash-build-common/tiflash/.git"
+            sh "rm -rf /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib"
             sh "tar --absolute-names -caf tiflash-src.tar.gz /home/jenkins/agent/workspace/tiflash-build-common/tiflash"
             stash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
         }
