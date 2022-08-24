@@ -66,7 +66,7 @@ run_with_pod {
                         while ! curl --output /dev/null --silent --head --fail "${tidb_url}"; do sleep 5; done
                         """
                     }
-                    def tiflowGhprbActualCommit = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflow/${ghprbTargetBranch}/sha1").trim()
+                    def tiflowGhprbActualCommit = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tiflow/${ghprbTargetBranch}/sha1").trim()
                     println("tiflow latest commit on ${ghprbTargetBranch}: ${tiflowGhprbActualCommit}")
                     println "tidb binary url: ${tidb_url}"
                     def default_params = [
@@ -104,7 +104,7 @@ run_with_pod {
             def file_existed = sh(returnStatus: true,
                                 script: """if curl --output /dev/null --silent --head --fail ${triggered_job_result_file_url}; then exit 0; else exit 1; fi""")
             if (file_existed == 0) {
-                sh "curl -O ${triggered_job_result_file_url}"
+                sh "curl -fO ${triggered_job_result_file_url}"
                 def jsonObj = readJSON file: "result-${triggered_job_name}_${result.getNumber().toString()}.json"
                 def json = groovy.json.JsonOutput.toJson(jsonObj)
                 println "all_results: ${json}"
