@@ -134,8 +134,10 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),    
+            ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -216,6 +218,8 @@ run_with_pod {
             ])
         }
         dir("/tmp/tiflash-data") {
+            sh "rm -rf /home/jenkins/agent/workspace/tiflash-build-common/tiflash/.git"
+            sh "rm -rf /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib"            
             sh "tar --absolute-names -caf tiflash-src.tar.gz /home/jenkins/agent/workspace/tiflash-build-common/tiflash"
             stash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
         }
