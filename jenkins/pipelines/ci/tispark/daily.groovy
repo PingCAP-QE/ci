@@ -114,6 +114,10 @@ def release_master() {
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
+            },
     )
     version = "release-6.1"
     parallel(
@@ -127,6 +131,10 @@ def release_master() {
 
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
+            },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
             },
     )
 
@@ -143,6 +151,10 @@ def release_master() {
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
+            }
     )
     version = "release-5.3"
     parallel(
@@ -157,6 +169,10 @@ def release_master() {
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
+            }
     )
     version = "release-5.2"
     parallel(
@@ -185,6 +201,10 @@ def release_master() {
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
+            }
     )
     version = "release-5.0"
     parallel(
@@ -200,6 +220,10 @@ def release_master() {
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
+            }
     )
     version = "release-4.0"
     parallel(
@@ -215,21 +239,30 @@ def release_master() {
             test3: {
                 test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.2")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=$version pd=$version tiflash=$version tikv=$version profile=spark-3.3")
+            }
     )
     // tiflash test
     parallel(
 
             test1: {
-                test_base("master", commitID, "tidb=master pd=master tiflash=master tikv=master profile=spark-3.2 test-flash=true")
+                test_base("master", commitID, "tidb=master pd=master tiflash=master tikv=master profile=spark-3.3 test-flash=true")
             },
 
             test2: {
-                test_base("master", commitID, "tidb=v6.0.0 pd=v6.0.0 tiflash=v6.0.0 tikv=v6.0.0 profile=spark-3.1 test-flash=true")
+                test_base("master", commitID, "tidb=v6.1.0 pd=v6.1.0 tiflash=v6.1.0 tikv=v6.1.0 profile=spark-3.2 test-flash=true")
             },
 
             test3: {
-                test_base("master", commitID, "tidb=release-4.0 pd=release-4.0 tiflash=release-4.0 tikv=release-4.0 test-flash=true")
+                test_base("master", commitID, "tidb=v5.4.2 pd=v5.4.2 tiflash=v5.4.2 tikv=v5.4.2 profile=spark-3.1 test-flash=true")
             },
+
+            test4: {
+                test_base("master", commitID, "tidb=v4.0.16 pd=v4.0.16 tiflash=v4.0.16 tikv=v4.0.16 test-flash=true")
+            },
+
     )
 }
 
