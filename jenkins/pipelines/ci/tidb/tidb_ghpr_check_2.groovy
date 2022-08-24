@@ -455,8 +455,10 @@ try {
             tests["Real TiKV Tests - txntest"] = {
                 run_real_tikv_tests("txntest")
             }
-            tests["Real TiKV Tests - addindextest"] = {
-                run_real_tikv_tests("addindextest")
+            if (ghprbTargetBranch == "master") {
+                tests["Real TiKV Tests - addindextest"] = {
+                    run_real_tikv_tests("addindextest")
+                }
             }
         }
         parallel tests
