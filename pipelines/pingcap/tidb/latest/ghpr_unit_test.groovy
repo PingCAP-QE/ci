@@ -28,6 +28,8 @@ spec:
         - name: GOCACHE
           value: ${ENV_GOCACHE}
       volumeMounts:
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out
         - mountPath: /data/
           name: bazel
           readOnly: true
@@ -44,6 +46,8 @@ spec:
       command: [/bin/sh, -c]
       args: [cat]
   volumes:
+    - name: bazel-out
+      emptyDir: {}
     - name: bazel
       secret:
         secretName: bazel
