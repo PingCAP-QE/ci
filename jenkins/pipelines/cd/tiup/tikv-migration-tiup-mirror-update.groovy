@@ -32,6 +32,9 @@ def publish = { os, arch ->
         desc="TiKV-CDC is a change data capture tool for TiKV"
     elif [ \${name} == "tikv-gc-worker" ]; then
         desc="GC Worker is a component for TiKV to control the gc process"
+    else
+        echo "Unsupported production \${name}"
+        exit 1
     fi
 
     tiup mirror set ${mirror_server}
