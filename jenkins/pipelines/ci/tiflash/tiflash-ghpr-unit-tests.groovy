@@ -136,7 +136,7 @@ def run_with_pod(Closure body) {
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false),
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),    
+                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
             ],
     ) {
         node(label) {
@@ -217,8 +217,16 @@ run_with_pod {
                 doGenerateSubmoduleConfigurations: false,
             ])
         }
+        dir("/home/jenkins/agent/workspace/tiflash-build-common/tiflash") {
+            sh """
+            COMMIT_HASH_BASE=\$(git merge-base origin/${ghprbTargetBranch} HEAD)
+            git diff --name-only "\$COMMIT_HASH_BASE" | { grep -E '.*\\.(cpp|h|hpp|cc|c)\$' || true; } > .git-diff-names
+            rm -rf contrib
+            rm -rf .git
+            """
+        }
+
         dir("/tmp/tiflash-data") {
-            sh "rm -rf /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib"
             sh "tar --absolute-names -caf tiflash-src.tar.gz /home/jenkins/agent/workspace/tiflash-build-common/tiflash"
             stash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
         }
@@ -311,8 +319,7 @@ run_with_pod {
                         mv coverage-report.tar.gz ${cwd}
                     popd
 
-                    COMMIT_HASH_BASE=\$(git merge-base origin/${ghprbTargetBranch} HEAD)
-                    SOURCE_DELTA=\$(git diff --name-only "\$COMMIT_HASH_BASE" | { grep -E '.*\\.(cpp|h|hpp|cc|c)\$' || true; })
+                    SOURCE_DELTA=\$(cat .git-diff-names)
                     echo '### Coverage for changed files' > ${cwd}/diff-coverage
                     echo '```' >> ${cwd}/diff-coverage
 
