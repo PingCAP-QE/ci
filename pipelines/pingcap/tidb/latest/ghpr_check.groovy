@@ -94,8 +94,13 @@ pipeline {
             }
         }
         // can not parallel, it will make `parser/parser.go` regenerating.
+        // cache restoring and saving should not put in parallel with same pod.
         stage("test_part_parser") {
-            steps { dir('tidb') {sh 'make test_part_parser' } }
+            steps {
+                cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
+                    dir('tidb') {sh 'make test_part_parser' }
+                }
+            }
         }
         stage("Checks") {
             parallel {
