@@ -274,7 +274,7 @@ podTemplate(name: label, label: label, cloud: "kubernetes-ng", instanceCap: 12, 
                         """
                         sh """
                             export MAVEN_OPTS="-Xmx6G -XX:MaxMetaspaceSize=1024M"
-                            mvn test ${MVN_PROFILE} -am -pl tikv-client -Dtest=**/txn/*,**/PDClientTest.java
+                            mvn test ${MVN_PROFILE} -am -pl tikv-client
                         """
                         sh 'curl -s https://codecov.io/bash | bash -s'
                     }
