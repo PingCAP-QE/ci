@@ -93,6 +93,10 @@ pipeline {
                 }
             }
         }
+        // can not parallel, it will make `parser/parser.go` regenerating.
+        stage("test_part_parser") {
+            steps { dir('tidb') {sh 'make test_part_parser' } }
+        }
         stage("Checks") {
             parallel {
                 stage('check') {
@@ -103,9 +107,6 @@ pipeline {
                 }
                 stage('explaintest') {
                     steps{ dir('tidb') {sh 'make explaintest' } }
-                }
-                stage("test_part_parser") {
-                    steps { dir('tidb') {sh 'make test_part_parser' } }
                 }
                 stage("gogenerate") {
                     steps { dir('tidb') {sh 'make gogenerate' } }
