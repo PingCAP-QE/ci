@@ -14,7 +14,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:20220816"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220823"
       tty: true
       resources:
         requests:
@@ -28,6 +28,8 @@ spec:
         - name: GOCACHE
           value: ${ENV_GOCACHE}
       volumeMounts:
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out
         - mountPath: /data/
           name: bazel
           readOnly: true
@@ -44,6 +46,8 @@ spec:
       command: [/bin/sh, -c]
       args: [cat]
   volumes:
+    - name: bazel-out
+      emptyDir: {}
     - name: bazel
       secret:
         secretName: bazel

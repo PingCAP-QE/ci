@@ -141,8 +141,10 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true)
+            ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"

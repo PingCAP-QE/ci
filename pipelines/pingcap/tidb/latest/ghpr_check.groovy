@@ -12,7 +12,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:20220816"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220823"
       tty: true
       resources:
         requests:
@@ -27,10 +27,14 @@ spec:
         - name: GOCACHE
           value: ${ENV_GOCACHE}
       volumeMounts:
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out
         - mountPath: /data/
           name: bazel
           readOnly: true
   volumes:
+    - name: bazel-out
+      emptyDir: {}
     - name: bazel
       secret:
         secretName: bazel
@@ -89,6 +93,15 @@ pipeline {
                 }
             }
         }
+        // can not parallel, it will make `parser/parser.go` regenerating.
+        // cache restoring and saving should not put in parallel with same pod.
+        stage("test_part_parser") {
+            steps {
+                cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
+                    dir('tidb') {sh 'make test_part_parser' }
+                }
+            }
+        }
         stage("Checks") {
             parallel {
                 stage('check') {
@@ -99,9 +112,6 @@ pipeline {
                 }
                 stage('explaintest') {
                     steps{ dir('tidb') {sh 'make explaintest' } }
-                }
-                stage("test_part_parser") {
-                    steps { dir('tidb') {sh 'make test_part_parser' } }
                 }
                 stage("gogenerate") {
                     steps { dir('tidb') {sh 'make gogenerate' } }

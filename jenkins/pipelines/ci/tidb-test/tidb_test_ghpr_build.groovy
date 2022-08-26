@@ -137,9 +137,9 @@ try {
                         sh """
                         rm -rf .git
                         tar czvf tidb-test.tar.gz ./*
-                        curl -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -f -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
                         echo "pr/${ghprbActualCommit}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                        curl -f -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """                        
                     }
                 }

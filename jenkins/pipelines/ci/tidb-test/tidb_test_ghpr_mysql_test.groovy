@@ -87,11 +87,11 @@ try {
     run_with_pod {
         container("golang") {
             def ws = pwd()
-            def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+            def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
             def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${TIDB_BRANCH}/${tidb_sha1}/centos7/tidb-server.tar.gz"
 
-            def tikv_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
-            def pd_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
+            def tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
+            def pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
             def tikv_url= "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
             def pd_url= "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
 
@@ -146,7 +146,7 @@ try {
                                     deleteDir()
                                     sh """
                                     while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                                    curl ${tidb_url} | tar xz
+                                    curl -C - --retry 3 -f ${tidb_url} | tar xz
                                     """
                                 }
                             }
@@ -166,13 +166,13 @@ try {
                                     retry(3){
                                     sh """
                                     while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 1; done
-                                    curl ${tikv_url} | tar xz bin
+                                    curl -C - --retry 3 -f ${tikv_url} | tar xz bin
         
                                     while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 1; done
-                                    curl ${pd_url} | tar xz bin
+                                    curl -C - --retry 3 -f ${pd_url} | tar xz bin
         
                                     mkdir -p ./tidb-src
-                                    curl ${tidb_url} | tar xz -C ./tidb-src
+                                    curl -C - --retry 3 -f ${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${cur_ws}/go/src/github.com/pingcap/tidb"
                                     mv tidb-src/bin/tidb-server ./bin/tidb-server
                                     """
@@ -238,7 +238,7 @@ try {
                                     retry(3){
                                         sh """
                                         while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
+                                        curl -C - --retry 3 -f ${tidb_url} | tar xz
                                         """
                                     }
                                 }
@@ -281,7 +281,7 @@ try {
                                     retry(3){
                                         sh """
                                         while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
+                                        curl -C - --retry 3 -f ${tidb_url} | tar xz
                                         """
                                     }
                                 }
@@ -324,7 +324,7 @@ try {
                                     retry(3){
                                         sh """
                                         while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
+                                        curl -C - --retry 3 -f ${tidb_url} | tar xz
                                         """
                                     }
                                 }
@@ -367,7 +367,7 @@ try {
                                     retry(3){
                                         sh """
                                         while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
+                                        curl -C - --retry 3 -f ${tidb_url} | tar xz
                                         """
                                     }
                                 }

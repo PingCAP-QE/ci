@@ -169,26 +169,24 @@ catchError {
 
                 stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
 
-                def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
+                def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+                sh "curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
 
 
                 // binlogctl
-                sh "curl http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz | tar xz"
-                sh "curl http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz"
+                sh "curl -C - --retry 3 -f http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz | tar xz"
+                sh "curl -C - --retry 3 -f http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz"
                 sh "mv tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector bin/"
-                //sh "curl https://download.pingcap.org/tidb-tools-test-linux-amd64.tar.gz | tar xz"
-                //sh "mv tidb-enterprise-tools-latest-linux-amd64/bin/sync_diff_inspector bin/"
                 sh "mv tidb-enterprise-tools-latest-linux-amd64/bin/mydumper bin/"
                 sh "rm -r tidb-enterprise-tools-latest-linux-amd64 || true"
                 sh "rm -r tidb-enterprise-tools-nightly-linux-amd64 || true"
 
                 // use a new version of gh-ost to overwrite the one in container("golang") (1.0.47 --> 1.1.0)
-                sh "curl -L https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz"
+                sh "curl -C - --retry 3 -fL https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz | tar xz"
                 sh "mv gh-ost bin/"
 
                 // minio
-                sh 'curl -L http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
+                sh 'curl -C - --retry 3 -fL http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
                 sh 'mv minio bin/'
                 
                 stash includes: "bin/**", name: "binaries"

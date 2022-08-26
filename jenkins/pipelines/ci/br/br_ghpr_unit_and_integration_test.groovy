@@ -281,7 +281,6 @@ def run_unit_test() {
     try {
         run_with_pod {
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
                 def ws = pwd()
                 deleteDir()
 
@@ -343,7 +342,6 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
     try {
         run_with_pod {
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
                 def ws = pwd()
                 deleteDir()
 
@@ -580,7 +578,6 @@ try {
     stage('Prepare') {
         run_with_pod {
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
                 def ws = pwd()
                 deleteDir()
 
@@ -807,7 +804,6 @@ try {
         // Skip upload coverage when the job is initialed by TiDB PRs.
         run_with_pod {
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${NODE_NAME} bash"
                 if (params.containsKey("triggered_by_upstream_pr_ci") || params.containsKey("release_test")) {
                     println "skip uploading coverage as it is triggered by upstream PRs"
                 } else {
