@@ -455,6 +455,11 @@ try {
             tests["Real TiKV Tests - txntest"] = {
                 run_real_tikv_tests("txntest")
             }
+            if (ghprbTargetBranch == "master" || ghprbTargetBranch.matches("^feature[/_].*")) {
+                tests["Real TiKV Tests - addindextest"] = {
+                    run_real_tikv_tests("addindextest")
+                }
+            }
         }
         parallel tests
 
