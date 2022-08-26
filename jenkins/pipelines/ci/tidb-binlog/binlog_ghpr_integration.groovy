@@ -41,10 +41,10 @@ if (m3) {
 m3 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
-// parse tidb branch
+// parse tidb-tools branch
 def m4 = ghprbCommentBody =~ /tidb-tools\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m4) {
-    TIDB_TOOLS_BRANCH = "${m3[0][1]}"
+    TIDB_TOOLS_BRANCH = "${m4[0][1]}"
 }
 m4 = null
 println "TIDB_TOOLS_BRANCH=${TIDB_TOOLS_BRANCH}"
