@@ -80,6 +80,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
  
     definition {
         cpsScm {
+            lightweight(true)
             scriptPath("pipelines/pingcap/tidb/latest/ghpr_mysql_test.groovy")
             scm {
                 git{
