@@ -12,7 +12,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:20220823"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
       tty: true
       resources:
         requests:
