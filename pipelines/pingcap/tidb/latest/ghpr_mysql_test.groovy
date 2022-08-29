@@ -24,7 +24,20 @@ spec:
         - name: GOPATH
           value: ${ENV_GOPATH}
         - name: GOCACHE
-          value: ${ENV_GOCACHE} 
+          value: ${ENV_GOCACHE}
+      volumeMounts:
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out
+        - mountPath: /data/
+          name: bazel
+          readOnly: true
+  volumes:
+    - name: bazel-out
+      emptyDir: {}
+    - name: bazel
+      secret:
+        secretName: bazel
+        optional: true
 """
 
 
@@ -76,12 +89,22 @@ pipeline {
                             }
                             dir("tidb-test") {
                                 sh label: 'download tidb-test and build mysql_test', script: '''#! /usr/bin/env bash
-
-                                    TIDB_TEST_BRANCH=${ghprbTargetBranch}
+                                    trunkBranch="master"
                                     releaseOrHotfixBranchReg="^(release-)?([0-9]+\\.[0-9]+)(\\.[0-9]+\\-.+)?"
-                                    if [[ "$TIDB_TEST_BRANCH" =~ $releaseOrHotfixBranchReg ]]; then
-                                        TIDB_TEST_BRANCH="release-${BASH_REMATCH[1]}"
+                                    featureBranchReg="^feature[/_].+"
+                                    commentBodyBranchReg="\\btidb[-_]test\\s*=\\s*(\\S+)\\b"
+
+                                    if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
+                                        TIDB_TEST_BRANCH=${BASH_REMATCH[1]}
+                                    elif [[ "${ghprbTargetBranch}" =~ $releaseOrHotfixBranchReg ]]; then
+                                        TIDB_TEST_BRANCH="release-${BASH_REMATCH[2]}"
+                                    elif [[ "${ghprbTargetBranch}" =~ $featureBranchReg ]]; then
+                                        TIDB_TEST_BRANCH="${trunkBranch}"
+                                    else
+                                        TIDB_TEST_BRANCH="${ghprbTargetBranch}"
                                     fi
+
+                                    echo "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
 
                                     tidb_test_refs="${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                     echo "${tidb_test_refs}"

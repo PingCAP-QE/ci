@@ -49,14 +49,14 @@ catchError {
                             tiflash_branch_sha1 = "master/" + get_commit_hash("tiflash", "master")
                         }
                         sh """
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz bin
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/br/${br_sha1}/centos7/br.tar.gz | tar xz
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tiflow/${cdc_sha1}/centos7/tiflow-linux-amd64.tar.gz | tar xz
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz | tar xz bin
-                        curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflash_branch_sha1}/centos7/tiflash.tar.gz | tar xz
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz bin
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/${binlog_sha1}/centos7/tidb-binlog.tar.gz | tar xz
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/br/${br_sha1}/centos7/br.tar.gz | tar xz
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tiflow/${cdc_sha1}/centos7/tiflow-linux-amd64.tar.gz | tar xz
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz | tar xz bin
+                        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflash_branch_sha1}/centos7/tiflash.tar.gz | tar xz
                         cp -R /home/jenkins/bin/go-tpc bin/
                         """
                     }

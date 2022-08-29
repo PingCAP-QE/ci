@@ -44,6 +44,7 @@ try {
                 dir("go/src/github.com/pingcap/tidb") {
                     timeout(15) {
                         sh """
+                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         curl ${tidb_url} | tar xz -C ./
                         pwd && ls -alh bin/
                         ./bin/tidb-server -V

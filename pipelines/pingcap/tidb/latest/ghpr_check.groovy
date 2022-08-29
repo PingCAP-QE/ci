@@ -12,13 +12,12 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:20220816"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
       tty: true
       resources:
         requests:
           memory: 12Gi # 8
           cpu: 6000m # 4
-
       command: [/bin/sh, -c]
       args: [cat]
       env:
@@ -26,7 +25,20 @@ spec:
         - name: GOPATH
           value: ${ENV_GOPATH}
         - name: GOCACHE
-          value: ${ENV_GOCACHE} 
+          value: ${ENV_GOCACHE}
+      volumeMounts:
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out
+        - mountPath: /data/
+          name: bazel
+          readOnly: true
+  volumes:
+    - name: bazel-out
+      emptyDir: {}
+    - name: bazel
+      secret:
+        secretName: bazel
+        optional: true
 """
 
 pipeline {
@@ -56,7 +68,7 @@ pipeline {
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -81,6 +93,15 @@ pipeline {
                 }
             }
         }
+        // can not parallel, it will make `parser/parser.go` regenerating.
+        // cache restoring and saving should not put in parallel with same pod.
+        stage("test_part_parser") {
+            steps {
+                cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
+                    dir('tidb') {sh 'make test_part_parser' }
+                }
+            }
+        }
         stage("Checks") {
             parallel {
                 stage('check') {
@@ -91,9 +112,6 @@ pipeline {
                 }
                 stage('explaintest') {
                     steps{ dir('tidb') {sh 'make explaintest' } }
-                }
-                stage("test_part_parser") {
-                    steps { dir('tidb') {sh 'make test_part_parser' } }
                 }
                 stage("gogenerate") {
                     steps { dir('tidb') {sh 'make gogenerate' } }

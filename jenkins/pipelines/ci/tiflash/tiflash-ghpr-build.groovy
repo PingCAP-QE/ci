@@ -102,7 +102,7 @@ run_with_pod {
                 }
         }
 }
-
+        currentBuild.result = "SUCCESS"
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
     echo "${e}"

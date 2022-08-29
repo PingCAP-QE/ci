@@ -223,7 +223,7 @@ catchError {
                         println "get code from fileserver to reduce clone time"
                         println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
                         sh """
-                        curl -O ${codeCacheInFileserverUrl}
+                        curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
                         tar -xzf src-tiflow.tar.gz --strip-components=1
                         rm -f src-tiflow.tar.gz
                         """

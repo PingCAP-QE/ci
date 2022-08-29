@@ -157,7 +157,7 @@ try{
             }
         }
     }
-
+currentBuild.result = "SUCCESS"
 } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     println e
     // this ambiguous condition means a user probably aborted

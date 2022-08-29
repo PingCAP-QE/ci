@@ -41,10 +41,10 @@ if (m3) {
 m3 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
-// parse tidb branch
+// parse tidb-tools branch
 def m4 = ghprbCommentBody =~ /tidb-tools\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m4) {
-    TIDB_TOOLS_BRANCH = "${m3[0][1]}"
+    TIDB_TOOLS_BRANCH = "${m4[0][1]}"
 }
 m4 = null
 println "TIDB_TOOLS_BRANCH=${TIDB_TOOLS_BRANCH}"
@@ -166,7 +166,7 @@ try {
                 sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
 
                 dir("go/src/github.com/pingcap/tidb-tools") {
-                    def tidb_tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
+                    def tidb_tools_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/${TIDB_TOOLS_BRANCH}/sha1").trim()
                     def tidb_tools_file = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz"
                     sh """
                     curl ${tidb_tools_file} | tar xz

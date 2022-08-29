@@ -12,7 +12,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:20220816"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
       tty: true
       resources:
         requests:
@@ -25,6 +25,19 @@ spec:
           value: ${ENV_GOPATH}
         - name: GOCACHE
           value: ${ENV_GOCACHE}
+      volumeMounts:
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out
+        - mountPath: /data/
+          name: bazel
+          readOnly: true
+  volumes:
+    - name: bazel-out
+      emptyDir: {}
+    - name: bazel
+      secret:
+        secretName: bazel
+        optional: true
 """
 
 pipeline {
@@ -62,7 +75,7 @@ pipeline {
                     steps {
                         dir("tidb") {
                             // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
-                            cache(path: "./", filter: '**/*', key: "pingcap-tidb-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-tidb-cache-src-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                                 retry(2) {
                                     checkout(
                                         changelog: false,
@@ -102,7 +115,7 @@ pipeline {
                                 if (ghprbCommentBody =~ ghprbTargetBranch) {
                                     pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
                                 } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                                    pluginBranch = (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2]
+                                    pluginBranch = String.format('release-%s', (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
                                 }  
 
                                 def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
@@ -112,7 +125,7 @@ pipeline {
                                     pluginBranch = "origin/${pluginBranch}/head"
                                 }
 
-                                cache(path: "./", filter: '**/*', key: "pingcap-enterprise-plugin-cache-src-${ghprbActualCommit}", restoreKeys: ['pingcap-enterprise-plugin-cache-src-']) {
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
                                     checkout(
                                         changelog: false,
                                         poll: true,

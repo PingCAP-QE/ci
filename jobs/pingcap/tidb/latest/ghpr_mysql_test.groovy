@@ -80,13 +80,15 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
  
     definition {
         cpsScm {
+            lightweight(true)
             scriptPath("pipelines/pingcap/tidb/latest/ghpr_mysql_test.groovy")
             scm {
                 git{
                     remote {
-                        url("https://github.com/PingCAP-QE/ci.git")
+                        url('git@github.com:PingCAP-QE/ci.git')
+                        credentials('github-sre-bot-ssh')
                     }
-                    branch("main")
+                    branch('main')
                 }
             }
         }

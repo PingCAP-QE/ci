@@ -56,8 +56,8 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
-    "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
-    "master": "hub.pingcap.net/wangweizhen/tidb_image:20220816",
+    "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220823",
+    "master": "hub.pingcap.net/wangweizhen/tidb_image:go11920220829",
 ]
 VOLUMES = [
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
@@ -66,12 +66,10 @@ VOLUMES = [
 ]
 
 def user_bazel(branch) {
-    // set the feature branch at here.
-    if (branch in ["master", "feature/distribute-reorg"]) {
+    if (branch in ["master"] || 
+        branch.matches("^feature[/_].*") /* feature branches */ || 
+        (branch.startsWith("release-") && branch >= "release-6.2")) {
         return GO_IMAGE_MAP["master"]
-    }
-    if (branch.startsWith("release-") && branch >= "release-6.2") {
-        return GO_IMAGE_MAP[branch]
     }
     return ""
 }
@@ -80,7 +78,6 @@ node("master") {
     image = user_bazel(ghprbTargetBranch)
     if (image != "") {
         POD_GO_IMAGE = image
-        GO_VERSION = ghprbTargetBranch
         ALWAYS_PULL_IMAGE = false
         RESOURCE_REQUEST_CPU = '2000m'
     } else {
