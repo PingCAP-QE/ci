@@ -245,7 +245,6 @@ def package_tools = { plat, arch ->
 
 def run_in_dir(String directory, Closure body){
     return {
-        sh "mkdir -p $directory"
         dir(directory){
             body()
         }
