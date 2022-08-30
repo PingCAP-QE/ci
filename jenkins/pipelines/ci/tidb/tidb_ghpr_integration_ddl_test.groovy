@@ -71,6 +71,19 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    resourcepool: ksyun-ci1
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-integration-ddl-test-${BUILD_NUMBER}"
     if (GO_VERSION == "go1.13") {
@@ -83,11 +96,13 @@ def run_with_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-go1180-${BUILD_NUMBER}"
     }
 
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -101,6 +116,7 @@ def run_with_pod(Closure body) {
                             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
@@ -123,11 +139,13 @@ def run_with_memory_volume_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-memory-volume-go1180-${BUILD_NUMBER}"
     }
     
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -141,6 +159,7 @@ def run_with_memory_volume_pod(Closure body) {
                             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: true)
                     ],
     ) {
