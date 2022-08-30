@@ -91,12 +91,6 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
-                    ),
-                    containerTemplate(
-                            name: 'ruby', alwaysPullImage: true,
-                            image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest", ttyEnabled: true,
-                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
-                            command: '/bin/sh -c', args: 'cat', 
                     )
             ],
             volumes: VOLUMES,
