@@ -91,12 +91,6 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
-                    ),
-                    containerTemplate(
-                            name: 'ruby', alwaysPullImage: true,
-                            image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest", ttyEnabled: true,
-                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
-                            command: '/bin/sh -c', args: 'cat', 
                     )
             ],
             volumes: VOLUMES,
@@ -259,49 +253,6 @@ try {
                             // upload_test_result("test_coverage/tidb-junit-report.xml")
                             // upload_test_result("test_coverage/br-junit-report.xml")
                             // upload_test_result("test_coverage/dumpling-junit-report.xml")
-                        }
-                    }
-                    withCredentials([string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN')]) {
-                        timeout(5) {
-                            if (ghprbPullId != null && ghprbPullId != "") {
-                                if (user_bazel(ghprbTargetBranch) != "") { 
-                                    sh """
-                                    codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
-                                    """
-                                } else {
-                                    sh """
-                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                    chmod +x codecov
-                                    ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage"  -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -P ${ghprbPullId} -b ${BUILD_NUMBER}
-                                    """
-                                }
-                            } else {
-                                if (user_bazel(ghprbTargetBranch) != "") { 
-                                    sh """
-                                    codecov -f "./coverage.dat" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                                    """
-                                } else {
-                                    sh """
-                                    curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                                    chmod +x codecov
-                                    ./codecov -f "dumpling.coverage" -f "br.coverage" -f "tidb.coverage" -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER} -B ${ghprbTargetBranch}
-                                    """
-                                }     
-                            }
-                        }
-                    }
-                }
-                container("ruby") {
-                    withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN')]) {
-                        timeout(5) {
-                            if (ghprbPullId != null && ghprbPullId != "") { 
-                            sh """#!/bin/bash
-                            ruby --version
-                            gem --version
-                            wget ${FILE_SERVER_URL}/download/cicd/scripts/comment-on-pr.rb
-                            ruby comment-on-pr.rb "pingcap/tidb" "${ghprbPullId}"  "Code Coverage Details: https://codecov.io/github/pingcap/tidb/commit/${ghprbActualCommit}" true "Code Coverage Details:"
-                            """
-                            }
                         }
                     }
                 }
