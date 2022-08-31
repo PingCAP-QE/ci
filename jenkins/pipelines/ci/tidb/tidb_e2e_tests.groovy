@@ -85,13 +85,10 @@ try {
         stage("Checkout") {
             container("golang") {
                 sh "whoami && go version"
-            }
-            // update code
-            dir("/home/jenkins/agent/code-archive") {
-                // delete to clean workspace in case of agent pod reused lead to conflict.
-                deleteDir()
-                // copy code from nfs cache
-                container("golang") {
+                dir("/home/jenkins/agent/code-archive") {
+                    // delete to clean workspace in case of agent pod reused lead to conflict.
+                    deleteDir()
+                    // copy code from nfs cache
                     if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
@@ -103,34 +100,19 @@ try {
                     }
                 }
                 dir("${ws}/go/src/github.com/pingcap/tidb") {
-                    if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/tidb"
-                        echo "Clean dir then get tidb src code from fileserver"
-                        deleteDir()
-                    }
-                    if(!fileExists("${ws}/go/src/github.com/pingcap/tidb/Makefile")) {
-                        dir("${ws}/go/src/github.com/pingcap/tidb") {
-                            sh """
-                                rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
-                                rm -rf /home/jenkins/agent/code-archive/tidb
-                                wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/tidb.tar.gz  -q --show-progress
-                                tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
-                            """
-                        }
-                    }
                     try {
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: ghprbTargetBranch]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
-                    }   catch (info) {
-                            retry(2) {
-                                echo "checkout failed, retry.."
-                                sleep 5
-                                if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                                    deleteDir()
-                                }
-                                // if checkout one pr failed, we fallback to fetch all thre pr data
-                                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: ghprbTargetBranch]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 10]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
+                    } catch (info) {
+                        retry(2) {
+                            echo "checkout failed, retry.."
+                            sleep 5
+                            if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                deleteDir()
                             }
+                            // if checkout one pr failed, we fallback to fetch all thre pr data
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 10]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]
                         }
+                    }
                     sh "git checkout -f ${ghprbActualCommit}"
                 }
             }
@@ -159,18 +141,18 @@ try {
 
                                     cd tests/globalkilltest
                                     tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/master/sha1"`
-	                                tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
 
-	                                pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/master/sha1"`
-	                                pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+                                    pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/master/sha1"`
+                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
 
 
-	                                while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-	                                curl \${tikv_url} | tar xz bin
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+                                    curl \${tikv_url} | tar xz bin
 
-	                                while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-	                                curl \${pd_url} | tar xz bin
-	                                ls -lhrt ./bin
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+                                    curl \${pd_url} | tar xz bin
+                                    ls -lhrt ./bin
                                     make
                                     ls -lhrt ./bin
                                     PD=./bin/pd-server  TIKV=./bin/tikv-server sh run-tests.sh
