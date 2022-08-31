@@ -87,17 +87,19 @@ if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_b
     }
 }
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
+    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
 ]
 POD_NAMESPACE = "jenkins-dm"
 
@@ -122,6 +124,9 @@ def run_test_with_pod(Closure body) {
     }
     if (GO_VERSION == "go1.18") {
         label = "dm-integration-test-go1180-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.19") {
+        label = "dm-integration-test-go1190-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes-ng"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
@@ -174,6 +179,9 @@ def run_build_with_pod(Closure body) {
     }
     if (GO_VERSION == "go1.18") {
         label = "dm-integration-test-build-go1180-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.19") {
+        label = "dm-integration-test-build-go1190-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes-ng"
     podTemplate(label: label,
