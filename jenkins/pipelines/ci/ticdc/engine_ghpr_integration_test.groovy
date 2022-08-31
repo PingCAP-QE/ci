@@ -229,11 +229,11 @@ def run_with_test_pod(Closure body) {
                                             envVar(key: 'DOCKER_TLS_CERTDIR', value: ''),
                                             envVar(key: 'DOCKER_REGISTRY_MIRROR', value: 'https://registry-mirror.pingcap.net/"'),
                                     ], privileged: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '10Gi'),
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '10Gi'),
                     containerTemplate(name: 'docker', image: 'hub.pingcap.net/tiflow/dind:alpine-docker',
                                     alwaysPullImage: true, envVars: [
                                             envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-                                    ], resourceRequestCpu: '2000m', resourceRequestMemory: '8Gi',
+                                    ], resourceRequestCpu: '4000m', resourceRequestMemory: '16Gi',
                                     ttyEnabled: true, command: 'cat'),
             ],
             volumes: [
@@ -250,6 +250,17 @@ def run_with_test_pod(Closure body) {
     }
 }
 
+def archiveLogs(log_tar_name) {
+    // handle logs peoperly
+    sh """
+    echo "archive logs..."
+    ls /tmp/tiflow_engine_test/ || true
+    tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log") || true  
+    ls -alh log-${log_tar_name}.tar.gz || true
+    """
+    archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
+}
+
 def run_test(cases) {
     try {
         unstash "tiflow-code"
@@ -260,16 +271,10 @@ def run_test(cases) {
         make engine_integration_test CASE="${cases}" 
         """
     } catch (Exception e) {
-        // handle logs peoperly
-        def log_tar_name = cases.replaceAll("\\s","-")
-        sh """
-        echo "catch error, archive logs..."
-        ls /tmp/tiflow_engine_test/
-        tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log")    
-        ls -alh  log-${log_tar_name}.tar.gz   
-        """
-        archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
+        println(e.getMessage());
         throw e;
+    } finally {
+        archiveLogs(cases.replaceAll("\\s","-"))
     }
 }
 
@@ -295,12 +300,15 @@ run_with_pod {
                         sh """
                         sleep 10
                         docker version || true
+                        docker-compose version || true
                         echo "${harborPassword}" | docker login -u ${harborUser} --password-stdin hub.pingcap.net
                         """
                     }
                     sh "go env | grep GOPROXY"
                     sh """
                     cd go/src/github.com/pingcap/tiflow
+                    git config --global --add safe.directory /home/jenkins/agent/workspace/engine_ghpr_integration_test/go/src/github.com/pingcap/tiflow
+                    git log | head
                     make engine
                     touch ./bin/tiflow-chaos-case
                     make engine_image_from_local
