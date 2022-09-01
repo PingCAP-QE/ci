@@ -147,10 +147,6 @@ try {
                             timeout(10) {
                                 retry(3){
                                     deleteDir()
-                                    // get tidb cache code from fileserver
-                                    // pull latest tidb code from github
-                                    // build tidb-server , then upload to fileserver
-                                    // 
                                     def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz"
                                     def cacheExisted = sh(returnStatus: true, script: """
                                         if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
