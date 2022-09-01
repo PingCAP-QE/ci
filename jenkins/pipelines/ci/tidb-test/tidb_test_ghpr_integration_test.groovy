@@ -109,6 +109,9 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "${JOB_NAME}-go1180-${BUILD_NUMBER}"
     }
+    if (GO_VERSION == "go1.19") {
+        label = "${JOB_NAME}-go1190-${BUILD_NUMBER}"
+    }
     def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
