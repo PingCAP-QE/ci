@@ -31,6 +31,13 @@ spec:
         - mountPath: /data/
           name: bazel
           readOnly: true
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"             
   volumes:
     - name: bazel-out
       emptyDir: {}
@@ -57,6 +64,20 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
+        stage('Debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
+            }
+        }        
         stage('MySQL Tests') {
             matrix {
                 axes {
