@@ -42,7 +42,7 @@ POD_LABEL_MAP = [
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/purelind/ci-1/purelind/tidb-it-use-go1.19/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -89,8 +89,9 @@ try {
     run_with_pod {
         container("golang") {
             def ws = pwd()
-            def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-            def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${TIDB_BRANCH}/${tidb_sha1}/centos7/tidb-server.tar.gz"
+            // def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+            // def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${TIDB_BRANCH}/${tidb_sha1}/centos7/tidb-server.tar.gz"
+            def tidb_url = ""
 
             def tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
             def pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
@@ -99,21 +100,21 @@ try {
 
             stage("Get commits and Set params") {
                 println "TIDB_BRANCH: ${TIDB_BRANCH}"
-                println "tidb_sha1: $tidb_sha1"
-                println "tidb_url: $tidb_url"
-                ghprbCommentBody = ghprbCommentBody + " /tidb-test=pr/$ghprbPullId"
-                println "commentbody: $ghprbCommentBody"
-                basic_params = [
-                    string(name: "upstreamJob", value: "tidb_test_ghpr_mysql_test"),
-                    string(name: "ghprbCommentBody", value: ghprbCommentBody),
-                    string(name: "ghprbPullTitle", value: ghprbPullTitle),
-                    string(name: "ghprbPullLink", value: ghprbPullLink),
-                    string(name: "ghprbPullDescription", value: ghprbPullDescription),
-                    string(name: "ghprbTargetBranch", value: TIDB_BRANCH),
-                    string(name: "ghprbActualCommit", value: tidb_sha1)
-                ]
+                // println "tidb_sha1: $tidb_sha1"
+                // println "tidb_url: $tidb_url"
+                // ghprbCommentBody = ghprbCommentBody + " /tidb-test=pr/$ghprbPullId"
+                // println "commentbody: $ghprbCommentBody"
+                // basic_params = [
+                //     string(name: "upstreamJob", value: "tidb_test_ghpr_mysql_test"),
+                //     string(name: "ghprbCommentBody", value: ghprbCommentBody),
+                //     string(name: "ghprbPullTitle", value: ghprbPullTitle),
+                //     string(name: "ghprbPullLink", value: ghprbPullLink),
+                //     string(name: "ghprbPullDescription", value: ghprbPullDescription),
+                //     string(name: "ghprbTargetBranch", value: TIDB_BRANCH),
+                //     string(name: "ghprbActualCommit", value: tidb_sha1)
+                // ]
 
-                println "basic_params: $basic_params"
+                // println "basic_params: $basic_params"
             }
 
             stage("Checkout") {
@@ -146,9 +147,58 @@ try {
                             timeout(10) {
                                 retry(3){
                                     deleteDir()
+                                    // get tidb cache code from fileserver
+                                    // pull latest tidb code from github
+                                    // build tidb-server , then upload to fileserver
+                                    // 
+                                    def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz"
+                                    def cacheExisted = sh(returnStatus: true, script: """
+                                        if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                                        """)
+                                    if (cacheExisted == 0) {
+                                        println "get code from fileserver to reduce clone time"
+                                        println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                                        sh """
+                                        curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
+                                        tar -xzf src-tidb.tar.gz --strip-components=1
+                                        rm -f src-tidb.tar.gz
+                                        """
+                                    } else {
+                                        println "get code from github"
+                                    }
+                                    checkout(changelog: false, poll: false, scm: [
+                                        $class                           : "GitSCM",
+                                        branches                         : [
+                                                [name: TIDB_BRANCH],
+                                        ],
+                                        userRemoteConfigs                : [
+                                                [
+                                                        url          : "git@github.com:pingcap/tidb.git",
+                                                        refspec      : "+refs/heads/*:refs/remotes/origin/*",
+                                                        credentialsId: "github-sre-bot-ssh",
+                                                ]
+                                        ],
+                                        extensions                       : [
+                                                [$class             : 'SubmoduleOption',
+                                                disableSubmodules  : false,
+                                                parentCredentials  : true,
+                                                recursiveSubmodules: true,
+                                                trackingSubmodules : false,
+                                                reference          : ''],
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'],
+                                        ],
+                                        doGenerateSubmoduleConfigurations: false,
+                                    ])
+
+                                    def tidb_commit_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                                    def tidb_build_ci_cache_filepath = "ci-cache-build/tidb-test-ci/tidb/${tidb_commit_hash}/centos7/tidb-server-linux-amd64.tar.gz"
+                                    tidb_url = "${FILE_SERVER_URL}/download/${tidb_build_ci_cache_filepath}"
                                     sh """
-                                    while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f ${tidb_url} | tar xz
+                                    make server
+                                    rm -rf .git 
+                                    tar czvf tidb-server-linux-amd64.tar.gz ./*
+                                    curl -f -F ${tidb_build_ci_cache_filepath}=@tidb-server-linux-amd64.tar.gz ${FILE_SERVER_URL}/upload
                                     """
                                 }
                             }
