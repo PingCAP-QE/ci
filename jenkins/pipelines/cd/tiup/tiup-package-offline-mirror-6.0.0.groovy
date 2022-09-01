@@ -74,7 +74,6 @@ def package_community = { arch ->
 
     clone_server_package(arch, dst)
 
-
     sh """
     tar -czf ${dst}.tar.gz $dst
     curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
@@ -244,6 +243,15 @@ def package_tools = { plat, arch ->
     }
 }
 
+def run_in_dir(String directory, Closure body){
+    return {
+        dir(directory){
+            body()
+        }
+    }
+
+}
+
 node("delivery") {
     container("delivery") {
         def ws = pwd()
@@ -264,32 +272,33 @@ node("delivery") {
             util.install_tiup_without_key "/usr/local/bin"
         }
 
-        stage("build community tarball linux/amd64") {
+        stage("build tarball"){
+            def builds = [:]
             deleteDir()
-            package_community("amd64")
-            if (release_tag >= "v4" || DEBUG_MODE == "true") {
-                package_tools "community", "amd64"
+            builds["build community tarball linux/amd64"] = run_in_dir "linux-amd64", {
+                package_community("amd64")
+                if (release_tag >= "v4" || DEBUG_MODE == "true") {
+                    package_tools "community", "amd64"
+                }
             }
-        }
-
-        stage("build community tarball linux/arm64") {
-            package_community("arm64")
-            if (release_tag_actual >= "v4") {
-                package_tools "community", "arm64"
+            builds["build community tarball linux/arm64"]=run_in_dir "linux-arm64", {
+                package_community("arm64")
+                if (release_tag_actual >= "v4") {
+                    package_tools "community", "arm64"
+                }
             }
-        }
-
-        def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
-        if (release_tag_actual >= "v4" && !noEnterpriseList.contains(release_tag_actual)) {
-            stage("build enterprise tarball linux/amd64") {
-                package_enterprise("amd64")
-                package_tools "enterprise", "amd64"
+            def noEnterpriseList = ["v4.0.0", "v4.0.1", "v4.0.2"]
+            if (release_tag_actual >= "v4" && !noEnterpriseList.contains(release_tag_actual)) {
+                builds["build enterprise tarball linux/amd64"]=run_in_dir "ent/linux-amd64",{
+                    package_enterprise("amd64")
+                    package_tools "enterprise", "amd64"
+                }
+                builds["build enterprise tarball linux/arm64"]=run_in_dir "ent/linux-arm64",{
+                    package_enterprise("arm64")
+                    package_tools "enterprise", "arm64"
+                }
             }
-
-            stage("build enterprise tarball linux/arm64") {
-                package_enterprise("arm64")
-                package_tools "enterprise", "arm64"
-            }
+            parallel builds
         }
     }
 }
