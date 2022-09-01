@@ -22,17 +22,18 @@ if (m3) {
 m3 = null
 
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
         "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
         "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
         "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+        "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/purelind/ci-1/purelind/tidb-it-use-go1.19/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
