@@ -109,6 +109,9 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.18") {
         label = "${JOB_NAME}-go1180-${BUILD_NUMBER}"
     }
+    if (GO_VERSION == "go1.19") {
+        label = "${JOB_NAME}-go1190-${BUILD_NUMBER}"
+    }
     def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
@@ -209,8 +212,8 @@ run_with_toolkit_pod {
             // 下游集成测试会从 pr/COMMIT 路径下载包，就会导致 not found
             // 这里 参照 qa_release_test 做个 hack,拷贝相关包到对应路径,  tikv 同理
             sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/tidb/$tidb_sha1/centos7/tidb-server.tar.gz
-            curl -C - --retry 3 -f -F builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+            # wget ${FILE_SERVER_URL}/download/builds/pingcap/tidb/$tidb_sha1/centos7/tidb-server.tar.gz
+            # curl -C - --retry 3 -f -F builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
             rm -f tidb-server.tar.gz
             inv upload --dst builds/pingcap/tidb/pr/${tidb_sha1}/centos7/done --content done
 
@@ -223,6 +226,21 @@ run_with_toolkit_pod {
             parallel(
                     'tidb-test': {
                         dir("go/src/github.com/pingcap/tidb-test") {
+                            def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
+                            def cacheExisted = sh(returnStatus: true, script: """
+                                if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                                """)
+                            if (cacheExisted == 0) {
+                                println "get code from fileserver to reduce clone time"
+                                println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                                sh """
+                                curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
+                                tar -xzf src-tidb-test.tar.gz --strip-components=1
+                                rm -f src-tidb-test.tar.gz
+                                """
+                            } else {
+                                println "get code from github"
+                            }
                             checkout(changelog: false, poll: false, scm: [
                                     $class: "GitSCM",
                                     branches: [
@@ -248,7 +266,7 @@ run_with_toolkit_pod {
                             deleteDir()
                             timeout(10) {
                                 retry(3){
-                                    def tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                                    def tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
                                     deleteDir()
                                     sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
@@ -277,7 +295,7 @@ run_with_toolkit_pod {
                                     sh """
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
         
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${tikv_url} | tar xz bin
@@ -289,6 +307,7 @@ run_with_toolkit_pod {
                                     curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
                                     mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                    ./bin/tidb-server -V
                                     """
                                 }
                             }
@@ -311,6 +330,7 @@ run_with_toolkit_pod {
                                     sleep 10
                                     if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
 
+                                    pwd && ls -alh
                                     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                     export log_level=debug
                                     TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
@@ -355,7 +375,7 @@ run_with_toolkit_pod {
                                     sh """
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
         
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${tikv_url} | tar xz bin
@@ -433,7 +453,7 @@ run_with_toolkit_pod {
                                     sh """
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
         
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${tikv_url} | tar xz bin
@@ -501,6 +521,9 @@ run_with_toolkit_pod {
 
             tests["Integration Analyze Test"] = {
                 run("analyze_test", "analyzetest", "./test.sh")
+            }
+            tests["Integration Rangen Test"] = {
+                run("randgen-test", "rangentest", "./test.sh")
             }
             tests["Go SQL Test"] = {
                 run("go-sql-test", "gosqltest", "./test.sh")
