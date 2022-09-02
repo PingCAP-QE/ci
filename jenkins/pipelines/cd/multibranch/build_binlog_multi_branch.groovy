@@ -10,29 +10,63 @@ properties([
 ])
 
 // choose which go version to use. 
-def String selectGoVersion(String branchORTag) {
-    def goVersion="go1.18"
-    if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
-        return "go1.13"
+def selectGoVersion(branchNameOrTag) {
+    if (branchNameOrTag.startsWith("v")) {
+        println "This is a tag"
+        if (branchNameOrTag >= "v6.3") {
+            println "tag ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
+        if (branchNameOrTag >= "v6.0") {
+            println "tag ${branchNameOrTag} use go 1.18"
+            return "go1.18"
+        }
+        if (branchNameOrTag >= "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.16"
+            return "go1.16"
+        }
+        if (branchNameOrTag < "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.13"
+            return "go1.13"
+        }
+        println "tag ${branchNameOrTag} use default version go 1.18"
+        return "go1.18"
+    } else { 
+        println "this is a branch"
+        if (branchNameOrTag == "master") {
+            println("branchNameOrTag: master  use go1.19")
+            return "go1.19"
+        }
+
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.0" && branchNameOrTag >= "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.16")
+            return "go1.16"
+        }
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
+            return "go1.13"
+        }
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
+        return "go1.19"
     }
-    if (branchORTag.startsWith("v") && branchORTag > "v5.1" && branchORTag < "v6.0") {
-        return "go1.16"
-    }
-    if (branchORTag.startsWith("release-") && branchORTag < "release-5.1"){
-        return "go1.13"
-    }
-    if (branchORTag.startsWith("release-") && branchORTag >= "release-5.1" && branchORTag < "release-6.0"){
-        return "go1.16"
-    }
-    if (branchORTag.startsWith("hz-poc") || branchORTag.startsWith("arm-dup") ) {
-        return "go1.16"
-    }
-    return "go1.18"
 }
 
 
-def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
+def GO_BUILD_SLAVE = "build_go1190"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
+if ( goVersion == "go1.18" ) {
+    GO_BUILD_SLAVE = "build_go1185"
+}
 if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
