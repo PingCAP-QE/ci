@@ -26,7 +26,7 @@ if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -119,10 +119,10 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
 
                         tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
-                        curl --fail -F ${filepath}=@br.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${filepath}=@br.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
@@ -139,10 +139,10 @@ try {
                         timeout(10) {
                             sh """
                             echo "${githash}" > sha1
-                            curl --fail -F ${latestref}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                            curl -F ${latestref}=@sha1 ${FILE_SERVER_URL}/upload
 
                             tar --exclude=br.tar.gz -czvf br.tar.gz ./bin
-                            curl --fail -F ${latestpath}=@br.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                            curl -F ${latestpath}=@br.tar.gz ${FILE_SERVER_URL}/upload
                             """
                         }
                     }

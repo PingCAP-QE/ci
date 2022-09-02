@@ -1,3 +1,14 @@
+properties([
+        parameters([
+                string(
+                        defaultValue: '-1',
+                        name: 'PIPELINE_BUILD_ID',
+                        description: '',
+                        trim: true
+                )
+     ])
+])
+
 // choose which go version to use. 
 def String selectGoVersion(String branchORTag) {
     def goVersion="go1.18"
@@ -26,7 +37,7 @@ if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -126,10 +137,10 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         tar czvf tidb-binlog.tar.gz bin/*
-                        curl --fail -F ${filepath}=@tidb-binlog.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                        curl --fail -F ${filepath2}=@tidb-binlog.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${filepath}=@tidb-binlog.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@tidb-binlog.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }

@@ -1,3 +1,59 @@
+properties([
+        parameters([
+                string(
+                        defaultValue: '-1',
+                        name: 'PIPELINE_BUILD_ID',
+                        description: '',
+                        trim: true
+                )
+     ])
+])
+
+begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+githash = ""
+def upload_result_to_db() {
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "5"
+    pipeline_name = "CDC"
+    status = currentBuild.result
+    build_number = BUILD_NUMBER
+    job_name = JOB_NAME
+    artifact_meta = "cdc commit:" + githash
+    begin_time = begin_time
+    end_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+    triggered_by = "sre-bot"
+    component = "cdc"
+    arch = "linux-amd64"
+    artifact_type = "binary"
+    branch = "master"
+    version = "None"
+    build_type = "dev-build"
+    push_gcr = "No"
+
+    build job: 'upload_result_to_db',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value: job_name],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value: end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value: triggered_by],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
+                    [$class: 'StringParameterValue', name: 'ARCH', value: arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value: artifact_type],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: version],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type],
+                    [$class: 'StringParameterValue', name: 'PUSH_GCR', value: push_gcr]
+            ]
+
+}
+
 def release_tiup_patch(filepath, binary, patch_path) {
     echo "binary ${FILE_SERVER_URL}/download/${filepath}"
     echo "tiup patch ${FILE_SERVER_URL}/download/${patch_path}"
@@ -61,7 +117,7 @@ if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -70,7 +126,6 @@ def BUILD_URL = 'git@github.com:pingcap/tiflow.git'
 
 def build_path = 'go/src/github.com/pingcap/tiflow'
 def slackcolor = 'good'
-def githash
 def ws
 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
 
@@ -171,13 +226,13 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         mkdir -p ${target}/bin
                         #mv bin/cdc ${target}/bin/
                         #tar -czvf ${target}.tar.gz ${target}
                         tar -czvf ${target}.tar.gz bin
-                        curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                        curl --fail -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                     release_one("tiflow","${githash}")
@@ -199,6 +254,11 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+}finally{
+    if(env.BRANCH_NAME == 'master'){
+         upload_result_to_db()
+    }
+   
 }
 
 stage('Summary') {
