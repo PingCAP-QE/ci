@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: golang
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi 
+          cpu: 4000m
+        limits:
+          memory: 12Gi
+          cpu: 6000m
+      command: [/bin/sh, -c]
+      args: [cat]
+      env:
+        - name: GOPATH
+          value: /home/jenkins/agent/workspace/.go
+        - name: GOCACHE
+          value: /home/jenkins/agent/workspace/.cache/go-build
+      volumeMounts:
+        - name: bazel-out
+          mountPath: /home/jenkins/.tidb
+        - name: bazel
+          mountPath: /data/
+          readOnly: true
+        - name: gocache
+          mountPath: /home/jenkins/agent/workspace/.cache/go-build
+        - name: gomodcache
+          mountPath: /home/jenkins/agent/workspace/.go/pkg/mod
+    - name: deno
+      image: "denoland/deno:1.25.1"
+      tty: true
+      command: [sh]
+      env:
+        - name: DENO_DIR
+          value: /home/jenkins/agent/workspace/.deno
+      envFrom:
+        - secretRef:
+            name: ci-pipeline-cache
+        - configMapRef:
+            name: ci-pipeline-cache
+      volumeMounts:
+        - name: deno-dir
+          mountPath: /home/jenkins/agent/workspace/.deno
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "2Gi"
+          cpu: "500m"
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+  volumes:
+    - name: bazel-out
+      emptyDir: {}
+    - name: bazel
+      secret:
+        secretName: bazel
+        optional: true
+    - name: gomodcache
+      persistentVolumeClaim:
+        claimName: gomodcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache
+    - name: deno-dir
+      persistentVolumeClaim:
+        claimName: deno-dir

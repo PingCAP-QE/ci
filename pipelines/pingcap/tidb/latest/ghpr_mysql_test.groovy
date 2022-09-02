@@ -4,49 +4,6 @@
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
-final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
-final POD_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
-      tty: true
-      resources:
-        requests:
-          memory: 4Gi
-          cpu: 2
-      command: [/bin/sh, -c]
-      args: [cat]
-      env:
-        - name: GOPATH
-          value: ${ENV_GOPATH}
-        - name: GOCACHE
-          value: ${ENV_GOCACHE}
-      volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out
-        - mountPath: /data/
-          name: bazel
-          readOnly: true
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: "128Mi"
-          cpu: "500m"             
-  volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
-"""
-
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
@@ -54,6 +11,8 @@ pipeline {
         kubernetes {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
+            defaultContainer 'golang'
+            yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
         }
     }
     environment {
@@ -91,7 +50,7 @@ pipeline {
                         cloud K8S_COULD
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yaml POD_TEMPLATE
+                        yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
                     }
                 }
                 stages {
