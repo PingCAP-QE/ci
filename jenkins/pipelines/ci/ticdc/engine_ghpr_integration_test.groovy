@@ -64,7 +64,7 @@ def pattern_match_any_file(pattern, files_list) {
 
 if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
     def pr_diff_files = list_pr_diff_files()
-    def pattern = /(^engine\/|^pkg\/|^deployments\/engine\/|^go\.mod).*$/
+    def pattern = /(^engine\/|^dm\/|^pkg\/|^deployments\/engine\/|^go\.mod).*$/
     // if any diff files start with dm/ or pkg/ , run the dm integration test
     def matched = pattern_match_any_file(pattern, pr_diff_files)
     if (matched) {
