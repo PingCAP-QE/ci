@@ -258,7 +258,7 @@ def archiveLogs(log_tar_name) {
     tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log") || true  
     ls -alh log-${log_tar_name}.tar.gz || true
     """
-    archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
+    archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false, allowEmptyArchive: true
 }
 
 def run_test(cases) {
