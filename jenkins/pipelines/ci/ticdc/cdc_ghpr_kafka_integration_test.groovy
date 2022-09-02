@@ -48,7 +48,7 @@ def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
 
-/ Version Selector
+// Version Selector
 // branch or tag
 // == branch
 //  master use go1.19
