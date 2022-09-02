@@ -1,14 +1,23 @@
 import { S3, S3Bucket, S3Object } from "https://deno.land/x/s3@0.5.0/mod.ts";
 import { parse } from "https://deno.land/std@0.153.0/flags/mod.ts";
-import * as tar from "https://deno.land/std@0.153.0/archive/tar.ts";
 import { ensureFile } from "https://deno.land/std@0.153.0/fs/ensure_file.ts";
 import { ensureDir } from "https://deno.land/std@0.153.0/fs/ensure_dir.ts";
 import { copy } from "https://deno.land/std@0.153.0/streams/conversion.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.153.0/streams/conversion.ts";
+import { walk } from "https://deno.land/std@0.153.0/fs/walk.ts";
+import { Buffer } from "https://deno.land/std@0.153.0/io/buffer.ts";
+import * as tar from "https://deno.land/std@0.153.0/archive/tar.ts";
+import * as transform from "https://deno.land/x/transform@v0.4.0/mod.ts";
 
+const DEFAULT_KEEP_COUNT = 0;
 /**
  * CLI args
- * --key-prefix
+ * --op=backup/restore
+ * --path="backup from or restore to dir path", default pwd
+ * --key="a-key-to-save-or-restore"
+ * --key-prefix="key prefixs to restore", optional
+ * --filter="filter to backup" , default all.
+ * --keep-count="10", default DEFAULT_KEEP_COUNT.
  */
 await main();
 
@@ -16,12 +25,33 @@ await main();
 
 async function main() {
   const bucket = getBucket();
-  await restoreToDir(
-    bucket,
-    "white",
-    "git/pingcap/enterprise-plugin/rev-xxxx",
-    ["git/pingcap/enterprise-plugin/rev-"],
-  );
+  const args = parse(Deno.args);
+  console.log(args);
+
+  if ("op" in args && "key" in args) {
+    const path = args["path"] || ".";
+    const op = args["op"];
+    const key = args["key"];
+    const keyPrefix = args["key-prefix"];
+    switch (op) {
+      case "backup":
+        {
+          let keepCount = DEFAULT_KEEP_COUNT;
+          if (typeof (args["keep-count"]) === "number") {
+            keepCount = args["keep-count"];
+          }
+          await save(bucket, path, key, args["filter"], keyPrefix, keepCount);
+        }
+        break;
+      case "restore":
+        await restoreToDir(bucket, path, key, args["key-prefix"]);
+        break;
+      default:
+        throw new Error(`not supported operation: ${args["op"]}`);
+    }
+  } else {
+    throw new Error("op and key args are required");
+  }
 }
 
 function getBucket() {
@@ -39,29 +69,74 @@ function getBucket() {
   return s3.getBucket(bucketName);
 }
 
-function save(bucket: S3Bucket, path: string, key: string, filter?: string) {
-  // tar file
+async function save(
+  bucket: S3Bucket,
+  path: string,
+  key: string,
+  filter?: string,
+  cleanPrefix?: string,
+  cleanKeepCount?: number,
+) {
+  const ret = await bucket.headObject(key);
+  if (ret) {
+    console.debug("object existed, skip");
+    console.debug(ret);
+    return;
+  }
+
+  const { GzEncoder } = transform.Transformers;
+  const to = new tar.Tar();
+  const matchRegs = filter ? [new RegExp(filter)] : undefined;
+
+  const cwd = Deno.cwd();
+  Deno.chdir(path);
+
+  console.debug("......");
+  console.debug(Deno.cwd());
+  for await (const entry of walk("./", { match: matchRegs })) {
+    if (!entry.isFile) {
+      continue;
+    }
+
+    console.debug(`adding ${entry.path}`);
+    await to.append(entry.path, { filePath: entry.path });
+  }
+
+  const reader = await transform.pipeline(to.getReader(), new GzEncoder());
+  const buf = new Buffer();
+  await reader.to(buf).finally(() => Deno.chdir(cwd));
+
+  // first clean space, then push new one.
+  if (cleanPrefix && cleanKeepCount) {
+    await cleanOld(bucket, cleanPrefix, cleanKeepCount);
+  }
+
+  await bucket.putObject(key, buf.bytes(), {
+    contentType: "application/x-tar",
+    contentEncoding: "gzip",
+    cacheControl: "public, no-transform",
+  });
 }
 
 async function restoreToDir(
   bucket: S3Bucket,
   path: string,
   key: string,
-  restoreKeys?: string[],
+  keyPrefix?: string,
 ) {
   await Deno.mkdir(path, { recursive: true });
   const cwd = Deno.cwd();
 
   Deno.chdir(path);
-  await restore(bucket, key, restoreKeys).finally(() => Deno.chdir(cwd));
+  await restore(bucket, key, keyPrefix).finally(() => Deno.chdir(cwd));
 }
 
 async function restore(
   bucket: S3Bucket,
   key: string,
-  restoreKeys?: string[],
+  keyPrefix?: string,
 ) {
-  const restoreKey = await getRestoreKey(bucket, key, restoreKeys);
+  const restoreKey = await getRestoreKey(bucket, key, keyPrefix);
   console.debug(restoreKey);
 
   if (!restoreKey) {
@@ -69,7 +144,7 @@ async function restore(
     return;
   }
 
-  console.debug(`key: ${restoreKey}`);
+  console.log(`key: ${restoreKey}`);
   const ret = await bucket.getObject(restoreKey);
   if (!ret) {
     console.error(`get content failed for key: ${restoreKey}`);
@@ -91,45 +166,73 @@ async function restore(
     await copy(entry, file);
 
     const { fileName, type } = entry;
-    console.log(type, fileName);
+    console.debug(type, fileName);
   }
 }
 
 async function getRestoreKey(
   bucket: S3Bucket,
   key: string,
-  restoreKeys?: string[],
+  keyPrefix?: string,
 ) {
   const ret = await bucket.headObject(key);
   if (ret) {
     console.debug("key hit");
     console.debug(ret);
-    return;
+    return key;
   }
   console.debug("key miss");
 
   // restore from other objects.
-  if (!restoreKeys) {
+  if (!keyPrefix) {
     return;
   }
 
-  const list = await bucket.listObjects({
-    prefix: restoreKeys?.[0],
-  });
+  const orderedList = await listObjectsByModifiedTime(bucket, keyPrefix);
+  if (orderedList) {
+    console.debug(orderedList);
+    return orderedList[0].key;
+  } else {
+    console.log("none objects to restore");
+  }
+}
+
+async function listObjectsByModifiedTime(bucket: S3Bucket, prefix: string) {
+  const list = await bucket.listObjects({ prefix });
   console.debug(list);
 
   if (!list || list.keyCount === 0) {
-    console.log("no other objects");
     return;
   }
 
   // sort by modified time, first is latest modified item.
-  const orderedList = list.contents?.sort((a: S3Object, b: S3Object) => {
+  return list.contents?.sort((a: S3Object, b: S3Object) => {
     return (a.lastModified! === b.lastModified!)
       ? 0
       : (a.lastModified! > b.lastModified! ? -1 : 1);
   })!;
+}
 
-  console.debug(orderedList);
-  return orderedList[0].key;
+async function cleanOld(
+  bucket: S3Bucket,
+  keyPrefix: string,
+  keepCount: number,
+) {
+  if (keepCount <= 0) {
+    console.debug("skip to clean because keep count set <= 0");
+    return;
+  }
+
+  const list = await listObjectsByModifiedTime(bucket, keyPrefix);
+  if (!list) {
+    console.log(`none objects founds by prefix ${keyPrefix}`);
+    return;
+  }
+
+  if (list.length > keepCount) {
+    for await (const obj of list.slice(keepCount)) {
+      console.debug(`deleting ${obj.key!}`);
+      await bucket.deleteObject(obj.key!);
+    }
+  }
 }
