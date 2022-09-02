@@ -33,6 +33,12 @@ async function main() {
     const key = args["key"];
     const keyPrefix = args["key-prefix"];
     switch (op) {
+      case "restore":
+        await restoreToDir(bucket, path, key, args["key-prefix"]);
+        break;
+      case "remove":
+        await bucket.deleteObject(key);
+        break;
       case "backup":
         {
           let keepCount = DEFAULT_KEEP_COUNT;
@@ -47,9 +53,7 @@ async function main() {
             });
         }
         break;
-      case "restore":
-        await restoreToDir(bucket, path, key, args["key-prefix"]);
-        break;
+      
       default:
         throw new Error(`not supported operation: ${args["op"]}`);
     }
@@ -235,3 +239,4 @@ async function cleanOld(
     }
   }
 }
+
