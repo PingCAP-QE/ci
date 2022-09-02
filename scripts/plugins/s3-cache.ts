@@ -40,7 +40,12 @@ async function main() {
           if (typeof (args["keep-count"]) === "number") {
             keepCount = args["keep-count"];
           }
-          await save(bucket, path, key, args["filter"], keyPrefix, keepCount);
+          await save(bucket, path, key, args["filter"], keyPrefix, keepCount)
+            .then(() => console.log("backup succeed."))
+            .catch((e) => {
+              console.error(e);
+              throw e;
+            });
         }
         break;
       case "restore":
