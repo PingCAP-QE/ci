@@ -1,51 +1,13 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and release-6.2.x branches
+// 
+// Pod will mount a empty dir volume to all containers at `/home/jenkins/agent`, but 
+// user(`jenkins(id:1000)`) only can create dir under `/home/jenkins/agent/workspace`
+//
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
-final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
-final POD_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
-      tty: true
-      resources:
-        requests:
-          memory: 8Gi
-          cpu: 6
-      command: [/bin/sh, -c]
-      args: [cat]
-      env:
-        - name: GOPATH
-          value: ${ENV_GOPATH}
-        - name: GOCACHE
-          value: ${ENV_GOCACHE}
-      volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out
-        - mountPath: /data/
-          name: bazel
-          readOnly: true
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: "128Mi"
-          cpu: "500m"             
-  volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
-"""
 
 pipeline {
     agent {
@@ -53,15 +15,15 @@ pipeline {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
             defaultContainer 'golang'
-            yaml POD_TEMPLATE
+            yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 30, unit: 'MINUTES')
         parallelsAlwaysFailFast()
+    }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     stages {
         stage('Debug info') {
@@ -77,48 +39,72 @@ pipeline {
                     sh 'dig github.com'
                 }
             }
-        }        
+        }
         stage('Checkout') {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
+                // restore git repo from cached items.
+                container('deno') {
+                    sh label: 'restore cache', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                        --op restore \
+                        --path tidb \
+                        --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
+                        --key-prefix 'git/pingcap/tidb/rev-'
+                    '''
+                }
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 5],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                    ]],
-                                ]
-                            )
-                        }
+                    retry(2) {
+                        checkout(
+                            changelog: false,
+                            poll: false,
+                            scm: [
+                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                                    [$class: 'CloneOption', timeout: 5],
+                                ],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                ]],
+                            ]
+                        )
+                    }
+                }
+            }
+            post {
+                success { 
+                    container('deno') {
+                        // cache it if it's new
+                        sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                            --op backup \
+                            --path tidb \
+                            --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
+                            --key-prefix 'git/pingcap/tidb/rev-' \
+                            --keep-count ${CACHE_KEEP_COUNT}
+                        '''
                     }
                 }
             }
         }
         stage("Prepare") {
             steps {
+                container('deno') {
+                    sh label: 'restore binary', script: """deno run --allow-all scripts/plugins/s3-cache.ts \
+                        --op restore \
+                        --path "tidb/bin" \
+                        --key "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}"
+                    """
+                }
                 dir('tidb') {
-                    cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
-                        cache(path: "./", filter: "bin/*", key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
-                            sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
-                        }
-                    }
-                    
+                    sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
+
                     sh label: 'tikv-server', script: '''#! /usr/bin/env bash
-                        
+
                         # parse tikv branch from comment.
                         #   tikv=branchXxx or tikv=pr/123
                         commentBodyBranchReg="\\btikv\\s*=\\s*(\\S+)\\b"
@@ -135,7 +121,7 @@ pipeline {
                         curl --fail ${url} | tar xz
                         '''
                     sh label: 'pd-server', script: '''#! /usr/bin/env bash
-                        
+
                         # parse pd branch from comment.
                         #   pd=branchXxx or pd=pr/123
                         commentBodyBranchReg="\\bpd\\s*=\\s*(\\S+)\\b"
@@ -151,8 +137,15 @@ pipeline {
                         url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${sha1}/centos7/pd-server.tar.gz"
                         curl --fail ${url} | tar xz bin
                         '''
-                    cache(path: "./", key: "ws/pingcap/tidb/check2/rev-${ghprbActualCommit}") {
-                        sh  "touch rev-${ghprbActualCommit}"
+                    
+                    // cache it for other pods
+                    sh  'touch rev-${ghprbActualCommit}'
+                    container('deno') {
+                        sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                            --op backup \
+                            --path tidb \
+                            --key "ws/${BUILD_TAG}"
+                        '''
                     }
                 }
             }
@@ -186,20 +179,31 @@ pipeline {
                     stage('Test')  {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
+                            container('deno') {
+                                sh label: 'restore it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                                    --op restore \
+                                    --path tidb \
+                                    --key "ws/${BUILD_TAG}"
+                                '''
+                            }
                             sh 'chmod +x scripts/pingcap/tidb/*.sh'
                             dir('tidb') {
-                                cache(path: "./", key: "ws/pingcap/tidb/check2/rev-${ghprbActualCommit}") {
-                                    sh "ls -l rev-${ghprbActualCommit}"
-                                }
-                                cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}") {
-                                    sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
-                                }
+                                sh 'ls -l rev-${ghprbActualCommit}' // will fail when not found in cache or no cached.
+                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
-                        post {                        
+                        post {
                             failure {
                                 dir("checks-collation-enabled") {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
+                                }
+                            }
+                            always {
+                                container('deno') {
+                                    sh label: 'clean it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                                        --op remove \
+                                        --key "ws/${BUILD_TAG}"
+                                    '''
                                 }
                             }
                         }

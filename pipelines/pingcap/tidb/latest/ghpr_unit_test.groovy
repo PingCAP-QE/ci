@@ -3,50 +3,6 @@
 // should triggerd for master and release-6.2.x branches
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
-final GIT_OPENAPI_CREDENTIALS_ID = 'github-bot-token'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
-final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
-final POD_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
-      tty: true
-      resources:
-        requests:
-          memory: 16Gi
-          cpu: 4
-      command: [/bin/sh, -c]
-      args: [cat]
-      env:
-        - name: GOPATH
-          value: ${ENV_GOPATH}
-        - name: GOCACHE
-          value: ${ENV_GOCACHE}
-      volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out
-        - mountPath: /data/
-          name: bazel
-          readOnly: true
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: "128Mi"
-          cpu: "500m"
-  volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
-"""
 
 pipeline {
     agent {
@@ -54,7 +10,7 @@ pipeline {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
             defaultContainer 'golang'
-            yaml POD_TEMPLATE
+            yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_unit_test.yaml'
         }
     }
     environment {
@@ -79,44 +35,65 @@ pipeline {
             }
         }
         stage('Checkout') {
+            environment {
+                CACHE_KEEP_COUNT = '10'
+            }
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
+                // restore git repo from cached items.
+                container('deno') {
+                    sh label: 'restore cache', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                        --op restore \
+                        --path tidb \
+                        --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
+                        --key-prefix 'git/pingcap/tidb/rev-'
+                    '''
+                }
+
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false, 
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 5],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                    ]],
-                                ]
-                            )
-                        }
+                    retry(2) {
+                        checkout(
+                            changelog: false,
+                            poll: false,
+                            scm: [
+                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                                    [$class: 'CloneOption', timeout: 5],
+                                ],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                ]],
+                            ]
+                        )
+                    }
+                }
+            }
+            post{
+                success {
+                    // cache it if it's new
+                    container('deno') {
+                        sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
+                            --op backup \
+                            --path tidb \
+                            --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
+                            --key-prefix 'git/pingcap/tidb/rev-' \
+                            --keep-count ${CACHE_KEEP_COUNT}
+                        '''
                     }
                 }
             }
         }
-        stage('Test') {            
+        stage('Test') {
             steps {
-                 cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
-                    cache(path: ENV_GOCACHE, key: "gocache/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['gocache/pingcap/tidb/rev']) {
-                        dir('tidb') {
-                            sh './build/jenkins_unit_test.sh' 
-                        }
-                    }
-                 }
+                dir('tidb') {
+                    sh './build/jenkins_unit_test.sh' 
+                }
             }
             post {
                 unsuccessful {
