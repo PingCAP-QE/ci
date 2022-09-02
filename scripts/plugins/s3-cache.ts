@@ -26,7 +26,6 @@ await main();
 async function main() {
   const bucket = getBucket();
   const args = parse(Deno.args);
-  console.log(args);
 
   if ("op" in args && "key" in args) {
     const path = args["path"] || ".";
@@ -85,7 +84,6 @@ async function save(
   const ret = await bucket.headObject(key);
   if (ret) {
     console.debug("object existed, skip");
-    console.debug(ret);
     return;
   }
 
@@ -96,31 +94,34 @@ async function save(
   const cwd = Deno.cwd();
   Deno.chdir(path);
 
-  console.debug("......");
-  console.debug(Deno.cwd());
+  console.debug(`start tar at: ${Date.now()}`);
   for await (const entry of walk("./", { match: matchRegs })) {
     if (!entry.isFile) {
       continue;
     }
 
-    console.debug(`adding ${entry.path}`);
     await to.append(entry.path, { filePath: entry.path });
   }
+  console.debug(`end tar at: ${Date.now()}`);
 
+  console.debug(`start pipeline to buffer at: ${Date.now()}`);
   const reader = await transform.pipeline(to.getReader(), new GzEncoder());
   const buf = new Buffer();
   await reader.to(buf).finally(() => Deno.chdir(cwd));
+  console.debug(`end pipeline to buffer at: ${Date.now()}`);
 
   // first clean space, then push new one.
   if (cleanPrefix && cleanKeepCount) {
     await cleanOld(bucket, cleanPrefix, cleanKeepCount);
   }
 
+  console.debug(`start put object at: ${Date.now()}`);
   await bucket.putObject(key, buf.bytes(), {
     contentType: "application/x-tar",
     contentEncoding: "gzip",
     cacheControl: "public, no-transform",
   });
+  console.debug(`end put object at: ${Date.now()}`);
 }
 
 async function restoreToDir(
@@ -169,9 +170,6 @@ async function restore(
     const file = await Deno.open(entry.fileName, { write: true });
     // <entry> is a reader.
     await copy(entry, file);
-
-    const { fileName, type } = entry;
-    console.debug(type, fileName);
   }
 }
 
@@ -183,7 +181,6 @@ async function getRestoreKey(
   const ret = await bucket.headObject(key);
   if (ret) {
     console.debug("key hit");
-    console.debug(ret);
     return key;
   }
   console.debug("key miss");
@@ -195,7 +192,6 @@ async function getRestoreKey(
 
   const orderedList = await listObjectsByModifiedTime(bucket, keyPrefix);
   if (orderedList) {
-    console.debug(orderedList);
     return orderedList[0].key;
   } else {
     console.log("none objects to restore");
@@ -204,8 +200,6 @@ async function getRestoreKey(
 
 async function listObjectsByModifiedTime(bucket: S3Bucket, prefix: string) {
   const list = await bucket.listObjects({ prefix });
-  console.debug(list);
-
   if (!list || list.keyCount === 0) {
     return;
   }
