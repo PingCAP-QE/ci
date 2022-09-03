@@ -1,10 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and release-6.2.x branches
-// 
-// Pod will mount a empty dir volume to all containers at `/home/jenkins/agent`, but 
-// user(`jenkins(id:1000)`) only can create dir under `/home/jenkins/agent/workspace`
-//
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
@@ -44,65 +40,38 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                // restore git repo from cached items.
-                container('deno') {
-                    sh label: 'restore cache', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                        --op restore \
-                        --path tidb \
-                        --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
-                        --key-prefix 'git/pingcap/tidb/rev-'
-                    '''
-                }
                 dir('tidb') {
-                    retry(2) {
-                        checkout(
-                            changelog: false,
-                            poll: false,
-                            scm: [
-                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'],
-                                    [$class: 'CloneOption', timeout: 5],
-                                ],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[
-                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                ]],
-                            ]
-                        )
-                    }
-                }
-            }
-            post {
-                success { 
-                    container('deno') {
-                        // cache it if it's new
-                        sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                            --op backup \
-                            --path tidb \
-                            --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
-                            --key-prefix 'git/pingcap/tidb/rev-' \
-                            --keep-count ${CACHE_KEEP_COUNT}
-                        '''
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 5],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                    ]],
+                                ]
+                            )
+                        }
                     }
                 }
             }
         }
         stage("Prepare") {
             steps {
-                container('deno') {
-                    sh label: 'restore binary', script: """deno run --allow-all scripts/plugins/s3-cache.ts \
-                        --op restore \
-                        --path "tidb/bin" \
-                        --key "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}"
-                    """
-                }
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
-
+                    cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
+                        sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
+                    }
                     sh label: 'tikv-server', script: '''#! /usr/bin/env bash
 
                         # parse tikv branch from comment.
@@ -139,13 +108,8 @@ pipeline {
                         '''
                     
                     // cache it for other pods
-                    sh  'touch rev-${ghprbActualCommit}'
-                    container('deno') {
-                        sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                            --op backup \
-                            --path tidb \
-                            --key "ws/${BUILD_TAG}"
-                        '''
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                        sh  'touch rev-${ghprbActualCommit}'
                     }
                 }
             }
@@ -179,16 +143,12 @@ pipeline {
                     stage('Test')  {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
-                            container('deno') {
-                                sh label: 'restore it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                                    --op restore \
-                                    --path tidb \
-                                    --key "ws/${BUILD_TAG}"
-                                '''
-                            }
-                            sh 'chmod +x scripts/pingcap/tidb/*.sh'
                             dir('tidb') {
-                                sh 'ls -l rev-${ghprbActualCommit}' // will fail when not found in cache or no cached.
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                    sh 'ls -l rev-${ghprbActualCommit}' // will fail when not found in cache or no cached.
+                                }
+
+                                sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
@@ -196,14 +156,6 @@ pipeline {
                             failure {
                                 dir("checks-collation-enabled") {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
-                                }
-                            }
-                            always {
-                                container('deno') {
-                                    sh label: 'clean it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                                        --op remove \
-                                        --key "ws/${BUILD_TAG}"
-                                    '''
                                 }
                             }
                         }

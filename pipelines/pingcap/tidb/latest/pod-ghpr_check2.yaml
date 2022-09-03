@@ -16,9 +16,9 @@ spec:
       args: [cat]
       env:
         - name: GOPATH
-          value: /home/jenkins/agent/workspace/.go
+          value: /share/.go
         - name: GOCACHE
-          value: /home/jenkins/agent/workspace/.cache/go-build
+          value: /share/.cache/go-build
       volumeMounts:
         - name: bazel-out
           mountPath: /home/jenkins/.tidb
@@ -26,34 +26,9 @@ spec:
           mountPath: /data/
           readOnly: true
         - name: gocache
-          mountPath: /home/jenkins/agent/workspace/.cache/go-build
+          mountPath: /share/.cache/go-build
         - name: gomodcache
-          mountPath: /home/jenkins/agent/workspace/.go/pkg/mod
-    - name: deno
-      image: "denoland/deno:1.25.1"
-      tty: true
-      command: [sh]
-      env:
-        - name: DENO_DIR
-          value: /home/jenkins/agent/workspace/.deno
-      envFrom:
-        - secretRef:
-            name: ci-pipeline-cache
-        - configMapRef:
-            name: ci-pipeline-cache
-      volumeMounts:
-        - name: deno-dir
-          mountPath: /home/jenkins/agent/workspace/.deno
-      resources:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "2Gi"
-          cpu: "500m"
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
+          mountPath: /share/.go/pkg/mod
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -74,6 +49,3 @@ spec:
     - name: gocache
       persistentVolumeClaim:
         claimName: gocache
-    - name: deno-dir
-      persistentVolumeClaim:
-        claimName: deno-dir

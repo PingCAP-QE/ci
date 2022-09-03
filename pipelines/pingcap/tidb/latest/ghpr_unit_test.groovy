@@ -41,50 +41,28 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                // restore git repo from cached items.
-                container('deno') {
-                    sh label: 'restore cache', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                        --op restore \
-                        --path tidb \
-                        --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
-                        --key-prefix 'git/pingcap/tidb/rev-'
-                    '''
-                }
-
                 dir('tidb') {
-                    retry(2) {
-                        checkout(
-                            changelog: false,
-                            poll: false,
-                            scm: [
-                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'],
-                                    [$class: 'CloneOption', timeout: 5],
-                                ],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[
-                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                ]],
-                            ]
-                        )
-                    }
-                }
-            }
-            post{
-                success {
-                    // cache it if it's new
-                    container('deno') {
-                        sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                            --op backup \
-                            --path tidb \
-                            --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
-                            --key-prefix 'git/pingcap/tidb/rev-' \
-                            --keep-count ${CACHE_KEEP_COUNT}
-                        '''
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 5],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                    ]],
+                                ]
+                            )
+                        }
                     }
                 }
             }
