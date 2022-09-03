@@ -35,9 +35,6 @@ pipeline {
             }
         }
         stage('Checkout') {
-            environment {
-                CACHE_KEEP_COUNT = '10'
-            }
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {

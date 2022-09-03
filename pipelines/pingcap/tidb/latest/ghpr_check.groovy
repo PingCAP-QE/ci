@@ -17,9 +17,6 @@ pipeline {
     options {
         timeout(time: 20, unit: 'MINUTES')
     }
-    environment {
-        CACHE_KEEP_COUNT = '10'
-    }
     stages {
         stage('Debug info') {
             steps {
