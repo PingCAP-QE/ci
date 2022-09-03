@@ -27,17 +27,27 @@ async function main() {
   const bucket = getBucket();
   const args = parse(Deno.args);
 
-  if ("op" in args && "key" in args) {
+  if ("op" in args) {
     const path = args["path"] || ".";
     const op = args["op"];
     const key = args["key"];
     const keyPrefix = args["key-prefix"];
     switch (op) {
       case "restore":
-        await restoreToDir(bucket, path, key, args["key-prefix"]);
+        await restoreToDir(bucket, path, key!, args["key-prefix"]);
         break;
       case "remove":
-        await bucket.deleteObject(key);
+        await bucket.deleteObject(key!);
+        break;
+      case "shrink":
+        {
+          const keepSize = args["keep-size-g"] as number;
+          await shrinkBucketToSize(
+            bucket,
+            keepSize * 1000 * 1000 * 1000,
+            keyPrefix,
+          );
+        }
         break;
       case "backup":
         {
@@ -45,7 +55,7 @@ async function main() {
           if (typeof (args["keep-count"]) === "number") {
             keepCount = args["keep-count"];
           }
-          await save(bucket, path, key, args["filter"], keyPrefix, keepCount)
+          await save(bucket, path, key!, args["filter"], keyPrefix, keepCount)
             .then(() => console.log("backup succeed."))
             .catch((e) => {
               console.error(e);
@@ -53,7 +63,7 @@ async function main() {
             });
         }
         break;
-      
+
       default:
         throw new Error(`not supported operation: ${args["op"]}`);
     }
@@ -240,3 +250,48 @@ async function cleanOld(
   }
 }
 
+async function shrinkBucketToSize(
+  bucket: S3Bucket,
+  keepSize: number,
+  keyPrefix = "",
+) {
+  if (keepSize <= 0) {
+    console.debug("skip to clean because keep size set <= 0");
+    return;
+  }
+
+  const list = await listObjectsByModifiedTime(bucket, keyPrefix);
+  if (!list) {
+    console.log(`none objects founds by prefix ${keyPrefix}`);
+    return;
+  }
+
+  let toDeletePos = -1;
+  let size = 0;
+
+  for (let i = 0; i < list.length; i++) {
+    const obj = list[i];
+    console.debug(`${obj.key} => modified: ${obj.lastModified}, size: ${obj.size}bytes`);
+
+    if (obj.size) {
+      size += obj.size;
+    }
+
+    if (size >= keepSize) {
+      toDeletePos = i;
+      break;
+    }
+  }
+
+  if (toDeletePos <= 0) {
+    console.info(`no need to shrink, total size with prefix "${keyPrefix}" is ${size} bytes.`);
+    return;
+  }
+
+  for (const obj of list.slice(toDeletePos)) {
+    console.debug(`deleting key: ${obj.key}, modified: ${obj.lastModified}`);
+    await bucket.deleteObject(obj.key!);
+  }
+
+  console.log(`deleted ${list.length - toDeletePos} objects.`);
+}
