@@ -1,9 +1,5 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// 
-// Pod will mount a empty dir volume to all containers at `/home/jenkins/agent`, but 
-// user(`jenkins(id:1000)`) only can create dir under `/home/jenkins/agent/workspace`
-//
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
@@ -49,64 +45,34 @@ pipeline {
             parallel {   
                 stage('tidb') {
                     steps {
-                        // restore git repo from cached items.
-                        container('deno') {
-                            sh label: 'restore cache', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                                --op restore \
-                                --path tidb \
-                                --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
-                                --key-prefix 'git/pingcap/tidb/rev-'
-                            '''
-                        }
-
                         dir('tidb') {
-                            retry(2) {
-                                checkout(
-                                    changelog: false,
-                                    poll: false,
-                                    scm: [
-                                        $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                        doGenerateSubmoduleConfigurations: false,
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'],
-                                            [$class: 'CleanBeforeCheckout'],
-                                            [$class: 'CloneOption', timeout: 15],
-                                        ],
-                                        submoduleCfg: [],
-                                        userRemoteConfigs: [[
-                                            refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                            url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                        ]],
-                                    ]
-                                )
-                            }
-                        }
-                    }
-                    post{
-                        success {
-                            // cache it if it's new
-                            container('deno') {
-                                sh label: 'cache it', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                                    --op backup \
-                                    --path tidb \
-                                    --key "git/pingcap/tidb/rev-${ghprbActualCommit}" \
-                                    --key-prefix 'git/pingcap/tidb/rev-' \
-                                    --keep-count ${CACHE_KEEP_COUNT}
-                                '''
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                                retry(2) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: false,
+                                        scm: [
+                                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                            doGenerateSubmoduleConfigurations: false,
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'],
+                                                [$class: 'CloneOption', timeout: 15],
+                                            ],
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                                url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
+                                            ]],
+                                        ]
+                                    )
+                                }
                             }
                         }
                     }
                 }
                 stage("enterprise-plugin") {
                     steps {
-                        container('deno') {
-                            sh label: 'restore cache', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                                --op restore \
-                                --path "enterprise-plugin" \
-                                --key "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}" \
-                                --key-prefix 'git/pingcap/enterprise-plugin/rev-'
-                            '''
-                        }
                         script {
                             // examples:
                             //  - release-6.2
@@ -130,40 +96,28 @@ pipeline {
                             }
 
                             dir("enterprise-plugin") {
-                                checkout(
-                                    changelog: false,
-                                    poll: true,
-                                    scm: [
-                                        $class: 'GitSCM',
-                                        branches: [[name: pluginBranch]],
-                                        doGenerateSubmoduleConfigurations: false,
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'],
-                                            [$class: 'CleanBeforeCheckout'],
-                                            [$class: 'CloneOption', timeout: 2],
-                                        ], 
-                                        submoduleCfg: [],
-                                        userRemoteConfigs: [[
-                                            credentialsId: GIT_CREDENTIALS_ID,
-                                            refspec: pluginSpec,
-                                            url: 'git@github.com:pingcap/enterprise-plugin.git',
-                                        ]]
-                                    ]
-                                )
-                            }
-                        }
-                    }
-                    post{
-                        success {
-                            // cache it if it's new
-                            container('deno') {
-                                sh label: 'cache git', script: '''deno run --allow-all scripts/plugins/s3-cache.ts \
-                                    --op backup \
-                                    --path "enterprise-plugin" \
-                                    --key "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}" \
-                                    --key-prefix 'git/pingcap/enterprise-plugin/rev-' \
-                                    --keep-count ${CACHE_KEEP_COUNT}
-                                '''
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: true,
+                                        scm: [
+                                            $class: 'GitSCM',
+                                            branches: [[name: pluginBranch]],
+                                            doGenerateSubmoduleConfigurations: false,
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'],
+                                                [$class: 'CloneOption', timeout: 2],
+                                            ], 
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                credentialsId: GIT_CREDENTIALS_ID,
+                                                refspec: pluginSpec,
+                                                url: 'git@github.com:pingcap/enterprise-plugin.git',
+                                            ]]
+                                        ]
+                                    )
+                                }
                             }
                         }
                     }
