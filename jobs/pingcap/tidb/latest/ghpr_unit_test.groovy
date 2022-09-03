@@ -88,7 +88,7 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                         url('git@github.com:PingCAP-QE/ci.git')
                         credentials('github-sre-bot-ssh')
                     }
-                    branch('main')
+                    branch('fix/pod-vol')
                 }
             }
         }
