@@ -5,9 +5,12 @@ import { ensureFile } from "https://deno.land/std@0.153.0/fs/ensure_file.ts";
 import { walk } from "https://deno.land/std@0.153.0/fs/walk.ts";
 import {
   copy,
-  readableStreamFromReader, readerFromStreamReader
+  readableStreamFromReader,
+  readerFromStreamReader,
 } from "https://deno.land/std@0.153.0/streams/conversion.ts";
 import { S3, S3Bucket, S3Object } from "https://deno.land/x/s3@0.5.0/mod.ts";
+import { ClientOptions } from "https://deno.land/x/s3_lite_client@0.2.0/client.ts";
+import { ServerError } from "https://deno.land/x/s3_lite_client@0.2.0/errors.ts";
 import { S3Client } from "https://deno.land/x/s3_lite_client@0.2.0/mod.ts";
 import * as transform from "https://deno.land/x/transform@v0.4.0/mod.ts";
 
@@ -78,29 +81,36 @@ async function main() {
 function getBucket() {
   const bucketName = Deno.env.get("BUCKET_NAME")!;
   // Create a S3 instance.
+  const port = Number(Deno.env.get("BUCKET_PORT") || "80");
+  let endpointURL = `http://${Deno.env.get("BUCKET_HOST")!}`;
+  if (port != 80) {
+    endpointURL += `:${port}`;
+  }
+
   const s3 = new S3({
     accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
     secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
     region: Deno.env.get("BUCKET_REGION") || "ci",
-    endpointURL: `http://${Deno.env.get("BUCKET_HOST")}:${
-      Deno.env.get("BUCKET_PORT")
-    }`!,
+    endpointURL,
   });
 
   return s3.getBucket(bucketName);
 }
 
 function getBucketForBigUpload() {
-  return new S3Client({
+  const params: ClientOptions = {
     endPoint: Deno.env.get("BUCKET_HOST")!,
-    port: Number(Deno.env.get("BUCKET_PORT")!),
-    useSSL: false,
     region: Deno.env.get("BUCKET_REGION") || "ci",
     accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
     secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
     bucket: Deno.env.get("BUCKET_NAME")!,
-    pathStyle: true,
-  });
+    useSSL: false,
+  };
+
+  const port = Number(Deno.env.get("BUCKET_PORT") || "80");
+  if (port != 80) params.port = port;
+
+  return new S3Client(params);
 }
 
 async function save(
@@ -133,11 +143,23 @@ async function save(
       contentEncoding: "gzip",
       cacheControl: "public, no-transform",
     },
-    // partSize: UPLOAD_PART_BYTES,
-  }).finally(() => Deno.chdir(cwd));
+    partSize: UPLOAD_PART_BYTES,
+  })
+    .catch((e: ServerError) => {
+      const { code, statusCode, cause, bucketName, key, resource } = e;
+      console.error({ code, statusCode, cause, bucketName, key, resource });
+      throw e
+    })
+    .finally(() => Deno.chdir(cwd));
 
-  const newRet = await bucket.headObject(key);
-  console.debug(`uploaded item:\n${newRet}`);
+  const newRet = await bucket.headObject(key).catch((e: ServerError) => {
+    const { code, statusCode, cause, bucketName, key, resource } = e;
+    console.error({ code, statusCode, cause, bucketName, key, resource });
+    console.trace(e);
+    throw e
+  });
+  console.debug(`uploaded item:`);
+  console.debug(newRet)
 }
 
 async function newBackupReadableStream(filter?: string) {
