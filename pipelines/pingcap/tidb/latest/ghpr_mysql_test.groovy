@@ -4,6 +4,7 @@
 final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
@@ -12,7 +13,7 @@ pipeline {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
             defaultContainer 'golang'
-            yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
+            yamlFile POD_TEMPLATE_FILE
         }
     }
     environment {
@@ -50,7 +51,7 @@ pipeline {
                         cloud K8S_COULD
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
+                        yamlFile POD_TEMPLATE_FILE
                     }
                 }
                 stages {

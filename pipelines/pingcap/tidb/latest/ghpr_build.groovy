@@ -4,6 +4,7 @@ final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
 
 pipeline {
     agent {
@@ -11,7 +12,7 @@ pipeline {
             cloud K8S_COULD
             namespace K8S_NAMESPACE
             defaultContainer 'golang'
-            yamlFile 'pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
+            yamlFile POD_TEMPLATE_FILE
         }
     }
     environment {
@@ -19,6 +20,7 @@ pipeline {
     }
     options {
         timeout(time: 30, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -37,9 +39,6 @@ pipeline {
             }
         }
         stage('Checkout') {
-            environment {
-                CACHE_KEEP_COUNT = '10'
-            }
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             parallel {   

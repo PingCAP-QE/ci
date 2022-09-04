@@ -1,4 +1,3 @@
-
 apiVersion: v1
 kind: Pod
 spec:
@@ -11,8 +10,8 @@ spec:
           memory: 16Gi
           cpu: '4'
         limits:
-          memory: 16Gi
-          cpu: '4'
+          memory: 24Gi
+          cpu: '8'
       command: [/bin/sh, -c]
       args: [cat]
       env:
@@ -28,8 +27,8 @@ spec:
           readOnly: true
         - name: gocache
           mountPath: /share/.cache/go-build
-        - name: gomodcache
-          mountPath: /share/.go/pkg/mod
+        - name: gopathcache
+          mountPath: /share/.go
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -44,9 +43,9 @@ spec:
       secret:
         secretName: bazel
         optional: true
-    - name: gomodcache
+    - name: gopathcache
       persistentVolumeClaim:
-        claimName: gomodcache
+        claimName: gopathcache
     - name: gocache
       persistentVolumeClaim:
         claimName: gocache
