@@ -27,8 +27,8 @@ spec:
           readOnly: true
         - name: gocache
           mountPath: /share/.cache/go-build
-        - name: gomodcache
-          mountPath: /share/.go/pkg/mod
+        - name: gopathcache
+          mountPath: /share/.go
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -43,9 +43,9 @@ spec:
       secret:
         secretName: bazel
         optional: true
-    - name: gomodcache
+    - name: gopathcache
       persistentVolumeClaim:
-        claimName: gomodcache
+        claimName: gopathcache
     - name: gocache
       persistentVolumeClaim:
         claimName: gocache

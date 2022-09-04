@@ -44,6 +44,3 @@ spec:
             - name: deno-dir
               persistentVolumeClaim:
                 claimName: deno-dir
-
-
-    
