@@ -213,13 +213,25 @@ async function getRestoreKey(
 }
 
 async function listObjectsByModifiedTime(bucket: S3Bucket, prefix: string) {
-  const list = await bucket.listObjects({ prefix });
-  if (!list || list.keyCount === 0) {
-    return;
+  const objects : S3Object[] = [];
+  let continuationToken: string|undefined;
+
+  while (true) {
+    const ret = await bucket.listObjects({ prefix, continuationToken }); 
+    
+    if (ret?.contents) {
+      objects.push(...ret.contents);
+    }
+
+    if (ret?.isTruncated) {
+      continuationToken = ret.continuationToken 
+    } else {
+      break
+    }
   }
 
   // sort by modified time, first is latest modified item.
-  return list.contents?.sort((a: S3Object, b: S3Object) => {
+  return objects?.sort((a: S3Object, b: S3Object) => {
     return (a.lastModified! === b.lastModified!)
       ? 0
       : (a.lastModified! > b.lastModified! ? -1 : 1);
