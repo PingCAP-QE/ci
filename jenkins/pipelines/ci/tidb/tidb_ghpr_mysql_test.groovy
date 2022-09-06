@@ -238,26 +238,6 @@ try {
                             cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
                             curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
-
-
-                        // def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
-                        // sh """
-                        //     while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
-                        // """
-                        // def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        // def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
-                        // sh """
-                        //     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                        //     curl ${tidb_test_url} | tar xz
-                        //     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                        //     cd mysql_test && ./build.sh && cd ..      
-                        // """
-
-                        // sh """
-                        //     echo "stash tidb-test"
-                        //     cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
-                        //     curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
-                        // """
                     }
                 }
             }
