@@ -124,7 +124,6 @@ pipeline {
             }
         }
         stage("Build tidb-server and plugin"){
-            failFast true
             parallel {
                 stage("Build tidb-server") {
                     stages {
@@ -184,10 +183,7 @@ pipeline {
                 stage("Build plugins") {
                     steps {
                         timeout(time: 20, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: '''
-                                cd tidb/cmd/pluginpkg
-                                go build
-                                '''
+                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
                         }
                         dir('enterprise-plugin/whitelist') {
                             sh label: 'build plugin whitelist', script: '''
@@ -203,6 +199,68 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
+    }
+    post {
+        always {
+            // TODO(wuhuizuo): put into container lifecyle preStop hook.
+            script {
+                // ============================================================
+                // name: 'PIPELINE_RUN_ERROR_CODE',
+                // 0 : 'success',
+                // 1 : 'checkout code fail',
+                // 2 : 'build fail',
+                // 3 : 'product test fail',
+                // 4 : 'flaky test error',
+                // 5 : 'fmt or lint fail',
+                // 6 : 'pipeline engine error',
+                // 7 : 'agent env error',
+                // 8 : 'other error',
+                // ============================================================                
+                def ciErrorCode = currentBuild.result == "SUCCESS" ? 0 : 2
+                def resultDownloadPath = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
+                sh """
+                taskStartTime="\$(stat /proc/1 | grep 'Modify: ' | sed 's/Modify: //')"
+                taskStartTime=\$(date "+%s%3N" -d "\$taskStartTime")
+                taskEndTime="\$(date '+%s%3N')"
+
+                cat <<EOF > result.json
+                {
+                    "pipeline_name": "${JOB_NAME}",
+                    "pipeline_run_url": "${RUN_DISPLAY_URL}",
+                    "job_state": "${currentBuild.result}",
+                    "jenkins_build_number": "${BUILD_NUMBER}",
+                    "jenkins_master": "${JENKINS_URL}",
+                    "repo": "${ghprbGhRepository}",
+                    "commit_id": "${ghprbActualCommit}",
+                    "target_branch": "${ghprbTargetBranch}",
+                    "junit_report_url": "${resultDownloadPath}",
+                    "pull_request": "${ghprbPullId}",
+                    "pull_request_author": "${ghprbPullAuthorLogin}",
+                    "job_trigger": "${ghprbPullAuthorLogin}",
+                    "trigger_comment_body": "",
+                    "job_start_time": "\${taskStartTime}",
+                    "job_end_time": "\${taskEndTime}",
+                    "pipeline_run_error_code": ${ciErrorCode},
+                    "job_result_summary": "",
+                    "pod_ready_time": "",
+                    "cpu_request": "",
+                    "memory_request": ""
+                }
+EOF"""
+            }
+            archiveArtifacts artifacts: 'result.json', fingerprint: true
+            container('report') {
+                sh '''
+                    export LC_CTYPE="en_US.UTF-8"
+                    wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent_upload_verifyci_metadata.py
+                    if python3 agent_upload_verifyci_metadata.py result.json; then
+                        echo "upload data succesfully."
+                    else
+                        echo "upload data failed, but ignore it!"
+                    fi
+                '''
             }
         }
     }
