@@ -183,25 +183,81 @@ try {
                             TIDB_TEST_BRANCH = trunkBranch
                         }
                         println "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
-
-                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        // copy tidb-test code cache
+                        // checkout branch or pull request
+                        // 
+                        def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
+                        def cacheExisted = sh(returnStatus: true, script: """
+                            if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                            """)
+                        if (cacheExisted == 0) {
+                            println "get code from fileserver to reduce clone time"
+                            println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                            sh """
+                            curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
+                            tar -xzf src-tidb-test.tar.gz --strip-components=1
+                            rm -f src-tidb-test.tar.gz
+                            """
+                        } else {
+                            println "get code from github"
+                        }
+                        def refspecCoprTest = "+refs/heads/*:refs/remotes/origin/*"
+                        if (TIDB_TEST_BRANCH =~ /^pr\/(\d+$)/) {
+                            // pull request
+                            def pr = (TIDB_TEST_BRANCH =~ /^pr\/(\d+$)/)[0][1]
+                            refspecCoprTest = "+refs/pull/${pr}/head:refs/remotes/origin/PR-${pr}"
+                            checkout([$class: 'GitSCM', branches: [[name: "FETCH_HEAD"]],
+                                extensions: [[$class: 'LocalBranch']],
+                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecCoprTest, url: 'git@github.com:pingcap/tidb-test.git']]])
+                        } else {
+                            checkout(changelog: false, poll: false, scm: [
+                                $class: "GitSCM",
+                                branches: [ [ name: TIDB_TEST_BRANCH ] ],
+                                userRemoteConfigs: [
+                                        [
+                                                credentialsId: 'github-sre-bot-ssh',
+                                                url: 'git@github.com:pingcap/tidb-test.git',
+                                                refspec: refspecCoprTest,
+                                        ]
+                                ],
+                                extensions: [
+                                        [$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]
+                                ],
+                            ])
+                        }
+                        def githHash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                        println "tidb-test git hash: ${githHash}"
+                        println "tidb-test branch or pull: ${TIDB_TEST_BRANCH}"
                         sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
-                        """
-                        def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
-                        sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                            curl ${tidb_test_url} | tar xz
                             export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                            cd mysql_test && ./build.sh && cd ..      
+                            cd mysql_test && ./build.sh && cd ..
                         """
-
                         sh """
                             echo "stash tidb-test"
                             cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
                             curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
+
+
+                        // def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        // sh """
+                        //     while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
+                        // """
+                        // def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
+                        // def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        // sh """
+                        //     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
+                        //     curl ${tidb_test_url} | tar xz
+                        //     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                        //     cd mysql_test && ./build.sh && cd ..      
+                        // """
+
+                        // sh """
+                        //     echo "stash tidb-test"
+                        //     cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
+                        //     curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
+                        // """
                     }
                 }
             }
