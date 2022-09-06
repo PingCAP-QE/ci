@@ -183,9 +183,7 @@ try {
                             TIDB_TEST_BRANCH = trunkBranch
                         }
                         println "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
-                        // copy tidb-test code cache
-                        // checkout branch or pull request
-                        // 
+                        
                         def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
                         def cacheExisted = sh(returnStatus: true, script: """
                             if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
