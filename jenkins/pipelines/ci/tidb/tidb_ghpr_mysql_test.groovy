@@ -183,7 +183,7 @@ try {
                             TIDB_TEST_BRANCH = trunkBranch
                         }
                         println "TIDB_TEST_BRANCH or PR: ${TIDB_TEST_BRANCH}"
-                        
+
                         def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
                         def cacheExisted = sh(returnStatus: true, script: """
                             if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
@@ -199,14 +199,14 @@ try {
                         } else {
                             println "get code from github"
                         }
-                        def refspecCoprTest = "+refs/heads/*:refs/remotes/origin/*"
+                        def refspecTidbTest = "+refs/heads/*:refs/remotes/origin/*"
                         if (TIDB_TEST_BRANCH =~ /^pr\/(\d+$)/) {
                             // pull request
                             def pr = (TIDB_TEST_BRANCH =~ /^pr\/(\d+$)/)[0][1]
-                            refspecCoprTest = "+refs/pull/${pr}/head:refs/remotes/origin/PR-${pr}"
+                            refspecTidbTest = "+refs/pull/${pr}/head:refs/remotes/origin/PR-${pr}"
                             checkout([$class: 'GitSCM', branches: [[name: "FETCH_HEAD"]],
                                 extensions: [[$class: 'LocalBranch']],
-                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecCoprTest, url: 'git@github.com:pingcap/tidb-test.git']]])
+                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecTidbTest, url: 'git@github.com:pingcap/tidb-test.git']]])
                         } else {
                             checkout(changelog: false, poll: false, scm: [
                                 $class: "GitSCM",
@@ -215,7 +215,7 @@ try {
                                         [
                                                 credentialsId: 'github-sre-bot-ssh',
                                                 url: 'git@github.com:pingcap/tidb-test.git',
-                                                refspec: refspecCoprTest,
+                                                refspec: refspecTidbTest,
                                         ]
                                 ],
                                 extensions: [
