@@ -212,8 +212,6 @@ run_with_toolkit_pod {
             // 下游集成测试会从 pr/COMMIT 路径下载包，就会导致 not found
             // 这里 参照 qa_release_test 做个 hack,拷贝相关包到对应路径,  tikv 同理
             sh """
-            # wget ${FILE_SERVER_URL}/download/builds/pingcap/tidb/$tidb_sha1/centos7/tidb-server.tar.gz
-            # curl -C - --retry 3 -f -F builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
             rm -f tidb-server.tar.gz
             inv upload --dst builds/pingcap/tidb/pr/${tidb_sha1}/centos7/done --content done
 
