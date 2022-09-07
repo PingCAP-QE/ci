@@ -208,10 +208,10 @@ pipeline {
             container('report') {
                 sh """
                     chmod +x scripts/plugins/report_job_result.sh
-                    scripts/plugins/report_job_result.sh ${currentBuild.result} result.json
+                    scripts/plugins/report_job_result.sh ${currentBuild.result} result.json | true
                 """
             }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true)
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }

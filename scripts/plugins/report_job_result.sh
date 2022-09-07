@@ -1,6 +1,8 @@
 
 #! /usr/bin/env bash
 
+#### Notable: should run in python container with image: hub.pingcap.net/jenkins/python3-requests:latest ###
+
 # ============================================================
 # name: 'PIPELINE_RUN_ERROR_CODE',
 # 0 : 'success',
