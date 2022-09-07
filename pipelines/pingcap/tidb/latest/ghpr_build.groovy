@@ -124,7 +124,6 @@ pipeline {
             }
         }
         stage("Build tidb-server and plugin"){
-            failFast true
             parallel {
                 stage("Build tidb-server") {
                     stages {
@@ -184,10 +183,7 @@ pipeline {
                 stage("Build plugins") {
                     steps {
                         timeout(time: 20, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: '''
-                                cd tidb/cmd/pluginpkg
-                                go build
-                                '''
+                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
                         }
                         dir('enterprise-plugin/whitelist') {
                             sh label: 'build plugin whitelist', script: '''
@@ -204,6 +200,18 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+    post {
+        // TODO(wuhuizuo): put into container lifecyle preStop hook.
+        always {
+            container('report') {
+                sh """
+                    chmod +x scripts/plugins/report_job_result.sh
+                    scripts/plugins/report_job_result.sh ${currentBuild.result} result.json | true
+                """
+            }
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
