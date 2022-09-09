@@ -102,13 +102,28 @@ def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActual
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+  nodeSelector:
+    resourcepool: ksyun-ci1
+'''
+
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: "jenkins-tidb-mergeci",
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -122,6 +137,7 @@ def run_test_with_pod(Closure body) {
                             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
+                            emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
@@ -134,11 +150,13 @@ def run_test_with_pod(Closure body) {
 
 def run_with_lightweight_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-lightweight"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: "jenkins-tidb-mergeci",
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -158,11 +176,13 @@ def run_with_lightweight_pod(Closure body) {
 
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'java', alwaysPullImage: false,
