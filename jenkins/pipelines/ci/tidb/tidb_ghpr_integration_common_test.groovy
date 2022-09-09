@@ -104,6 +104,8 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -147,6 +149,8 @@ def run_with_memory_volume_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
