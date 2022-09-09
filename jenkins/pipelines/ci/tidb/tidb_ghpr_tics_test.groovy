@@ -35,8 +35,26 @@ def checkoutTiflash(commit, pullId) {
     ])
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    resourcepool: ksyun-ci1
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run(label, Closure body) {
-    podTemplate(name: label, label: label, cloud: "kubernetes-ng", namespace: "jenkins-tidb-mergeci", instanceCap: 20, nodeSelector: "role_type=slave", containers: [
+    podTemplate(name: label, label: label, 
+        cloud: "kubernetes-ksyun", 
+        yaml: podYAML,
+        yamlMergeStrategy: merge(),
+        namespace: "jenkins-tidb-mergeci", instanceCap: 20,
+        containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                             resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                             resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
