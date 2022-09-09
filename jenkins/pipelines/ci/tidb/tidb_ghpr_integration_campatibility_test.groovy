@@ -58,7 +58,7 @@ println "TIDB_OLD_BRANCH=${TIDB_OLD_BRANCH}"
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
@@ -67,10 +67,10 @@ GO_IMAGE_MAP = [
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 POD_LABEL_MAP = [
-    "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
-    "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
-    "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
-    "go1.19": "tidb-ghpr-common-test-go1190-${BUILD_NUMBER}",
+    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
+    "go1.16": "${JOB_NAME}--go1160-${BUILD_NUMBER}",
+    "go1.18": "${JOB_NAME}--go1180-${BUILD_NUMBER}",
+    "go1.19": "${JOB_NAME}--go1190-${BUILD_NUMBER}",
 ]
 
 node("master") {
@@ -84,16 +84,30 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    resourcepool: ksyun-ci1
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

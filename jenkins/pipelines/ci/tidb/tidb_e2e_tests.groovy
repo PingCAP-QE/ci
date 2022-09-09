@@ -20,7 +20,7 @@ if (ghprbPullId != null && ghprbPullId != "") {
 
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
@@ -39,16 +39,30 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    resourcepool: ksyun-ci1
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
 
 def run_with_pod(Closure body) {
     def label = "tidb-e2e-tests-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

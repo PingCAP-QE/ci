@@ -35,16 +35,30 @@ m4 = null
 println "TIDB_PRIVATE_TEST_BRANCH=${TIDB_PRIVATE_TEST_BRANCH}"
 all_task_result = []
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    resourcepool: ksyun-ci1
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def java_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                         name: 'java', alwaysPullImage: true,
