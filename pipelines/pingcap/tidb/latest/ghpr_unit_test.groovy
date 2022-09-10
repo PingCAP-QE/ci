@@ -1,7 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and release-6.2.x branches
-final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_unit_test.yaml'
@@ -9,10 +8,9 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_unit_test.yaml
 pipeline {
     agent {
         kubernetes {
-            cloud K8S_COULD
             namespace K8S_NAMESPACE
-            defaultContainer 'golang'
             yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
         }
     }
     environment {
