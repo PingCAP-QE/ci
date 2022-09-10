@@ -1,42 +1,129 @@
-def BUILD_URL = 'git@github.com:pingcap/ticdc.git'
+properties([
+        parameters([
+                string(
+                        defaultValue: '-1',
+                        name: 'PIPELINE_BUILD_ID',
+                        description: '',
+                        trim: true
+                )
+     ])
+])
+
+begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+githash = ""
+def BUILD_URL = 'git@github.com:pingcap/tiflow.git'
 def build_path = 'go/src/github.com/pingcap/dm'
 def UCLOUD_OSS_URL = "http://pingcap-dev.hk.ufileos.com"
 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
 def slackcolor = 'good'
-def githash
 def ws
 
-// choose which go version to use. 
-def String selectGoVersion(String branchORTag) {
-    def goVersion="go1.18"
-    if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
-        return "go1.13"
-    }
-    if (branchORTag.startsWith("v") && branchORTag > "v5.1" && branchORTag < "v6.0") {
-        return "go1.16"
-    }
-    if (branchORTag.startsWith("release-") && branchORTag < "release-5.1"){
-        return "go1.13"
-    }
-    if (branchORTag.startsWith("release-") && branchORTag >= "release-5.1" && branchORTag < "release-6.0"){
-        return "go1.16"
-    }
-    if (branchORTag.startsWith("hz-poc") || branchORTag.startsWith("arm-dup") ) {
-        return "go1.16"
-    }
-    return "go1.18"
+def upload_result_to_db() {
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "6"
+    pipeline_name = "DM"
+    status = currentBuild.result
+    build_number = BUILD_NUMBER
+    job_name = JOB_NAME
+    artifact_meta = "dm commit:" + githash
+    begin_time = begin_time
+    end_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+    triggered_by = "sre-bot"
+    component = "dm"
+    arch = "linux-amd64"
+    artifact_type = "binary"
+    branch = "master"
+    version = "None"
+    build_type = "dev-build"
+    push_gcr = "No"
+
+    build job: 'upload_result_to_db',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value: job_name],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value: end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value: triggered_by],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
+                    [$class: 'StringParameterValue', name: 'ARCH', value: arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value: artifact_type],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: version],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type],
+                    [$class: 'StringParameterValue', name: 'PUSH_GCR', value: push_gcr]
+            ]
+
 }
 
-def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
-def GO_BIN_PATH = "/usr/local/go1.18/bin"
+// choose which go version to use. 
+def selectGoVersion(branchNameOrTag) {
+    if (branchNameOrTag.startsWith("v")) {
+        println "This is a tag"
+        if (branchNameOrTag >= "v6.3") {
+            println "tag ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
+        if (branchNameOrTag >= "v6.0") {
+            println "tag ${branchNameOrTag} use go 1.18"
+            return "go1.18"
+        }
+        if (branchNameOrTag >= "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.16"
+            return "go1.16"
+        }
+        if (branchNameOrTag < "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.13"
+            return "go1.13"
+        }
+        println "tag ${branchNameOrTag} use default version go 1.19"
+        return "go1.19"
+    } else { 
+        println "this is a branch"
+        if (branchNameOrTag == "master") {
+            println("branchNameOrTag: master  use go1.19")
+            return "go1.19"
+        }
+
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.0" && branchNameOrTag >= "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.16")
+            return "go1.16"
+        }
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
+            return "go1.13"
+        }
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
+        return "go1.19"
+    }
+}
+
+
+def GO_BUILD_SLAVE = "build_go1190"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
+if ( goVersion == "go1.18" ) {
+    GO_BUILD_SLAVE = "build_go1185"
+}
 if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-    GO_BIN_PATH="/usr/local/go1.16.4/bin"
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
-    GO_BIN_PATH="/usr/local/go/bin"
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -74,8 +161,17 @@ try {
                     } else {
                         checkout scm: [$class: 'GitSCM', 
                             branches: [[name: branch]],  
-                            extensions: [[$class: 'LocalBranch']],
-                            userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}"]]]
+                            extensions: [
+                                    [$class             : 'SubmoduleOption',
+                                    disableSubmodules  : false,
+                                    parentCredentials  : true,
+                                    recursiveSubmodules: true,
+                                    trackingSubmodules : false,
+                                    reference          : ''],
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                            ],
+                            userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: "+refs/heads/*:refs/remotes/origin/*", url: "${BUILD_URL}"]]]
                     }
                 }
 
@@ -118,7 +214,7 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         mkdir ${target}
                         mkdir ${target}/bin
                         mkdir ${target}/conf
@@ -141,9 +237,10 @@ try {
                             mv dm/worker/dm-worker.toml ${target}/conf/
                             """
                         }
-                        
                         sh """
                         mv LICENSE ${target}/
+                        curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+                        mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                         tar -czvf ${target}.tar.gz ${target}
 
                         # setup upload tools
@@ -151,7 +248,7 @@ try {
                         # curl -O ${FILE_SERVER_URL}/download/script/config.cfg
                         # chmod +x filemgr-linux64
 
-                        curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/${target}.tar.gz --file ${target}.tar.gz
                         """
                         // writeFile file: 'sha1', text: "${githash}"
@@ -165,6 +262,37 @@ try {
         }
         // do not release dm-ansible  after v6.0.0
         if ((branch.startsWith("release-") && branch <"release-6.0") || (branch.startsWith("v") && branch <"v6.0.0")) {
+            stage("package dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        timeout(10) {
+                            sh """
+                            cp -r dm/dm/dm-ansible ./
+                            tar -czvf dm-ansible.tar.gz dm-ansible
+                            """
+                        }
+                    }
+                }
+            }
+
+            stage("Upload dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/dm-ansible-sha1"
+                        def filepath = "builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz"
+
+                        writeFile file: 'dm-ansible-sha1', text: "${githash}"
+                        sh """
+                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+
+                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
+                        curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                }
+            }
+
             stage("Generate monitoring") {
                 dir(build_path) {
                     container("golang") {
@@ -184,7 +312,42 @@ try {
                 }
                 stash includes: "go/src/github.com/pingcap/dm/dm/monitoring/**", name: "monitoring"
             }
-        } 
+        } else {
+            stage("package dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        timeout(10) {
+                            sh """
+                            mkdir -p dm-ansible
+                            mkdir -p dm-ansible/conf
+                            mkdir -p dm-ansible/scripts
+                            cp dm/metrics/alertmanager/dm_worker.rules.yml dm-ansible/conf
+                            cp dm/metrics/grafana/* dm-ansible/scripts
+                            tar -czvf dm-ansible.tar.gz dm-ansible
+                            """
+                        }
+                    }
+                }
+            }
+
+            stage("Upload dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/dm-ansible-sha1"
+                        def filepath = "builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz"
+
+                        writeFile file: 'dm-ansible-sha1', text: "${githash}"
+                        sh """
+                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+
+                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
+                        curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                }
+            }
+        }
     }
     
     node("arm") {
@@ -260,13 +423,13 @@ try {
                 timeout(10) {
                     sh """
                     echo "${githash}" > sha1
-                    curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                     mkdir ${target}
                     mkdir ${target}/bin
                     mkdir ${target}/conf
                     mv bin/dm* ${target}/bin/
                     """
-                        
+
                     // DM changed the folder after a PR later than v6.2.0. Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
                     if ((branch.startsWith("release-") && branch < "release-6.3") || (branch.startsWith("v") && branch < "v6.3")) {
                         sh """
@@ -286,6 +449,8 @@ try {
 
                     sh """
                     mv LICENSE ${target}/
+                    # curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+                    # mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                     tar -czvf ${target}.tar.gz ${target}
 
                     # setup upload tools
@@ -293,7 +458,7 @@ try {
                     # curl -O ${FILE_SERVER_URL}/download/script/config.cfg
                     # chmod +x filemgr-linux64
 
-                    curl --fail -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                     # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/${target}.tar.gz --file ${target}.tar.gz
                     """
                     // writeFile file: 'sha1', text: "${githash}"
@@ -306,13 +471,50 @@ try {
         }
     }
 
+    // we Build and Push monitoring image here, because no source code in `release_dm` job.
+    if (branch != "release-1.0" && !branch.startsWith("v1.")) {
+        RELEASE_TAG = branch
+        if (env.TAG_NAME != null) {
+            RELEASE_TAG = "${env.TAG_NAME}"
+        } else if (RELEASE_TAG == "master") {
+            RELEASE_TAG = "nightly"
+        } else {
+            RELEASE_TAG = "${RELEASE_TAG}-nightly"
+        }
+        // do not release dm-monitor-initializer after v6.0.0
+        if ((branch.startsWith("release-") && branch <"release-6.0") || (branch.startsWith("v") && branch <"v6.0.0")) {
+            stage("Publish Monitor Docker Image") {
+                node("delivery") {
+                    container("delivery") {
+                        deleteDir()
+                        unstash 'monitoring'
+                        dir("go/src/github.com/pingcap/dm/dm/monitoring") {
+                            withDockerServer([uri: "${env.DOCKER_HOST}"]) {
+                                docker.build("pingcap/dm-monitor-initializer:${RELEASE_TAG}").push()
+                            }
+                            docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+                                sh """
+                                    docker tag pingcap/dm-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/dm-monitor-initializer:${RELEASE_TAG}
+                                    docker push uhub.service.ucloud.cn/pingcap/dm-monitor-initializer:${RELEASE_TAG}
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+}finally{
+    if(env.BRANCH_NAME == 'master'){
+         upload_result_to_db()
+    }
 }
-
 stage('Summary') {
     echo "Send slack here ..."
     //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"

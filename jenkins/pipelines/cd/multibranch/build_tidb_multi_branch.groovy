@@ -1,32 +1,106 @@
+properties([
+        parameters([
+                string(
+                        defaultValue: '-1',
+                        name: 'PIPELINE_BUILD_ID',
+                        description: '',
+                        trim: true
+                )
+     ])
+])
+
+begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+githash = ""
+
+@NonCPS
+boolean isMoreRecentOrEqual( String a, String b ) {
+    if (a == b) {
+        return true
+    }
+
+    [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
+       Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
+       return (result == 1)
+    } 
+}
+
+string trimPrefix = {
+    it.startsWith('release-') ? it.minus('release-') : it 
+}
+
+def boolean isBranchMatched(List<String> branches, String targetBranch) {
+    for (String item : branches) {
+        if (targetBranch.startsWith(item)) {
+            println "targetBranch=${targetBranch} matched in ${branches}"
+            return true
+        }
+    }
+    return false
+}
+
 // choose which go version to use. 
-def String selectGoVersion(String branchORTag) {
-    def goVersion="go1.18"
-    if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
-        return "go1.13"
+def selectGoVersion(branchNameOrTag) {
+    if (branchNameOrTag.startsWith("v")) {
+        println "This is a tag"
+        if (branchNameOrTag >= "v6.3") {
+            println "tag ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
+        if (branchNameOrTag >= "v6.0") {
+            println "tag ${branchNameOrTag} use go 1.18"
+            return "go1.18"
+        }
+        if (branchNameOrTag >= "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.16"
+            return "go1.16"
+        }
+        if (branchNameOrTag < "v5.1") {
+            println "tag ${branchNameOrTag} use go 1.13"
+            return "go1.13"
+        }
+        println "tag ${branchNameOrTag} use default version go 1.19"
+        return "go1.19"
+    } else { 
+        println "this is a branch"
+        if (branchNameOrTag == "master") {
+            println("branchNameOrTag: master  use go1.19")
+            return "go1.19"
+        }
+
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.0" && branchNameOrTag >= "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.16")
+            return "go1.16"
+        }
+
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-5.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
+            return "go1.13"
+        }
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
+        return "go1.19"
     }
-    if (branchORTag.startsWith("v") && branchORTag > "v5.1" && branchORTag < "v6.0") {
-        return "go1.16"
-    }
-    if (branchORTag.startsWith("release-") && branchORTag < "release-5.1"){
-        return "go1.13"
-    }
-    if (branchORTag.startsWith("release-") && branchORTag >= "release-5.1" && branchORTag < "release-6.0"){
-        return "go1.16"
-    }
-    if (branchORTag.startsWith("hz-poc") || branchORTag.startsWith("arm-dup") ) {
-        return "go1.16"
-    }
-    return "go1.18"
 }
 
 
-def GO_BUILD_SLAVE = GO1180_BUILD_SLAVE
+def GO_BUILD_SLAVE = "build_go1190"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
+if ( goVersion == "go1.18" ) {
+    GO_BUILD_SLAVE = "build_go1185"
+}
 if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -51,16 +125,10 @@ if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME >
 
 if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("release-")) {
     isNeedBuildBr = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchBuildBr))
-    if (isNeedGo1160) {
-        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchBuildBr}"
-    }
 }
 
 if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-")) {
     isNeedBuildDumpling = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchBuildDumpling))
-    if (isNeedGo1160) {
-        println "targetBranch=${env.BRANCH_NAME}  >= ${releaseBranchBuildDumpling}"
-    }
 }
 
 def isHotfix = false
@@ -73,7 +141,6 @@ def BUILD_URL = 'git@github.com:pingcap/tidb.git'
 
 def build_path = 'go/src/github.com/pingcap/tidb'
 def slackcolor = 'good'
-def githash
 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
 def plugin_branch = branch
 
@@ -131,6 +198,50 @@ def release_docker_image(product, filepath, tag) {
             wait: true,
             parameters: paramsDocker
 }
+
+def upload_result_to_db() {
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "1"
+    pipeline_name = "TiDB"
+    status = currentBuild.result
+    build_number = BUILD_NUMBER
+    job_name = JOB_NAME
+    artifact_meta = "tidb commit:" + githash
+    begin_time = begin_time
+    end_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+    triggered_by = "sre-bot"
+    component = "tidb"
+    arch = "All"
+    artifact_type = "binary"
+    branch = "master"
+    version = "None"
+    build_type = "dev-build"
+    push_gcr = "No"
+
+    build job: 'upload_result_to_db',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value: job_name],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value: end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value: triggered_by],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
+                    [$class: 'StringParameterValue', name: 'ARCH', value: arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value: artifact_type],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: version],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type],
+                    [$class: 'StringParameterValue', name: 'PUSH_GCR', value: push_gcr]
+            ]
+
+}
+
 
 try {
     node("${GO_BUILD_SLAVE}") {
@@ -215,10 +326,10 @@ try {
                         sh """
                         tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
                         bin/tidb-server -V
-                        curl --fail -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                        curl --fail -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
                     tidbArmBinary = "builds/pingcap/test/tidb/${githash}/centos7/tidb-linux-arm64.tar.gz"
@@ -321,9 +432,9 @@ try {
                             go mod tidy
                             GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                             md5sum whitelist-1.so > whitelist-1.so.md5
-                            curl --fail -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                            curl --fail -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                            curl --fail -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                            curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
+                            curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
+                            curl -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
                             """
                     }
 
@@ -332,9 +443,9 @@ try {
                         go mod tidy
                         GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                         md5sum audit-1.so > audit-1.so.md5
-                        curl --fail -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                        curl --fail -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                        curl --fail -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
+                        curl -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
@@ -352,4 +463,9 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+}finally{
+    if(env.BRANCH_NAME == 'master'){
+         upload_result_to_db()
+    }
+   
 }

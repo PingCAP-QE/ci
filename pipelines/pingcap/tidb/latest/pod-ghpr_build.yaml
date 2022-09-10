@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220908"
       tty: true
       resources:
         requests:
@@ -34,8 +34,15 @@ spec:
       tty: true
       resources:
         limits:
-          memory: "128Mi"
-          cpu: "500m"
+          memory: 128Mi
+          cpu: 200m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 512Mi
+          cpu: 200m
   volumes:
     - name: bazel-out
       emptyDir: {}

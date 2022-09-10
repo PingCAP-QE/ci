@@ -12,12 +12,6 @@ if (params.containsKey("release_test")) {
     ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
 }
 
-def slackcolor = 'good'
-def githash
-
-def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-
 def runExplainTest = true
 def goTestEnv = "CGO_ENABLED=1"
 def waitBuildDone = 0
@@ -574,7 +568,7 @@ catch (Exception e) {
         currentBuild.result = "SUCCESS"
     } else {
         currentBuild.result = "FAILURE"
-        slackcolor = 'danger'
+
         echo "${e}"
     }
 }
@@ -599,9 +593,6 @@ stage('Summary') {
         slackSend channel: '#jenkins-ci-3-minutes', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     }
 
-    // if (currentBuild.result != "SUCCESS") {
-    // slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    // }
 
     if (currentBuild.result == "SUCCESS" && ghprbTargetBranch == "master") {
         build job: 'extract_unittest_log', wait: false, parameters: [[$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: "${BUILD_NUMBER}"]]
