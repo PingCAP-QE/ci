@@ -18,14 +18,19 @@ pipelineJob('tidb_ghpr_build') {
                     cron('H/5 * * * *')
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159')
 
-                    // ### prod
                     triggerPhrase('.*/(merge|run-(all-tests|build).*)')
                     onlyTriggerPhrase(false)
-
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
+                    blackListTargetBranches {
+                        ghprbBranch { 
+                            branch('master')
+                            branch('^feature[_|/].*')
+                            branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$')
+                        }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
@@ -52,7 +57,7 @@ pipelineJob('tidb_ghpr_build') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("idc-jenkins-ci-tidb/build") // debug: no block the pr.
+                            commitStatusContext("idc-jenkins-ci-tidb/build")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("Jenkins job is running.")
                             triggeredStatus("Jenkins job triggered.")
