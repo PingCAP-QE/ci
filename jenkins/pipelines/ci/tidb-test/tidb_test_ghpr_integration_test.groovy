@@ -265,14 +265,12 @@ run_with_toolkit_pod {
                     container("${containerName}") {
                         timeout(20) {
                             retry(3) {
-                                sh "chmod +x ${ws}/scripts/pingcap/integration/integration_prepare.sh"
-                                sh "${ws}/scripts/pingcap/integration/integration_prepare.sh -k ${tikv_sha1} -p ${pd_sha1} -d ${tidb_sha1} -w ${ws}"
+                                sh "curl -s https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/pingcap/integration/integration_prepare.sh | bash -s -- -k ${tikv_sha1} -p ${pd_sha1} -d ${tidb_sha1} -w ${ws}"
                             }
                         }
                         try {
                             timeout(20) {
-                                sh "chmod +x ${ws}/scripts/pingcap/integration/integration_test.sh"
-                                sh "${ws}/scripts/pingcap/integration/integration_test.sh -n ${my_test} -w ${ws} -t ${test_cmd}"
+                                sh "curl -s https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/pingcap/integration/integration_test.sh | bash -s -- -n ${my_test} -w ${ws} -t ${test_cmd}"
                             }
                         } catch (err) {
                             sh """
