@@ -46,8 +46,6 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
-def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
-
 GO_VERSION = "go1.18"
 ALWAYS_PULL_IMAGE = true
 RESOURCE_REQUEST_CPU = '4000m'
@@ -209,64 +207,34 @@ try {
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
-                                if (isBuildCheck){
-                                    if (user_bazel(ghprbTargetBranch) != "")  {
-                                        sh """
-                                        if make bazel_build; then
-                                            touch importer.done
-                                            touch tidb-server-check.done
-                                        else 
-                                            touch importer.fail
-                                            touch tidb-server-check.fail
-                                            exit 1
-                                        fi
-                                        """
-                                    } else {
-                                        sh """
-                                        nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-                                        nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-                                        make
-                                        """
-                                    }
-                                }else{
-                                    if (user_bazel(ghprbTargetBranch) != "")  {
-                                        sh """
-                                        if make bazel_build; then
-                                            touch importer.done
-                                            touch tidb-server-check.done
-                                        else 
-                                            touch importer.fail
-                                            touch tidb-server-check.fail
-                                        fi
+                                if (user_bazel(ghprbTargetBranch) != "")  {
+                                    sh """
+                                    if make bazel_build; then
+                                        touch importer.done
                                         touch tidb-server-check.done
-                                        """
-                                    } else {
-                                        sh """
-                                        nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-                                        nohup bash -c "if  WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &                                    
-                                        make
-                                        touch tidb-server-check.done
-                                        """
-                                    }
+                                    else 
+                                        touch importer.fail
+                                        touch tidb-server-check.fail
+                                        exit 1
+                                    fi
+                                    """
+                                } else {
+                                    sh """
+                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+                                    nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+                                    make
+                                    """
                                 }
 
                                 waitUntil{
                                     (fileExists('importer.done') || fileExists('importer.fail')) && (fileExists('tidb-server-check.done') || fileExists('tidb-server-check.fail'))
                                 }
-                                sh """
-                                ls bin
-                                """
+                                sh 'ls bin'
                                 if (fileExists('importer.fail') ){
-                                    sh """
-                                    cat importer.log
-                                    exit 1
-                                    """
+                                    sh 'cat importer.log; exit 1'
                                 }
                                 if (fileExists('tidb-server-check.fail') ){
-                                    sh """
-                                    cat tidb-server-check.log
-                                    exit 1
-                                    """
+                                    sh 'cat tidb-server-check.log; exit 1'
                                 }
                             }
                         }
