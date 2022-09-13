@@ -43,18 +43,28 @@ node("master") {
 }
 POD_NAMESPACE = "jenkins-tidb-test"
 
+GolangContainerName = "golang"
+JavaContainerName = "java"
+RubyContainerName = "ruby"
 
-def run_test_with_java_pod(Closure body) {
-    def label = "tidb-ghpr-integration-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+/**
+ * run_base
+ * All pod runs from here
+ * @body a unnamed function will be run
+ * @cloud cloud name
+ * @label pod label
+ */
+def run_base(Closure body, cloud, label, containerName, imageName) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             containers: [
                     containerTemplate(
-                            name: 'java', alwaysPullImage: false,
-                            image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:cached", ttyEnabled: true,
+                            name: containerName,
+                            alwaysPullImage: false,
+                            image: imageName,
+                            ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                     )
@@ -71,31 +81,18 @@ def run_test_with_java_pod(Closure body) {
     }
 }
 
+def run_test_with_java_pod(Closure body) {
+    def label = "tidb-ghpr-integration-test-java-${BUILD_NUMBER}"
+    def cloud = "kubernetes-ng"
+    def image = "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:cached"
+    run_base(body, cloud, label, JavaContainerName, image)
+}
+
 def run_test_with_ruby_pod(Closure body) {
     def label = "tidb-ghpr-integration-test-ruby-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
-    podTemplate(label: label,
-            cloud: cloud,
-            namespace: POD_NAMESPACE,
-            idleMinutes: 0,
-            containers: [
-                    containerTemplate(
-                            name: 'ruby', alwaysPullImage: false,
-                            image: "hub-new.pingcap.net/jenkins/ruby27:latest", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
-                            command: '/bin/sh -c', args: 'cat',
-                    )
-            ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-            ],
-    ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
-            body()
-        }
-    }
+    def image = "hub-new.pingcap.net/jenkins/ruby27:latest"
+    run_base(body, cloud, label, RubyContainerName, image)
 }
 
 def run_test_with_pod(Closure body) {
@@ -113,29 +110,8 @@ def run_test_with_pod(Closure body) {
         label = "${JOB_NAME}-go1190-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes-ng"
-    podTemplate(label: label,
-            cloud: cloud,
-            namespace: POD_NAMESPACE,
-            idleMinutes: 0,
-            containers: [
-                    containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
-                            image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
-                            command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                    )
-            ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: true)
-            ],
-    ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} -- bash"
-            body()
-        }
-    }
+    def image = "${POD_GO_IMAGE}"
+    run_base(body, cloud, label, GolangContainerName, image)
 }
 
 
@@ -281,240 +257,62 @@ run_with_toolkit_pod {
         stage("Tests") {
             def tests = [:]
 
-            def run = { test_dir, mytest, test_cmd ->
-                run_test_with_pod {
-                    def ws = pwd()
-                    deleteDir()
-                    unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
-                        container("golang") {
+            def run_test_logic = { containerName, test_dir, my_test, test_cmd ->
+                def ws = pwd()
+                deleteDir()
+                unstash "tidb-test"
+                dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    container("${containerName}") {
+                        timeout(20) {
+                            retry(3) {
+                                sh "chmod +x ${ws}/scripts/pingcap/integration/integration_prepare.sh"
+                                sh "${ws}/scripts/pingcap/integration/integration_prepare.sh -k ${tikv_sha1} -p ${pd_sha1} -d ${tidb_sha1} -w ${ws}"
+                            }
+                        }
+                        try {
                             timeout(20) {
-                                retry(3){
-                                    sh """
-                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        
-                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f \${tikv_url} | tar xz bin
-        
-                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f \${pd_url} | tar xz bin
-        
-                                    mkdir -p ./tidb-src
-                                    curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
-                                    ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
-                                    ./bin/tidb-server -V
-                                    """
-                                }
+                                sh "chmod +x ${ws}/scripts/pingcap/integration/integration_test.sh"
+                                sh "${ws}/scripts/pingcap/integration/integration_test.sh -n ${my_test} -w ${ws} -t ${test_cmd}"
                             }
-                            try {
-                                timeout(20) {
-                                    sh """
-                                    ps aux
-                                    set +e
-                                    killall -9 -r tidb-server
-                                    killall -9 -r tikv-server
-                                    killall -9 -r pd-server
-                                    rm -rf /tmp/tidb
-                                    rm -rf ./tikv ./pd
-                                    set -e
-                                    
-                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                    sleep 10
-                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                    sleep 10
-                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-
-                                    pwd && ls -alh
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export log_level=debug
-                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                    TIKV_PATH='127.0.0.1:2379' \
-                                    TIDB_TEST_STORE_NAME=tikv \
-                                    ${test_cmd}
-                                    """
-                                }
-                            } catch (err) {
-                                sh"""
-                                cat mysql-test.out || true
-                                """
-                                sh """
-                                cat pd_${mytest}.log
-                                cat tikv_${mytest}.log
-                                cat tidb*.log
-                                """
-                                throw err
-                            } finally {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                set -e
-                                """
-                            }
+                        } catch (err) {
+                            sh """
+                        cat mysql-test.out || true
+                        """
+                            sh """
+                        cat pd_${my_test}.log
+                        cat tikv_${my_test}.log
+                        cat tidb*.log
+                        """
+                            throw err
+                        } finally {
+                            sh """
+                        set +e
+                        killall -9 -r tidb-server
+                        killall -9 -r tikv-server
+                        killall -9 -r pd-server
+                        set -e
+                        """
                         }
                     }
                 }
             }
 
-            def run_java = { test_dir, mytest, test_cmd ->
-                run_test_with_java_pod {
-                    def ws = pwd()
-                    deleteDir()
-                    unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
-                        container("java") {
-                            timeout(20) {
-                                retry(3){
-                                    sh """
-                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        
-                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f \${tikv_url} | tar xz bin
-        
-                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f \${pd_url} | tar xz bin
-        
-                                    mkdir -p ./tidb-src
-                                    curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
-                                    ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
-                                    """
-                                }
-                            }
-                            try {
-                                timeout(20) {
-                                    sh """
-                                    ps aux
-                                    set +e
-                                    killall -9 -r tidb-server
-                                    killall -9 -r tikv-server
-                                    killall -9 -r pd-server
-                                    rm -rf /tmp/tidb
-                                    rm -rf ./tikv ./pd
-                                    set -e
-                                    
-                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                    sleep 10
-                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                    sleep 10
-                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export log_level=debug
-                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                    TIKV_PATH='127.0.0.1:2379' \
-                                    TIDB_TEST_STORE_NAME=tikv \
-                                    ${test_cmd}
-                                    """
-                                }
-                            } catch (err) {
-                                sh"""
-                                cat mysql-test.out || true
-                                """
-                                sh """
-                                cat pd_${mytest}.log
-                                cat tikv_${mytest}.log
-                                cat tidb*.log
-                                """
-                                throw err
-                            } finally {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                set -e
-                                """
-                            }
-                        }
-                    }
-                }
+            def run = { test_dir, my_test, test_cmd ->
+                run_test_with_pod({
+                    run_test_logic(GolangContainerName, test_dir, my_test, test_cmd)
+                })
             }
 
-            def run_ruby = { test_dir, mytest, test_cmd ->
-                run_test_with_ruby_pod {
-                    def ws = pwd()
-                    deleteDir()
-                    unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
-                        container("ruby") {
-                            timeout(20) {
-                                retry(3){
-                                    sh """
-                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-                                    tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        
-                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f \${tikv_url} | tar xz bin
-        
-                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-                                    curl -C - --retry 3 -f \${pd_url} | tar xz bin
-        
-                                    mkdir -p ./tidb-src
-                                    curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
-                                    ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-                                    mv tidb-src/bin/tidb-server ./bin/tidb-server
-                                    """
-                                }
-                            }
-                            try {
-                                timeout(20) {
-                                    sh """
-                                    ps aux
-                                    set +e
-                                    killall -9 -r tidb-server
-                                    killall -9 -r tikv-server
-                                    killall -9 -r pd-server
-                                    rm -rf /tmp/tidb
-                                    rm -rf ./tikv ./pd
-                                    set -e
-                                    
-                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                    sleep 10
-                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                    sleep 10
-                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+            def run_java = { test_dir, my_test, test_cmd ->
+                run_test_with_java_pod({
+                    run_test_logic(JavaContainerName, test_dir, my_test, test_cmd)
+                })
+            }
 
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export log_level=debug
-                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                    TIKV_PATH='127.0.0.1:2379' \
-                                    TIDB_TEST_STORE_NAME=tikv \
-                                    ${test_cmd}
-                                    """
-                                }
-                            } catch (err) {
-                                sh"""
-                                cat mysql-test.out || true
-                                """
-                                sh """
-                                cat pd_${mytest}.log
-                                cat tikv_${mytest}.log
-                                cat tidb*.log
-                                """
-                                throw err
-                            } finally {
-                                sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                set -e
-                                """
-                            }
-                        }
-                    }
-                }
+            def run_ruby = { test_dir, my_test, test_cmd ->
+                run_test_with_ruby_pod({
+                    run_test_logic(RubyContainerName, test_dir, my_test, test_cmd)
+                })
             }
 
             tests["Integration Analyze Test"] = {
@@ -526,15 +324,19 @@ run_with_toolkit_pod {
             tests["Go SQL Test"] = {
                 run("go-sql-test", "gosqltest", "./test.sh")
             }
+
             tests["GORM Test"] = {
                 run("gorm_test", "gormtest", "./test.sh")
             }
+
             tests["Beego ORM Test"] = {
                 run("beego_orm_test", "beegoormtest", "./test.sh")
             }
+
             tests["Upper DB ORM Test"] = {
                 run("upper_db_orm_test", "upperdbormtest", "./test.sh")
             }
+            
             tests["XORM Test"] = {
                 run("xorm_test", "xormtest", "./test.sh")
             }
@@ -570,7 +372,7 @@ run_with_toolkit_pod {
             tests["TiDB JDBC Unique Test"] = {
                 run_java("tidb_jdbc_test/tidb_jdbc_unique_test", "tidbuniquetest", "./test.sh")
             }
-            
+
             tests["mysql_connector_c Test"] = {
                 run("mysql_connector_c_test", "mysql_connector_c_test", "./test.sh")
             }
