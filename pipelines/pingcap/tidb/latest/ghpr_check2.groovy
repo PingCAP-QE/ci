@@ -1,62 +1,40 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and release-6.2.x branches
-final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
-final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
-final POD_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
-      tty: true
-      resources:
-        requests:
-          memory: 8Gi
-          cpu: 6
-      command: [/bin/sh, -c]
-      args: [cat]
-      env:
-        - name: GOPATH
-          value: ${ENV_GOPATH}
-        - name: GOCACHE
-          value: ${ENV_GOCACHE}
-      volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out
-        - mountPath: /data/
-          name: bazel
-          readOnly: true
-  volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
-"""
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
 
 pipeline {
     agent {
         kubernetes {
-            cloud K8S_COULD
             namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'golang'
-            yaml POD_TEMPLATE
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 30, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     stages {
+        stage('Debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
+            }
+        }
         stage('Checkout') {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
@@ -77,7 +55,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
                                     ]],
                                 ]
@@ -90,14 +68,11 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir('tidb') {
-                    cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
-                        cache(path: "./", filter: "bin/*", key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
-                            sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
-                        }
+                    cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
+                        sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
                     }
-                    
                     sh label: 'tikv-server', script: '''#! /usr/bin/env bash
-                        
+
                         # parse tikv branch from comment.
                         #   tikv=branchXxx or tikv=pr/123
                         commentBodyBranchReg="\\btikv\\s*=\\s*(\\S+)\\b"
@@ -114,7 +89,7 @@ pipeline {
                         curl --fail ${url} | tar xz
                         '''
                     sh label: 'pd-server', script: '''#! /usr/bin/env bash
-                        
+
                         # parse pd branch from comment.
                         #   pd=branchXxx or pd=pr/123
                         commentBodyBranchReg="\\bpd\\s*=\\s*(\\S+)\\b"
@@ -130,8 +105,10 @@ pipeline {
                         url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${sha1}/centos7/pd-server.tar.gz"
                         curl --fail ${url} | tar xz bin
                         '''
-                    cache(path: "./", key: "ws/pingcap/tidb/check2/rev-${ghprbActualCommit}") {
-                        sh  "touch rev-${ghprbActualCommit}"
+                    
+                    // cache it for other pods
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                        sh  'touch rev-${ghprbActualCommit}'
                     }
                 }
             }
@@ -158,24 +135,23 @@ pipeline {
                         cloud K8S_COULD
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yaml POD_TEMPLATE
+                        yamlFile POD_TEMPLATE_FILE
                     }
                 }
                 stages {                    
                     stage('Test')  {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
-                            sh 'chmod +x scripts/pingcap/tidb/*.sh'
                             dir('tidb') {
-                                cache(path: "./", key: "ws/pingcap/tidb/check2/rev-${ghprbActualCommit}") {
-                                    sh "ls -l rev-${ghprbActualCommit}"
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                    sh 'ls -l rev-${ghprbActualCommit}' // will fail when not found in cache or no cached.
                                 }
-                                cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}") {
-                                    sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
-                                }
+
+                                sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
+                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
-                        post {                        
+                        post {
                             failure {
                                 dir("checks-collation-enabled") {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)

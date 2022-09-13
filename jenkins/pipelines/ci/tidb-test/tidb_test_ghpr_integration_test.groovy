@@ -22,17 +22,18 @@ if (m3) {
 m3 = null
 
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
         "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
         "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
         "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+        "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/purelind/ci-1/purelind/tidb-it-use-go1.19/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -104,6 +105,9 @@ def run_test_with_pod(Closure body) {
     }
     if (GO_VERSION == "go1.18") {
         label = "${JOB_NAME}-go1180-${BUILD_NUMBER}"
+    }
+    if (GO_VERSION == "go1.19") {
+        label = "${JOB_NAME}-go1190-${BUILD_NUMBER}"
     }
     def cloud = "kubernetes-ng"
     def image = "${POD_GO_IMAGE}"
@@ -184,8 +188,6 @@ run_with_toolkit_pod {
             // 下游集成测试会从 pr/COMMIT 路径下载包，就会导致 not found
             // 这里 参照 qa_release_test 做个 hack,拷贝相关包到对应路径,  tikv 同理
             sh """
-            wget ${FILE_SERVER_URL}/download/builds/pingcap/tidb/$tidb_sha1/centos7/tidb-server.tar.gz
-            curl -C - --retry 3 -f -F builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
             rm -f tidb-server.tar.gz
             inv upload --dst builds/pingcap/tidb/pr/${tidb_sha1}/centos7/done --content done
 
@@ -198,6 +200,21 @@ run_with_toolkit_pod {
             parallel(
                     'tidb-test': {
                         dir("go/src/github.com/pingcap/tidb-test") {
+                            def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
+                            def cacheExisted = sh(returnStatus: true, script: """
+                                if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                                """)
+                            if (cacheExisted == 0) {
+                                println "get code from fileserver to reduce clone time"
+                                println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                                sh """
+                                curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
+                                tar -xzf src-tidb-test.tar.gz --strip-components=1
+                                rm -f src-tidb-test.tar.gz
+                                """
+                            } else {
+                                println "get code from github"
+                            }
                             checkout(changelog: false, poll: false, scm: [
                                     $class: "GitSCM",
                                     branches: [
@@ -223,7 +240,7 @@ run_with_toolkit_pod {
                             deleteDir()
                             timeout(10) {
                                 retry(3){
-                                    def tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                                    def tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
                                     deleteDir()
                                     sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 1; done
@@ -301,6 +318,9 @@ run_with_toolkit_pod {
             tests["Integration Analyze Test"] = {
                 run("analyze_test", "analyzetest", "./test.sh")
             }
+            tests["Integration Rangen Test"] = {
+                run("randgen-test", "rangentest", "./test.sh")
+            }
             tests["Go SQL Test"] = {
                 run("go-sql-test", "gosqltest", "./test.sh")
             }
@@ -312,9 +332,11 @@ run_with_toolkit_pod {
             tests["Beego ORM Test"] = {
                 run("beego_orm_test", "beegoormtest", "./test.sh")
             }
+
             tests["Upper DB ORM Test"] = {
                 run("upper_db_orm_test", "upperdbormtest", "./test.sh")
             }
+            
             tests["XORM Test"] = {
                 run("xorm_test", "xormtest", "./test.sh")
             }

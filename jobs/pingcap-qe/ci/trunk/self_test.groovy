@@ -10,7 +10,7 @@ pipelineJob('pingcap-qe/ci/self_test') {
             triggers {
                 ghprbTrigger {
                     cron('H/5 * * * *')
-                    gitHubAuthId("a6f8c5ac-6082-4ad1-b84d-562cc1c37682")
+                    gitHubAuthId('') // using the default only one.
                     triggerPhrase("/self-test")
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
@@ -31,11 +31,12 @@ pipelineJob('pingcap-qe/ci/self_test') {
                     displayBuildErrorsOnDownstreamBuilds(false)
                     autoCloseFailedPullRequests(false)
 
+                    // useless, but can not delete.
+                    commitStatusContext("--none--")
+                    msgSuccess("--none--")
+                    msgFailure("--none--")
 
-                    commitStatusContext("ci/ghpr_build")
-                    msgSuccess("Jenkins job succeeded.")
-                    msgFailure("Jenkins job failed.")
-                    extensions {        
+                    extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext("self_test")
@@ -53,13 +54,14 @@ pipelineJob('pingcap-qe/ci/self_test') {
  
     definition {
         cpsScm {
+            lightweight(true)
             scriptPath("pipelines/pingcap-qe/ci/ghpr_build.groovy")
             scm {
                 git{
-                    remote { 
-                        url("https://github.com/PingCAP-QE/ci.git")
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
                     }
-                    branch("main")
+                    branch('main')
                 }
             }
         }

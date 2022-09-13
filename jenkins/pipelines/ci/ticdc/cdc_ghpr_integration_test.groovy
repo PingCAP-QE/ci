@@ -42,27 +42,31 @@ if (ghprbPullId == null || ghprbPullId == "") {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-build-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-build-${BUILD_NUMBER}",
+    "go1.19": "${JOB_NAME}-go1190-build-${BUILD_NUMBER}",
 ]
 TEST_POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-test-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-test-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-test-${BUILD_NUMBER}",
+    "go1.19": "${JOB_NAME}-go1190-test-${BUILD_NUMBER}",
 ]
 
 feature_branch_use_go13 = []
 feature_branch_use_go16 = ["hz-poc", "ft-data-inconsistency", "br-stream"]
 feature_branch_use_go18 = ["release-multi-source", "fb/latency"]
+feature_branch_use_go19 = []
 
 def taskStartTimeInMillis = System.currentTimeMillis()
 def k8sPodReadyTime = System.currentTimeMillis()
@@ -72,13 +76,15 @@ resultDownloadPath = ""
 // Version Selector
 // branch or tag
 // == branch
-//  master use go1.18
+//  master use go1.19
+//  release branch >= release-6.3 use go1.19
 //  release branch >= release-6.0 use go1.18
 //  release branch >= release-5.1 use go1.16
 //  release branch < release-5.0 use go1.13
 //  other feature use corresponding go version
 //  the default go version is go1.18
 // == tag
+// any tag greater or eqaul to v6.3.xxx use go1.19
 // any tag greater or eqaul to v6.0.xxx use go1.18
 // any tag smaller than v6.0.0 and graeter or equal to v5.1.xxx use go1.16
 // any tag smaller than v5.1.0 use go1.13
@@ -87,6 +93,10 @@ resultDownloadPath = ""
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        if (branchNameOrTag >= "v6.3") {
+            println "tag ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
         if (branchNameOrTag >= "v6.0") {
             println "tag ${branchNameOrTag} use go 1.18"
             return "go1.18"
@@ -100,7 +110,7 @@ def selectGoVersion(branchNameOrTag) {
             return "go1.13"
         }
         println "tag ${branchNameOrTag} use default version go 1.18"
-        return "go1.18"
+        return "go1.19"
     } else { 
         println "this is a branch"
         if (branchNameOrTag in feature_branch_use_go13) {
@@ -115,13 +125,21 @@ def selectGoVersion(branchNameOrTag) {
             println "feature branch ${branchNameOrTag} use go 1.18"
             return "go1.18"
         }
+        if (branchNameOrTag in feature_branch_use_go19) {
+            println "feature branch ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
         if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.18")
-            return "go1.18"
+            println("branchNameOrTag: master  use go1.19")
+            return "go1.19"
         }
 
 
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.0") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
             return "go1.18"
         }
@@ -135,7 +153,7 @@ def selectGoVersion(branchNameOrTag) {
             return "go1.13"
         }
         println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
-        return "go1.18"
+        return "go1.19"
     }
 }
 
@@ -236,103 +254,105 @@ if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_b
 catchError {
     run_with_pod {
         stage('Prepare') {
-            def ws = pwd()
-            deleteDir()
+            container("golang") {
+                def ws = pwd()
+                deleteDir()
 
-            dir("${ws}/go/src/github.com/pingcap/tiflow") {
-                def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tiflow.tar.gz"
-                def cacheExisted = sh(returnStatus: true, script: """
-                    if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
-                    """)
-                if (cacheExisted == 0) {
-                    println "get code from fileserver to reduce clone time"
-                    println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
-                    sh """
-                    curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
-                    tar -xzf src-tiflow.tar.gz --strip-components=1
-                    rm -f src-tiflow.tar.gz
-                    """
-                } else {
-                    println "get code from github"
-                }
-                try {
-                    checkout(changelog: false, poll: false, scm: [
-                            $class                           : "GitSCM",
-                            branches                         : [
-                                    [name: ghprbActualCommit],
-                            ],
-                            userRemoteConfigs                : [
-                                    [
-                                            url          : "git@github.com:pingcap/tiflow.git",
-                                            refspec      : specStr,
-                                            credentialsId: "github-sre-bot-ssh",
-                                    ]
-                            ],
-                            extensions                       : [
-                                    [$class             : 'SubmoduleOption',
-                                    disableSubmodules  : false,
-                                    parentCredentials  : true,
-                                    recursiveSubmodules: true,
-                                    trackingSubmodules : false,
-                                    reference          : ''],
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'],
-                            ],
-                            doGenerateSubmoduleConfigurations: false,
-                    ])
-                } catch (info) {
-                    retry(2) {
-                        echo "checkout failed, retry.."
-                        sleep 5
+                dir("${ws}/go/src/github.com/pingcap/tiflow") {
+                    def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tiflow.tar.gz"
+                    def cacheExisted = sh(returnStatus: true, script: """
+                        if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                        """)
+                    if (cacheExisted == 0) {
+                        println "get code from fileserver to reduce clone time"
+                        println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                        sh """
+                        curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
+                        tar -xzf src-tiflow.tar.gz --strip-components=1
+                        rm -f src-tiflow.tar.gz
+                        """
+                    } else {
+                        println "get code from github"
+                    }
+                    try {
                         checkout(changelog: false, poll: false, scm: [
-                            $class                           : "GitSCM",
-                            branches                         : [
-                                    [name: ghprbActualCommit],
-                            ],
-                            userRemoteConfigs                : [
-                                    [
-                                            url          : "git@github.com:pingcap/tiflow.git",
-                                            refspec      : specStr,
-                                            credentialsId: "github-sre-bot-ssh",
-                                    ]
-                            ],
-                            extensions                       : [
-                                    [$class             : 'SubmoduleOption',
-                                    disableSubmodules  : false,
-                                    parentCredentials  : true,
-                                    recursiveSubmodules: true,
-                                    trackingSubmodules : false,
-                                    reference          : ''],
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'CleanBeforeCheckout'],
-                            ],
-                            doGenerateSubmoduleConfigurations: false,
+                                $class                           : "GitSCM",
+                                branches                         : [
+                                        [name: ghprbActualCommit],
+                                ],
+                                userRemoteConfigs                : [
+                                        [
+                                                url          : "git@github.com:pingcap/tiflow.git",
+                                                refspec      : specStr,
+                                                credentialsId: "github-sre-bot-ssh",
+                                        ]
+                                ],
+                                extensions                       : [
+                                        [$class             : 'SubmoduleOption',
+                                        disableSubmodules  : false,
+                                        parentCredentials  : true,
+                                        recursiveSubmodules: true,
+                                        trackingSubmodules : false,
+                                        reference          : ''],
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                ],
+                                doGenerateSubmoduleConfigurations: false,
                         ])
-                    }
-                }
-            }
-
-            dir("${ws}/go/src/github.com/pingcap/ci") {
-                if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                    echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                    deleteDir()
-                }
-                try {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
-                } catch (info) {
-                    retry(2) {
-                        echo "checkout failed, retry.."
-                        sleep 5
-                        if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
-                            echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
-                            deleteDir()
+                    } catch (info) {
+                        retry(2) {
+                            echo "checkout failed, retry.."
+                            sleep 5
+                            checkout(changelog: false, poll: false, scm: [
+                                $class                           : "GitSCM",
+                                branches                         : [
+                                        [name: ghprbActualCommit],
+                                ],
+                                userRemoteConfigs                : [
+                                        [
+                                                url          : "git@github.com:pingcap/tiflow.git",
+                                                refspec      : specStr,
+                                                credentialsId: "github-sre-bot-ssh",
+                                        ]
+                                ],
+                                extensions                       : [
+                                        [$class             : 'SubmoduleOption',
+                                        disableSubmodules  : false,
+                                        parentCredentials  : true,
+                                        recursiveSubmodules: true,
+                                        trackingSubmodules : false,
+                                        reference          : ''],
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                ],
+                                doGenerateSubmoduleConfigurations: false,
+                            ])
                         }
-                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
                     }
                 }
-            }
 
-            stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
+                dir("${ws}/go/src/github.com/pingcap/ci") {
+                    if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                        echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                        deleteDir()
+                    }
+                    try {
+                        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
+                    } catch (info) {
+                        retry(2) {
+                            echo "checkout failed, retry.."
+                            sleep 5
+                            if (sh(returnStatus: true, script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
+                                echo "Not a valid git folder: ${ws}/go/src/github.com/pingcap/ci"
+                                deleteDir()
+                            }
+                            checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "${ciRepoBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[refspec: specStr, url: "${ciRepoUrl}"]]]
+                        }
+                    }
+                }
+
+                stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
+            }
         }
 
         def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"

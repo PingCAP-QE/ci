@@ -79,6 +79,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
  
     definition {
         cpsScm {
+            lightweight(true)
             scriptPath("pipelines/pingcap/tidb/latest/ghpr_check2.groovy")
             scm {
                 git{

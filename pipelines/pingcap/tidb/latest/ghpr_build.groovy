@@ -1,52 +1,16 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
-final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
-final POD_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
-      tty: true
-      resources:
-        requests:
-          memory: 8Gi
-          cpu: 2
-      command: [/bin/sh, -c]
-      args: [cat]
-      env:
-        - name: GOPATH
-          value: ${ENV_GOPATH}
-        - name: GOCACHE
-          value: ${ENV_GOCACHE}
-      volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out
-        - mountPath: /data/
-          name: bazel
-          readOnly: true
-  volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
-"""
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
 
 pipeline {
     agent {
         kubernetes {
-            cloud K8S_COULD
             namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'golang'
-            yaml POD_TEMPLATE
         }
     }
     environment {
@@ -54,43 +18,47 @@ pipeline {
     }
     options {
         timeout(time: 30, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
     }
     stages {
-        stage('debug info') {
+        stage('Debug info') {
+            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
                 sh label: 'Debug info', script: """
-                printenv
-                echo "-------------------------"
-                go env
-                echo "-------------------------"
-                echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
             }
         }
         stage('Checkout') {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             parallel {   
-                stage("tidb") {
+                stage('tidb') {
                     steps {
-                        dir("tidb") {
-                            // using plugin: https://github.com/j3t/jenkins-pipeline-cache-plugin
+                        dir('tidb') {
                             cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                                 retry(2) {
                                     checkout(
                                         changelog: false,
                                         poll: false,
                                         scm: [
-                                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
-                                            doGenerateSubmoduleConfigurations: false, 
+                                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                            doGenerateSubmoduleConfigurations: false,
                                             extensions: [
                                                 [$class: 'PruneStaleBranch'],
-                                                [$class: 'CleanBeforeCheckout'], 
+                                                [$class: 'CleanBeforeCheckout'],
                                                 [$class: 'CloneOption', timeout: 15],
                                             ],
                                             submoduleCfg: [],
                                             userRemoteConfigs: [[
-                                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                                 url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                             ]],
                                         ]
@@ -102,29 +70,29 @@ pipeline {
                 }
                 stage("enterprise-plugin") {
                     steps {
-                        dir("enterprise-plugin") {
-                            script {
-                                // examples: 
-                                //  - release-6.2
-                                //  - release-6.2-20220801
-                                //  - 6.2.0-pitr-dev
-                                def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
-                                def commentBodyReg = /\bplugin\s*=\s*([^\s\\]+)(\s|\\|$)/
+                        script {
+                            // examples:
+                            //  - release-6.2
+                            //  - release-6.2-20220801
+                            //  - 6.2.0-pitr-dev
+                            def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+                            def commentBodyReg = /\bplugin\s*=\s*([^\s\\]+)(\s|\\|$)/
 
-                                def pluginBranch = ghprbTargetBranch
-                                if (ghprbCommentBody =~ ghprbTargetBranch) {
-                                    pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
-                                } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                                    pluginBranch = String.format('release-%s', (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
-                                }  
+                            def pluginBranch = ghprbTargetBranch
+                            if (ghprbCommentBody =~ ghprbTargetBranch) {
+                                pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
+                            } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
+                                pluginBranch = String.format('release-%s', (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
+                            }  
 
-                                def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
-                                // transfer plugin branch from pr/28 to origin/pr/28/head
-                                if (pluginBranch.startsWith("pr/")) {
-                                    pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
-                                    pluginBranch = "origin/${pluginBranch}/head"
-                                }
+                            def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
+                            // transfer plugin branch from pr/28 to origin/pr/28/head
+                            if (pluginBranch.startsWith("pr/")) {
+                                pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
+                                pluginBranch = "origin/${pluginBranch}/head"
+                            }
 
+                            dir("enterprise-plugin") {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
                                     checkout(
                                         changelog: false,
@@ -132,15 +100,15 @@ pipeline {
                                         scm: [
                                             $class: 'GitSCM',
                                             branches: [[name: pluginBranch]],
-                                            doGenerateSubmoduleConfigurations: false, 
+                                            doGenerateSubmoduleConfigurations: false,
                                             extensions: [
-                                                [$class: 'PruneStaleBranch'], 
-                                                [$class: 'CleanBeforeCheckout'], 
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'],
                                                 [$class: 'CloneOption', timeout: 2],
                                             ], 
                                             submoduleCfg: [],
                                             userRemoteConfigs: [[
-                                                credentialsId: GIT_CREDENTIALS_ID, 
+                                                credentialsId: GIT_CREDENTIALS_ID,
                                                 refspec: pluginSpec,
                                                 url: 'git@github.com:pingcap/enterprise-plugin.git',
                                             ]]
@@ -149,12 +117,11 @@ pipeline {
                                 }
                             }
                         }
-                    }                    
+                    }
                 }  
             }
         }
         stage("Build tidb-server and plugin"){
-            failFast true
             parallel {
                 stage("Build tidb-server") {
                     stages {
@@ -164,7 +131,7 @@ pipeline {
                             }
                             steps {
                                 dir("tidb") {                                     
-                                    sh "make bazel_build"                           
+                                    sh "make bazel_build"
                                 }
                             }
                             post {       
@@ -214,10 +181,7 @@ pipeline {
                 stage("Build plugins") {
                     steps {
                         timeout(time: 20, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: '''
-                                cd tidb/cmd/pluginpkg
-                                go build
-                                '''
+                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
                         }
                         dir('enterprise-plugin/whitelist') {
                             sh label: 'build plugin whitelist', script: '''
@@ -234,6 +198,18 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+    post {
+        // TODO(wuhuizuo): put into container lifecyle preStop hook.
+        always {
+            container('report') {
+                sh """
+                    chmod +x scripts/plugins/report_job_result.sh
+                    scripts/plugins/report_job_result.sh ${currentBuild.result} result.json | true
+                """
+            }
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }

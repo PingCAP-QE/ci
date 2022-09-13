@@ -1,6 +1,60 @@
+properties([
+        parameters([
+                string(
+                        defaultValue: '-1',
+                        name: 'PIPELINE_BUILD_ID',
+                        description: '',
+                        trim: true
+                )
+     ])
+])
+
+begin_time = new Date().format('yyyy-MM-dd HH:mm:ss')
 def label = "build-tiflash-release"
 def slackcolor = 'good'
 githash = null
+def upload_result_to_db() {
+    pipeline_build_id = params.PIPELINE_BUILD_ID
+    pipeline_id = "2"
+    pipeline_name = "TiFlash"
+    status = currentBuild.result
+    build_number = BUILD_NUMBER
+    job_name = JOB_NAME
+    artifact_meta = "tiflash commit:" + githash
+    begin_time = begin_time
+    end_time = new Date().format('yyyy-MM-dd HH:mm:ss')
+    triggered_by = "sre-bot"
+    component = "tiflash"
+    arch = "linux-amd64"
+    artifact_type = "binary"
+    branch = "master"
+    version = "None"
+    build_type = "dev-build"
+    push_gcr = "No"
+
+    build job: 'upload_result_to_db',
+            wait: true,
+            parameters: [
+                    [$class: 'StringParameterValue', name: 'PIPELINE_BUILD_ID', value: pipeline_build_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_ID', value: pipeline_id],
+                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: pipeline_name],
+                    [$class: 'StringParameterValue', name: 'STATUS', value: status],
+                    [$class: 'StringParameterValue', name: 'BUILD_NUMBER', value: build_number],
+                    [$class: 'StringParameterValue', name: 'JOB_NAME', value: job_name],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_META', value: artifact_meta],
+                    [$class: 'StringParameterValue', name: 'BEGIN_TIME', value: begin_time],
+                    [$class: 'StringParameterValue', name: 'END_TIME', value: end_time],
+                    [$class: 'StringParameterValue', name: 'TRIGGERED_BY', value: triggered_by],
+                    [$class: 'StringParameterValue', name: 'COMPONENT', value: component],
+                    [$class: 'StringParameterValue', name: 'ARCH', value: arch],
+                    [$class: 'StringParameterValue', name: 'ARTIFACT_TYPE', value: artifact_type],
+                    [$class: 'StringParameterValue', name: 'BRANCH', value: branch],
+                    [$class: 'StringParameterValue', name: 'VERSION', value: version],
+                    [$class: 'StringParameterValue', name: 'BUILD_TYPE', value: build_type],
+                    [$class: 'StringParameterValue', name: 'PUSH_GCR', value: push_gcr]
+            ]
+
+}
 
 stage("Get Hash") {
     node("${GO_TEST_SLAVE}") {
@@ -74,8 +128,8 @@ try {
                 container("golang") {
                     sh """
                     cd /tmp/
-                    curl -C - --retry 3 -o /tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz
-                    curl --fail -F builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz=@tiflash.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                    curl -o /tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/release/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz
+                    curl -F builds/pingcap/tiflash/${env.BRANCH_NAME}/${githash}/centos7/tiflash.tar.gz=@tiflash.tar.gz ${FILE_SERVER_URL}/upload
                     """
                 }
             }
@@ -99,8 +153,8 @@ try {
                     def refspath1 = "refs/pingcap/tiflash/${env.BRANCH_NAME}/sha1"
                     sh """
                     echo "${githash}" > sha1
-                    curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-                    curl --fail -F ${refspath1}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+                    curl -F ${refspath1}=@sha1 ${FILE_SERVER_URL}/upload
                     """
                 } else {
                     echo 'invalid gitHash, mark this build as failed'
@@ -114,6 +168,11 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
+}finally{
+    if(env.BRANCH_NAME == 'master'){
+         upload_result_to_db()
+    }
+   
 }
 
 stage('Summary') {
@@ -147,7 +206,7 @@ stage('Summary') {
                         }
                       }'
                     """
-                }
+                }                
                 withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
                     sh """
                       curl -X POST ${TOKEN} -H 'Content-Type: application/json' \

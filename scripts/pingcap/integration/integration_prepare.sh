@@ -31,3 +31,4 @@ mkdir -p ./tidb-src
 curl -C - --retry 3 -f "${tidb_url}" | tar xz -C ./tidb-src
 ln -s $(pwd)/tidb-src "${workspace}/go/src/github.com/pingcap/tidb"
 mv tidb-src/bin/tidb-server ./bin/tidb-server
+./bin/tidb-server -V

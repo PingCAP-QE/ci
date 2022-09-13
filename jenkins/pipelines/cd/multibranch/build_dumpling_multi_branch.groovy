@@ -26,7 +26,7 @@ if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
 }
 if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = GO_BUILD_SLAVE
+    GO_BUILD_SLAVE = "build_go1130_memvolume"
 }
 
 println "This build use ${goVersion}"
@@ -134,9 +134,9 @@ try {
                     timeout(10) {
                         sh """
                         tar --exclude=dumpling.tar.gz -czvf dumpling.tar.gz *
-                        curl --fail -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${filepath}=@dumpling.tar.gz ${FILE_SERVER_URL}/upload
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
                 }

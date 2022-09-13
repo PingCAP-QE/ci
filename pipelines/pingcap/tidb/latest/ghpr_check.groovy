@@ -1,66 +1,35 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and release-6.2.x branches
-final K8S_COULD = "kubernetes-ksyun"
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final ENV_GOPATH = "/home/jenkins/agent/workspace/go"
-final ENV_GOCACHE = "${ENV_GOPATH}/.cache/go-build"
-final POD_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
-      tty: true
-      resources:
-        requests:
-          memory: 12Gi # 8
-          cpu: 6000m # 4
-      command: [/bin/sh, -c]
-      args: [cat]
-      env:
-      env:
-        - name: GOPATH
-          value: ${ENV_GOPATH}
-        - name: GOCACHE
-          value: ${ENV_GOCACHE}
-      volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out
-        - mountPath: /data/
-          name: bazel
-          readOnly: true
-  volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
-"""
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check.yaml'
 
 pipeline {
     agent {
         kubernetes {
-            cloud K8S_COULD
             namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'golang'
-            yaml POD_TEMPLATE
         }
     }
     options {
         timeout(time: 20, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
     }
     stages {
-        stage('debug info') {
+        stage('Debug info') {
             steps {
                 sh label: 'Debug info', script: """
-                printenv
-                echo "-------------------------"
-                echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
             }
         }
         stage('Checkout') {
@@ -74,16 +43,16 @@ pipeline {
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]], 
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
                                         [$class: 'CleanBeforeCheckout'],
                                         [$class: 'CloneOption', timeout: 5],
-                                    ], 
+                                    ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*", 
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
                                     ]],
                                 ]
@@ -97,9 +66,7 @@ pipeline {
         // cache restoring and saving should not put in parallel with same pod.
         stage("test_part_parser") {
             steps {
-                cache(path: "${ENV_GOPATH}/pkg/mod", key: "gomodcache/rev-${ghprbActualCommit}", restoreKeys: ['gomodcache/rev-']) {
-                    dir('tidb') {sh 'make test_part_parser' }
-                }
+                dir('tidb') {sh 'make test_part_parser' }
             }
         }
         stage("Checks") {

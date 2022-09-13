@@ -19,22 +19,24 @@ def downRef = { name ->
 def downUrl = "https://api.github.com/repos/pingcap/tidb/tarball/${downRef(TIDB_BRANCH)}"
 println "TIDB_BRANCH=${TIDB_BRANCH} DOWNLOAD_URL=${downUrl}"
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
+    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
 ]
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/purelind/ci-1/purelind/tidb-it-use-go1.19/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -85,6 +87,21 @@ try {
                 // update cache
                 parallel 'tidb-test': {
                     dir("go/src/github.com/pingcap/tidb-test") {
+                        def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
+                        def cacheExisted = sh(returnStatus: true, script: """
+                            if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+                            """)
+                        if (cacheExisted == 0) {
+                            println "get code from fileserver to reduce clone time"
+                            println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+                            sh """
+                            curl -C - --retry 3 -f -O ${codeCacheInFileserverUrl}
+                            tar -xzf src-tidb-test.tar.gz --strip-components=1
+                            rm -f src-tidb-test.tar.gz
+                            """
+                        } else {
+                            println "get code from github"
+                        }
                         checkout(changelog: false, poll: false, scm: [
                             $class: "GitSCM",
                             branches: [

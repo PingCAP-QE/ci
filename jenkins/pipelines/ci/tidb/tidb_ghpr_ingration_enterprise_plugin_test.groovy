@@ -14,7 +14,7 @@ def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbA
 ENTERPRISE_PLUGIN_BRANCH = ghprbTargetBranch
 ENTERPRISE_PLUGIN_REF_SPEC = "+refs/heads/*:refs/remotes/origin/*"
 POD_NAMESPACE = "jenkins-tidb-mergeci"
-POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"

@@ -99,14 +99,20 @@ def run_test = { features, use_gcc8 ->
     prepare()
     dir("rust-rocksdb") {
         stage("Build") {
-            set_devtoolset(use_gcc8)
             sh """
+                if [ "${use_gcc8}" = "true" ]; then
+                    source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
                 cargo build --features=${features}
             """
         }
         stage("Test") {
-            set_devtoolset(use_gcc8)
             sh """
+                if [ "${use_gcc8}" = "true" ]; then
+                    source /opt/rh/devtoolset-8/enable
+                fi
                 RUST_BACKTRACE=1 cargo test --all --features=${features}
             """
         }
