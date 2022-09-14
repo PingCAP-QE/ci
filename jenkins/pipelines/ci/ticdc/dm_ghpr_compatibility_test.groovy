@@ -148,7 +148,25 @@ catchError {
                     } else {
                         println "get code from github"
                     }
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tiflow.git']]]
+                    checkout(
+                        changelog: false, 
+                        poll: false, 
+                        scm: [
+                            $class: 'GitSCM', 
+                            branches: [[name: PRE_COMMIT]],
+                            doGenerateSubmoduleConfigurations: false, 
+                            extensions: [
+                                [$class: 'PruneStaleBranch'], 
+                                [$class: 'CleanBeforeCheckout'],
+                            ],
+                            submoduleCfg: [], 
+                            userRemoteConfigs: [[
+                                credentialsId: 'github-sre-bot-ssh', 
+                                refspec: "+refs/heads/*:refs/remotes/origin/* ${specStr}", 
+                                url: 'git@github.com:pingcap/tiflow.git',
+                            ]],
+                        ]
+                    )
                 }
 
                 dir("go/src/github.com/pingcap/tiflow") {
