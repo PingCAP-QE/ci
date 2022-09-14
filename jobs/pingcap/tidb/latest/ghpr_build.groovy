@@ -18,31 +18,23 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
 
-                    // ### prod
                     triggerPhrase('.*/(merge|run-(all-tests|build).*)')
                     onlyTriggerPhrase(false)
-
-                    // ### debug
-                    // // triggerPhrase('/gray-debug')
-                    // // onlyTriggerPhrase(true)
-
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
                     whiteListTargetBranches {
-                        // - master
-                        // - release-6.2
-                        // - release-6.2.0
-                        // - release-6.2-20221212
-                        // - release-6.2.0-20221314                       
-                        // - 6.2-*
-                        // - 6.2.0-*
-                        ghprbBranch { branch('^master|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { 
+                            branch('master')
+                            branch('^feature[_|/].*')
+                            branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$')
+                        }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('.*\\.md')
+                    // excludedRegions('.*\\.md')
+                    excludedRegions('') // current the context is required in github branch protection.
 
                     blackListLabels("")
                     whiteListLabels("")
@@ -65,7 +57,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("IGNORE-gray-build") // debug: no block the pr.
+                            commitStatusContext("idc-jenkins-ci-tidb/build")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
