@@ -10,7 +10,7 @@ spec:
       resources:
         requests:
           memory: 16Gi
-          cpu: "4"
+          cpu: "8"
         limits:
           memory: 24Gi
           cpu: "8"
@@ -36,8 +36,8 @@ spec:
       tty: true
       resources:
         limits:
-          memory: "128Mi"
-          cpu: "500m"
+          memory: 128Mi
+          cpu: 200m
   volumes:
     - name: bazel-out
       emptyDir: {}
