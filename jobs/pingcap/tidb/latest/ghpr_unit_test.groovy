@@ -18,7 +18,7 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
-                    
+
                     triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
                     onlyTriggerPhrase(false)
 
@@ -32,17 +32,20 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                     orgslist('')
                     whiteListTargetBranches {
                         // - master
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^feature[_|/].*') }
                         // - release-6.2
                         // - release-6.2.0
                         // - release-6.2-20221212
                         // - release-6.2.0-20221314                       
                         // - 6.2-*
-                        // - 6.2.0-*
-                        ghprbBranch { branch('^master|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        // - 6.2.0-*                        
+                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('.*\\.md')
+                    // excludedRegions('.*\\.md')
+                    excludedRegions('') // current the context is required in github branch protection.
 
                     blackListLabels("")
                     whiteListLabels("")
@@ -65,7 +68,7 @@ pipelineJob('pingcap/tidb/ghpr_unit_test') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("IGNORE-gray-unit-test") // debug: no block the pr.
+                            commitStatusContext("idc-jenkins-ci-tidb/unit-test")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
