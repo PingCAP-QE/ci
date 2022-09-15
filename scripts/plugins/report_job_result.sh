@@ -22,6 +22,7 @@
 function gen() {
     local jobState="$1"
     local savePath="$2"
+    local junitUrl="$3"
     local errCode=0 # scanner will override it when the value equal 0 and job state was failed.
     local taskStartTime=$(date "+%s%3N" -d "$(stat /proc/1 | grep 'Modify: ' | sed 's/Modify: //')")
     local taskEndTime=$(date '+%s%3N')
@@ -44,7 +45,7 @@ function gen() {
     "trigger_comment_body": "",
     "pipeline_run_error_code": ${errCode},
     "job_result_summary": "",
-    "junit_report_url": "",
+    "junit_report_url": "${junitUrl}",
     "pod_ready_time": "",
     "cpu_request": "",
     "memory_request": ""
@@ -67,10 +68,9 @@ function report() {
 # param $1: job state
 # param $2: to save json path
 function main() {
-    local jobState="$1"
     local savePath="$2"
 
-    if gen "$1" "$2"; then
+    if gen "$@"; then
         if report "${savePath}"; then
             echo "upload data succesfully."
         else

@@ -83,19 +83,29 @@ pipeline {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
 
                         // upload coverage report to file server
-                        script {
-                            def id = UUID.randomUUID().toString()
-                            def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
-                            retry(3) {
-                                sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
-                                    curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
-                                    echo "coverage download link: ${FILE_SERVER_URL}/download/${filepath}"
-                                    """
-                            }
-                        }                
+                        retry(3) {
+                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: '''
+                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
+                                curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
+                                echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
+                                '''
+                        }
                     }
                 }
             }
+        }
+    }
+    post {
+        // TODO(wuhuizuo): put into container lifecyle preStop hook.
+        always {
+            container('report') {
+                withenv
+                sh """
+                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
+                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" | true
+                """
+            }
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
