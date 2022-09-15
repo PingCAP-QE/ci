@@ -1,8 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('tidb_ghpr_build') {
+pipelineJob('tidb_ghpr_unit_test') {
     logRotator {
-        daysToKeep(180)
-        numToKeep(2000)
+        numToKeep(1500)
     }
     parameters {
         stringParam("ghprbActualCommit")
@@ -17,17 +16,17 @@ pipelineJob('tidb_ghpr_build') {
                     cron('H/5 * * * *')
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159')
 
-                    triggerPhrase('.*/(merge|run-(all-tests|build).*)')
+                    triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
-                    whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
-                    orgslist("pingcap")
-                    blackListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
-                    }
+                    whitelist('')
+                    orgslist('')
+                    // blackListTargetBranches {
+                    //     ghprbBranch { branch('master') }
+                    //     ghprbBranch { branch('^feature[_|/].*') }
+                    //     ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    // }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
@@ -54,10 +53,10 @@ pipelineJob('tidb_ghpr_build') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("idc-jenkins-ci-tidb/build")
+                            commitStatusContext('idc-jenkins-ci-tidb/unit-test')
                             statusUrl('${RUN_DISPLAY_URL}')
-                            startedStatus("Jenkins job is running.")
-                            triggeredStatus("Jenkins job triggered.")
+                            startedStatus('Jenkins job is running.')
+                            triggeredStatus('Jenkins job triggered.')
                             addTestResults(false)
                             showMatrixStatus(false)
                         }
@@ -70,7 +69,7 @@ pipelineJob('tidb_ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("jenkins/pipelines/ci/tidb/tidb_ghpr_build.groovy")
+            scriptPath('jenkins/pipelines/ci/tidb/tidb_ghpr_unit_test.groovy')
             scm {
                 git{
                     remote {
