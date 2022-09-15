@@ -20,8 +20,8 @@ pipelineJob('tidb_ghpr_unit_test') {
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
-                    whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
-                    orgslist("pingcap")
+                    whitelist('')
+                    orgslist('')
                     // blackListTargetBranches {
                     //     ghprbBranch { branch('master') }
                     //     ghprbBranch { branch('^feature[_|/].*') }
