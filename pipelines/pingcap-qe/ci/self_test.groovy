@@ -1,5 +1,4 @@
 @Library('tipipeline') _
-@Library('tipipeline') import pingcap.tipipeline.Echo.hello
 
 pipeline {
     agent {

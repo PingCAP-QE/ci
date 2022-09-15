@@ -55,7 +55,7 @@ pipelineJob('pingcap-qe/ci/self_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-qe/ci/ghpr_build.groovy")
+            scriptPath("pipelines/pingcap-qe/ci/self_test.groovy")
             scm {
                 git{
                     remote {
