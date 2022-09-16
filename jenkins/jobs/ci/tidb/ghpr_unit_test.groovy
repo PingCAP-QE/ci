@@ -22,11 +22,11 @@ pipelineJob('tidb_ghpr_unit_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
                     orgslist('')
-                    // blackListTargetBranches {
-                    //     ghprbBranch { branch('master') }
-                    //     ghprbBranch { branch('^feature[_|/].*') }
-                    //     ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
-                    // }
+                    blackListTargetBranches {
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^feature[_|/].*') }
+                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
