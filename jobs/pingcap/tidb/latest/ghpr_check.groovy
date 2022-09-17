@@ -31,8 +31,8 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
-                    excludedRegions('.*\\.md')
-                    
+                    // excludedRegions('.*\\.md')
+                    excludedRegions('') // current the context is required in github branch protection.
                     blackListLabels("") // list of GitHub labels for which the build should not be triggered.
                     whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
                     adminlist("")
