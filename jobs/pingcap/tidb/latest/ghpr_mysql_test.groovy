@@ -21,24 +21,14 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
 
                     triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
                     onlyTriggerPhrase(false)
-
-                    // ### debug
-                    // triggerPhrase('/gray-debug')
-                    // onlyTriggerPhrase(true)
-
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
                     orgslist('')
                     whiteListTargetBranches {
-                        // - master
-                        // - release-6.2
-                        // - release-6.2.0
-                        // - release-6.2-20221212
-                        // - release-6.2.0-20221314                       
-                        // - 6.2-*
-                        // - 6.2.0-*
-                        ghprbBranch { branch('^master|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^feature[_|/].*') }
+                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
