@@ -275,14 +275,16 @@ run_with_pod {
             }
         }
         stage('Run Tests') {
-            dir(repo_path) {
-                sh """
-                mkdir -p /root/.cache
-                source /tests/docker/util.sh
-                export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
-                show_env
-                ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${parallelism} /tests/run-gtest.sh
-                """
+            timeout(time: 60, unit: 'MINUTES') {
+                dir(repo_path) {
+                    sh """
+                    mkdir -p /root/.cache
+                    source /tests/docker/util.sh
+                    export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
+                    show_env
+                    ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${parallelism} /tests/run-gtest.sh
+                    """
+                }
             }
         }
 
