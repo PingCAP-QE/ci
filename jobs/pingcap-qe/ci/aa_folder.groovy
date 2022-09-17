@@ -15,8 +15,8 @@ folder('pingcap-qe/ci') {
                                     repositoryUrl('https://github.com/PingCAP-QE/ci')
 
                                     // useless but required.
-                                    repoOwner('')
-                                    repository('')
+                                    repoOwner('PingCAP-QE')
+                                    repository('ci')
                                 }
                             }
                             // A relative path from the root of the SCM to the root of the library.
