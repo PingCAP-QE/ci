@@ -65,7 +65,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("IGNORE-gray-mysql-test") // debug: no block the pr.
+                            commitStatusContext("idc-jenkins-ci-tidb/mysql-test")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")

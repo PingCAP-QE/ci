@@ -64,7 +64,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("IGNORE-gray-check_dev_2") // debug: no block the pr.
+                            commitStatusContext("idc-jenkins-ci-tidb/check_dev_2")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
