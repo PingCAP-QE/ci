@@ -18,17 +18,12 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
-                    
                     triggerPhrase('^(?=.*/(merge|run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
                     onlyTriggerPhrase(false)
-                    // ### debug
-                    // triggerPhrase('/gray-debug')
-                    // onlyTriggerPhrase(true)
-
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
-                    whitelist('ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa')
-                    orgslist('pingcap')
+                    whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
+                    orgslist("pingcap")
                     whiteListTargetBranches {
                         // - master
                         // - release-6.2

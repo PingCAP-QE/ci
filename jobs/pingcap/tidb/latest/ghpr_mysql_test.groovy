@@ -18,7 +18,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
-                    
+
                     triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
                     onlyTriggerPhrase(false)
 
@@ -44,8 +44,8 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     //   multi line regex
                     excludedRegions('.*\\.md')
 
-                    blackListLabels("")
-                    whiteListLabels("")
+                    blackListLabels("") // list of GitHub labels for which the build should not be triggered.
+                    whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
                     adminlist("")
                     blackListCommitAuthor("")
                     includedRegions("")
