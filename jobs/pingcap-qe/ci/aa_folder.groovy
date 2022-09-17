@@ -13,6 +13,10 @@ folder('pingcap-qe/ci') {
                                     configuredByUrl(true)
                                     // Specify the HTTPS URL of the GitHub Organization / User Account and repository.
                                     repositoryUrl('https://github.com/PingCAP-QE/ci')
+
+                                    // useless but required.
+                                    repoOwner('')
+                                    repository('')
                                 }
                             }
                             // A relative path from the root of the SCM to the root of the library.
