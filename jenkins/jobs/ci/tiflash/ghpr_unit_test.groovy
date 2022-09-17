@@ -4,11 +4,28 @@ pipelineJob('tiflash-ghpr-unit-tests') {
         numToKeep(1500)
     }
     parameters {
-        stringParam('COVERAGE_RATE', '20')
-        stringParam('ghprbActualCommit')
-        stringParam('ghprbPullId')
-        stringParam('ghprbPullTitle')
-        stringParam('CI_COVERAGE_BASE_URL', 'https://ci.pingcap.net/job/tiflash-ghpr-unit-tests')
+        stringParam{
+            name('COVERAGE_RATE')
+            valueDefault('20')
+            trim(true)
+        }
+        stringParam{
+            name('ghprbActualCommit')
+            trim(true)
+        }
+        stringParam{
+            name('ghprbPullId')
+            trim(true)
+        }
+        stringParam{
+            name('ghprbPullTitle')
+            trim(true)
+        }
+        stringParam{
+            name('CI_COVERAGE_BASE_URL')
+            defaultValue('https://ci.pingcap.net/job/tiflash-ghpr-unit-tests')
+            trim(true)
+        }
     }
     properties {
         // priority(0) // 0 fast than 1

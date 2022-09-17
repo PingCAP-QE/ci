@@ -34,8 +34,8 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     // excludedRegions('.*\\.md')
                     excludedRegions('') // current the context is required in github branch protection.
 
-                    blackListLabels("")
-                    whiteListLabels("")
+                    blackListLabels("") // list of GitHub labels for which the build should not be triggered.
+                    whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
                     adminlist("")
                     blackListCommitAuthor("")
                     includedRegions("")

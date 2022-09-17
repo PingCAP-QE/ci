@@ -1,10 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tidb/ghpr_mysql_test') {
-    disabled(true)
+pipelineJob('tidb_ghpr_check') {
     logRotator {
         daysToKeep(180)
-        numToKeep(1500)
+        numToKeep(1000)
     }
     parameters {
         stringParam("ghprbActualCommit")
@@ -17,26 +15,26 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
             triggers {
                 ghprbTrigger {
                     cron('H/5 * * * *')
-                    gitHubAuthId('') // using the default only one.
+                    gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159')
 
-                    triggerPhrase('.*/(merge|run-(all-tests|mysql-test).*)')
+                    triggerPhrase('^(?=.*/(merge|run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
-                    whitelist('')
-                    orgslist('')
-                    whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
-                    }
+                    whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
+                    orgslist("pingcap")
+                    // blackListTargetBranches {
+                    //     ghprbBranch { branch('master') }
+                    //     ghprbBranch { branch('^feature[_|/].*') }
+                    //     ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    // }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
                     excludedRegions('') // current the context is required in github branch protection.
 
-                    blackListLabels("") // list of GitHub labels for which the build should not be triggered.
-                    whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
+                    blackListLabels("")
+                    whiteListLabels("")
                     adminlist("")
                     blackListCommitAuthor("")
                     includedRegions("")
@@ -56,10 +54,10 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("idc-jenkins-ci-tidb/mysql-test")
+                            commitStatusContext('idc-jenkins-ci-tidb/check_dev')
                             statusUrl('${RUN_DISPLAY_URL}')
-                            startedStatus("")
-                            triggeredStatus("")
+                            startedStatus('Jenkins job is running.')
+                            triggeredStatus('Jenkins job triggered.')
                             addTestResults(false)
                             showMatrixStatus(false)
                         }
@@ -72,7 +70,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_mysql_test.groovy")
+            scriptPath('jenkins/pipelines/ci/tidb/tidb_ghpr_check.groovy')
             scm {
                 git{
                     remote {

@@ -162,10 +162,19 @@ pipeline {
                 }
             }
         }
-        stage("Upload check flag to fileserver") {
-            steps {
-                sh "echo done > done && curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload"
+    }
+    post {
+        success {
+            // Upload check flag to fileserver
+            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload"
+        }
+
+        // TODO(wuhuizuo): put into container lifecyle preStop hook.
+        always {
+            container('report') {                
+                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json | true"
             }
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
