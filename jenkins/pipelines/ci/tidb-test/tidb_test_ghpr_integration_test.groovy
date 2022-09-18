@@ -571,6 +571,10 @@ run_with_toolkit_pod {
                 run_java("tidb_jdbc_test/tidb_jdbc_unique_test", "tidbuniquetest", "./test.sh")
             }
 
+            tests["TiDB JDBC without TLS Test"] = {
+                run_java("tidb_jdbc_test/tidb_jdbc8_tls_test", "tidbtlstest", "./test_slow.sh")
+            }
+
             tests["TiDB JDBC TLS Test"] = {
                 run_java("tidb_jdbc_test/tidb_jdbc8_tls_test", "tidbtlstest", "./test_tls.sh")
             }
