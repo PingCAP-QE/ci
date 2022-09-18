@@ -6,7 +6,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
     parameters {
         stringParam{
             name('COVERAGE_RATE')
-            valueDefault('20')
+            defaultValue('20')
             trim(true)
         }
         stringParam{
