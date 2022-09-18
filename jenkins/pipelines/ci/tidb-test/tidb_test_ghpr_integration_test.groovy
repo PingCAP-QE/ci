@@ -547,10 +547,6 @@ run_with_toolkit_pod {
                 run_java("jdbc8_test", "jdbc8test", "./test_slow.sh")
             }
 
-            tests["JDBC8 TLS Test"] = {
-                run_java("jdbc8_test", "jdbc8test", "./test_tls.sh")
-            }
-
             tests["Hibernate Test"] = {
                 run_java("hibernate_test/hibernate-orm-test", "hibernatetest", "./test.sh")
             }
@@ -571,12 +567,12 @@ run_with_toolkit_pod {
                 run_java("tidb_jdbc_test/tidb_jdbc8_test", "tidbjdbc8test", "./test_slow.sh")
             }
 
-            tests["TiDB JDBC8 TLS Test"] = {
-                run_java("tidb_jdbc_test/tidb_jdbc8_test", "tidbjdbc8test", "./test_tls.sh")
-            }
-
             tests["TiDB JDBC Unique Test"] = {
                 run_java("tidb_jdbc_test/tidb_jdbc_unique_test", "tidbuniquetest", "./test.sh")
+            }
+
+            tests["TiDB JDBC TLS Test"] = {
+                run_java("tidb_jdbc_test/tidb_jdbc8_tls_test", "tidbtlstest", "./test_tls.sh")
             }
             
             tests["mysql_connector_c Test"] = {
