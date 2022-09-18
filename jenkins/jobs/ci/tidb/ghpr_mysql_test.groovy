@@ -54,7 +54,7 @@ pipelineJob('tidb_ghpr_mysql_test') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext('idc-jenkins-ci-tidb/unit-test')
+                            commitStatusContext('idc-jenkins-ci-tidb/mysql-test')
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus('Jenkins job is running.')
                             triggeredStatus('Jenkins job triggered.')
