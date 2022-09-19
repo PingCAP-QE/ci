@@ -229,11 +229,11 @@ def run_with_test_pod(Closure body) {
                                             envVar(key: 'DOCKER_TLS_CERTDIR', value: ''),
                                             envVar(key: 'DOCKER_REGISTRY_MIRROR', value: 'https://registry-mirror.pingcap.net/"'),
                                     ], privileged: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '10Gi'),
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi'),
                     containerTemplate(name: 'docker', image: 'hub.pingcap.net/tiflow/dind:alpine-docker',
                                     alwaysPullImage: true, envVars: [
                                             envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-                                    ], resourceRequestCpu: '4000m', resourceRequestMemory: '16Gi',
+                                    ], resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                                     ttyEnabled: true, command: 'cat'),
             ],
             volumes: [
