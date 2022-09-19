@@ -1,8 +1,7 @@
-
-
 feature_branch_use_go13 = []
 feature_branch_use_go16 = ["hz-poc", "ft-data-inconsistency"]
 feature_branch_use_go18 = ["release-multi-source", "br-stream", "refactor-syncer", "fb/latency"]
+feature_branch_use_go19 = []
 
 // Version Selector
 // branch or tag
@@ -22,6 +21,10 @@ feature_branch_use_go18 = ["release-multi-source", "br-stream", "refactor-syncer
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        if (branchNameOrTag >= "v6.3") {
+            println "tag ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
         if (branchNameOrTag >= "v6.0") {
             println "tag ${branchNameOrTag} use go 1.18"
             return "go1.18"
@@ -50,13 +53,21 @@ def selectGoVersion(branchNameOrTag) {
             println "feature branch ${branchNameOrTag} use go 1.18"
             return "go1.18"
         }
+        if (branchNameOrTag in feature_branch_use_go19) {
+            println "feature branch ${branchNameOrTag} use go 1.19"
+            return "go1.19"
+        }
         if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.18")
-            return "go1.18"
+            println("branchNameOrTag: master  use go1.19")
+            return "go1.19"
         }
 
 
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.0") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
+            return "go1.18"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
             return "go1.18"
         }
@@ -70,12 +81,13 @@ def selectGoVersion(branchNameOrTag) {
             return "go1.13"
         }
         println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
-        return "go1.18"
+        return "go1.19"
     }
 }
 
 
-
+// assert selectGoVersion("v6.3.0") == "go1.19"
+// assert selectGoVersion("v6.2.0") == "go1.18"
 // assert selectGoVersion("v6.0.0") == "go1.18"
 // assert selectGoVersion("v6.0.1") == "go1.18"
 // assert selectGoVersion("v6.2.3") == "go1.18"
@@ -100,13 +112,14 @@ def selectGoVersion(branchNameOrTag) {
 // assert selectGoVersion("v5.1.1") == "go1.16"
 // assert selectGoVersion("v5.0.1") == "go1.13"
 
+// assert selectGoVersion("release-6.3") == "go1.19"
 // assert selectGoVersion("release-6.0") == "go1.18"
 // assert selectGoVersion("release-5.2") == "go1.16"
 // assert selectGoVersion("release-5.3") == "go1.16"
 // assert selectGoVersion("release-5.4") == "go1.16"
 // assert selectGoVersion("release-5.1") == "go1.16"
 // assert selectGoVersion("release-5.0") == "go1.13"
-// assert selectGoVersion("master") == "go1.18"
+// assert selectGoVersion("master") == "go1.19"
 // assert selectGoVersion("release-4.0") == "go1.13"
 // assert selectGoVersion("release-6.0-20220202") == "go1.18"
 // assert selectGoVersion("release-5.2-20220203") == "go1.16"
