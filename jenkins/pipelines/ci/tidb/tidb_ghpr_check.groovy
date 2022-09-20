@@ -19,7 +19,7 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
@@ -37,7 +37,8 @@ VOLUMES = [
 
 def user_bazel(branch) {
     if (branch in ["master"] || 
-        branch.matches("^feature[/_].*") /* feature branches */) {
+        branch.matches("^feature[/_].*") /* feature branches */ || 
+        (branch.startsWith("release-") && branch >= "release-6.2")) {
         return GO_IMAGE_MAP["master"]
     }
     return ""
