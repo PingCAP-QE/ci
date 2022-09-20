@@ -728,8 +728,8 @@ def staticAnalysis(repo_path, build_dir) {
         sh """
         NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
         cmake "${repo_path}" \\
-            -DENABLE_TESTS=0 \\
-            -DCMAKE_BUILD_TYPE=RELWITHDEBINFO \\
+            -DENABLE_TESTS=${params.BUILD_TESTS} \\
+            -DCMAKE_BUILD_TYPE=${params.CMAKE_BUILD_TYPE} \\
             -DUSE_CCACHE=OFF \\
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \\
             -DRUN_HAVE_STD_REGEX=0 \\
