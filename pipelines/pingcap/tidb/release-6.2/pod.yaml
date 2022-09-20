@@ -1,0 +1,130 @@
+# apiVersion: v1
+# kind: Pod
+# spec:
+#   containers:
+#     - name: golang
+#       image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220829"
+#       tty: true
+#       resources:
+#         requests:
+#           memory: 8Gi
+#           cpu: 2
+#         limits:
+#           memory: 16Gi
+#           cpu: 4
+#       command: [/bin/sh, -c]
+#       args: [cat]
+#       env:
+#         - name: GOPATH
+#           value: ${ENV_GOPATH}
+#         - name: GOCACHE
+#           value: ${ENV_GOCACHE}
+#       volumeMounts:
+#         - mountPath: /home/jenkins/.tidb
+#           name: bazel-out
+#         - mountPath: /data/
+#           name: bazel
+#           readOnly: true
+#     - name: deno
+#       image: "denoland/deno:1.25.1"
+#       tty: true
+#       command: [sh]
+#       envFrom:
+#         - secretRef:
+#             name: ci-pipeline-cache
+#         - configMapRef:
+#             name: ci-pipeline-cache
+#       resources:
+#         requires:
+#           memory: "128Mi"
+#           cpu: "100m"
+#         limits:
+#           memory: "512Mi"
+#           cpu: "500m"
+#     - name: net-tool
+#       image: wbitt/network-multitool
+#       tty: true
+#       resources:
+#         limits:
+#           memory: "128Mi"
+#           cpu: "500m"
+#   volumes:
+#     - name: bazel-out
+#       emptyDir: {}
+#     - name: bazel
+#       secret:
+#         secretName: bazel
+#         optional: true
+# ---
+# apiVersion: v1
+# data:
+#   AWS_ACCESS_KEY_ID: NVUwTkRETkYzSzZMUTZBOERKVVo=
+#   AWS_SECRET_ACCESS_KEY: TGVJU1JFTGVhQ3Fid2pReFJsdjRJWFNCV3dENWswS2ZMRmlKanFpeA==
+# kind: Secret
+# metadata:
+#   name: ci-pipeline-cache
+#   labels:
+#     bucket-provisioner: rook-ceph.ceph.rook.io-bucket
+# type: Opaque
+# ---
+# apiVersion: v1
+# data:
+#   BUCKET_HOST: rook-ceph-rgw-ceph-objectstore.rook-ceph.svc
+#   BUCKET_NAME: ci-pipeline-cache
+#   BUCKET_PORT: "80"
+#   BUCKET_REGION: ""
+#   BUCKET_SUBREGION: ""
+# kind: ConfigMap
+# metadata:
+#   labels:
+#     bucket-provisioner: rook-ceph.ceph.rook.io-bucket
+#   name: ci-pipeline-cache
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean
+  namespace: jenkins-tidb
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    resourcepool: ksyun-ci  
+  containers:
+    - name: go
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      tty: true
+      # command: 
+      #   - /bin/bash
+      #   - -exec
+      # args:
+      #   - |
+      #     echo "running below scripts"
+      #     echo "done"
+      #     go version
+      #     df -h
+      #     echo "go clean -cache -testcache -modcache -x"
+      env:
+        - name: GOPATH
+          value: /share/.go
+        - name: GOCACHE
+          value: /share/.cache/go-build
+      volumeMounts:
+        - name: gocache
+          mountPath: /share/.cache/go-build
+        - name: gopathcache
+          mountPath: /share/.go              
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+  volumes:           
+    - name: gopathcache
+      persistentVolumeClaim:
+        claimName: gopathcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache
+

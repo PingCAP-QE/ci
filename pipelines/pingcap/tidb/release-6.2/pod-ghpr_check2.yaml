@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: golang
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220823"
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi
+          cpu: "6"
+        limits:
+          memory: 12Gi
+          cpu: "8"
+      command: [/bin/sh, -c]
+      args: [cat]
+      env:
+        - name: GOPATH
+          value: /share/.go
+        - name: GOCACHE
+          value: /share/.cache/go-build
+      volumeMounts:
+        - name: bazel-out
+          mountPath: /home/jenkins/.tidb
+        - name: bazel
+          mountPath: /data/
+          readOnly: true
+        - name: gocache
+          mountPath: /share/.cache/go-build
+        - name: gopathcache
+          mountPath: /share/.go
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 200m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 512Mi
+          cpu: 200m
+  volumes:
+    - name: bazel-out
+      emptyDir: {}
+    - name: bazel
+      secret:
+        secretName: bazel
+        optional: true
+    - name: gopathcache
+      persistentVolumeClaim:
+        claimName: gopathcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache

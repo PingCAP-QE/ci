@@ -1,9 +1,10 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tidb/ghpr_build') {
+// For *6.2* branches.
+pipelineJob('pingcap/tidb/release-6.2/ghpr_check') {
+    disabled(true)
     logRotator {
         daysToKeep(180)
-        numToKeep(2000)
+        numToKeep(1500)
     }
     parameters {
         stringParam("ghprbActualCommit")
@@ -17,23 +18,19 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
-
-                    triggerPhrase('.*/(merge|run-(all-tests|build).*)')
+                    triggerPhrase('^(?=.*/(merge|run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[3-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?6\\.2(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
                     excludedRegions('') // current the context is required in github branch protection.
-
                     blackListLabels("") // list of GitHub labels for which the build should not be triggered.
                     whiteListLabels("") // list of GitHub labels for which the build should only be triggered.
                     adminlist("")
@@ -55,7 +52,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("idc-jenkins-ci-tidb/build")
+                            commitStatusContext("idc-jenkins-ci-tidb/check_dev")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
@@ -71,7 +68,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_build.groovy")
+            scriptPath("pipelines/pingcap/tidb/release-6.2/ghpr_check.groovy")
             scm {
                 git{
                     remote {

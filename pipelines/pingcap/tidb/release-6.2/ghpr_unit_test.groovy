@@ -1,0 +1,110 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for master and release-6.2.x branches
+final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_FULL_REPO_NAME = 'pingcap/tidb'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_unit_test.yaml'
+
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
+        }
+    }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+    }
+    stages {
+        stage('Debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
+            }
+        }
+        stage('Checkout') {
+            // FIXME(wuhuizuo): catch AbortException and set the job abort status
+            // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
+            steps {
+                dir('tidb') {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 5],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                    ]],
+                                ]
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                dir('tidb') {
+                    sh './build/jenkins_unit_test.sh' 
+                }
+            }
+            post {
+                unsuccessful {
+                    dir('tidb') {
+                        archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
+                        archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
+                    }
+                }
+                always {
+                    dir('tidb') {
+                        // archive test report to Jenkins.
+                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+
+                        // upload coverage report to file server
+                        retry(3) {
+                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: '''
+                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
+                                curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
+                                echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
+                                '''
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        // TODO(wuhuizuo): put into container lifecyle preStop hook.
+        always {
+            container('report') {
+                sh """
+                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
+                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" | true
+                """
+            }
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
+        }
+    }
+}
