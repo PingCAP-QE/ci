@@ -17,7 +17,7 @@ pipelineJob('tidb_ghpr_check') {
                     cron('H/5 * * * *')
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159')
 
-                    triggerPhrase('^(?=.*/(merge|run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
+                    triggerPhrase('^.*/(merge|run-(all-tests|check[-_]dev))\\b')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
