@@ -3,8 +3,7 @@
 pipelineJob('pingcap/tidb/ghpr_check') {
     disabled(true)
     logRotator {
-        daysToKeep(180)
-        numToKeep(1500)
+        daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")
