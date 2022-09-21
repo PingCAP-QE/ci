@@ -1,8 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tidb_ghpr_mysql_test') {
     logRotator {
-        daysToKeep(180)
-        numToKeep(1000)
+        daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")
