@@ -123,7 +123,7 @@ pipeline {
         }
         stage("Build tidb-server and plugin"){
             parallel {
-                stage("tidb-server") {
+                stage("Build tidb-server") {
                     stages {
                         stage("Build"){
                             options {
@@ -178,19 +178,23 @@ pipeline {
                         }
                     }
                 }
-                stage("plugins") {
+                stage("Build plugins") {
                     steps {
-                        dir("enterprise-plugin/test") {
-                            timeout(time: 20, unit: 'MINUTES') {
-                                sh '''
-                                export PD_BRANCH=\${ghprbTargetBranch}
-                                export TIKV_BRANCH=\${ghprbTargetBranch}
-                                export TIDB_REPO_PATH=\${WORKSPACE}/tidb
-                                export PLUGIN_REPO_PATH=\${WORKSPACE}/enterprise-plugin
-                                ./test.sh
+                        timeout(time: 20, unit: 'MINUTES') {
+                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
+                        }
+                        dir('enterprise-plugin/whitelist') {
+                            sh label: 'build plugin whitelist', script: '''
+                                GO111MODULE=on go mod tidy
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
                                 '''
-                            }
-                        }                        
+                        }
+                        dir('enterprise-plugin/audit') {
+                            sh label: 'build plugin: audit', script: '''
+                                GO111MODULE=on go mod tidy
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                '''
+                        }
                     }
                 }
             }
