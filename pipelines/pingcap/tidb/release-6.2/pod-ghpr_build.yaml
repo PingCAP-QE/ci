@@ -5,14 +5,14 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220908"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:20220823"
       tty: true
       resources:
         requests:
           memory: 8Gi
           cpu: "4"
         limits:
-          memory: 32Gi
+          memory: 24Gi
           cpu: "8"
       command: [/bin/sh, -c]
       args: [cat]

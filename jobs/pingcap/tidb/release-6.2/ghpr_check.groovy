@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tidb/ghpr_check') {
+// For *6.2* branches.
+pipelineJob('pingcap/tidb/release-6.2/ghpr_check') {
     disabled(true)
     logRotator {
         daysToKeep(180)
@@ -18,16 +18,14 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
-                    triggerPhrase('^.*/(merge|run-(all-tests|check[-_]dev))\\b')
+                    triggerPhrase('^(?=.*/(merge|run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa")
                     orgslist("pingcap")
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[3-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?6\\.2(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -70,7 +68,7 @@ pipelineJob('pingcap/tidb/ghpr_check') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_check.groovy")
+            scriptPath("pipelines/pingcap/tidb/release-6.2/ghpr_check.groovy")
             scm {
                 git{
                     remote {
