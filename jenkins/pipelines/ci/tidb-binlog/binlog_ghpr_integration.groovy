@@ -47,6 +47,11 @@ if (m4) {
     TIDB_TOOLS_BRANCH = "${m4[0][1]}"
 }
 m4 = null
+
+if (TIDB_TOOLS_BRANCH.matches(/^(release-)?6\.[0-9]\d*(\.\d+)?(\-.*)?$/)) {
+    println "TIDB_TOOLS repo not exit branch ${TIDB_TOOLS_BRANCH}, use master instead"
+    TIDB_TOOLS_BRANCH = "master"
+}
 println "TIDB_TOOLS_BRANCH=${TIDB_TOOLS_BRANCH}"
 
 GO_VERSION = "go1.19"
