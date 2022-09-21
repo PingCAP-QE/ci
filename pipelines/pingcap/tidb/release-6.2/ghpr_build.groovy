@@ -3,7 +3,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.2/pod-ghpr_build.yaml'
 
 pipeline {
     agent {
@@ -123,7 +123,7 @@ pipeline {
         }
         stage("Build tidb-server and plugin"){
             parallel {
-                stage("Build tidb-server") {
+                stage("tidb-server") {
                     stages {
                         stage("Build"){
                             options {
@@ -178,23 +178,19 @@ pipeline {
                         }
                     }
                 }
-                stage("Build plugins") {
+                stage("plugins") {
                     steps {
-                        timeout(time: 20, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
-                        }
-                        dir('enterprise-plugin/whitelist') {
-                            sh label: 'build plugin whitelist', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                        dir("enterprise-plugin/test") {
+                            timeout(time: 20, unit: 'MINUTES') {
+                                sh '''
+                                export PD_BRANCH=\${ghprbTargetBranch}
+                                export TIKV_BRANCH=\${ghprbTargetBranch}
+                                export TIDB_REPO_PATH=\${WORKSPACE}/tidb
+                                export PLUGIN_REPO_PATH=\${WORKSPACE}/enterprise-plugin
+                                ./test.sh
                                 '''
-                        }
-                        dir('enterprise-plugin/audit') {
-                            sh label: 'build plugin: audit', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
+                            }
+                        }                        
                     }
                 }
             }
