@@ -108,7 +108,7 @@ catchError {
                             ttyEnabled: true, command: 'cat'),
                     containerTemplate(
                             name: 'mysql',
-                            image: 'hub.pingcap.net/jenkins/mysql:5.6',
+                            image: 'hub.pingcap.net/jenkins/mysql:5.7',
                             ttyEnabled: true,
                             alwaysPullImage: false,
                             envVars: [

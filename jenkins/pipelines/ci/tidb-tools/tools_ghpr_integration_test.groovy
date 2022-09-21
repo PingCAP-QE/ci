@@ -170,7 +170,7 @@ catchError {
             containerTemplate(name: 'golang',alwaysPullImage: true,image: "${POD_GO_IMAGE}", ttyEnabled: true, command: 'cat'),
             containerTemplate(
                 name: 'mysql',
-                image: 'registry-mirror.pingcap.net/library/mysql:5.6',
+                image: 'hub.pingcap.net/jenkins/mysql:5.7',
                 ttyEnabled: true,
                 alwaysPullImage: false,
                 envVars: [
