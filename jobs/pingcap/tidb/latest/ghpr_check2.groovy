@@ -18,7 +18,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
 
-                    triggerPhrase('.*/(merge|run-(all-tests|check[-_]dev[-_]?2))\\b')
+                    triggerPhrase('.*/(run-(all-tests|check[-_]dev[-_]?2))\\b')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
