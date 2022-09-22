@@ -55,14 +55,9 @@ def waitBuildDone = 0
 podYAML = '''
 apiVersion: v1
 kind: Pod
-spec:
-  nodeSelector:
-    resourcepool: ksyun-ci1
-  tolerations:
-  - key: dedicated
-    operator: Equal
-    value: test-infra
-    effect: NoSchedule
+metadata:
+  labels:
+    ci-engine: ci.pingcap.net
 '''
 
 def run_with_pod(Closure body) {

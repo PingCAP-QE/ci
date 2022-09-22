@@ -105,14 +105,9 @@ def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
 podYAML = '''
 apiVersion: v1
 kind: Pod
-spec:
-  tolerations:
-  - key: dedicated
-    operator: Equal
-    value: test-infra
-    effect: NoSchedule
-  nodeSelector:
-    resourcepool: ksyun-ci1
+metadata:
+  labels:
+    ci-engine: ci.pingcap.net
 '''
 
 def run_test_with_pod(Closure body) {
