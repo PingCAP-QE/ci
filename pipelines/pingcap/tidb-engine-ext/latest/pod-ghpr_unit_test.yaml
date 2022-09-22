@@ -11,6 +11,9 @@ spec:
         requests:
           memory: 8Gi
           cpu: "2"
+        limits:
+          memory: 16Gi
+          cpu: "6"
       command: [/bin/sh, -c]
       args: [cat]
       env:
