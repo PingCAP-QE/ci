@@ -38,14 +38,9 @@ def checkoutTiflash(commit, pullId) {
 podYAML = '''
 apiVersion: v1
 kind: Pod
-spec:
-  nodeSelector:
-    resourcepool: ksyun-ci1
-  tolerations:
-  - key: dedicated
-    operator: Equal
-    value: test-infra
-    effect: NoSchedule
+metadata:
+  labels:
+    ci-engine: ci.pingcap.net
 '''
 
 def run(label, Closure body) {
