@@ -4,8 +4,8 @@ spec:
   securityContext:
     fsGroup: 1000
   containers:
-    - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220921"
+    - name: rust
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.13_rust"
       tty: true
       resources:
         requests:

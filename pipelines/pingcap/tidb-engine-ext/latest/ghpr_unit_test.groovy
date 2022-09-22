@@ -10,7 +10,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
+            defaultContainer 'rust'
         }
     }
     environment {
