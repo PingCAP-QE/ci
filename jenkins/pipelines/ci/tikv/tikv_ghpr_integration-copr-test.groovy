@@ -52,12 +52,13 @@ if (ghprbPullId != null && ghprbPullId != "") {
 }
 
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_NODE_MAP = [
     "go1.13": GO_BUILD_SLAVE,
     "go1.16": GO1160_BUILD_SLAVE,
     "go1.18": GO1180_BUILD_SLAVE,
+    "go1.19": "build_go1190",
 ]
 
 node("master") {
