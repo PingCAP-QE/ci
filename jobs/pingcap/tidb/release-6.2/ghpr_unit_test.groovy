@@ -17,7 +17,7 @@ pipelineJob('pingcap/tidb/release-6.2/ghpr_unit_test') {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
 
-                    triggerPhrase('.*/(merge|run-(all-tests|unit-test).*)')
+                    triggerPhrase('.*/(run-(all-tests|unit-test).*)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
