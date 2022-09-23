@@ -25,6 +25,7 @@ pipelineJob('pingcap/tidb-engine-ext/ghpr_unit_test') {
                     orgslist('')
                     whiteListTargetBranches {
                         ghprbBranch { branch('master') }
+                        ghprbBranch { branch('raftstore-proxy') }
                         ghprbBranch { branch('^(raftstore-proxy-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
