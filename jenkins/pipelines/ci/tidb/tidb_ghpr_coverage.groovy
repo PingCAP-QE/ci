@@ -23,11 +23,13 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
+    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
 ]
 
 node("master") {
@@ -123,9 +125,6 @@ try {
                             sh """
                             git checkout -f ${ghprbActualCommit}
                             """
-                            sh """
-                            sed -ir "s:-project=github.com/pingcap/tidb:-project=${tidb_path}:g" Makefile
-                            """
                         }
                     }
                 }
@@ -136,7 +135,7 @@ try {
         stage("Test & Coverage") {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
-                    if (ghprbTargetBranch in ["master", "release-5.4"]) {
+                    if (ghprbTargetBranch in ["master"]) {
                         sh """
                         export log_level=warn
                         make br_unit_test_in_verify_ci
@@ -146,74 +145,7 @@ try {
                         make gotest_in_verify_ci
                         mv test_coverage/tidb_cov.unit_test.out tidb.coverage
                         """
-                    } else if (ghprbTargetBranch in ["release-5.1", "release-5.2"]) {
-                        sh """
-                        make gotest
-                        make br_unit_test
-                        make dumpling_unit_test
-                        """
-                    } else {
-                        sh """
-                        make test
-                        """
-                    }
-
-                    withCredentials([
-                        string(credentialsId: 'codecov-token-tidb', variable: 'CODECOV_TOKEN'),
-                        string(credentialsId: 'codecov-api-token', variable: 'CODECOV_API_TOKEN'),
-                    ]) {
-                        if (!["master", "release-5.4"].contains(ghprbTargetBranch)) {
-                            return
-                        }
-
-                        timeout(time: 30, unit: 'MINUTES') {               
-                            sh """
-                            curl -LO ${FILE_SERVER_URL}/download/cicd/ci-tools/codecov
-                            chmod +x codecov
-                            """
-                            def runCodecovCmd = "./codecov -f tidb.coverage -f br.coverage -f dumpling.coverage -t ${CODECOV_TOKEN} -C ${ghprbActualCommit} -b ${BUILD_NUMBER}"
-                            if (ghprbPullId != null && ghprbPullId != "") {
-                                runCodecovCmd += " -P ${ghprbPullId}"
-                            } else {
-                                runCodecovCmd += " -B ${ghprbTargetBranch}"
-                            }
-
-                            // run and wait until codecov upload finish
-                            sh runCodecovCmd
-                            sleep(time:100,unit:"SECONDS")
-                            def response
-
-                            // get response
-                            retry(3) {
-                                response = httpRequest authorization: CODECOV_API_TOKEN, url: "https://codecov.io/api/gh/pingcap/tidb/commit/${ghprbActualCommit}"
-
-                                if (response.status >= 400) {
-                                    error(message: "Status: ${response.status}\nContent: \n${response.content}")
-                                }
-                            }
-
-                            println('Status: '+response.status)
-                            println("Content: "+response.content)
-
-                            // print ok response                           
-                            def obj = readJSON text:response.content
-                            println(obj.commit.totals)
-                            println('Coverage: '+obj.commit.totals.c)
-                            println("Files count: "+ obj.commit.totals.f)
-                            println("Lines count: "+obj.commit.totals.n)
-                            println("Hits count: "+obj.commit.totals.h)
-                            println("Misses count: "+obj.commit.totals.m)
-                            println("Paritials count: "+obj.commit.totals.p)
-                            println('Coverage: '+obj.commit.totals.diff[5])
-                            println("Files count: "+ obj.commit.totals.diff[0])
-                            println("Lines count: "+obj.commit.totals.diff[1])
-                            println("Hits count: "+obj.commit.totals.diff[2])
-                            println("Misses count: "+obj.commit.totals.diff[3])
-                            println("Paritials count: "+obj.commit.totals.diff[4])         
-
-                            currentBuild.description = "Lines coverage: ${obj.commit.totals.c.toFloat().round(2)}%"                   
-                        }
-                    }
+                    } 
                 }
             }
         }
