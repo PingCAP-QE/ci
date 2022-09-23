@@ -466,7 +466,7 @@ try {
                                         echo "run mysql-test on master branch in witelist-mode"
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                         CACHE_ENABLED=1 ./test.sh -backlist=1
-                                    elif [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "release-6.2"  ]; then
+                                    elif [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" >= "release-6.2"  ]; then
                                         echo "run mysql-test on master branch in witelist-mode"
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                         CACHE_ENABLED=1 ./test.sh -backlist=1
