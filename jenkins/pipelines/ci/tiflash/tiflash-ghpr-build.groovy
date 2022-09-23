@@ -21,12 +21,10 @@ def need_tests() {
 }
 
 def disable_lint_or_format() {
-        for (i in ['release-4.0', 'release-5.0', 'release-5.1', 'release-5.2']) {
-                if (ghprbTargetBranch.contains(i)) {
-                        return true
-                }
+        if (ghprbTargetBranch == "master") {
+                return false
         }
-        return false
+        return true
 }
 
 def parameters = [
