@@ -132,7 +132,6 @@ pipeline {
                 }
                 agent{
                     kubernetes {
-                        cloud K8S_COULD
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
