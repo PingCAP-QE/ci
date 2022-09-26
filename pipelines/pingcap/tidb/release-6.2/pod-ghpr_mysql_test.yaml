@@ -14,8 +14,6 @@ spec:
         limits:
           memory: 6Gi
           cpu: "3"
-      command: [/bin/sh, -c]
-      args: [cat]
       env:
         - name: GOPATH
           value: /share/.go
