@@ -5,8 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220922"
-      tty: true
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
       resources:
         requests:
           memory: 4Gi
@@ -22,11 +21,6 @@ spec:
         - name: GOCACHE
           value: /share/.cache/go-build
       volumeMounts:
-        - name: bazel-out
-          mountPath: /home/jenkins/.tidb
-        - name: bazel
-          mountPath: /data/
-          readOnly: true
         - name: gocache
           mountPath: /share/.cache/go-build
         - name: gopathcache
@@ -46,12 +40,6 @@ spec:
           memory: 512Mi
           cpu: 200m
   volumes:
-    - name: bazel-out
-      emptyDir: {}
-    - name: bazel
-      secret:
-        secretName: bazel
-        optional: true
     - name: gopathcache
       persistentVolumeClaim:
         claimName: gopathcache
