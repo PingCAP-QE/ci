@@ -1,9 +1,9 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and release-6.2.x branches
+// should triggerd for release-6.2.x branches
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.2/pod-ghpr_mysql_test.yaml'
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
