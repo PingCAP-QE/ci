@@ -6,8 +6,8 @@ def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId=
     // /run-xxx dep1=release-x.y
     def commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/
     def componentBranch = prTargetBranch
-    if (prCommentBody =~ prTargetBranch) {
-        componentBranch = (prCommentBody =~ prTargetBranch)[0][1]
+    if (prCommentBody =~ commentBodyReg) {
+        componentBranch = (prCommentBody =~ commentBodyReg)[0][1]
     } else if (prTargetBranch =~ releaseOrHotfixBranchReg) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
     }
