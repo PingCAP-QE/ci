@@ -9,6 +9,11 @@
 
 - https://do.pingcap.net (in development)
 
+> Notices: when you develop new pipeplines or jobs, 
+> you should put them in `/staging` folder and create a PR. When the PR merged, seed job will deploy it in staging CI server.
+> When you tested with successful results, please create a PR with contents moved in top level folders and comment the PR with
+> your tested job links in staging CI server.
+
 ### Old ones
 
 - https://ci.pingcap.net
@@ -20,6 +25,9 @@
 - `/jobs` store Jenkins CI job DSL files.
 - `/pipelines` store Jenkins CI pipeline scripts.
 - `/libraries` store Jenkins CI shared libraries.
+- `/staging` store staging jobs and pipelines before deploying to production.
+  - `/staging/jobs` like `/jobs` but only deployed to staging env.
+  - ......
 
 ## File structure for jobs and pipelines
 
