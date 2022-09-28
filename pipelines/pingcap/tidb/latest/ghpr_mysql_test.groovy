@@ -88,7 +88,7 @@ pipeline {
                 dir('tidb-test') {
                     sh "git branch && git status"
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch "rev-$(git rev-parse head)"'
+                        sh 'touch ws-${BUILD_TAG}'
                     }
                 }
             }

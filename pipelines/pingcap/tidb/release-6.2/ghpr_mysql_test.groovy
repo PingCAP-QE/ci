@@ -77,12 +77,18 @@ pipeline {
                 }
             }
         }
-        stage('Prepare binaries') {
+        stage('Prepare') {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
+                    }
+                }
+                dir('tidb-test') {
+                    sh "git branch && git status"
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh 'touch ws-${BUILD_TAG}'
                     }
                 }
             }
@@ -112,7 +118,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}") {                                    
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh 'ls mysql_test' // if cache missed, fail it(should not miss).
                                     dir('mysql_test') {
                                         sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}'
