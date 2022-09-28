@@ -41,8 +41,6 @@ spec:
           memory: 512Mi
           cpu: 200m
   volumes:
-    - name: bazel-out
-      emptyDir: {}
     - name: bazel
       secret:
         secretName: bazel
