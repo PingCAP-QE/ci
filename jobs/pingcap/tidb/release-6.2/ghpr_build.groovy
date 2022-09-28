@@ -2,8 +2,7 @@
 // For *6.2* branches.
 pipelineJob('pingcap/tidb/release-6.2/ghpr_build') {
     logRotator {
-        daysToKeep(180)
-        numToKeep(2000)
+        daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")

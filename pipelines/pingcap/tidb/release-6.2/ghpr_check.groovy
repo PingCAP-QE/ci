@@ -1,9 +1,9 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and release-6.2.x branches
+// should triggerd for release-6.2.x branches
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.2/pod-ghpr_check.yaml'
 
 pipeline {
     agent {
@@ -62,28 +62,34 @@ pipeline {
                 }
             }
         }
-        // can not parallel, it will make `parser/parser.go` regenerating.
-        // cache restoring and saving should not put in parallel with same pod.
-        stage("test_part_parser") {
-            steps {
-                dir('tidb') {sh 'make test_part_parser' }
-            }
-        }
         stage("Checks") {
-            parallel {
-                stage('check') {
-                    steps { dir('tidb') { sh 'make check' } }
-                }
-                stage("checklist") {
-                    steps{ dir('tidb') {sh 'make checklist' } }
-                }
-                stage('explaintest') {
-                    steps{ dir('tidb') {sh 'make explaintest' } }
-                }
-                stage("gogenerate") {
-                    steps { dir('tidb') {sh 'make gogenerate' } }
-                }
+          matrix {
+            axes {
+              axis {
+                  name 'SCRIPT_AND_ARGS'
+                  values(
+                      'make checklist',
+                      'make gogenerate',
+                      'make check',
+                      'make explaintest',
+                      'make test_part_parser',
+                  )
+              }
             }
+            stages {
+              stage('Check') {
+                // can not parallel, it will make `parser/parser.go` regenerating.
+                // cache restoring and saving should not put in parallel with same pod.
+                steps {
+                    sh label: SCRIPT_AND_ARGS, script: '''
+                      cd `mktemp -d` 
+                      cp -r ${WORKSPACE}/tidb ./
+                      cd tidb && ${SCRIPT_AND_ARGS}
+                    '''
+                }
+              }
+            }
+          }
         }
     }
     post {
