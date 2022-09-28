@@ -68,11 +68,9 @@ pipeline {
               axis {
                   name 'SCRIPT_AND_ARGS'
                   values(
-                      'make checklist',
                       'make gogenerate',
                       'make check',
                       'make explaintest',
-                      'make test_part_parser',
                   )
               }
             }

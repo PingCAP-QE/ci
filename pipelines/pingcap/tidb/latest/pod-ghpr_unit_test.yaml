@@ -19,8 +19,6 @@ spec:
         - name: GOCACHE
           value: /share/.cache/go-build
       volumeMounts:
-        - name: bazel-out
-          mountPath: /home/jenkins/.tidb
         - name: bazel
           mountPath: /data/
           readOnly: true
