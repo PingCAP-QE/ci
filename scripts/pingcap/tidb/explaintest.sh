@@ -25,8 +25,8 @@ EOF
 
     export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
     export TIKV_PATH="${tikv_addr1}"
-    pushd cmd/explaintest
-        ./run-tests.sh -d "$@"
+    pushd cmd/explaintest &&
+        ./run-tests.sh -d "$@" && 
     popd
 }
 
