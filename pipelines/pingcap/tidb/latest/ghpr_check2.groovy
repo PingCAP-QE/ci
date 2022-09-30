@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and release-6.2.x branches
+// should triggerd for master and latest release branches
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
@@ -68,8 +68,8 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
-                        sh label: 'tidb-server', script: 'ls bin/explain_test_tidb-server || go build -o bin/explain_test_tidb-server github.com/pingcap/tidb/tidb-server'
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
                     }
                     sh label: 'tikv-server', script: '''#! /usr/bin/env bash
 
@@ -86,6 +86,7 @@ pipeline {
                         refs="${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
                         sha1="$(curl --fail ${refs} | head -1)"
                         url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${sha1}/centos7/tikv-server.tar.gz"
+                        echo "tikv-server tarball url: ${url}"
                         curl --fail ${url} | tar xz
                         '''
                     sh label: 'pd-server', script: '''#! /usr/bin/env bash
@@ -103,12 +104,16 @@ pipeline {
                         refs="${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
                         sha1="$(curl --fail ${refs} | head -1)"
                         url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${sha1}/centos7/pd-server.tar.gz"
+                        echo "pd-server tarball url: ${url}"
                         curl --fail ${url} | tar xz bin
                         '''
                     
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh  'touch rev-${ghprbActualCommit}'
+                        sh '''
+                            mv bin/tidb-server bin/explain_test_tidb-server
+                            touch rev-${ghprbActualCommit}
+                        '''
                     }
                 }
             }
