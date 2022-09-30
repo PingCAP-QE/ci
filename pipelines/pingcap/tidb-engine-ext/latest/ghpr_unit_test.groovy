@@ -69,7 +69,6 @@ pipeline {
             steps {
                 dir('tidb-engine-ext') {
                     sh """
-                    source /opt/rh/devtoolset-8/enable
                     make ci_fmt_check
                     make ci_test
                     """ 
