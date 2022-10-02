@@ -25,7 +25,7 @@ spec:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
         - name: bazel-out-lower
-          subPath: go1.19
+          subPath: tidb/go1.19
           mountPath: /bazel-out-lower
         - mountPath: /bazel-out-overlay
           name: bazel-out-overlay
@@ -43,17 +43,16 @@ spec:
               - /bin/sh
               - -c
               - >-
-                sudo mkdir -p /bazel-out-overlay/upper /bazel-out-overlay/work;
-                sudo mount -t overlay overlay /home/jenkins/.tidb/tmp -o
+                mkdir -p /bazel-out-overlay/upper /bazel-out-overlay/work; sudo
+                mount -t overlay overlay /home/jenkins/.tidb/tmp -o
                 lowerdir=/bazel-out-lower,upperdir=/bazel-out-overlay/upper,workdir=/bazel-out-overlay/work;
-                sudo chown jenkins:jenkins /home/jenkins/.tidb/tmp
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
-          cpu: 200m
+          cpu: 100m
     - name: report
       image: hub.pingcap.net/jenkins/python3-requests:latest
       tty: true
