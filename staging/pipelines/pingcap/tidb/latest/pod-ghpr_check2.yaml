@@ -25,7 +25,7 @@ spec:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
         - name: bazel-out-lower
-          subPath: /go1.19
+          subPath: go1.19
           mountPath: /bazel-out-lower
         - mountPath: /bazel-out-overlay
           name: bazel-out-overlay
