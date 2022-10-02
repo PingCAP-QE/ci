@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: golang
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920220922"
+      securityContext:
+        privileged: true
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi
+          cpu: "4"
+        limits:
+          memory: 24Gi
+          cpu: "8"
+      env:
+        - name: GOPATH
+          value: /share/.go
+        - name: GOCACHE
+          value: /share/.cache/go-build
+      volumeMounts:
+        - mountPath: /home/jenkins/.tidb/tmp
+          name: bazel-out-merged
+        - name: bazel-out-lower
+          subPath: go1.19
+          mountPath: /bazel-out-lower
+        - mountPath: /bazel-out-overlay
+          name: bazel-out-overlay
+        - name: bazel-rc
+          mountPath: /data/
+          readOnly: true
+        - name: gocache
+          mountPath: /share/.cache/go-build
+        - name: gopathcache
+          mountPath: /share/.go
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - >-
+                sudo mkdir -p /bazel-out-overlay/upper /bazel-out-overlay/work;
+                sudo mount -t overlay overlay /home/jenkins/.tidb/tmp -o
+                lowerdir=/bazel-out-lower,upperdir=/bazel-out-overlay/upper,workdir=/bazel-out-overlay/work;
+                sudo chown jenkins:jenkins /home/jenkins/.tidb/tmp
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 200m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
+  volumes:
+    - name: gopathcache
+      persistentVolumeClaim:
+        claimName: gopathcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache
+    - name: bazel-out-lower
+      persistentVolumeClaim:
+        claimName: bazel-out-data
+    - name: bazel-out-overlay
+      emptyDir: {}
+    - name: bazel-out-merged
+      emptyDir: {}
+    - name: bazel-rc
+      secret:
+        secretName: bazel
+        optional: true
