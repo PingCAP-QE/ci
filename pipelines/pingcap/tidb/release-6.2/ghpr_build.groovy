@@ -67,6 +67,7 @@ pipeline {
                                 }
                             }
                         }
+                        sh 'echo -e "\ntry-import /data/bazel" >> tidb/.bazelrc'
                     }
                 }
                 stage("enterprise-plugin") {
@@ -131,8 +132,8 @@ pipeline {
                                 timeout(time: 10, unit: 'MINUTES')
                             }
                             steps {
-                                dir("tidb") {                                     
-                                    sh "make bazel_build"
+                                dir("tidb") {                    
+                                    sh 'make bazel_build'
                                 }
                             }
                             post {       
