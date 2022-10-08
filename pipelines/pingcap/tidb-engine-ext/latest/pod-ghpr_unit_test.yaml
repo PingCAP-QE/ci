@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: rust
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base"
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64"
       tty: true
       resources:
         requests:
