@@ -69,6 +69,7 @@ pipeline {
             steps {
                 dir('tidb-engine-ext') {
                     sh """
+                    set -euox pipefail
                     make ci_fmt_check
                     make ci_test
                     """ 
