@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
+final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
 
 pipeline {
     agent {

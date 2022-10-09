@@ -15,7 +15,7 @@ spec:
           cpu: "4"
         limits:
           memory: 24Gi
-          cpu: "16"
+          cpu: "8"
       env:
         - name: GOPATH
           value: /share/.go
@@ -46,8 +46,8 @@ spec:
 
                 cpu_limit=$(cat /etc/containerinfo/cpu_limit);
                 mem_limit=$(cat /etc/containerinfo/mem_limit);
-                mem_limit=$(((mem_limit / 1048576) * 8 / 10 ));
-                :> /data/bazel; 
+                mem_limit=$((mem_limit / 1048576 - 1024));
+                :> /data/bazel;
                 echo "build:ci --remote_cache=http://brc-bazel-remote.apps.svc --remote_timeout=10s" >> /data/bazel;
                 echo "build:ci --discard_analysis_cache --notrack_incremental_state --nokeep_state_after_build" >> /data/bazel;
                 echo "build:ci --local_ram_resources=${mem_limit} --local_cpu_resources=${cpu_limit} -j ${cpu_limit}" >> /data/bazel;  

@@ -1,5 +1,7 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+@Library('tipipeline') _
+
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
@@ -67,59 +69,22 @@ pipeline {
                                 }
                             }
                         }
+                        sh 'echo -e "\ntry-import /data/bazel" >> tidb/.bazelrc'
                     }
                 }
                 stage("enterprise-plugin") {
                     steps {
-                        script {
-                            // examples:
-                            //  - release-6.2
-                            //  - release-6.2-20220801
-                            //  - 6.2.0-pitr-dev
-                            def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
-                            def commentBodyReg = /\bplugin\s*=\s*([^\s\\]+)(\s|\\|$)/
-
-                            def pluginBranch = ghprbTargetBranch
-                            if (ghprbCommentBody =~ ghprbTargetBranch) {
-                                pluginBranch = (ghprbCommentBody =~ ghprbTargetBranch)[0][1]
-                            } else if (ghprbTargetBranch =~ releaseOrHotfixBranchReg) {
-                                pluginBranch = String.format('release-%s', (ghprbTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
-                            }  
-
-                            def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
-                            // transfer plugin branch from pr/28 to origin/pr/28/head
-                            if (pluginBranch.startsWith("pr/")) {
-                                pluginSpec = "+refs/pull/*:refs/remotes/origin/pr/*"
-                                pluginBranch = "origin/${pluginBranch}/head"
-                            }
-
-                            dir("enterprise-plugin") {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
-                                    checkout(
-                                        changelog: false,
-                                        poll: true,
-                                        scm: [
-                                            $class: 'GitSCM',
-                                            branches: [[name: pluginBranch]],
-                                            doGenerateSubmoduleConfigurations: false,
-                                            extensions: [
-                                                [$class: 'PruneStaleBranch'],
-                                                [$class: 'CleanBeforeCheckout'],
-                                                [$class: 'CloneOption', timeout: 2],
-                                            ], 
-                                            submoduleCfg: [],
-                                            userRemoteConfigs: [[
-                                                credentialsId: GIT_CREDENTIALS_ID,
-                                                refspec: pluginSpec,
-                                                url: 'git@github.com:pingcap/enterprise-plugin.git',
-                                            ]]
-                                        ]
-                                    )
+                        dir("enterprise-plugin") {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
+                                retry(2) {
+                                    script {
+                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', ghprbTargetBranch, ghprbCommentBody, GIT_CREDENTIALS_ID)
+                                    }
                                 }
                             }
                         }
                     }
-                }  
+                }
             }
         }
         stage("Build tidb-server and plugin"){
@@ -204,7 +169,7 @@ pipeline {
     post {
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
-            container('report') {                
+            container('report') {
                 sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json | true"
             }
             archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)

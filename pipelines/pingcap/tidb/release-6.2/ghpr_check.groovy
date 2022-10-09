@@ -61,6 +61,7 @@ pipeline {
                         }
                     }
                 }
+                sh 'echo -e "\ntry-import /data/bazel" >> tidb/.bazelrc'
             }
         }
         stage("Checks") {
