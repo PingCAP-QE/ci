@@ -1,9 +1,9 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-6.2.x branches
+// should triggerd for release-6.3.x branches
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.2/pod-ghpr_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_check.yaml'
 
 pipeline {
     agent {
@@ -13,11 +13,9 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 30, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -63,48 +61,41 @@ pipeline {
                         }
                     }
                 }
-                sh 'echo -e "\ntry-import /data/bazel" >> tidb/.bazelrc'
             }
         }
-        stage('Test') {
-            steps {
-                dir('tidb') {
-                    sh './build/jenkins_unit_test.sh' 
-                }
+        stage("Checks") {
+          matrix {
+            axes {
+              axis {
+                  name 'SCRIPT_AND_ARGS'
+                  values(
+                      'make gogenerate',
+                      'make check',
+                      'make explaintest',
+                  )
+              }
             }
-            post {
-                unsuccessful {
-                    dir('tidb') {
-                        archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
-                        archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
-                    }
+            stages {
+              stage('Check') {
+                // can not parallel, it will make `parser/parser.go` regenerating.
+                // cache restoring and saving should not put in parallel with same pod.
+                steps {
+                    sh label: SCRIPT_AND_ARGS, script: '''
+                      cd `mktemp -d` 
+                      cp -r ${WORKSPACE}/tidb ./
+                      cd tidb && ${SCRIPT_AND_ARGS}
+                    '''
                 }
-                always {
-                    dir('tidb') {
-                        // archive test report to Jenkins.
-                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
-
-                        // upload coverage report to file server
-                        retry(3) {
-                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: '''
-                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
-                                curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
-                                echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
-                                '''
-                        }
-                    }
-                }
+              }
             }
+          }
         }
     }
     post {
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
-            container('report') {
-                sh """
-                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
-                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" | true
-                """
+            container('report') {                
+                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json | true"
             }
             archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }

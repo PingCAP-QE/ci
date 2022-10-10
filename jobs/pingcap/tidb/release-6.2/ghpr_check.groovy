@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/release-6.2/ghpr_check') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
-                    triggerPhrase('^(?=.*/(run-(all-tests|check[-_]dev)))(?!.*/run-check[-_]dev[-_]?2)')
+                    triggerPhrase('^.*/(run-(all-tests|check[-_]dev))\\b')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
