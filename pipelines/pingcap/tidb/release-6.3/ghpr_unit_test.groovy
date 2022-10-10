@@ -1,9 +1,9 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-6.2.x branches
+// should triggerd for release-6.3.x branches
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.2/pod-ghpr_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_unit_test.yaml'
 
 pipeline {
     agent {
@@ -63,7 +63,6 @@ pipeline {
                         }
                     }
                 }
-                sh 'echo -e "\ntry-import /data/bazel" >> tidb/.bazelrc'
             }
         }
         stage('Test') {

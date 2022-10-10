@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tidb/ghpr_check2') {
+// For *6.3* branches.
+pipelineJob('pingcap/tidb/release-6.3/ghpr_check2') {
     logRotator {
         daysToKeep(30)
     }
@@ -24,9 +24,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     whitelist('ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa')
                     orgslist('pingcap')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[4-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?6\\.3(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -70,7 +68,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_check2.groovy")
+            scriptPath("pipelines/pingcap/tidb/release-6.3/ghpr_check2.groovy")
             scm {
                 git{
                     remote {
