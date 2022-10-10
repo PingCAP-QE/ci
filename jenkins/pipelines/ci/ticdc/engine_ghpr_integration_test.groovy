@@ -6,6 +6,7 @@ ENGINE_TEST_TAG="dataflow:test"
 labelBuild = "${JOB_NAME}-${BUILD_NUMBER}-build"
 labelTest= "${JOB_NAME}-${BUILD_NUMBER}-test"
 imageTag = "${JOB_NAME}-${ghprbPullId}"
+dummyImageTag = "dummy"
 specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 println "${specStr}"
 
@@ -351,6 +352,27 @@ run_with_pod {
                 }
             }
             parallel tests
+        }
+
+        stage("remove image") {
+            run_with_test_pod{
+                container("docker") {
+                    echo "start to remove image..."
+                    withCredentials([usernamePassword(credentialsId: '3929b35e-6d9a-423a-a3c3-9c584ff49ea0', usernameVariable: 'harborUser', passwordVariable: 'harborPassword')]) {
+                        sh """
+                        sleep 10
+                        docker version || true
+                        docker-compose version || true
+                        echo "${harborPassword}" | docker login -u ${harborUser} --password-stdin hub.pingcap.net
+                        """
+                    }
+                    sh """
+                    docker pull hub-new.pingcap.net/tiflow/engine:${dummyImageTag}
+                    docker tag hub-new.pingcap.net/tiflow/engine:${dummyImageTag} hub.pingcap.net/tiflow/engine:${imageTag}
+                    docker push hub.pingcap.net/tiflow/engine:${imageTag}
+                    """
+                }
+            }
         }
     }
 }
