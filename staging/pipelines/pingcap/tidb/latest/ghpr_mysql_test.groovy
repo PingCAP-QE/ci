@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
