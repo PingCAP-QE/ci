@@ -10,6 +10,7 @@ import * as tar from "https://deno.land/std@0.153.0/archive/tar.ts";
 import * as transform from "https://deno.land/x/transform@v0.4.0/mod.ts";
 
 const DEFAULT_KEEP_COUNT = 0;
+const DEFAULT_DELETE_BATCH_SIZE = 8;
 /**
  * CLI args
  * --op=backup/restore
@@ -254,6 +255,7 @@ async function shrinkBucketToSize(
   bucket: S3Bucket,
   keepSize: number,
   keyPrefix = "",
+  deleteBatchSize = DEFAULT_DELETE_BATCH_SIZE,
 ) {
   if (keepSize <= 0) {
     console.debug("skip to clean because keep size set <= 0");
@@ -271,8 +273,6 @@ async function shrinkBucketToSize(
 
   for (let i = 0; i < list.length; i++) {
     const obj = list[i];
-    console.debug(`${obj.key} => modified: ${obj.lastModified}, size: ${obj.size}bytes`);
-
     if (obj.size) {
       size += obj.size;
     }
@@ -288,9 +288,16 @@ async function shrinkBucketToSize(
     return;
   }
 
-  for (const obj of list.slice(toDeletePos)) {
-    console.debug(`deleting key: ${obj.key}, modified: ${obj.lastModified}`);
-    await bucket.deleteObject(obj.key!);
+  const toDeleteObjs = list.slice(toDeletePos);
+  for (let i = 0; i < toDeleteObjs.length; i += deleteBatchSize) {
+    await Promise.all(
+      toDeleteObjs.slice(i, i + deleteBatchSize).map(async (obj) => {
+        console.debug(
+          `deleting key: ${obj.key}, modified: ${obj.lastModified}`,
+        );
+        await bucket.deleteObject(obj.key!);
+      }),
+    );
   }
 
   console.log(`deleted ${list.length - toDeletePos} objects.`);
