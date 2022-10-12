@@ -101,8 +101,8 @@ pipeline {
                         values '1', '2', '3', '4'
                     }
                     axis {
-                        name: 'CACHE_ENABLED'
-                        values: '0', '1'
+                        name 'CACHE_ENABLED'
+                        values '0', '1'
                     }
                 }
                 agent{
