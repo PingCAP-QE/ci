@@ -24,7 +24,6 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                     whitelist('')
                     orgslist('')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
                         ghprbBranch { branch('^feature[_|/].*') }
                         ghprbBranch { branch('^(release-)?6\\.[4-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
