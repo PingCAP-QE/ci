@@ -16,6 +16,7 @@ def coverage() {
     // Let's disable it for the moment, until we can provide more effective data.
     return false
 }
+
 def page_tools() {
     if (ghprbTargetBranch.contains("release-5.1")
      || ghprbTargetBranch.contains("release-5.0")
@@ -25,6 +26,7 @@ def page_tools() {
     }
     return true
 }
+
 def IDENTIFIER = "tiflash-ut-${ghprbTargetBranch}-${ghprbPullId}-${BUILD_NUMBER}"
 def parameters = [
     string(name: "ARCH", value: "amd64"),
