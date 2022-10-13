@@ -489,15 +489,15 @@ def prepareStage(repo_path) {
                     mkdir -p ~/.cargo/registry
                     mkdir -p ~/.cargo/git
                     mkdir -p /home/jenkins/agent/rust/registry/cache
-                    mkdir -p /home/jenkins/agent/rust/registry/index 
+                    mkdir -p /home/jenkins/agent/rust/registry/index
                     mkdir -p /home/jenkins/agent/rust/git/db
                     mkdir -p /home/jenkins/agent/rust/git/checkouts
-                    
+
                     rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                    rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index 
+                    rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
                     rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
                     rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-                    
+
                     rm -rf ~/.rustup/tmp
                     rm -rf ~/.rustup/toolchains
                     mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
@@ -506,7 +506,7 @@ def prepareStage(repo_path) {
                     ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
 
                     """
-                }                
+                }
             }
         )
     }
@@ -518,7 +518,7 @@ def buildClusterManage(repo_path, install_dir) {
         echo "cluster_manager is deprecated"
     } else {
         sh "cd ${repo_path}/cluster_manage && sh release.sh"
-        sh "mkdir -p ${install_dir} && cp -rf ${repo_path}/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager"        
+        sh "mkdir -p ${install_dir} && cp -rf ${repo_path}/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager"
     }
 }
 
@@ -661,7 +661,7 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
         sh """
         ccache -s
         ls -lha ${install_dir}
-        """        
+        """
     }
 }
 
@@ -882,7 +882,7 @@ def run_with_pod(Closure body) {
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
                         resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [

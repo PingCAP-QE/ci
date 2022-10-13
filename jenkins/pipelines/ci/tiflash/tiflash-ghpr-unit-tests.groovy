@@ -168,9 +168,10 @@ run_with_pod {
                 propagate: false,
                 parameters: parameters
             )
-            echo "built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${task.number}/pipeline"
-            if (task.getResult() != 'SUCCESS') {
-                error "build failed"
+            if (built.getResult() != 'SUCCESS') {
+                error "Build failed, see: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${task.number}/pipeline"
+            } else {
+                echo "Built at: https://ci.pingcap.net/blue/organizations/jenkins/tiflash-build-common/detail/tiflash-build-common/${task.number}/pipeline"
             }
             built = task.number
         } else {
