@@ -1,18 +1,22 @@
 def coverage() {
-    if (env.BRANCH_NAME.contains("release-5.2") 
+    if (env.BRANCH_NAME.contains("release-5.2")
      || env.BRANCH_NAME.contains("release-5.1")
-     || env.BRANCH_NAME.contains("release-5.0") 
-     || env.BRANCH_NAME.contains("release-4.0") 
+     || env.BRANCH_NAME.contains("release-5.0")
+     || env.BRANCH_NAME.contains("release-4.0")
      || env.BRANCH_NAME.contains("release-3.0")) {
         return false
     }
-    return true
+
+    // The coverage is not useful for each PR for now, as there is no diff information
+    // and it is just hard for the author to know how good the coverage is.
+    // Let's disable it for the moment, until we can provide more effective data.
+    return false
 }
 
 def page_tools() {
     if (env.BRANCH_NAME.contains("release-5.1")
-     || env.BRANCH_NAME.contains("release-5.0") 
-     || env.BRANCH_NAME.contains("release-4.0") 
+     || env.BRANCH_NAME.contains("release-5.0")
+     || env.BRANCH_NAME.contains("release-4.0")
      || env.BRANCH_NAME.contains("release-3.0")) {
         return false
     }
