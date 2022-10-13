@@ -15,7 +15,7 @@ spec:
           cpu: "4"
         limits:
           memory: 24Gi
-          cpu: "16"
+          cpu: "8"
       env:
         - name: GOPATH
           value: /share/.go
@@ -29,13 +29,12 @@ spec:
           mountPath: /bazel-out-lower
         - mountPath: /bazel-out-overlay
           name: bazel-out-overlay
-        - name: bazel-rc
-          mountPath: /data/
-          readOnly: true
         - name: gocache
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - name: containerinfo
+          mountPath: /etc/containerinfo
       lifecycle:
         postStart:
           exec:
@@ -44,6 +43,15 @@ spec:
               - -c
               - mkdir -p /bazel-out-overlay/upper /bazel-out-overlay/work; 
                 sudo mount -t overlay overlay /home/jenkins/.tidb/tmp -o lowerdir=/bazel-out-lower,upperdir=/bazel-out-overlay/upper,workdir=/bazel-out-overlay/work;
+
+                cpu_limit=$(cat /etc/containerinfo/cpu_limit);
+                mem_limit=$(cat /etc/containerinfo/mem_limit);
+                mem_limit=$(((mem_limit / 1048576) * 9 / 10 ));
+                :> /data/bazel; 
+                echo "build:ci --remote_cache=http://brc-bazel-remote.apps.svc --remote_timeout=10s" >> /data/bazel;
+                echo "build:ci --local_ram_resources=${mem_limit} --local_cpu_resources=${cpu_limit} -j ${cpu_limit}" >> /data/bazel;  
+                echo "test:ci --remote_cache=http://brc-bazel-remote.apps.svc --remote_timeout=10s" >> /data/bazel;
+                echo "test:ci --local_ram_resources=${mem_limit} --local_cpu_resources=${cpu_limit} -j ${cpu_limit}"  >> /data/bazel;
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -72,7 +80,22 @@ spec:
       emptyDir: {}
     - name: bazel-out-merged
       emptyDir: {}
-    - name: bazel-rc
-      secret:
-        secretName: bazel
-        optional: true
+    - name: containerinfo
+      downwardAPI:
+        items:
+          - path: cpu_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.cpu
+          - path: cpu_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.cpu
+          - path: mem_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.memory
+          - path: mem_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.memory
