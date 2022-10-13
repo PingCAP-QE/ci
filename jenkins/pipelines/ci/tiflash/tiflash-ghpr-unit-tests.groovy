@@ -3,19 +3,23 @@ if (params.containsKey("release_test")) {
 }
 
 def coverage() {
-    if (ghprbTargetBranch.contains("release-5.2") 
+    if (ghprbTargetBranch.contains("release-5.2")
      || ghprbTargetBranch.contains("release-5.1")
-     || ghprbTargetBranch.contains("release-5.0") 
-     || ghprbTargetBranch.contains("release-4.0") 
+     || ghprbTargetBranch.contains("release-5.0")
+     || ghprbTargetBranch.contains("release-4.0")
      || ghprbTargetBranch.contains("release-3.0")) {
         return false
     }
-    return true
+
+    // The coverage is not useful for each PR for now, as there is no diff information
+    // and it is just hard for the author to know how good the coverage is.
+    // Let's disable it for the moment, until we can provide more effective data.
+    return false
 }
 def page_tools() {
-    if (ghprbTargetBranch.contains("release-5.1") 
-     || ghprbTargetBranch.contains("release-5.0") 
-     || ghprbTargetBranch.contains("release-4.0") 
+    if (ghprbTargetBranch.contains("release-5.1")
+     || ghprbTargetBranch.contains("release-5.0")
+     || ghprbTargetBranch.contains("release-4.0")
      || ghprbTargetBranch.contains("release-3.0")) {
         return false
     }
@@ -23,45 +27,45 @@ def page_tools() {
 }
 def IDENTIFIER = "tiflash-ut-${ghprbTargetBranch}-${ghprbPullId}-${BUILD_NUMBER}"
 def parameters = [
-        string(name: "ARCH", value: "amd64"),
-        string(name: "OS", value: "linux"),
-        string(name: "CMAKE_BUILD_TYPE", value: "Debug"),
-        string(name: "TARGET_BRANCH", value: ghprbTargetBranch),
-        string(name: "TARGET_PULL_REQUEST", value: ghprbPullId),
-        string(name: "TARGET_COMMIT_HASH", value: ghprbActualCommit),
-        [$class: 'BooleanParameterValue', name: 'BUILD_TIFLASH', value: false],
-        [$class: 'BooleanParameterValue', name: 'BUILD_PAGE_TOOLS', value: page_tools()],
-        [$class: 'BooleanParameterValue', name: 'BUILD_TESTS', value: true],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_CCACHE', value: true],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_PROXY_CACHE', value: true],
-        [$class: 'BooleanParameterValue', name: 'UPDATE_CCACHE', value: false],
-        [$class: 'BooleanParameterValue', name: 'UPDATE_PROXY_CACHE', value: false],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_STATIC_ANALYSIS', value: false],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_FORMAT_CHECK', value: false],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_COVERAGE', value: coverage()],
-        [$class: 'BooleanParameterValue', name: 'PUSH_MESSAGE', value: false],
-        [$class: 'BooleanParameterValue', name: 'DEBUG_WITHOUT_DEBUG_INFO', value: true],
-        [$class: 'BooleanParameterValue', name: 'ARCHIVE_ARTIFACTS', value: true],
-        [$class: 'BooleanParameterValue', name: 'ARCHIVE_BUILD_DATA', value: true],
-        [$class: 'BooleanParameterValue', name: 'ENABLE_FAILPOINTS', value: true],
-    ]
+    string(name: "ARCH", value: "amd64"),
+    string(name: "OS", value: "linux"),
+    string(name: "CMAKE_BUILD_TYPE", value: "Debug"),
+    string(name: "TARGET_BRANCH", value: ghprbTargetBranch),
+    string(name: "TARGET_PULL_REQUEST", value: ghprbPullId),
+    string(name: "TARGET_COMMIT_HASH", value: ghprbActualCommit),
+    [$class: 'BooleanParameterValue', name: 'BUILD_TIFLASH', value: false],
+    [$class: 'BooleanParameterValue', name: 'BUILD_PAGE_TOOLS', value: page_tools()],
+    [$class: 'BooleanParameterValue', name: 'BUILD_TESTS', value: true],
+    [$class: 'BooleanParameterValue', name: 'ENABLE_CCACHE', value: true],
+    [$class: 'BooleanParameterValue', name: 'ENABLE_PROXY_CACHE', value: true],
+    [$class: 'BooleanParameterValue', name: 'UPDATE_CCACHE', value: false],
+    [$class: 'BooleanParameterValue', name: 'UPDATE_PROXY_CACHE', value: false],
+    [$class: 'BooleanParameterValue', name: 'ENABLE_STATIC_ANALYSIS', value: false],
+    [$class: 'BooleanParameterValue', name: 'ENABLE_FORMAT_CHECK', value: false],
+    [$class: 'BooleanParameterValue', name: 'ENABLE_COVERAGE', value: coverage()],
+    [$class: 'BooleanParameterValue', name: 'PUSH_MESSAGE', value: false],
+    [$class: 'BooleanParameterValue', name: 'DEBUG_WITHOUT_DEBUG_INFO', value: true],
+    [$class: 'BooleanParameterValue', name: 'ARCHIVE_ARTIFACTS', value: true],
+    [$class: 'BooleanParameterValue', name: 'ARCHIVE_BUILD_DATA', value: true],
+    [$class: 'BooleanParameterValue', name: 'ENABLE_FAILPOINTS', value: true],
+]
 
 
 def runBuilderClosure(label, image, Closure body) {
     podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0,
-    containers: [
+        containers: [
             containerTemplate(name: 'runner', image: image,
-                    alwaysPullImage: true, ttyEnabled: true, command: 'cat',
-                    resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
-                    resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
-    ],
-    volumes: [
+                alwaysPullImage: true, ttyEnabled: true, command: 'cat',
+                resourceRequestCpu: '12000m', resourceRequestMemory: '32Gi',
+                resourceLimitCpu: '12000m', resourceLimitMemory: '32Gi'),
+        ],
+        volumes: [
             nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
+                serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
-    ],
-    hostNetwork: false
+                serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
+        ],
+        hostNetwork: false
     ) {
         node(label) {
             container('runner') {
@@ -120,24 +124,24 @@ def run_with_pod(Closure body) {
     def cloud = "kubernetes-ng"
     def namespace = "jenkins-tiflash"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
-            idleMinutes: 0,
-            containers: [
-                    containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
-                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
-                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
-                        command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
-                    )
-            ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
-            ],
+        cloud: cloud,
+        namespace: namespace,
+        idleMinutes: 0,
+        containers: [
+            containerTemplate(
+                name: 'golang', alwaysPullImage: true,
+                image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
+                resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                command: '/bin/sh -c', args: 'cat',
+                envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
+            )
+        ],
+        volumes: [
+            emptyDirVolume(mountPath: '/tmp', memory: false),
+            emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
+        ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
@@ -177,7 +181,7 @@ run_with_pod {
         toolchain = readFile(file: 'toolchain').trim()
         echo "Built with ${toolchain}"
     }
-    
+
     stage('Checkout') {
         dir("/home/jenkins/agent/workspace/tiflash-build-common/tiflash") {
             def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
@@ -231,7 +235,7 @@ run_with_pod {
             stash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
         }
     }
-    
+
     dispatchRunEnv(toolchain, IDENTIFIER) {
         def cwd = pwd()
         def repo_path = "/home/jenkins/agent/workspace/tiflash-build-common/tiflash"
@@ -239,13 +243,13 @@ run_with_pod {
         def binary_path = "/tiflash"
         def parallelism = 12
         stage('Get Artifacts') {
-        
+
             prepareArtifacts(built, false)
             sh """
             tar -xvaf tiflash.tar.gz
             ln -sf \$(realpath tiflash) /tiflash
             """
-            
+
             dir("/tmp/tiflash-data") {
                 unstash "tiflash-ghpr-unit-tests-${BUILD_NUMBER}"
                 sh """
@@ -263,7 +267,7 @@ run_with_pod {
                 tar -xaf ./source-patch.tar.xz
                 """
             }
-            
+
             dir(build_path) {
                 sh """
                 cp '${cwd}/build-data.tar.xz' ./build-data.tar.xz
@@ -299,7 +303,7 @@ run_with_pod {
                         sh "rpm -i /home/jenkins/agent/dependency/lcov-1.15-1.noarch.rpm"
                     }
                     sh """
-                    llvm-profdata merge -sparse /tiflash/profile/*.profraw -o /tiflash/profile/merged.profdata 
+                    llvm-profdata merge -sparse /tiflash/profile/*.profraw -o /tiflash/profile/merged.profdata
 
                     llvm-cov export \\
                         /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
@@ -401,9 +405,9 @@ run_with_pod {
                 if (toolchain == 'llvm') {
                     archiveArtifacts artifacts: "coverage-report.tar.gz"
                 } else {
-                    cobertura autoUpdateHealth: false, autoUpdateStability: false, 
-                        coberturaReportFile: "tiflash_gcovr_coverage.xml", 
-                        lineCoverageTargets: "${COVERAGE_RATE}, ${COVERAGE_RATE}, ${COVERAGE_RATE}", 
+                    cobertura autoUpdateHealth: false, autoUpdateStability: false,
+                        coberturaReportFile: "tiflash_gcovr_coverage.xml",
+                        lineCoverageTargets: "${COVERAGE_RATE}, ${COVERAGE_RATE}, ${COVERAGE_RATE}",
                         maxNumberOfBuilds: 10, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                 }
             } else {
@@ -432,30 +436,30 @@ run_with_pod {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-} finally { 
+} finally {
     stage("upload-pipeline-data") {
         taskFinishTime = System.currentTimeMillis()
         build job: 'upload-pipelinerun-data',
             wait: false,
             parameters: [
-                    [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
-                    [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
-                    [$class: 'StringParameterValue', name: 'REPO', value: "pingcap/tiflash"],
-                    [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
-                    [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
-                    [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
-                    [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
-                    [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
-                    [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
-                    [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
-                    [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
-                    [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
-                    [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
-                    [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
-                    [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "2000m"],
-                    [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
-                    [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
-                    [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
+                [$class: 'StringParameterValue', name: 'PIPELINE_NAME', value: "${JOB_NAME}"],
+                [$class: 'StringParameterValue', name: 'PIPELINE_RUN_URL', value: "${RUN_DISPLAY_URL}"],
+                [$class: 'StringParameterValue', name: 'REPO', value: "pingcap/tiflash"],
+                [$class: 'StringParameterValue', name: 'COMMIT_ID', value: ghprbActualCommit],
+                [$class: 'StringParameterValue', name: 'TARGET_BRANCH', value: ghprbTargetBranch],
+                [$class: 'StringParameterValue', name: 'JUNIT_REPORT_URL', value: resultDownloadPath],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST', value: ghprbPullId],
+                [$class: 'StringParameterValue', name: 'PULL_REQUEST_AUTHOR', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                [$class: 'StringParameterValue', name: 'JOB_TRIGGER', value: params.getOrDefault("ghprbPullAuthorLogin", "default")],
+                [$class: 'StringParameterValue', name: 'TRIGGER_COMMENT_BODY', value: params.getOrDefault("ghprbCommentBody", "default")],
+                [$class: 'StringParameterValue', name: 'JOB_RESULT_SUMMARY', value: ""],
+                [$class: 'StringParameterValue', name: 'JOB_START_TIME', value: "${taskStartTimeInMillis}"],
+                [$class: 'StringParameterValue', name: 'JOB_END_TIME', value: "${taskFinishTime}"],
+                [$class: 'StringParameterValue', name: 'POD_READY_TIME', value: ""],
+                [$class: 'StringParameterValue', name: 'CPU_REQUEST', value: "2000m"],
+                [$class: 'StringParameterValue', name: 'MEMORY_REQUEST', value: "8Gi"],
+                [$class: 'StringParameterValue', name: 'JOB_STATE', value: currentBuild.result],
+                [$class: 'StringParameterValue', name: 'JENKINS_BUILD_NUMBER', value: "${BUILD_NUMBER}"],
         ]
     }
 }
