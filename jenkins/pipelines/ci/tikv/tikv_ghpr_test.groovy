@@ -180,7 +180,6 @@ stage("Prepare") {
                             cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             make format
-                            cargo sort || true
                             git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
                         """
 
