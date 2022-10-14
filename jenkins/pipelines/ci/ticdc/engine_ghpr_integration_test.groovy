@@ -126,6 +126,11 @@ def prepare_binaries_and_images() {
     }
 
     sh """
+    docker pull hub.pingcap.net/tiflow/minio:latest
+    docker tag hub.pingcap.net/tiflow/minio:latest minio/minio:latest
+    docker pull hub.pingcap.net/tiflow/minio:mc
+    docker tag hub.pingcap.net/tiflow/minio:mc minio/mc:latest
+
     docker pull hub.pingcap.net/tiflow/mysql:5.7
     docker tag hub.pingcap.net/tiflow/mysql:5.7 mysql:5.7
     docker pull hub.pingcap.net/tiflow/mysql:8.0
