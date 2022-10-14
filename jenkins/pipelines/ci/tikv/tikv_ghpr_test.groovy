@@ -179,7 +179,8 @@ stage("Prepare") {
                         sh label: 'Run lint: format', script: """
                             cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
-                            make format && git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
+                            make format
+                            git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
                         """
 
                         sh label: 'Run lint: clippy', script: """
