@@ -92,7 +92,7 @@ pipeline {
                     stages {
                         stage("Build"){
                             options {
-                                timeout(time: 10, unit: 'MINUTES')
+                                timeout(time: 15, unit: 'MINUTES')
                             }
                             steps {
                                 dir("tidb") {                                     
@@ -114,7 +114,7 @@ pipeline {
                         }
                         stage("Upload") {
                             options {
-                                timeout(time: 10, unit: 'MINUTES')
+                                timeout(time: 5, unit: 'MINUTES')
                             }
                             steps {
                                 dir("tidb") {
