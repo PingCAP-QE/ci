@@ -68,7 +68,8 @@ RUN cd tikv-src \
 RUN rustup set profile minimal
 
 RUN rustup update stable && rustup default stable \
-    && cargo install cargo-nextest
+    && cargo install cargo-nextest \
+    && cargo install cargo-sort
 
 RUN cd tikv-src \
     && git fetch origin ${ghBranch}:refs/remotes/origin/${ghBranch} \
