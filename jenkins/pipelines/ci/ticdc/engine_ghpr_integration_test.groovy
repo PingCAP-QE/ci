@@ -309,7 +309,7 @@ run_with_pod {
                     cd go/src/github.com/pingcap/tiflow
                     git config --global --add safe.directory /home/jenkins/agent/workspace/engine_ghpr_integration_test/go/src/github.com/pingcap/tiflow
                     git log | head
-                    make engine
+                    make tiflow tiflow-demo
                     touch ./bin/tiflow-chaos-case
                     make engine_image_from_local
                     docker tag ${ENGINE_TEST_TAG} hub.pingcap.net/tiflow/engine:${imageTag}
