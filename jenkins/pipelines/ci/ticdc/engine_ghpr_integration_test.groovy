@@ -368,13 +368,13 @@ run_with_pod {
                         sleep 10
                         docker version || true
                         docker-compose version || true
-                        echo "${harborPassword}" | docker login -u ${harborUser} --password-stdin hub.pingcap.net
+                        echo "${harborPassword}" | docker login -u ${harborUser} --password-stdin hub.pingcap.net || true
                         """
                     }
                     sh """
-                    docker pull hub-new.pingcap.net/tiflow/engine:${dummyImageTag}
-                    docker tag hub-new.pingcap.net/tiflow/engine:${dummyImageTag} hub.pingcap.net/tiflow/engine:${imageTag}
-                    docker push hub.pingcap.net/tiflow/engine:${imageTag}
+                    docker pull hub-new.pingcap.net/tiflow/engine:${dummyImageTag} || true
+                    docker tag hub-new.pingcap.net/tiflow/engine:${dummyImageTag} hub.pingcap.net/tiflow/engine:${imageTag} || true
+                    docker push hub.pingcap.net/tiflow/engine:${imageTag} || true
                     """
                 }
             }
