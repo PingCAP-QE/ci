@@ -2,19 +2,10 @@ def podYaml = '''
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dinp
   namespace: jenkins-cd
 spec:
   containers:
-  - image: docker
-    name: docker
-    command: ["sleep", "infinity"]
-    env:
-    - name: DOCKER_TLS_VERIFY
-      value: ""
-    - name: DOCKER_HOST
-      value: tcp://localhost:2375
-  - name: dind
+  - name: docker
     image: docker:dind
     args: ["--registry-mirror=https://registry-mirror.pingcap.net"]
     env:
