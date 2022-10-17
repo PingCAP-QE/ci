@@ -1,15 +1,21 @@
-def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="") {
-    //  - release-6.2
-    //  - release-6.2-20220801
-    //  - 6.2.0-pitr-dev    
-    def releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="", trunkBranch="master") {
     // /run-xxx dep1=release-x.y
-    def commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/
+    final commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/    
+    // - release-6.2
+    // - release-6.2-20220801
+    // - 6.2.0-pitr-dev    
+    final releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+    // - feature/abcd
+    // - feature_abcd
+    final featureBranchReg = /^feature[\/_].*/
+
     def componentBranch = prTargetBranch
     if (prCommentBody =~ commentBodyReg) {
         componentBranch = (prCommentBody =~ commentBodyReg)[0][1]
     } else if (prTargetBranch =~ releaseOrHotfixBranchReg) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
+    } else if (prTargetBranch =~ featureBranchReg) {
+       componentBranch = trunkBranch
     }
 
     def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
