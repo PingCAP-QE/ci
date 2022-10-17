@@ -66,7 +66,7 @@ def runBuilderClosure(label, image, Closure body) {
                 serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                 serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
-            emptyDirVolume(mountPath: '/tmp', memory: true),
+            emptyDirVolume(mountPath: '/tmp-memfs', memory: true),
         ],
         hostNetwork: false
     ) {
@@ -286,9 +286,9 @@ run_with_pod {
             timeout(time: 60, unit: 'MINUTES') {
                 dir(repo_path) {
                     sh """
-                    rm -rf /tmp/tiflash-tests
-                    mkdir -p /tmp/tiflash-tests
-                    export TIFLASH_TEMP_DIR=/tmp/tiflash-tests
+                    rm -rf /tmp-memfs/tiflash-tests
+                    mkdir -p /tmp-memfs/tiflash-tests
+                    export TIFLASH_TEMP_DIR=/tmp-memfs/tiflash-tests
 
                     mkdir -p /root/.cache
                     source /tests/docker/util.sh
