@@ -38,7 +38,7 @@ pipeline {
         cron('@daily')
     }
     parameters {
-        string(name: 'REVISION', defaultValue: 'master', description: 'branch or tag or hash')
+        string(name: 'REVISION', defaultValue: 'master', description: 'branch or tag or hash, master will push to latest')
     }
     stages {
         stage ("parallel build docker by arch") {
