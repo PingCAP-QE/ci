@@ -53,7 +53,7 @@ pipelineJob('pingcap/tidb/ghpr_check') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext("idc-jenkins-ci-tidb/check_dev")
-                            statusUrl('${RUN_DISPLAY_URL}')
+                            statusUrl('${BUILD_URL}')
                             startedStatus("")
                             triggeredStatus("")
                             addTestResults(false)
