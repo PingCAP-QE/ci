@@ -380,6 +380,24 @@ try {
                                 [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                         ]
             }
+            stage("check artifact"){
+                build job: "pre-release-check",
+                        wait: true,
+                        parameters: [
+                                string(value: RELEASE_TAG,name: 'RELEASE_TAG'),
+                                string(value: tidb_sha1,name: 'TIDB_VERSION'),
+                                string(value: tikv_sha1,name: 'TIKV_VERSION'),
+                                string(value: pd_sha1,name: 'PD_VERSION'),
+                                string(value: tiflash_sha1,name: 'TIFLASH_VERSION'),
+                                string(value: tidb_sha1,name: 'BR_VERSION'),
+                                string(value: binlog_sha1,name: 'BINLOG_VERSION'),
+                                string(value: tidb_sha1,name: 'LIGHTNING_VERSION'),
+                                string(value: tools_sha1,name: 'TOOLS_VERSION'),
+                                string(value: cdc_sha1,name: 'CDC_VERSION'),
+                                string(value: dumpling_sha1,name: 'DUMPLING_VERSION'),
+                                string(value: dm_sha1,name: 'DM_VERSION'),
+                        ]
+            }
         }
     }
     currentBuild.result = "SUCCESS"
