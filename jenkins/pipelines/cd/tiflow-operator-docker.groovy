@@ -30,15 +30,15 @@ spec:
     image: jenkins/inbound-agent:4.10-3
 '''
 
-def ImageTag = params.REVISION
-
 pipeline {
     agent none
     triggers {
         cron('@daily')
     }
     parameters {
-        string(name: 'REVISION', defaultValue: 'master', description: 'branch or tag or hash, master will push to latest')
+        string(name: 'Revision', defaultValue: 'master', description: 'branch or tag or hash, master will push to latest')
+        string(name: 'ImageTag', defaultValue: 'latest', description: 'image tag')
+        booleanParam(name: 'PushLatest', defaultValue: false, description: 'whether to push latest')
     }
     stages {
         stage ("parallel build docker by arch") {
@@ -60,15 +60,15 @@ pipeline {
                         stage("checkout"){
                             steps{
                                 checkout scm: [$class: 'GitSCM',
-                                               branches: [[name: params.REVISION]],
+                                               branches: [[name: params.Revision]],
                                                extensions: [[$class: 'LocalBranch']],
                                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflow-operator.git']]]
                             }
                         }
                         stage('build docker') {
                             steps {
-                                sh "docker build --platform linux/amd64 -t hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}-amd64 ."
-                                sh "docker push hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}-amd64"
+                                sh "docker build --platform linux/amd64 -t hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}-amd64 ."
+                                sh "docker push hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}-amd64"
                             }
                         }
                     }
@@ -91,15 +91,15 @@ pipeline {
                         stage("checkout"){
                             steps{
                                 checkout scm: [$class: 'GitSCM',
-                                               branches: [[name: params.REVISION]],
+                                               branches: [[name: params.Revision]],
                                                extensions: [[$class: 'LocalBranch']],
                                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflow-operator.git']]]
                             }
                         }
                         stage('build docker') {
                             steps {
-                                sh "docker build --platform linux/arm64 -t hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}-arm64 ."
-                                sh "docker push hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}-arm64"
+                                sh "docker build --platform linux/arm64 -t hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}-arm64 ."
+                                sh "docker push hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}-arm64"
                             }
                         }
                     }
@@ -117,8 +117,8 @@ pipeline {
             }
             steps{
                 sh 'printenv HUB_PSW | docker login hub.pingcap.net -u ${HUB_USR} --password-stdin'
-                sh "docker manifest create hub.pingcap.net/pingcap/tiflow-operator:${ImageTag} --amend hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}-amd64 hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}-arm64"
-                sh "docker manifest push --purge hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}"
+                sh "docker manifest create hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag} --amend hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}-amd64 hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}-arm64"
+                sh "docker manifest push --purge hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}"
             }
         }
 
@@ -127,25 +127,25 @@ pipeline {
                 stage("sync to gcr"){
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
-                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}"),
-                                string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiflow-operator:${ImageTag}"),
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}"),
+                                string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiflow-operator:${params.ImageTag}"),
                         ])
                     }
                 }
                 stage("sync latest to hub"){
-                    when { equals expected: 'master', actual: params.REVISION }
+                    when { equals expected: 'master', actual: params.Revision }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
-                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}"),
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}"),
                                 string(name: 'TARGET_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:latest"),
                         ])
                     }
                 }
                 stage("sync latest to gcr"){
-                    when { equals expected: 'master', actual: params.REVISION }
+                    when { equals expected: 'master', actual: params.Revision }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
-                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}"),
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${params.ImageTag}"),
                                 string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiflow-operator:latest"),
                         ])
                     }
