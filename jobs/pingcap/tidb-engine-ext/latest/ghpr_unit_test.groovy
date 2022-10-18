@@ -55,7 +55,7 @@ pipelineJob('pingcap/tidb-engine-ext/ghpr_unit_test') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext('pull-unit-test')
-                            statusUrl('${RUN_DISPLAY_URL}')
+                            statusUrl('${BUILD_URL}')
                             startedStatus('')
                             triggeredStatus('')
                             addTestResults(false)

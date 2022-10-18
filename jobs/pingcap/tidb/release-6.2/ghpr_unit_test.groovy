@@ -53,7 +53,7 @@ pipelineJob('pingcap/tidb/release-6.2/ghpr_unit_test') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext('idc-jenkins-ci-tidb/unit-test')
-                            statusUrl('${RUN_DISPLAY_URL}')
+                            statusUrl('${BUILD_URL}')
                             startedStatus('')
                             triggeredStatus('')
                             addTestResults(false)
