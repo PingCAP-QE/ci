@@ -54,7 +54,7 @@ pipeline {
                                 userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflow.git']]]
                     )
                     GitHash = scmVars.GIT_COMMIT
-                    ImageTag = GitHash[0..6]
+                    ImageTag = GitHash
                     println "git commit hash: ${GitHash}"
                 }
             }
