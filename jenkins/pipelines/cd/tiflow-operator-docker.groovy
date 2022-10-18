@@ -30,7 +30,8 @@ spec:
     image: jenkins/inbound-agent:4.10-3
 '''
 
-ImageTag = ''
+def GitHash = ''
+def ImageTag = ''
 pipeline {
     agent none
     triggers {
@@ -55,8 +56,9 @@ pipeline {
                                 extensions: [[$class: 'LocalBranch']],
                                 userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflow-operator.git']]]
                     )
-                    ImageTag = scmVars.GIT_COMMIT
-                    println "git commit hash: ${ImageTag}"
+                    GitHash = scmVars.GIT_COMMIT
+                    ImageTag = GitHash[0..6]
+                    println "git commit hash: ${GitHash}"
                 }
             }
         }
@@ -79,7 +81,7 @@ pipeline {
                         stage("checkout") {
                             steps{
                                 checkout scm: [$class: 'GitSCM',
-                                               branches: [[name: ImageTag]],
+                                               branches: [[name: GitHash]],
                                                extensions: [[$class: 'LocalBranch']],
                                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflow-operator.git']]]
                             }
@@ -110,7 +112,7 @@ pipeline {
                         stage("checkout"){
                             steps{
                                 checkout scm: [$class: 'GitSCM',
-                                               branches: [[name: ImageTag]],
+                                               branches: [[name: GitHash]],
                                                extensions: [[$class: 'LocalBranch']],
                                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflow-operator.git']]]
                             }
