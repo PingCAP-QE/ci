@@ -65,8 +65,8 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
-                                sh "docker build --platform linux/amd64  -f deployments/engine/docker/Dockerfile -t hub.pingcap.net/pingcap/tiflow:${ImageTag}-amd64 ."
-                                sh "docker push hub.pingcap.net/pingcap/tiflow:${ImageTag}-amd64"
+                                sh "docker build --platform linux/amd64  -f deployments/engine/docker/Dockerfile -t hub.pingcap.net/release/tiflow:${ImageTag}-amd64 ."
+                                sh "docker push hub.pingcap.net/release/tiflow:${ImageTag}-amd64"
                             }
                         }
                     }
@@ -96,8 +96,8 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
-                                sh "docker build --platform linux/arm64  -f deployments/engine/docker/Dockerfile -t hub.pingcap.net/pingcap/tiflow:${ImageTag}-arm64 ."
-                                sh "docker push hub.pingcap.net/pingcap/tiflow:${ImageTag}-arm64"
+                                sh "docker build --platform linux/arm64  -f deployments/engine/docker/Dockerfile -t hub.pingcap.net/release/tiflow:${ImageTag}-arm64 ."
+                                sh "docker push hub.pingcap.net/release/tiflow:${ImageTag}-arm64"
                             }
                         }
                     }
@@ -115,8 +115,8 @@ pipeline {
             }
             steps{
                 sh 'printenv HUB_PSW | docker login hub.pingcap.net -u ${HUB_USR} --password-stdin'
-                sh "docker manifest create hub.pingcap.net/pingcap/tiflow:${ImageTag} --amend hub.pingcap.net/pingcap/tiflow:${ImageTag}-amd64 hub.pingcap.net/pingcap/tiflow:${ImageTag}-arm64"
-                sh "docker manifest push --purge hub.pingcap.net/pingcap/tiflow:${ImageTag}"
+                sh "docker manifest create hub.pingcap.net/release/tiflow:${ImageTag} --amend hub.pingcap.net/release/tiflow:${ImageTag}-amd64 hub.pingcap.net/release/tiflow:${ImageTag}-arm64"
+                sh "docker manifest push --purge hub.pingcap.net/release/tiflow:${ImageTag}"
             }
         }
 
@@ -125,7 +125,7 @@ pipeline {
                 stage("sync to gcr"){
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
-                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow:${ImageTag}"),
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/release/tiflow:${ImageTag}"),
                                 string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiflow:${ImageTag}"),
                         ])
                     }
@@ -134,8 +134,8 @@ pipeline {
                     when { equals expected: 'master', actual: params.REVISION }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
-                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow:${ImageTag}"),
-                                string(name: 'TARGET_IMAGE', value: "hub.pingcap.net/pingcap/tiflow:latest"),
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/release/tiflow:${ImageTag}"),
+                                string(name: 'TARGET_IMAGE', value: "hub.pingcap.net/release/tiflow:latest"),
                         ])
                     }
                 }
@@ -143,7 +143,7 @@ pipeline {
                     when { equals expected: 'master', actual: params.REVISION }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
-                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow:${ImageTag}"),
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/release/tiflow:${ImageTag}"),
                                 string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiflow:latest"),
                         ])
                     }
