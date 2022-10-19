@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap-qe/ee-ops/prow_debug') {
+pipelineJob('prow_debug') {
     logRotator {
         daysToKeep(30)
     }
