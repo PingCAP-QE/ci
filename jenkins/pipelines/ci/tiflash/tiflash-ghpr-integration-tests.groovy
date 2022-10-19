@@ -11,7 +11,7 @@ if (params.containsKey("release_test") && params.get("release_test") == "true") 
 
 def runTest(label, name, path, tidb_branch) {
     podTemplate(
-        name: label, 
+        name: label,
         label: label,
         cloud: "kubernetes-ng",
         namespace: "jenkins-tiflash",
@@ -27,7 +27,7 @@ def runTest(label, name, path, tidb_branch) {
             nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true)]) 
+                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true)])
     {
         node(label) {
             stage('Unstash') {
@@ -60,24 +60,21 @@ def checkoutTiFlash() {
         stage('Checkout') {
             def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
             if (fileExists(cache_path)) {
-                println "get code from nfs to reduce clone time"
-                sh """
-                set +x
+                sh label: "Get code from nfs to reduce clone time", script: """
                 cp -R ${cache_path}  ./
                 tar -xzf ${cache_path} --strip-components=1
                 rm -f src-tics.tar.gz
                 chown -R 1000:1000 ./
-                set -x
                 """
             }
-            
+
             def refspec = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
-            
+
             if (!ghprbPullId) {
                 refspec = "+refs/heads/*:refs/remotes/origin/*"
             }
-            
-            checkout(changelog: false, poll: false, 
+
+            checkout(changelog: false, poll: false,
                 scm: [
                     $class                           : "GitSCM",
                     branches                         : [[name: ghprbActualCommit]],
@@ -136,7 +133,7 @@ def run_with_pod(Closure body) {
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
                         resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -243,7 +240,7 @@ currentBuild.result = "SUCCESS"
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-} finally { 
+} finally {
     stage("upload-pipeline-data") {
         taskFinishTime = System.currentTimeMillis()
         build job: 'upload-pipelinerun-data',
