@@ -145,7 +145,7 @@ pipeline {
 
         stage("sync images"){
             parallel{
-                stage("sync to gcr"){
+                stage("sync git hash tag to gcr"){
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
                                 string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}"),
@@ -153,16 +153,16 @@ pipeline {
                         ])
                     }
                 }
-                stage("sync latest to hub"){
-                    when { equals expected: 'master', actual: params.Revision }
+                stage("sync branch tag to gcr"){
+                    when { not { equals expected: ImageTag, actual: params.Revision } }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
                                 string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:${ImageTag}"),
-                                string(name: 'TARGET_IMAGE', value: "hub.pingcap.net/pingcap/tiflow-operator:latest"),
+                                string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiflow-operator:${params.Revision}"),
                         ])
                     }
                 }
-                stage("sync latest to gcr"){
+                stage("sync latest tag to gcr"){
                     when { equals expected: 'master', actual: params.Revision }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
