@@ -5,7 +5,7 @@ def main(image, targetName) {
             if (params.MANIFEST) {
                 writeFile(file: params.MANIFEST_FILE, text: params.MANIFEST)
             } else {
-                sh("cp /*.libsonnet ./ | true")
+                sh("cp /*.libsonnet ./ || true")
                 sh("cp /*.jsonnet ./")
             }
 
