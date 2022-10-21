@@ -667,7 +667,7 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
             ./tiflash version
             ./tiflash version | egrep -i '^Release Version.*dirty'
             if [ \$? -eq 0 ]; then
-                echo "tiflash version is dirty, for test only"
+                echo "tiflash version is dirty"
                 exit 1
             else
                 echo "tiflash version is clean, for release"
