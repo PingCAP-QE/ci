@@ -670,7 +670,7 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
                 echo "tiflash version is dirty"
                 exit 1
             else
-                echo "tiflash version is clean, for release"
+                echo "tiflash version is clean"
             fi
         fi
         """
