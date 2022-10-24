@@ -92,7 +92,7 @@ pipeline {
                     stages {
                         stage("Build"){
                             options {
-                                timeout(time: 15, unit: 'MINUTES')
+                                timeout(time: 20, unit: 'MINUTES')
                             }
                             steps {
                                 dir("tidb") {                                     
@@ -145,7 +145,7 @@ pipeline {
                 }
                 stage("Build plugins") {
                     steps {
-                        timeout(time: 20, unit: 'MINUTES') {
+                        timeout(time: 15, unit: 'MINUTES') {
                             sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
                         }
                         dir('enterprise-plugin/whitelist') {
