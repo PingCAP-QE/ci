@@ -19,7 +19,7 @@ pipeline {
                     echo "-------------------------"
                     echo "debug, you can rm the file debug.txt to continue"
                     touch debug.txt
-                    while [ -f debug.txt ]; do sleep 1; done'
+                    while [ -f debug.txt ]; do sleep 1; done
                     echo "continue"
                     echo "-------------------------"
                     ls -la
