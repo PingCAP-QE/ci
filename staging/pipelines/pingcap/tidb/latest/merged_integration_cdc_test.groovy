@@ -47,7 +47,7 @@ pipeline {
                         retry(2) {
                             checkout(
                                 changelog: false,
-                                poll: false,
+                                poll: true,
                                 scm: [
                                     $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
                                     doGenerateSubmoduleConfigurations: false,
@@ -55,6 +55,7 @@ pipeline {
                                         [$class: 'PruneStaleBranch'],
                                         [$class: 'CleanBeforeCheckout'],
                                         [$class: 'CloneOption', timeout: 15],
+                                        [$class: 'PreBuildMerge', options: [mergeRemote: 'origin', mergeTarget: 'master']],
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
