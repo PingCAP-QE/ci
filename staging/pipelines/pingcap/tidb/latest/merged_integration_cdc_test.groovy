@@ -158,13 +158,14 @@ pipeline {
                         }
                         post{
                             failure {
-                                def log_tar_name = "${CASES}".replaceAll("\\s","-")
-                                sh label: "archive failure logs", script: """
-                                ls /tmp/tidb_cdc_test/
-                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                ls -alh  log-${log_tar_name}.tar.gz  
-                                """
-                                archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
+                                echo "Test failed, archive the log"
+                                // def log_tar_name = "${CASES}".replaceAll("\\s","-")
+                                // sh label: "archive failure logs", script: """
+                                // ls /tmp/tidb_cdc_test/
+                                // tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                // ls -alh  log-${log_tar_name}.tar.gz  
+                                // """
+                                // archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
                             }
                         }
                     }
