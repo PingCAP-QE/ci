@@ -158,7 +158,7 @@ pipeline {
                         }
                         post{
                             failure {
-                                echo "Test failed, archive the log"
+                                println "Test failed, archive the log"
                                 // def log_tar_name = "${CASES}".replaceAll("\\s","-")
                                 // sh label: "archive failure logs", script: """
                                 // ls /tmp/tidb_cdc_test/
