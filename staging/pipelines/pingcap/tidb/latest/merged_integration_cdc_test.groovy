@@ -122,7 +122,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'multi_source' 'new_ci_collation_with_old_value'
+                        values 'multi_source', 'new_ci_collation_with_old_value'
                     }
                 }
                 agent{
@@ -151,14 +151,14 @@ pipeline {
                                     mkdir -p /tmp/tidb_cdc_test
                                     cp ../tidb/bin/tidb-server ./bin/
                                     ls -alh ./bin/
-                                    make integration_test_${sink_type} CASE="${CASES}"
+                                    make integration_test_mysql CASE="${CASES}"
                                     """             
                                 }
                             }
                         }
                         post{
                             failure {
-                                def log_tar_name = case_names.replaceAll("\\s","-")
+                                def log_tar_name = "${CASES}".replaceAll("\\s","-")
                                 sh label: "archive failure logs", script: """
                                 ls /tmp/tidb_cdc_test/
                                 tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
