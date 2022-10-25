@@ -102,7 +102,7 @@ pipeline {
                 }
                 dir('tiflow') {
                     sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
                         sh 'touch ws-${BUILD_TAG}'
                         sh label: 'prepare cdc binary', script: """
                         make cdc
@@ -111,17 +111,16 @@ pipeline {
                         make check_failpoint_ctl
                         ls bin/
                         """
-                        sh ""
                     }
                 }
             }
         }
-        stage('MySQL Tests') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {
                         name 'CASES'
-                        values '1', '2', '3', '4'
+                        values 'multi_source' 'new_ci_collation_with_old_value'
                     }
                 }
                 agent{
@@ -141,20 +140,29 @@ pipeline {
                                 }
                             }
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                                    dir('mysql_test') {
-                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server CACHE_ENABLED=${CACHE_ENABLED} ./test.sh -backlist=1 -part=${PART}'
-                                    }
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
+                                    sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
+                                    sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
+                                    sh label: "Case ${CASES}", script: """
+                                    ls -alh bin/
+                                    rm -rf /tmp/tidb_cdc_test
+                                    mkdir -p /tmp/tidb_cdc_test
+                                    cp ../tidb/bin/tidb-server ./bin/
+                                    ls -alh ./bin/
+                                    make integration_test_${sink_type} CASE="${CASES}"
+                                    """             
                                 }
                             }
                         }
                         post{
-                            always {
-                                junit(testResults: "**/result.xml")
-                            }
                             failure {
-                                archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
+                                def log_tar_name = case_names.replaceAll("\\s","-")
+                                sh label: "archive failure logs", script: """
+                                ls /tmp/tidb_cdc_test/
+                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                ls -alh  log-${log_tar_name}.tar.gz  
+                                """
+                                archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
                             }
                         }
                     }
