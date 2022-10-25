@@ -12,7 +12,7 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
         githubProjectUrl("https://github.com/pingcap/tidb")
         pipelineTriggers {
             triggers {
-                gigthubPush {}
+                gigthubPush()
             }
         }
     }
