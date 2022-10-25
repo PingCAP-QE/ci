@@ -5,6 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
+final GIT_BRANCH = 'master'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
 
@@ -43,13 +44,13 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: true,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                    $class: 'GitSCM', branches: [[name: GIT_BRANCH ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -96,7 +97,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_BRANCH}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
                     }
@@ -136,7 +137,7 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_BRANCH}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                 }
                             }
