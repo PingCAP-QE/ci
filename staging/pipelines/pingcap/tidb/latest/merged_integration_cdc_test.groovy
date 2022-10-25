@@ -69,13 +69,13 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbBranch}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbBranch ]],
+                                    $class: 'GitSCM', branches: [[name: GIT_BRANCH ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -85,7 +85,7 @@ pipeline {
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
                                         refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/tiflow.git",
+                                        url: "https://github.com/pingcap/tiflow.git",
                                     ]],
                                 ]
                             )
