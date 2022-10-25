@@ -5,14 +5,14 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
     }
     parameters {
         stringParam("ghprbActualCommit")
-        stringParam("ghprbPullId")
+        stringParam("ghprbTargetBranch")
     }
     properties {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tidb")
         pipelineTriggers {
             triggers {
-                gigthubPush { }
+                gigthubPush {}
             }
         }
     }
@@ -20,7 +20,7 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/ci/tidb/tidb_merged_integration_cdc_test.groovy')
+            scriptPath('staging/pipelines/pingcap/tidb/latest/tidb_merged_integration_cdc_test.groovy')
             scm {
                 git{
                     remote {
