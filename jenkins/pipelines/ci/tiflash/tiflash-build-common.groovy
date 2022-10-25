@@ -641,6 +641,7 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
     if (params.BUILD_TESTS) {
         sh "cp '${build_dir}/dbms/gtests_dbms' '${install_dir}/'"
         sh "cp '${build_dir}/libs/libcommon/src/tests/gtests_libcommon' '${install_dir}/'"
+        sh "cp '${build_dir}/contrib/GmSSL/lib/libgmssl.so.3.0' '${install_dir}/' 2>/dev/null || :"
     }
 
     dir(build_dir) {
