@@ -54,7 +54,7 @@ pipelineJob('pingcap/tidb/ghpr_mysql_test') {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
                             commitStatusContext("idc-jenkins-ci-tidb/mysql-test")
-                            statusUrl('${BUILD_URL}')
+                            statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
                             addTestResults(false)
