@@ -639,12 +639,14 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
     }
 
     if (params.BUILD_TESTS) {
+        sh "cp '${build_dir}/dbms/gtests_dbms' '${install_dir}/'"
+        sh "cp '${build_dir}/libs/libcommon/src/tests/gtests_libcommon' '${install_dir}/'"
+        // When toolchain is `llvm`, 
+        //   if install rule `tiflash-gtest` exists, the following line will override the `gtests_dbms` binary in `install_dir` and copy some other libraries.
+        //   if the rule doesn't exist, the following line will do nothing.
         if (toolchain == 'llvm') {
             sh "cmake --install ${build_dir} --component=tiflash-gtest --prefix='${install_dir}'"
-        } else {
-            sh "cp '${build_dir}/dbms/gtests_dbms' '${install_dir}/'"
         }
-        sh "cp '${build_dir}/libs/libcommon/src/tests/gtests_libcommon' '${install_dir}/'"
     }
 
     dir(build_dir) {
