@@ -25,7 +25,7 @@ GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
-    "master": "hub.pingcap.net/wangweizhen/tidb_image:go11920221013",
+    "master": "hub.pingcap.net/wangweizhen/tidb_image:go11920221025",
 ]
 ALWAYS_PULL_IMAGE = true
 RESOURCE_REQUEST_CPU = '4000m'
