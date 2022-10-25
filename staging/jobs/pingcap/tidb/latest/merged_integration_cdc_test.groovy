@@ -20,7 +20,7 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('staging/pipelines/pingcap/tidb/latest/tidb_merged_integration_cdc_test.groovy')
+            scriptPath('staging/pipelines/pingcap/tidb/latest/merged_integration_cdc_test.groovy')
             scm {
                 git{
                     remote {
