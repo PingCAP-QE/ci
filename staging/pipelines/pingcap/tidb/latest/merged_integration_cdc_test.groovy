@@ -5,6 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
+// TODO: remove env GIT_BRANCH and GIT_COMMIT
 final GIT_BRANCH = 'master'
 final GIT_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
@@ -98,7 +99,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh "git branch && git status"
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_COMMIT}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                     }
@@ -123,7 +124,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'region_merge', 'ddl_reentrant'
+                        values 'region_merge', 'ddl_reentrant', 'http_api_tls', 'generate_column'
                     }
                 }
                 agent{
@@ -139,7 +140,7 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_BRANCH}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                 }
                             }
