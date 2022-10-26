@@ -24,7 +24,7 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -97,9 +97,10 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
+                    sh "git branch && git status"
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_COMMIT}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                     }
                 }
                 dir('tiflow') {
@@ -122,7 +123,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'multi_source', 'new_ci_collation_with_old_value'
+                        values 'region_merge', 'ddl_reentrant'
                     }
                 }
                 agent{
@@ -133,6 +134,7 @@ pipeline {
                     }
                 }
                 stages {
+                    
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
@@ -150,6 +152,7 @@ pipeline {
                                     rm -rf /tmp/tidb_cdc_test
                                     mkdir -p /tmp/tidb_cdc_test
                                     cp ../tidb/bin/tidb-server ./bin/
+                                    ./bin/tidb-server -V
                                     ls -alh ./bin/
                                     make integration_test_mysql CASE="${CASES}"
                                     """             
