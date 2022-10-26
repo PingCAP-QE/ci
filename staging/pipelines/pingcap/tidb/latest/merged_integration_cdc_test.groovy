@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_BRANCH = 'master'
-final GIT_COMMIT = ''
+final GIT_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
 
@@ -49,7 +49,7 @@ pipeline {
                         retry(2) {
                             checkout(
                                 changelog: false,
-                                poll: true,
+                                poll: false,
                                 scm: [
                                     $class: 'GitSCM', branches: [[name: GIT_COMMIT ]],
                                     doGenerateSubmoduleConfigurations: false,
@@ -57,7 +57,6 @@ pipeline {
                                         [$class: 'PruneStaleBranch'],
                                         [$class: 'CleanBeforeCheckout'],
                                         [$class: 'CloneOption', timeout: 15],
-                                        [$class: 'PreBuildMerge', options: [mergeRemote: 'origin', mergeTarget: 'master']],
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
@@ -72,7 +71,7 @@ pipeline {
                 dir("tiflow") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
-                            def scmVars = checkout(
+                            checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
@@ -90,8 +89,6 @@ pipeline {
                                     ]],
                                 ]
                             )
-                            TiflowGitHash = scmVars.GIT_COMMIT
-                            println "tiflow git commit hash: ${GitHash}"
                         }
                     }
                 }
@@ -176,5 +173,4 @@ pipeline {
             }        
         }
     }
-
 }
