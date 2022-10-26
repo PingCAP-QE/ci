@@ -6,6 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_BRANCH = 'master'
+final GIT_COMMIT = ''
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
 
@@ -44,13 +45,13 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: true,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_BRANCH ]],
+                                    $class: 'GitSCM', branches: [[name: GIT_COMMIT ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -71,7 +72,7 @@ pipeline {
                 dir("tiflow") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
-                            checkout(
+                            def scmVars = checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
@@ -89,6 +90,8 @@ pipeline {
                                     ]],
                                 ]
                             )
+                            TiflowGitHash = scmVars.GIT_COMMIT
+                            println "tiflow git commit hash: ${GitHash}"
                         }
                     }
                 }
@@ -97,7 +100,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_BRANCH}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_COMMIT}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
                     }
