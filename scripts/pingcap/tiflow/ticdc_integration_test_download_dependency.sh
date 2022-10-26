@@ -48,7 +48,7 @@ function main() {
     mkdir third_bin
     mkdir tmp
     download "$pd_download_url" "pd-server.tar.gz" "tmp/pd-server.tar.gz"
-    tar -xz -C third_bin bin/* -f tmp/pd-server.tar.gz && mv third_bin/bin/* third_bin/
+    tar -xz -C third_bin 'bin/*' -f tmp/pd-server.tar.gz && mv third_bin/bin/* third_bin/
     download "$tikv_download_url" "tikv-server.tar.gz" "tmp/tikv-server.tar.gz"
     tar -xz -C third_bin bin/tikv-server  -f tmp/tikv-server.tar.gz && mv third_bin/bin/tikv-server third_bin/
     download "$tiflash_download_url" "tiflash.tar.gz" "tmp/tiflash.tar.gz"

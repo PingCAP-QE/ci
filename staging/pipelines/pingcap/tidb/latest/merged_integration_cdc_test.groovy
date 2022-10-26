@@ -5,7 +5,9 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
+// TODO: remove env GIT_BRANCH and GIT_COMMIT
 final GIT_BRANCH = 'master'
+final GIT_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
 
@@ -23,7 +25,7 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -44,19 +46,18 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
-                                poll: true,
+                                poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_BRANCH ]],
+                                    $class: 'GitSCM', branches: [[name: GIT_COMMIT ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
                                         [$class: 'CleanBeforeCheckout'],
                                         [$class: 'CloneOption', timeout: 15],
-                                        [$class: 'PreBuildMerge', options: [mergeRemote: 'origin', mergeTarget: 'master']],
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
@@ -69,13 +70,13 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbBranch}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_BRANCH}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbBranch ]],
+                                    $class: 'GitSCM', branches: [[name: GIT_BRANCH ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -85,7 +86,7 @@ pipeline {
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
                                         refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/tiflow.git",
+                                        url: "https://github.com/pingcap/tiflow.git",
                                     ]],
                                 ]
                             )
@@ -97,9 +98,10 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_BRANCH}") {
+                    sh "git branch && git status"
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                     }
                 }
                 dir('tiflow') {
@@ -122,7 +124,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'multi_source', 'new_ci_collation_with_old_value'
+                        values 'region_merge', 'ddl_reentrant', 'http_api_tls', 'generate_column'
                     }
                 }
                 agent{
@@ -133,11 +135,12 @@ pipeline {
                     }
                 }
                 stages {
+                    
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_BRANCH}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                 }
                             }
@@ -146,10 +149,11 @@ pipeline {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
-                                    ls -alh bin/
+                                    mv third_bin/* bin/ && ls -alh bin/
                                     rm -rf /tmp/tidb_cdc_test
                                     mkdir -p /tmp/tidb_cdc_test
                                     cp ../tidb/bin/tidb-server ./bin/
+                                    ./bin/tidb-server -V
                                     ls -alh ./bin/
                                     make integration_test_mysql CASE="${CASES}"
                                     """             
@@ -158,6 +162,14 @@ pipeline {
                         }
                         post{
                             failure {
+                                println "Test failed, archive the log"
+                                // def log_tar_name = "${CASES}".replaceAll("\\s","-")
+                                // sh label: "archive failure logs", script: """
+                                // ls /tmp/tidb_cdc_test/
+                                // tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                // ls -alh  log-${log_tar_name}.tar.gz  
+                                // """
+                                // archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
                             }
                         }
                     }
@@ -165,5 +177,5 @@ pipeline {
             }        
         }
     }
-
 }
+
