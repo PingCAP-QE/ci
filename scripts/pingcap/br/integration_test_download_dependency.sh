@@ -1,14 +1,5 @@
 
-# br it binary
-# ticdc binary
-# tikv / pd / importer / tiflash 
-# goycsb
-# minio
-# mc
-# kes
-# fake-gcs-server
-# brv4.0.8
-
+#! /usr/bin/env bash
 
 # help
 # download some third party tools for br integration test
@@ -18,9 +9,6 @@
 # * tikv / pd / tiflash / ticdc / importer
 # third party tools download from fileserver
 # * goycsb / minio / mc / kes / fake-gcs-server / brv4.0.8
-
-
-#! /usr/bin/env bash
 
 set -eu
 
@@ -36,7 +24,7 @@ tikv_importer_branch="release-5.0"
 tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${pd_branch}/sha1"
 pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${tikv_branch}/sha1"
 tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${tiflash_branch}/sha1"
-tikv_importet_sha1_url="${file_server_url}/download/refs/pingcap/importer/${tikv_importer_branch}/sha1"
+tikv_importer_sha1_url="${file_server_url}/download/refs/pingcap/importer/${tikv_importer_branch}/sha1"
 ticdc_sha1_url="${file_server_url}/download/refs/pingcap/ticdc/${ticdc_branch}/sha1"
 
 
@@ -89,9 +77,9 @@ function main() {
     mv third_bin/tiflash third_bin/_tiflash
     mv third_bin/_tiflash/* third_bin && rm -rf third_bin/_tiflash
     download "$tikv_importer_download_url" "importer.tar.gz" "tmp/importer.tar.gz"
-    tar -xz -C third_bin bin/importer  -f tmp/importer.tar.gz && mv third_bin/bin/importer third_bin/
+    tar -xz -C third_bin bin/tikv-importer  -f tmp/importer.tar.gz && mv third_bin/bin/tikv-importer third_bin/
     download "$ticdc_download_url" "ticdc-linux-amd64.tar.gz" "tmp/ticdc-linux-amd64.tar.gz"
-    tar -xz -C third_bin -f tmp/ticdc-linux-amd64.tar.gz && mv third_bin/ticdc-linux-amd64/* third_bin/ && rm -rf third_bin/ticdc-linux-amd64
+    tar -xz -C third_bin -f tmp/ticdc-linux-amd64.tar.gz && mv third_bin/ticdc-linux-amd64/bin/* third_bin/ && rm -rf third_bin/ticdc-linux-amd64
 
     download "$minio_url" "minio" "third_bin/minio"
     download "$go_ycsb_url" "go-ycsb" "third_bin/go-ycsb"
@@ -99,7 +87,6 @@ function main() {
     download "$kes_url" "kes" "third_bin/kes"
     download "$fake_gcs_server_url" "fake-gcs-server" "third_bin/fake-gcs-server"
     download "$brv_url" "brv4.0.8" "third_bin/brv4.0.8"
-
 
     chmod +x third_bin/*
     ls -alh third_bin/
