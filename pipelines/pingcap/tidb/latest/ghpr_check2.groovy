@@ -73,48 +73,10 @@ pipeline {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
                     }
-                    sh label: 'tikv-server', script: '''#! /usr/bin/env bash
-
-                        # parse tikv branch from comment.
-                        #   tikv=branchXxx or tikv=pr/123
-                        commentBodyBranchReg="\\btikv\\s*=\\s*(\\S+)\\b"
-                        if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
-                            TIKV_BRANCH=${BASH_REMATCH[1]}
-                        else
-                            TIKV_BRANCH=${ghprbTargetBranch}
-                        fi
-                        echo "TIKV_BRANCH=${TIKV_BRANCH}"
-
-                        refs="${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                        sha1="$(curl --fail ${refs} | head -1)"
-                        url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${sha1}/centos7/tikv-server.tar.gz"
-                        echo "tikv-server tarball url: ${url}"
-                        curl --fail ${url} | tar xz
-                        '''
-                    sh label: 'pd-server', script: '''#! /usr/bin/env bash
-
-                        # parse pd branch from comment.
-                        #   pd=branchXxx or pd=pr/123
-                        commentBodyBranchReg="\\bpd\\s*=\\s*(\\S+)\\b"
-                        if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
-                            PD_BRANCH=${BASH_REMATCH[1]}
-                        else
-                            PD_BRANCH=${ghprbTargetBranch}
-                        fi
-                        echo "PD_BRANCH=${PD_BRANCH}"
-
-                        refs="${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                        sha1="$(curl --fail ${refs} | head -1)"
-                        url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${sha1}/centos7/pd-server.tar.gz"
-                        echo "pd-server tarball url: ${url}"
-                        curl --fail ${url} | tar xz bin
-                        '''
-                    // TODO(wuhuizuo): merge first ,then debug, final enable and replace above codes.
-                    // script {
-                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', '')
-                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', ghprbTargetBranch, ghprbCommentBody, 'centos7/pd-server.tar.gz', 'bin')
-                    // }                    
-                    
+                    script {
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', '')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', ghprbTargetBranch, ghprbCommentBody, 'centos7/pd-server.tar.gz', 'bin')
+                    }
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                         sh '''
