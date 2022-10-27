@@ -17,7 +17,7 @@ pipelineJob('tidb_ghpr_integration_ddl_test') {
                     cron('H/5 * * * *')
                     gitHubAuthId('8b25795b-a680-4dce-9904-89ef40d73159')
 
-                    triggerPhrase('.*\/(run(-integration-tests|-integration-ddl-test).*)')
+                    triggerPhrase('.*/(run(-integration-tests|-integration-ddl-test).*)')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
