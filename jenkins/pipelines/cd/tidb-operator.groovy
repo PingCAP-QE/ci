@@ -197,7 +197,6 @@ pipeline {
 						for chartItem in ${CHART_ITEMS}
 						do
 							chartPrefixName=\$chartItem-${ReleaseTag}
-							echo "======= release \$chartItem chart ======"
 							sed -i "s/version:.*/version: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
 							sed -i "s/appVersion:.*/appVersion: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
                             # update image tag to current release
