@@ -76,7 +76,7 @@ pipeline {
 
                         # parse tikv branch from comment.
                         #   tikv=branchXxx or tikv=pr/123
-                        commentBodyBranchReg="\\btikv\\s*=\\s*(\\S+)\\b"
+                        commentBodyBranchReg="\\btikv[:space:]*=[:space:]*([^[:space:]]+)(\\b.*)?"
                         if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
                             TIKV_BRANCH=${BASH_REMATCH[1]}
                         else
@@ -94,7 +94,7 @@ pipeline {
 
                         # parse pd branch from comment.
                         #   pd=branchXxx or pd=pr/123
-                        commentBodyBranchReg="\\bpd\\s*=\\s*(\\S+)\\b"
+                        commentBodyBranchReg="\\bpd[:space:]*=[:space:]*([^[:space:]]+)(\\b.*)?"
                         if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
                             PD_BRANCH=${BASH_REMATCH[1]}
                         else
