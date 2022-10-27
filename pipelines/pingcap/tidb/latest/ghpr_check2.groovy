@@ -1,6 +1,8 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and latest release branches
+@Library('tipipeline') _
+
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
@@ -75,7 +77,7 @@ pipeline {
 
                         # parse tikv branch from comment.
                         #   tikv=branchXxx or tikv=pr/123
-                        commentBodyBranchReg="\\btikv[:space:]*=[:space:]*([^[:space:]]+)(\\b.*)?"
+                        commentBodyBranchReg="\\btikv\\s*=\\s*(\\S+)\\b"
                         if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
                             TIKV_BRANCH=${BASH_REMATCH[1]}
                         else
@@ -93,7 +95,7 @@ pipeline {
 
                         # parse pd branch from comment.
                         #   pd=branchXxx or pd=pr/123
-                        commentBodyBranchReg="\\bpd[:space:]*=[:space:]*([^[:space:]]+)(\\b.*)?"
+                        commentBodyBranchReg="\\bpd\\s*=\\s*(\\S+)\\b"
                         if [[ "${ghprbCommentBody}" =~ $commentBodyBranchReg ]]; then
                             PD_BRANCH=${BASH_REMATCH[1]}
                         else
@@ -107,6 +109,11 @@ pipeline {
                         echo "pd-server tarball url: ${url}"
                         curl --fail ${url} | tar xz bin
                         '''
+                    // TODO(wuhuizuo): merge first ,then debug, final enable and replace above codes.
+                    // script {
+                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', '')
+                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', ghprbTargetBranch, ghprbCommentBody, 'centos7/pd-server.tar.gz', 'bin')
+                    // }                    
                     
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
