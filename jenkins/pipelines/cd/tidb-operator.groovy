@@ -82,6 +82,9 @@ spec:
   - name: uploader
     image: hub.pingcap.net/jenkins/uploader
     args: ["sleep", "infinity"]
+  - name: helm
+    image: hub.pingcap.net/jenkins/helm:2.14.1
+    args: ["sleep", "infinity"]
   tolerations:
   - effect: NoSchedule
     key: tidb-operator
@@ -353,27 +356,28 @@ pipeline {
                             steps {
                                 unstash "bin"
                                 sh """
-                        cd ${CHARTS_BUILD_DIR}
-						for chartItem in ${CHART_ITEMS}
-						do
-							chartPrefixName=\$chartItem-${ReleaseTag}
-                            upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
-                            upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
-						done
-                         if [ "${ReleaseTag}" != "latest" -a "${ReleaseTag}" != "nightly" -a "${ReleaseTag}" != "test" ]; then
-                            wget https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz
-                            tar -zxvf helm-v2.14.1-linux-amd64.tar.gz
-                            mv linux-amd64/helm /usr/local/bin/helm
-                            chmod +x /usr/local/bin/helm
-                            curl http://charts.pingcap.org/index.yaml -o index.yaml
-                            cat index.yaml
-                            helm repo index . --url http://charts.pingcap.org/ --merge index.yaml
-                            cat index.yaml
-                            upload_qiniu.py index.yaml index.yaml
-                        else
-                            echo "info: RELEASE_TAG is ${ReleaseTag}, skip adding it into chart index file"
-                        fi
-						"""
+                                    cd ${CHARTS_BUILD_DIR}
+                                    for chartItem in ${CHART_ITEMS}
+                                    do
+                                        chartPrefixName=\$chartItem-${ReleaseTag}
+                                        upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
+                                        upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
+                                    done
+                                    """
+                            }
+                        }
+                        stage("charts index"){
+                            when{ expression{ !(ReleaseTag in ["latest", "nightly", "test"])}}
+                            environment {
+                                QINIU_BUCKET_NAME = "charts";
+                            }
+                            steps{
+                                sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
+                                container("helm"){
+                                    sh "helm repo index . --url http://charts.pingcap.org/ --merge index.yaml"
+                                }
+                                sh "cat index.yaml"
+                                sh "# upload_qiniu.py index.yaml index.yaml"
                             }
                         }
                         stage("tkcli") {
