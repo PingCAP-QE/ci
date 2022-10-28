@@ -56,7 +56,6 @@ catchError {
             cd /home/jenkins
             mkdir -p /root/.docker
             yes | cp /etc/dockerconfig.json /root/.docker/config.json
-            yes|cp -R /etc/.aws /root
             cd $wss
             """
             stage('download') {
