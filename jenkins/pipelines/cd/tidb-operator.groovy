@@ -286,6 +286,7 @@ pipeline {
             }
         }
         stage("RELEASE") {
+            options { retry(3) }
             stages {
                 stage("Publish Images") {
                     agent {
@@ -363,18 +364,18 @@ pipeline {
                                     """
                             }
                         }
-                        stage("charts index"){
-                            when{ expression{ !(ReleaseTag in ["latest", "nightly", "test"])}}
+                        stage("charts index") {
+                            when { expression { !(ReleaseTag in ["latest", "nightly", "test"]) } }
                             environment {
                                 QINIU_BUCKET_NAME = "charts";
                             }
-                            steps{
+                            steps {
                                 sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
-                                container("helm"){
+                                container("helm") {
                                     sh "helm repo index . --url http://charts.pingcap.org/ --merge index.yaml"
                                 }
                                 sh "cat index.yaml"
-                                sh "# upload_qiniu.py index.yaml index.yaml"
+                                sh "upload_qiniu.py index.yaml index.yaml"
                             }
                         }
                         stage("tkcli") {
