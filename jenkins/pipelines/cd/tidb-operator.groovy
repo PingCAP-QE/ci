@@ -209,7 +209,7 @@ pipeline {
                         }
                         stage("stash") {
                             steps {
-                                stash name: "bin", includes: "Makefile,tests/images/e2e/bin/,images/,${TOOLS_BUILD_DIR}/,charts/,manifests/,${CHARTS_BUILD_DIR}/,misc/images/"
+                                stash name: "bin", includes: "Makefile,tests/images/e2e/bin/,images/,${TOOLS_BUILD_DIR}/,${CHARTS_BUILD_DIR}/,misc/images/"
                             }
                         }
                     }
