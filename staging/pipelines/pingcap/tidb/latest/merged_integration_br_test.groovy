@@ -77,6 +77,7 @@ pipeline {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        sh label: 'build-for-br-integration-test', script: 'make build_for_integration_test'
                     }
                 }
             }
@@ -86,7 +87,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'region_merge', 'ddl_reentrant', 'http_api_tls', 'generate_column'
+                        values 'br_incompatible_tidb_config', 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation'
                     }
                 }
                 agent{
@@ -97,28 +98,25 @@ pipeline {
                     }
                 }
                 stages {
-                    
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                }
-                            }
-                            dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
-                                    sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
-                                    sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
+                                    sh 'chmod +x ../scripts/pingcap/br/*.sh'
+                                    sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
+                                    mv br/tests/*  tests/
+
                                     mv third_bin/* bin/ && ls -alh bin/
-                                    rm -rf /tmp/tidb_cdc_test
-                                    mkdir -p /tmp/tidb_cdc_test
-                                    cp ../tidb/bin/tidb-server ./bin/
-                                    ./bin/tidb-server -V
-                                    ls -alh ./bin/
-                                    make integration_test_mysql CASE="${CASES}"
-                                    """             
+                                    rm -rf /tmp/backup_restore_test
+                                    mkdir -p /tmp/backup_restore_test
+                                    rm -rf cover
+                                    mkdir cover
+                                    export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+                                    TEST_NAME=${CASES} tests/run.sh
+                                    """
                                 }
                             }
                         }
