@@ -2,7 +2,6 @@ package cd
 
 String GitHash
 String ReleaseTag
-String ImageTag
 def EnableE2E = false
 
 
@@ -106,9 +105,7 @@ pipeline {
                     if (!ReleaseTag) {
                         ReleaseTag = params.GitRef
                     }
-                    ImageTag = ReleaseTag
                     println("ReleaseTag: $ReleaseTag")
-                    println("ImageTag: $ImageTag")
                 }
             }
         }
@@ -240,19 +237,19 @@ pipeline {
                             when { expression { EnableE2E } }
                             steps {
                                 sh """set -ex
-                            NO_BUILD=y GOARCH=amd64 DOCKER_REPO=hub.pingcap.net/tidb-operator-e2e Image_Tag=${ImageTag} make docker-push # e2e-docker-push
+                            NO_BUILD=y GOARCH=amd64 DOCKER_REPO=hub.pingcap.net/tidb-operator-e2e Image_Tag=${ReleaseTag} make docker-push # e2e-docker-push
                             echo "info: download binaries for e2e"
                             # SKIP_BUILD=y SKIP_IMAGE_BUILD=y SKIP_UP=y SKIP_TEST=y SKIP_DOWN=y ./hack/e2e.sh"""
                             }
                         }
                         stage("operator") {
                             steps {
-                                sh "docker buildx build --platform=linux/arm64,linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/tidb-operator --push -t hub.pingcap.net/rc/tidb-operator:${ImageTag} images/tidb-operator/"
+                                sh "docker buildx build --platform=linux/arm64,linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/tidb-operator --push -t hub.pingcap.net/rc/tidb-operator:${ReleaseTag} images/tidb-operator/"
                             }
                         }
                         stage("backup manager") {
                             steps {
-                                sh "docker buildx build --platform=linux/arm64,linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/tidb-backup-manager --push -t hub.pingcap.net/rc/tidb-backup-manager:${ImageTag} images/tidb-backup-manager/"
+                                sh "docker buildx build --platform=linux/arm64,linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/tidb-backup-manager --push -t hub.pingcap.net/rc/tidb-backup-manager:${ReleaseTag} images/tidb-backup-manager/"
                             }
                         }
                         stage("debug helper images") {
@@ -261,7 +258,7 @@ pipeline {
                                 script {
                                     ["debug-launcher", "tidb-control", "tidb-debug"].each {
                                         sh """
-                                           docker buildx build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/${it} --platform=linux/amd64 --push -t hub.pingcap.net/rc/${it}:${ImageTag} misc/images/${it}
+                                           docker buildx build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/${it} --platform=linux/amd64 --push -t hub.pingcap.net/rc/${it}:${ReleaseTag} misc/images/${it}
                                            """
                                     }
                                 }
@@ -282,7 +279,7 @@ pipeline {
             }
             steps {
                 unstash "bin"
-                println("these images to publish are hub.pingcap.net/rc/[debug-launcher, tidb-control, tidb-debug, tidb-operator, tidb-backup-manager]:$ImageTag")
+                println("these images to publish are hub.pingcap.net/rc/[debug-launcher, tidb-control, tidb-debug, tidb-operator, tidb-backup-manager]:$ReleaseTag")
                 println("the charts to publish are in workspace $CHARTS_BUILD_DIR")
                 println("the tools to publish are in workspace $TOOLS_BUILD_DIR")
                 input("continue?")
@@ -313,21 +310,21 @@ pipeline {
                                         environment { HUB = credentials('harbor-pingcap') }
                                         steps {
                                             sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ImageTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
                                         }
                                     }
                                     stage("aliyun") {
                                         environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
                                         steps {
                                             sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ImageTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
                                         }
                                     }
                                     stage("dockerhub") {
                                         environment { HUB = credentials('dockerhub-pingcap') }
                                         steps {
                                             sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ImageTag}  docker.io/pingcap/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
                                         }
                                     }
                                 }
