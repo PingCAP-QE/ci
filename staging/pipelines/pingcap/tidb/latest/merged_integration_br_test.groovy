@@ -107,6 +107,7 @@ pipeline {
                                     sh 'chmod +x ../scripts/pingcap/br/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
+                                    pwd && ls -alh
                                     mv br/tests/*  tests/
 
                                     mv third_bin/* bin/ && ls -alh bin/
