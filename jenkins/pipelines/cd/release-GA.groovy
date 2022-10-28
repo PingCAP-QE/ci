@@ -191,8 +191,8 @@ try {
 
                     }
                     if (RELEASE_TAG < "v6.0.0") {
-                        publishs["publish ansible package"] = {
-                            build job: 'release-GA-ansible',
+                        publishs["publish v5 extra package"] = {
+                            build job: 'release-GA-v5-extra-packages',
                                     wait: true,
                                     parameters: [
                                             [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
