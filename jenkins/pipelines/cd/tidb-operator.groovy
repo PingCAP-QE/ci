@@ -283,7 +283,7 @@ pipeline {
             steps {
                 unstash "bin"
                 println("these images to publish are hub.pingcap.net/rc/[debug-launcher, tidb-control, tidb-debug, tidb-operator, tidb-backup-manager]:$ImageTag")
-                println("the chats to publish are in workspace $CHARTS_BUILD_DIR")
+                println("the charts to publish are in workspace $CHARTS_BUILD_DIR")
                 println("the tools to publish are in workspace $TOOLS_BUILD_DIR")
                 input("continue?")
             }
