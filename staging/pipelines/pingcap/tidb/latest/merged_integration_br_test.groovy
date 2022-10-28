@@ -77,7 +77,7 @@ pipeline {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        sh label: 'build-for-br-integration-test', script: 'make build_for_integration_test'
+                        sh label: 'build-for-br-integration-test', script: 'make build_for_br_integration_test'
                     }
                 }
             }
