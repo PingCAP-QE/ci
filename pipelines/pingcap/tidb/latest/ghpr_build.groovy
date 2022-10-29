@@ -91,9 +91,6 @@ pipeline {
                 stage("Build tidb-server") {
                     stages {
                         stage("Build"){
-                            options {
-                                timeout(time: 20, unit: 'MINUTES')
-                            }
                             steps {
                                 dir("tidb") {                                     
                                     sh "make bazel_build"
