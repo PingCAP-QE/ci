@@ -87,7 +87,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'br_incompatible_tidb_config', 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation'
+                        values 'br_incompatible_tidb_config', 'br_history', 'lightning_alter_random', 'lightning_new_collation', 'br_systables'
                     }
                 }
                 agent{
@@ -96,7 +96,7 @@ pipeline {
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
                     }
-                }
+                } 
                 stages {
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
@@ -106,17 +106,23 @@ pipeline {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                     sh 'chmod +x ../scripts/pingcap/br/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
-                                    sh label: "Case ${CASES}", script: """
-                                    pwd && ls -alh
-                                    mv br/tests/*  tests/
 
-                                    mv third_bin/* bin/ && ls -alh bin/
-                                    rm -rf /tmp/backup_restore_test
-                                    mkdir -p /tmp/backup_restore_test
-                                    rm -rf cover
-                                    mkdir cover
-                                    export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
-                                    TEST_NAME=${CASES} tests/run.sh
+                                }
+                            }
+                            dir("br-test") {
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}") { 
+                                    sh label: "Case ${CASES}", script: """
+                                        pwd && ls -alh
+                                        mv br/tests/*  tests/
+                                        mkdir -p bin
+                                        mv ../tidb/bin/* bin/
+                                        mv ../tidb/third_bin/* bin/ && ls -alh bin/
+                                        rm -rf /tmp/backup_restore_test
+                                        mkdir -p /tmp/backup_restore_test
+                                        rm -rf cover
+                                        mkdir cover
+                                        export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+                                        TEST_NAME=${CASES} tests/run.sh
                                     """
                                 }
                             }
