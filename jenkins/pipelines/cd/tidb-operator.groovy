@@ -2,8 +2,9 @@ package cd
 
 String GitHash
 String ReleaseTag
+boolean PushPublic
 def EnableE2E = false
-def PushPublic
+
 
 
 final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-lightning tikv-importer'
