@@ -3,6 +3,7 @@ package cd
 String GitHash
 String ReleaseTag
 def EnableE2E = false
+def PushPublic
 
 
 final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-lightning tikv-importer'
@@ -105,7 +106,9 @@ pipeline {
                     if (!ReleaseTag) {
                         ReleaseTag = params.GitRef
                     }
+                    PushPublic = params.ReleaseTag.startsWith("v") and !params.ReleaseTag.contains("-alpha")
                     println("ReleaseTag: $ReleaseTag")
+                    println("PushPublic: $PushPublic")
                 }
             }
         }
@@ -315,6 +318,7 @@ pipeline {
                                         }
                                     }
                                     stage("aliyun") {
+                                        when{expression{PushPublic}}
                                         environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
                                         steps {
                                             sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
@@ -322,6 +326,7 @@ pipeline {
                                         }
                                     }
                                     stage("dockerhub") {
+                                        when{expression{PushPublic}}
                                         environment { HUB = credentials('dockerhub-pingcap') }
                                         steps {
                                             sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
