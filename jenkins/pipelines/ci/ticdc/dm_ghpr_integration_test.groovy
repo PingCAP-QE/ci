@@ -287,6 +287,22 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server'
                 sh 'rm -r tidb-server.tar.gz'
 
+                pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${TIDB_BRANCH}/sha1").trim()
+                sh "curl -C - --retry 3 -f -o pd-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                sh 'mkdir -p pd-server'
+                sh 'tar -zxf pd-server.tar.gz -C pd-server'
+                sh 'mv pd-server/bin/pd-server bin/'
+                sh 'rm -r pd-server'
+                sh 'rm -r pd-server.tar.gz'
+
+                tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIDB_BRANCH}/sha1").trim()
+                sh "curl -C - --retry 3 -f -o tikv-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                sh 'mkdir -p tikv-server'
+                sh 'tar -zxf tikv-server.tar.gz -C tikv-server'
+                sh 'mv tikv-server/bin/tikv-server bin/'
+                sh 'rm -r tikv-server'
+                sh 'rm -r tikv-server.tar.gz'
+
                 tools_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb-tools/master/sha1").trim()
                 sh "curl -C - --retry 3 -f -o tidb-tools.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/${tools_sha1}/centos7/tidb-tools.tar.gz"
                 sh 'mkdir -p tidb-tools'
