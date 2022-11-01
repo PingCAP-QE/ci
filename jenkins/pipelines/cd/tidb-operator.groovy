@@ -318,6 +318,13 @@ pipeline {
                                             sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
                                         }
                                     }
+                                    stage("gcr") {
+                                        environment { HUB = credentials('gcr-registry-key') }
+                                        steps {
+                                            sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
+                                        }
+                                    }
                                     stage("aliyun") {
                                         when{expression{PushPublic}}
                                         environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
@@ -340,6 +347,7 @@ pipeline {
                     }
                 }
                 stage("Publish Files") {
+                    when{expression{PushPublic}}
                     agent {
                         kubernetes {
                             yaml uploaderYaml
