@@ -74,7 +74,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh "git branch && git status"
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'build-for-br-integration-test', script: 'make build_for_br_integration_test'
@@ -102,28 +102,24 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                    sh 'chmod +x ../scripts/pingcap/br/*.sh'
-                                    sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
-
-                                }
-                            }
-                            dir("br-test") {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}") { 
-                                    sh label: "Case ${CASES}", script: """
-                                        pwd && ls -alh
-                                        mv br/tests/*  tests/
-                                        mkdir -p bin
-                                        mv ../tidb/bin/* bin/
-                                        mv ../tidb/third_bin/* bin/ && ls -alh bin/
-                                        rm -rf /tmp/backup_restore_test
-                                        mkdir -p /tmp/backup_restore_test
-                                        rm -rf cover
-                                        mkdir cover
-                                        export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
-                                        TEST_NAME=${CASES} tests/run.sh
-                                    """
+                                    sh """git status && ls -alh""" 
+                                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
+                                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                                        sh 'chmod +x ../scripts/pingcap/br/*.sh'
+                                        sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
+                                        sh label: "Case ${CASES}", script: """
+                                            mv br/tests/*  tests/
+                                            mkdir -p bin
+                                            mv third_bin/* bin/ && ls -alh bin/
+                                            rm -rf /tmp/backup_restore_test
+                                            mkdir -p /tmp/backup_restore_test
+                                            rm -rf cover
+                                            mkdir cover
+                                            export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+                                            TEST_NAME=${CASES} tests/run.sh
+                                        """
+                                    }
                                 }
                             }
                         }
