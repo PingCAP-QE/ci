@@ -1,11 +1,6 @@
 /*
 * @RELEASE_TAG
-* @RELEASE_BRANCH
 */
-
-
-
-env.DOCKER_HOST = "tcp://localhost:2375"
 
 ng_monitoring_sha1 = ""
 dm_sha1 = ""
@@ -61,7 +56,6 @@ catchError {
             cd /home/jenkins
             mkdir -p /root/.docker
             yes | cp /etc/dockerconfig.json /root/.docker/config.json
-            yes|cp -R /etc/.aws /root
             cd $wss
             """
             stage('download') {
@@ -371,154 +365,9 @@ catchError {
                     push_arm_tiflash("tiflash-${release_tag}-linux-arm64")
                 }
             }
-
-            def builds = [:]
-            builds["Push Centos7 Binary"] = {
+            stage("Push Centos7 Binary") {
                 def ws = pwd()
                 push_binary(RELEASE_TAG, ws)
-            }
-            def os = "linux"
-            def arch = "amd64"
-            def platform = "centos7"
-            builds["Push tidb Docker"] = {
-                libs.release_online_image("tidb", tidb_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push tikv Docker"] = {
-                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push pd Docker"] = {
-                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push lightning Docker"] = {
-                libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push br Docker"] = {
-                libs.release_online_image("br", tidb_br_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push dumpling Docker"] = {
-                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push tidb-binlog Docker"] = {
-                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["Push cdc Docker"] = {
-                libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-            if (RELEASE_TAG >= "v5.3.0") {
-                builds["Push dm Docker"] = {
-                    libs.release_online_image("dm", dm_sha1, arch,  os , platform, RELEASE_TAG, false, false)
-                }
-            }
-            builds["Push tiflash Docker"] = {
-                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            builds["NG Monitoring Docker"] = {
-                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            // TODO: refine monitoring
-            builds["Push monitor initializer"] = {
-                build job: 'release-monitor',
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-                        ]
-
-                docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
-                    sh """
-                        docker pull registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                        docker tag registry-mirror.pingcap.net/pingcap/tidb-monitor-initializer:${RELEASE_TAG} uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                        docker push uhub.service.ucloud.cn/pingcap/tidb-monitor-initializer:${RELEASE_TAG}
-                    """
-                }
-            }
-
-            builds["Publish tiup"] = {
-                build job: 'tiup-mirror-update-test',
-                        wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"]]
-            }
-
-            builds["Publish dm tiup offline package"] = {
-                // publish dm offline package (include linux amd64 and arm64)
-                build job: 'tiup-package-offline-mirror-dm',
-                        wait: true,
-                        parameters: [[$class: 'StringParameterValue', name: 'VERSION', value: "${RELEASE_TAG}"]]
-            }
-
-            stage("Push tarbll/image") {
-                parallel builds
-            }
-
-            def build_arms = [:]
-            os = "linux"
-            arch = "arm64"
-            platform = "centos7"
-
-            build_arms["arm64 tidb Docker"] = {
-                libs.release_online_image("tidb", tidb_sha1, arch, os , platform, RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 tikv Docker"] = {
-                libs.release_online_image("tikv", tikv_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 pd Docker"] = {
-                libs.release_online_image("pd", pd_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 br Docker"] = {
-                libs.release_online_image("br", tidb_br_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 dumpling Docker"] = {
-                libs.release_online_image("dumpling", dumpling_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 tidb-binlog Docker"] = {
-                libs.release_online_image("tidb-binlog", tidb_binlog_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 ticdc Docker"]={
-                libs.release_online_image("ticdc", cdc_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-            if (RELEASE_TAG >= "v5.3.0") {
-                build_arms["arm64 dm Docker"] = {
-                    libs.release_online_image("dm", dm_sha1, arch,  os , platform, RELEASE_TAG, false, false)
-                }
-            }
-            build_arms["arm64 tiflash Docker"] = {
-                libs.release_online_image("tiflash", tiflash_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 Lightning Docker"] = {
-                libs.release_online_image("tidb-lightning", tidb_lightning_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            build_arms["arm64 NG Monitoring Docker"] = {
-                libs.release_online_image("ng-monitoring", ng_monitoring_sha1, arch,  os , platform,RELEASE_TAG, false, false)
-            }
-
-            stage("Push arm images") {
-                parallel build_arms
-            }
-
-            stage("Publish arm64 docker images") {
-                build job: 'build-arm-image',
-                        wait: true,
-                        parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                                [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-                        ]
             }
         }
     }
