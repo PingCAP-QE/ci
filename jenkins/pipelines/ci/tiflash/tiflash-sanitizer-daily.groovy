@@ -80,6 +80,8 @@ def runBuilderClosure(label, Closure body) {
     volumes: [
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+            nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/rust', readOnly: false),
     ]
     ) {
         node(label) {
@@ -147,6 +149,26 @@ else
   ccache -o read_only=false
 fi
 ccache -z
+
+mkdir -p ~/.cargo/registry
+mkdir -p ~/.cargo/git
+mkdir -p /home/jenkins/agent/rust/registry/cache
+mkdir -p /home/jenkins/agent/rust/registry/index
+mkdir -p /home/jenkins/agent/rust/git/db
+mkdir -p /home/jenkins/agent/rust/git/checkouts
+
+rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
+rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
+rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
+rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
+
+rm -rf ~/.rustup/tmp
+rm -rf ~/.rustup/toolchains
+mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
+mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
+ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
+ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
+
 '''
     container("builder") {
         dir("${cwd}/tiflash") {

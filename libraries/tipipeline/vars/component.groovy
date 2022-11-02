@@ -1,3 +1,6 @@
+// TODO: extract branch parsing codes to common function.
+
+// checkout component src from git repo.
 def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="", trunkBranch="master") {
     // /run-xxx dep1=release-x.y
     final commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/    
@@ -45,4 +48,35 @@ def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId=
             ]]
         ]
     )
+}
+
+// fetch component artifact from artifactory(current http server)
+def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBody, artifactPath, pathInArchive="", trunkBranch="master") {
+    // /run-xxx dep1=release-x.y
+    final commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/    
+    // - release-6.2
+    // - release-6.2-20220801
+    // - 6.2.0-pitr-dev    
+    final releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+    // - feature/abcd
+    // - feature_abcd
+    final featureBranchReg = /^feature[\/_].*/
+
+    def componentBranch = prTargetBranch
+    if (prCommentBody =~ commentBodyReg) {
+        componentBranch = (prCommentBody =~ commentBodyReg)[0][1]
+    } else if (prTargetBranch =~ releaseOrHotfixBranchReg) {
+        componentBranch = String.format('release-%s', (prTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
+    } else if (prTargetBranch =~ featureBranchReg) {
+       componentBranch = trunkBranch
+    }
+
+    sh(label: 'download and extract from server', script: """
+        refUrl="${serverUrl}/download/refs/pingcap/${keyInComment}/${componentBranch}/sha1"
+        echo "ref url: \${refUrl}"
+        sha1="\$(curl --fail \${refUrl} | head -1)"
+        artifactUrl="${serverUrl}/download/builds/pingcap/${keyInComment}/\${sha1}/${artifactPath}"
+        echo "artifact url: \${artifactUrl}"
+        curl --fail \${artifactUrl} | tar xz ${pathInArchive}
+    """)
 }
