@@ -74,10 +74,10 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh "git branch && git status"
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        sh label: 'build-for-br-integration-test', script: 'make build_for_integration_test'
+                        sh label: 'build-for-br-integration-test', script: 'make build_for_br_integration_test'
                     }
                 }
             }
@@ -87,7 +87,10 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'br_incompatible_tidb_config', 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation'
+                        values 'br_incremental_ddl', 'br_incompatible_tidb_config', 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation', 'lightning_row-format-v2',
+                            'lightning_s3', 'lightning_sqlmode', 'lightning_tiflash', 'br_s3', 'br_tiflash', 'br_tikv_outage', 'br_tikv_outage2', 'lightning_disk_quota', 'br_300_small_tables',
+                            'br_full_ddl', 'lightning_checkpoint', 'br_table_filter', 'br_systables', 'br_rawkv',
+                            'br_key_locked', 'br_other', 'br_history', 'br_full', 'br_full_index'
                     }
                 }
                 agent{
@@ -96,27 +99,30 @@ pipeline {
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
                     }
-                }
+                } 
                 stages {
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                    sh 'chmod +x ../scripts/pingcap/br/*.sh'
-                                    sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
-                                    sh label: "Case ${CASES}", script: """
-                                    mv br/tests/*  tests/
-
-                                    mv third_bin/* bin/ && ls -alh bin/
-                                    rm -rf /tmp/backup_restore_test
-                                    mkdir -p /tmp/backup_restore_test
-                                    rm -rf cover
-                                    mkdir cover
-                                    export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
-                                    TEST_NAME=${CASES} tests/run.sh
-                                    """
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}") { 
+                                    sh """git status && ls -alh""" 
+                                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
+                                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                                        sh 'chmod +x ../scripts/pingcap/br/*.sh'
+                                        sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
+                                        sh label: "Case ${CASES}", script: """
+                                            mv br/tests/*  tests/
+                                            mkdir -p bin
+                                            mv third_bin/* bin/ && ls -alh bin/
+                                            rm -rf /tmp/backup_restore_test
+                                            mkdir -p /tmp/backup_restore_test
+                                            rm -rf cover
+                                            mkdir cover
+                                            export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+                                            TEST_NAME=${CASES} tests/run.sh
+                                        """
+                                    }
                                 }
                             }
                         }
@@ -131,4 +137,3 @@ pipeline {
         }
     }
 }
-
