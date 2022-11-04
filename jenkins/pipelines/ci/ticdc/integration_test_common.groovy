@@ -260,7 +260,7 @@ def tests(sink_type, node_label) {
  */
 def download_binaries() {
     final defaultDependencyBranch = "master"
-    final defaultTiDbDependencyBranch = "release-6.3" // FIXME(wuhuizuo): need change it every time when new release came out?
+    final defaultTiDbDependencyBranch = "release-6.4" // FIXME(wuhuizuo): need change it every time when new release came out?
     def releaseBranchReg = /^release\-(\d+)\.(\d+)/      // example: release-6.1
     def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719 
 
@@ -329,11 +329,6 @@ def download_binaries() {
 
     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
     def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-    if (ghprbTargetBranch == "master") {
-        // releated to https://github.com/pingcap/tiflow/issues/7409
-        // TODO: remove this after release-6.4 branch created
-        tidb_sha1 = "9743a9a2d2c626acbd7e13d4693cca9c58f329b7"
-    }
     def tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
     def pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
     def tiflash_sha1 = TIFLASH_COMMIT
