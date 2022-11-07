@@ -16,8 +16,6 @@ final K8S_NAMESPACE="jenkins-tidb-operator"
 final dindYaml = '''
 apiVersion: v1
 kind: Pod
-metadata:
-  name: dind
 spec:
   containers:
   - name: builder
@@ -48,8 +46,6 @@ spec:
 final goBuildYaml = '''
 apiVersion: v1
 kind: Pod
-metadata:
-  name: golang
 spec:
   containers:
   - name: builder
@@ -63,8 +59,6 @@ spec:
 final dockerSyncYaml = '''
 apiVersion: v1
 kind: Pod
-metadata:
-  name: regctl
 spec:
   containers:
   - name: regctl
@@ -78,8 +72,6 @@ spec:
 final uploaderYaml = '''
 apiVersion: v1
 kind: Pod
-metadata:
-  name: uploader
 spec:
   containers:
   - name: uploader
