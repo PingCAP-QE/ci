@@ -10,6 +10,8 @@ def EnableE2E = false
 final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-lightning tikv-importer'
 final TOOLS_BUILD_DIR = 'output/tkctl'
 final CHARTS_BUILD_DIR = 'output/chart'
+final K8S_CLUSTER = "kubernetes-ng"
+final K8S_NAMESPACE="jenkins-tidb-operator"
 
 final dindYaml = '''
 apiVersion: v1
@@ -120,8 +122,8 @@ pipeline {
                         kubernetes {
                             yaml goBuildYaml
                             defaultContainer 'builder'
-                            cloud "kubernetes-ng"
-                            namespace "jenkins-tidb-operator"
+                            cloud K8S_CLUSTER
+                            namespace K8S_NAMESPACE
                         }
                     }
                     stages {
@@ -223,8 +225,8 @@ pipeline {
                         kubernetes {
                             yaml dindYaml
                             defaultContainer 'builder'
-                            cloud "kubernetes-ng"
-                            namespace "jenkins-tidb-operator"
+                            cloud K8S_CLUSTER
+                            namespace K8S_NAMESPACE
                         }
                     }
                     stages {
@@ -277,8 +279,8 @@ pipeline {
                 kubernetes {
                     yaml uploaderYaml
                     defaultContainer 'uploader'
-                    cloud "kubernetes-ng"
-                    namespace "jenkins-tidb-operator"
+                    cloud K8S_CLUSTER
+                    namespace K8S_NAMESPACE
                 }
             }
             steps {
@@ -297,8 +299,8 @@ pipeline {
                         kubernetes {
                             yaml dockerSyncYaml
                             defaultContainer 'regctl'
-                            cloud "kubernetes-ng"
-                            namespace "jenkins-tidb-operator"
+                            cloud K8S_CLUSTER
+                            namespace K8S_NAMESPACE
                         }
                     }
                     stages {
@@ -352,8 +354,8 @@ pipeline {
                         kubernetes {
                             yaml uploaderYaml
                             defaultContainer 'uploader'
-                            cloud "kubernetes-ng"
-                            namespace "jenkins-tidb-operator"
+                            cloud K8S_CLUSTER
+                            namespace K8S_NAMESPACE
                         }
                     }
                     environment {
