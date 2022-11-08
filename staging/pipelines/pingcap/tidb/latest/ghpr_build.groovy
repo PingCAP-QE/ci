@@ -14,7 +14,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920221103"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920221108"
       securityContext:
         privileged: true
       tty: true
