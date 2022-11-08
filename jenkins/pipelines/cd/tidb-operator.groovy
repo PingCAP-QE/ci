@@ -133,16 +133,15 @@ pipeline {
                                                                         url    : 'https://github.com/pingcap/tidb-operator.git',
                                                                 ]]
                                     ]
-                                    sh '''git clean -f .'''
                                     GitHash = scmVars.GIT_COMMIT
                                 }
                                 println("GitHash: $GitHash")
                             }
                         }
                         stage("bin") {
+                            environment { GOPROXY = "https://goproxy.pingcap.net,direct" }
                             steps {
                                 sh """set -eux
-                                    go env -w GOPROXY="https://goproxy.pingcap.net,direct"
                                     go mod download
                                     git checkout -- go.sum
                                     """
