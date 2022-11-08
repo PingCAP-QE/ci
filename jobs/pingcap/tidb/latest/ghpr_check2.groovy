@@ -26,7 +26,7 @@ pipelineJob('pingcap/tidb/ghpr_check2') {
                     whiteListTargetBranches {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[4-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?6\\.[5-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex

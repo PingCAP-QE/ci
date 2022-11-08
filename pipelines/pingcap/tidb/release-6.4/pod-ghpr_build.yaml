@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: golang
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920221103"
+      securityContext:
+        privileged: true
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi
+          cpu: "4"
+        limits:
+          memory: 24Gi
+          cpu: "8"
+      env:
+        - name: GOPATH
+          value: /share/.go
+        - name: GOCACHE
+          value: /share/.cache/go-build
+      volumeMounts:
+        - mountPath: /home/jenkins/.tidb/tmp
+          name: bazel-out-merged
+        - name: bazel-out-lower
+          subPath: tidb/go1.19.2
+          mountPath: /bazel-out-lower
+        - mountPath: /bazel-out-overlay
+          name: bazel-out-overlay
+        - name: gocache
+          mountPath: /share/.cache/go-build
+        - name: gopathcache
+          mountPath: /share/.go
+        - name: containerinfo
+          mountPath: /etc/containerinfo
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - mkdir -p /bazel-out-overlay/upper /bazel-out-overlay/work; 
+                sudo mount -t overlay overlay /home/jenkins/.tidb/tmp -o lowerdir=/bazel-out-lower,upperdir=/bazel-out-overlay/upper,workdir=/bazel-out-overlay/work;
+
+                cpu_limit=$(cat /etc/containerinfo/cpu_limit);
+                mem_limit=$(cat /etc/containerinfo/mem_limit);
+                mem_limit=$(((mem_limit / 1048576) * 9 / 10 ));
+                :> /data/bazel; 
+                echo "build:ci --remote_cache=http://brc-bazel-remote.apps.svc --remote_timeout=10s" >> /data/bazel;
+                echo "build:ci --local_ram_resources=${mem_limit} --local_cpu_resources=${cpu_limit} -j ${cpu_limit}" >> /data/bazel;  
+                echo "test:ci --remote_cache=http://brc-bazel-remote.apps.svc --remote_timeout=10s" >> /data/bazel;
+                echo "test:ci --local_ram_resources=${mem_limit} --local_cpu_resources=${cpu_limit} -j ${cpu_limit}"  >> /data/bazel;
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
+  volumes:
+    - name: gopathcache
+      persistentVolumeClaim:
+        claimName: gopathcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache
+    - name: bazel-out-lower
+      persistentVolumeClaim:
+        claimName: bazel-out-data
+    - name: bazel-out-overlay
+      emptyDir: {}
+    - name: bazel-out-merged
+      emptyDir: {}
+    - name: containerinfo
+      downwardAPI:
+        items:
+          - path: cpu_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.cpu
+          - path: cpu_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.cpu
+          - path: mem_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.memory
+          - path: mem_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.memory

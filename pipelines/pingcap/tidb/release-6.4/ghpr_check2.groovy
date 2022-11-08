@@ -4,10 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.4/pod-ghpr_check2.yaml'
 
-// TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
     agent {
         kubernetes {
@@ -16,12 +14,12 @@ pipeline {
             defaultContainer 'golang'
         }
     }
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
+    }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
-    options {
-        timeout(time: 40, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -39,9 +37,10 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+            // FIXME(wuhuizuo): catch AbortException and set the job abort status
+            // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
-                dir("tidb") {
+                dir('tidb') {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
@@ -53,51 +52,55 @@ pipeline {
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
                                         [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
+                                        [$class: 'CloneOption', timeout: 5],
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
                                         refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
                                     ]],
                                 ]
                             )
                         }
                     }
                 }
-                dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', ghprbTargetBranch, ghprbCommentBody, GIT_CREDENTIALS_ID)
-                            }
-                        }
-                    }
-                }
             }
         }
-        stage('Prepare') {
+        stage("Prepare") {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
                     }
-                }
-                dir('tidb-test') {
-                    sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                    script {
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', '')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', ghprbTargetBranch, ghprbCommentBody, 'centos7/pd-server.tar.gz', 'bin')
+                    }
+                    // cache it for other pods
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                        sh '''
+                            mv bin/tidb-server bin/explain_test_tidb-server
+                            touch rev-${ghprbActualCommit}
+                        '''
                     }
                 }
             }
         }
-        stage('MySQL Tests') {
+        stage('Checks') {
             matrix {
                 axes {
                     axis {
-                        name 'PART'
-                        values '1', '2', '3', '4'
+                        name 'SCRIPT_AND_ARGS'
+                        values(
+                            'explaintest.sh y', 
+                            'explaintest.sh n', 
+                            'run_real_tikv_tests.sh bazel_brietest', 
+                            'run_real_tikv_tests.sh bazel_pessimistictest', 
+                            'run_real_tikv_tests.sh bazel_sessiontest', 
+                            'run_real_tikv_tests.sh bazel_statisticstest',
+                            'run_real_tikv_tests.sh bazel_txntest',
+                            'run_real_tikv_tests.sh bazel_addindextest',
+                        )
                     }
                 }
                 agent{
@@ -107,41 +110,40 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
-                stages {
-                    stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                stages {                    
+                    stage('Test')  {
+                        options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                    sh 'ls -l rev-${ghprbActualCommit}' // will fail when not found in cache or no cached.
                                 }
-                            }
-                            dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                                    dir('mysql_test') {
-                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}'
-                                    }
-                                }
+
+                                sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
+                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
-                        post{
-                            always {
-                                junit(testResults: "**/result.xml")
-                            }
+                        post {
                             failure {
-                                archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
+                                dir("checks-collation-enabled") {
+                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
+                                }
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
     post {
+        success {
+            // Upload check flag to fileserver
+            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload"
+        }
+
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
-            container('report') {
+            container('report') {                
                 sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
             }
             archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
