@@ -74,7 +74,7 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
                     }
                     script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', '')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', 'bin')
                          component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', ghprbTargetBranch, ghprbCommentBody, 'centos7/pd-server.tar.gz', 'bin')
                     }
                     // cache it for other pods
