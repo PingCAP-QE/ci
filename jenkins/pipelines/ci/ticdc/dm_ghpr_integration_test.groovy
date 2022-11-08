@@ -263,6 +263,8 @@ def build_dm_bin() {
 
                 // tidb
                 def TIDB_BRANCH = ghprbTargetBranch
+                def PD_BRACNCH = ghprbTargetBranch
+                def TIKV_BRANCH = ghprbTargetBranch
                 if (!TIDB_BRANCH.startsWith("release-") || TIDB_BRANCH in dm_feature_branch) {
                     TIDB_BRANCH = "master"
                 }
@@ -276,7 +278,11 @@ def build_dm_bin() {
                 }
                 m1 = null
                 TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", TIDB_BRANCH)
+                PD_BRACNCH = params.getOrDefault("release_test__pd_commit", PD_BRACNCH)
+                TIKV_BRANCH = params.getOrDefault("release_test__tikv_commit", TIKV_BRANCH)
                 println "TIDB_BRANCH=${TIDB_BRANCH}"
+                println "PD_BRACNCH=${PD_BRACNCH}"
+                println "TIKV_BRANCH=${TIKV_BRANCH}"
 
 
                 tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
@@ -287,7 +293,7 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server'
                 sh 'rm -r tidb-server.tar.gz'
 
-                pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${TIDB_BRANCH}/sha1").trim()
+                pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRACNCH}/sha1").trim()
                 sh "curl -C - --retry 3 -f -o pd-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
                 sh 'mkdir -p pd-server'
                 sh 'tar -zxf pd-server.tar.gz -C pd-server'
@@ -295,7 +301,7 @@ def build_dm_bin() {
                 sh 'rm -r pd-server'
                 sh 'rm -r pd-server.tar.gz'
 
-                tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIDB_BRANCH}/sha1").trim()
+                tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
                 sh "curl -C - --retry 3 -f -o tikv-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                 sh 'mkdir -p tikv-server'
                 sh 'tar -zxf tikv-server.tar.gz -C tikv-server'
