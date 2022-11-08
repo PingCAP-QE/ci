@@ -275,7 +275,7 @@ def build_dm_bin() {
                     println "current branch is a hotfix branch, so we will use the branch name without date suffix: ${TIDB_BRANCH}"
                 }
                 m1 = null
-                TIDB_BRANCH = params.getOrDefault("release_test__tidb_commit", TIDB_BRANCH)
+                TIDB_BRANCH = params.getOrDefault("release_test__release_branch", TIDB_BRANCH)
                 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
 
