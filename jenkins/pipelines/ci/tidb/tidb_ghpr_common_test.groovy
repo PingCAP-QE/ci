@@ -454,7 +454,8 @@ try {
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             try {
                                 timeout(50) {
-                                    sh """
+                                    sh """ 
+                                    #!/bin/bash
                                     set +e
                                     killall -9 -r tidb-server
                                     killall -9 -r tikv-server
@@ -462,12 +463,8 @@ try {
                                     rm -rf /tmp/tidb
                                     set -e
                                     
-                                    if [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" = "master"  ]; then
-                                        echo "run mysql-test on master branch in witelist-mode"
-                                        TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                        CACHE_ENABLED=1 ./test.sh -backlist=1
-                                    elif [ "${test_dir}" = "mysql_test" ] && [ "${ghprbTargetBranch}" >= "release-6.2"  ]; then
-                                        echo "run mysql-test on master branch in witelist-mode"
+                                    if [[ "${test_dir}" = "mysql_test" ]] && [[ "${ghprbTargetBranch}" =~ ^(master)|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?\$ ]]; then 
+                                        echo "run mysql-test on master branch and branch >= release-6.2 in blacklist-mode"
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                         CACHE_ENABLED=1 ./test.sh -backlist=1
                                     else
