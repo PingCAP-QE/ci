@@ -2,7 +2,7 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.4/pod-ghpr_unit_test.yaml'
 
 pipeline {
     agent {
