@@ -9,15 +9,12 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_BRANCH = 'master'
 final GIT_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-// final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_br_test.yaml'
+// final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_mysql_test.yaml'
 
 
 def podYaml = '''
 apiVersion: v1
 kind: Pod
-metadata:
-  name: dinp
-  namespace: jenkins-cd
 spec:
   containers:
   - name: net-tool
