@@ -149,10 +149,6 @@ pipeline {
                         name 'CACHE_ENABLED'
                         values '0', "1"
                     }
-                    axis {
-                        name 'TIDB_TEST_STORE_NAME'
-                        values 'tikv', "unistore"
-                    }
                 }
                 agent{
                     kubernetes {
@@ -180,6 +176,7 @@ pipeline {
                                         sh """
                                             mkdir -p bin
                                             cp ${WORKSPACE}/tidb/bin/tidb-server bin/
+                                            ./bin/tikv-server -V
                                             ls -alh bin/
                                         """
                                         sh label: "unistore cache_enabled=${CACHE_ENABLED}", script: """
@@ -187,8 +184,8 @@ pipeline {
                                                 --user $(id -u):$(id -g) \
                                                 --env TIDB_SERVER_PATH="/workspace/bin/tidb-server" \
                                                 --env CACHE_ENABLED=${CACHE_ENABLED} \
-                                                --env TIDB_TEST_STORE_NAME="unistore"
-                                                --ulimit nofile=65535:65535 \
+                                                --env TIDB_TEST_STORE_NAME="unistore" \
+                                                --ulimit nofile=82920:82920 \
                                                 --ulimit stack=16777216:16777216 \
                                                 --volume "${PWD}:/workspace" \
                                                 --workdir "/workspace" \
@@ -203,11 +200,10 @@ pipeline {
                             options { timeout(time: 25, unit: 'MINUTES') }
                             steps {
                                 dir('tidb') {
-                                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}") { 
-                                        sh """git status && ls -alh""" 
-                                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_mysql_test/rev-${BUILD_TAG}") {
-                                            sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                        }
+                                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_mysql_test/rev-${BUILD_TAG}") {
+                                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
+                                        sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
+                                        sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
                                     }
                                 }
                                 dir('tidb-test') {
@@ -224,7 +220,7 @@ pipeline {
                                                 --env CACHE_ENABLED=${CACHE_ENABLED} \
                                                 --env TIKV_PATH='127.0.0.1:2379' \
                                                 --env TIDB_TEST_STORE_NAME="tikv"\
-                                                --ulimit nofile=65535:65535 \
+                                                --ulimit nofile=82920:82920 \
                                                 --ulimit stack=16777216:16777216 \
                                                 --volume "${PWD}:/workspace" \
                                                 --workdir "/workspace" \
