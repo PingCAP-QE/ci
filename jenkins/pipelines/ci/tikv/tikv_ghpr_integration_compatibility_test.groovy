@@ -109,7 +109,7 @@ def run_with_pod(Closure body) {
 
 try {
     stage('Prepare') {
-        run_with_pod { {
+        run_with_pod { 
             def ws = pwd()
             deleteDir()
 
@@ -150,7 +150,7 @@ try {
     }
 
     stage('Integration Compatibility Test') {
-        run_with_pod { {
+        run_with_pod { 
             def ws = pwd()
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()

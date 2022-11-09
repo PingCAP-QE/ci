@@ -103,7 +103,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, ddltest ->
-            run_with_pod { {
+            run_with_pod { 
                 def ws = pwd()
                 deleteDir()
 

@@ -121,10 +121,10 @@ try {
         def prepares = [:]
 
         prepares["Part #1"] = {
-            run_with_pod { {
+            run_with_pod {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 dir("tikv") {
-                    container("rust") {
+                    container("golang") {
                         deleteDir()
                         timeout(30) {
                             sh """
@@ -143,7 +143,7 @@ try {
         }
 
         prepares["Part #2"] = {
-            run_with_pod { {
+            run_with_pod { 
                 def ws = pwd()
                 deleteDir()
                 container("golang") {
@@ -192,7 +192,7 @@ try {
         }
 
         prepares["Part #3"] = {
-            run_with_pod { {
+            run_with_pod { 
                 def ws = pwd()
                 deleteDir()
 
@@ -254,7 +254,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, test_cmd ->
-            run_with_pod { {
+            run_with_pod { 
                 def ws = pwd()
                 deleteDir()
 
@@ -397,7 +397,7 @@ try {
                     }
                 }
 
-                run_with_pod { {
+                run_with_pod { 
                     def ws = pwd()
                     deleteDir()
 
