@@ -13,4 +13,4 @@ bash ${BASEDIR}/scripts/ci/start_tikv.sh
 
 cd $test_suites_path
 chmod +x test.sh
-bash test.sh
+bash test.sh -backlist=1
