@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 chmod +x bin/pd-server bin/tikv-server
 bin/pd-server --name=pd --data-dir=pd &> pd.log &

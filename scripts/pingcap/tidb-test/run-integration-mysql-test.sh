@@ -1,6 +1,5 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
-#!/bin/bash
 echo "Script executed from: ${PWD}"
 
 BASEDIR=$(dirname $0)

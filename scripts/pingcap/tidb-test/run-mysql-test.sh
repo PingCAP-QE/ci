@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 test_suites_path=$1
 echo "test path: ${test_suites_path}"
