@@ -106,10 +106,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', ghprbTargetBranch, ghprbCommentBody, GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', GIT_BRANCH, "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -124,7 +124,7 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'download binary', script: """
                         chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${ghprbTargetBranch} --tikv=${ghprbTargetBranch}
+                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BRANCH} --tikv=${GIT_BRANCH}
                         mv third_bin/* bin/
                         ls -alh bin/
                         """
