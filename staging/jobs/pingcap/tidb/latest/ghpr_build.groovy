@@ -72,15 +72,7 @@ pipelineJob('pingcap/tidb/ghpr_build') {
         cpsScm {
             lightweight(true)
             scriptPath("staging/pipelines/pingcap/tidb/latest/ghpr_build.groovy")
-            scm {
-                git{
-                    remote {
-                        url('git@github.com:PingCAP-QE/ci.git')
-                        credentials('github-sre-bot-ssh')
-                    }
-                    branch('main')
-                }
-            }
+            github('PingCAP-QE/ci', 'main')
         }
     }
 }
