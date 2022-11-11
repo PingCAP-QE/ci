@@ -17,7 +17,9 @@ pipelineJob('pingcap-qe/ee-ops/prow_debug') {
         cpsScm {
             lightweight(true)
             scriptPath("staging/pipelines/pingcap-qe/ee-ops/prow_debug.groovy")
-            github('PingCAP-QE/ci', 'main')
+            scm {
+                github('PingCAP-QE/ci', 'main')
+            }
         }
     }
 }

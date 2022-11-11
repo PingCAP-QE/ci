@@ -23,6 +23,7 @@ pipeline {
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
+        skipDefaultCheckout()
     }
     stages {
         stage('Debug info') {
@@ -143,5 +144,4 @@ pipeline {
             }        
         }
     }
-
 }

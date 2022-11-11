@@ -16,7 +16,9 @@ pipelineJob('pingcap/tidb/merged_integration_br_test') {
         cpsScm {
             lightweight(true)
             scriptPath('staging/pipelines/pingcap/tidb/latest/merged_integration_br_test.groovy')
-            github('PingCAP-QE/ci', 'main')
+            scm {
+                github('PingCAP-QE/ci', 'main')
+            }
         }
     }
 }
