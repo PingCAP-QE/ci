@@ -17,14 +17,7 @@ pipelineJob('prow_debug') {
         cpsScm {
             lightweight(true)
             scriptPath("staging/pipelines/pingcap-qe/ee-ops/prow_debug.groovy")
-            scm {
-                git{
-                    remote {
-                        url('https://github.com/PingCAP-QE/ci.git')
-                    }
-                    branch('main')
-                }
-            }
+            github('PingCAP-QE/ci', 'main')
         }
     }
 }

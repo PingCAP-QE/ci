@@ -16,15 +16,7 @@ pipelineJob('pingcap/tidb/merged_mysql_test') {
         cpsScm {
             lightweight(true)
             scriptPath('staging/pipelines/pingcap/tidb/latest/merged_mysql_test.groovy')
-            scm {
-                git{
-                    remote {
-                        url('git@github.com:PingCAP-QE/ci.git')
-                        credentials('github-sre-bot-ssh')
-                    }
-                    branch('main')
-                }
-            }
+            github('PingCAP-QE/ci', 'main')
         }
     }
 }
