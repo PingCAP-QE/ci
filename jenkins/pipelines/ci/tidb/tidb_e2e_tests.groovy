@@ -157,11 +157,13 @@ try {
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
 
 
-                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-                                    curl \${tikv_url} | tar xz bin
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 10; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
+                                    tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 
-                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-                                    curl \${pd_url} | tar xz bin
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 10; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
+                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
                                     ls -lhrt ./bin
                                     make
                                     ls -lhrt ./bin
