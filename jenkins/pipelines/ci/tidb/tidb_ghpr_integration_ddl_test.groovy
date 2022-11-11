@@ -260,15 +260,18 @@ try {
                             pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
 
                             while ! curl --output /dev/null --silent --head --fail \${tidb_test_url}; do sleep 10; done
-                            curl \${tidb_test_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${tidb_test_url}
+                            tar -xvz  -f tidb-test.tar.gz
 
                             cd ${test_dir}
 
                             while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 10; done
-                            curl \${tikv_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
+                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 
                             while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 10; done
-                            curl \${pd_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
+                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
 
                             mkdir -p ${dir}/../tidb/
                             curl \${tidb_tar_url} | tar -xf - -C ${dir}/../

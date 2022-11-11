@@ -345,14 +345,17 @@ try {
 	
 	
 	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-	                            curl \${tikv_url} | tar xz bin
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
+                                tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 	
 	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-	                            curl \${pd_url} | tar xz bin
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${pd_url}
+                                tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
 	
 	                            mkdir -p ./tidb-src
 	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-	                            curl ${tidb_url} | tar xz -C ./tidb-src
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
+                                tar -xz -C ./tidb-src -f tidb-server.tar.gz
 	                            ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
 	
 	                            mv tidb-src/bin/tidb-server ./bin/tidb-server
@@ -434,14 +437,17 @@ try {
 	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
 	
 	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
-	                            curl \${tikv_url} | tar xz
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
+	                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 	
 	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
-	                            curl \${pd_url} | tar xz
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
+	                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
 	
 	                            mkdir -p ./tidb-src
 	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
-	                            curl ${tidb_url} | tar xz -C ./tidb-src
+	                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
+                                tar -xz -C ./tidb-src -f tidb-server.tar.gz
 	                            ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
 	
 	                            mv tidb-src/bin/tidb-server ./bin/tidb-server
