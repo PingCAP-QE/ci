@@ -13,6 +13,7 @@ pipeline {
     environment {
         PROW_DECK_URL = 'http://prow-deck.apps.svc'
     }
+    options { skipDefaultCheckout() }
     stages {
         stage('Debug info') {
             steps {
@@ -26,7 +27,6 @@ pipeline {
         }
         stage('Checkout') {
             when { expression { return params.PROW_JOB_ID } }
-            
             steps {
                 dir('test') {
                     script {
