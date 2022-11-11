@@ -434,10 +434,10 @@ try {
 	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
 	
 	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
-	                            curl \${tikv_url} | tar xz
+	                            curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail  \${tikv_url} | tar xz
 	
 	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
-	                            curl \${pd_url} | tar xz
+	                            curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail \${pd_url} | tar xz
 	
 	                            mkdir -p ./tidb-src
 	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
