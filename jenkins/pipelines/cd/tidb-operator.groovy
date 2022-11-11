@@ -234,9 +234,10 @@ pipeline {
                             when { expression { EnableE2E } }
                             steps {
                                 sh """set -ex
-                            NO_BUILD=y GOARCH=amd64 DOCKER_REPO=hub.pingcap.net/tidb-operator-e2e Image_Tag=${ReleaseTag} make docker-push # e2e-docker-push
-                            echo "info: download binaries for e2e"
-                            # SKIP_BUILD=y SKIP_IMAGE_BUILD=y SKIP_UP=y SKIP_TEST=y SKIP_DOWN=y ./hack/e2e.sh"""
+                                      NO_BUILD=y GOARCH=amd64 DOCKER_REPO=hub.pingcap.net/tidb-operator-e2e Image_Tag=${ReleaseTag} make docker-push # e2e-docker-push
+                                      echo "info: download binaries for e2e"
+                                      SKIP_BUILD=y SKIP_IMAGE_BUILD=y SKIP_UP=y SKIP_TEST=y SKIP_DOWN=y ./hack/e2e.sh
+                                   """
                             }
                         }
                         stage("operator") {
