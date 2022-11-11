@@ -212,20 +212,25 @@ try {
                         timeout(10) {
                             sh """
                             while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
-                            curl ${tikv_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tikv_url}
+                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 
                             while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
-                            curl ${pd_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${pd_url}
+                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
 
                             mkdir -p ./tidb-old-src
                             echo ${tidb_old_url}
                             echo ${tidb_old_refs}
                             while ! curl --output /dev/null --silent --head --fail ${tidb_old_url}; do sleep 15; done
-                            curl ${tidb_old_url} | tar xz -C ./tidb-old-src
+                            wget -O old-tidb-server.tar.gz -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_old_url}
+                            tar -xz -C ./tidb-old-src -f old-tidb-server.tar.gz && rm -rf old-tidb-server.tar.gz
 
                             mkdir -p ./tidb-src
                             while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                            curl ${tidb_url} | tar xz -C ./tidb-src
+                            wget -O tidb-server.tar.gz -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                            tar -xz -C ./tidb-src -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+
 
                             mv tidb-old-src/bin/tidb-server bin/tidb-server-old
                             mv tidb-src/bin/tidb-server ./bin/tidb-server
