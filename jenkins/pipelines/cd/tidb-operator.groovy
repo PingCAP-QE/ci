@@ -159,11 +159,11 @@ pipeline {
                                                 // unsupported platform
                                                 continue
                                             }
-                                            def TKCTL_CLI_PACKAGE = "tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                             sh """
+                                            TKCTL_CLI_PACKAGE = "tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                             GOOS=${OS} GOARCH=${ARCH} make cli
-                                            tar -czf ${TOOLS_BUILD_DIR}/${TKCTL_CLI_PACKAGE}.tgz tkctl
-                                            sha256sum ${TOOLS_BUILD_DIR}/${TKCTL_CLI_PACKAGE}.tgz > ${TOOLS_BUILD_DIR}/${TKCTL_CLI_PACKAGE}.sha256
+                                            tar -czf ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.tgz tkctl
+                                            sha256sum ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.tgz > ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.sha256
                                             """
                                         }
                                     }
@@ -397,11 +397,11 @@ pipeline {
                                                 // unsupported platform
                                                 continue
                                             }
-                                            def TKCTL_CLI_PACKAGE = "tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                             sh """
+                                                TKCTL_CLI_PACKAGE = "tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                                 cd ${TOOLS_BUILD_DIR}
-                                                upload_qiniu.py ${TKCTL_CLI_PACKAGE}.tgz ${TKCTL_CLI_PACKAGE}.tgz
-                                                upload_qiniu.py ${TKCTL_CLI_PACKAGE}.sha256 ${TKCTL_CLI_PACKAGE}.sha256
+                                                upload_qiniu.py \${TKCTL_CLI_PACKAGE}.tgz \${TKCTL_CLI_PACKAGE}.tgz
+                                                upload_qiniu.py \${TKCTL_CLI_PACKAGE}.sha256 \${TKCTL_CLI_PACKAGE}.sha256
                                                """
                                         }
                                     }
