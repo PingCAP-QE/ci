@@ -1,4 +1,4 @@
-FROM busybox
+FROM rockylinux:9.0
 
 ADD init.sh /usr/bin/init.sh
 RUN chmod +x /usr/bin/init.sh

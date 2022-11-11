@@ -1,4 +1,4 @@
-FROM pingcap/alpine-glibc:alpine-3.14.6
+FROM rockylinux:9.0
 COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY pump /pump
 COPY drainer /drainer

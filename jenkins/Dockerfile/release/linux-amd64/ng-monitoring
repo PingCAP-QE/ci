@@ -1,4 +1,4 @@
-FROM pingcap/alpine-glibc:alpine-3.14.6
+FROM rockylinux:9.0
 COPY ng-monitoring-server /ng-monitoring-server
 EXPOSE 12020
 ENTRYPOINT ["/ng-monitoring-server"]

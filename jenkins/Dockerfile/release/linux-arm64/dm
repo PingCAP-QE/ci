@@ -1,4 +1,4 @@
-FROM alpine:3.10
+FROM rockylinux:9.0
 RUN apk add --no-cache tzdata
 COPY dm-worker /dm-worker
 COPY dm-master /dm-master
