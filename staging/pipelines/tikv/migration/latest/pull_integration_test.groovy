@@ -68,12 +68,28 @@ pipeline {
                 }
             }
         }
+        stage('Prepare') {
+            steps {
+                dir('migration') {
+                    cache(path: "./cdc", filter: '**/*', key: "binary/tikv/migration/pull_integration_test/rev-${BUILD_TAG}") {
+                        container("golang") {
+                            sh label: 'integration test prepare', script: """
+                            cd cdc/
+                            make prepare_test_binaries 
+                            make check_third_party_binary 
+                            make integration_test_build
+                            """
+                        }
+                    }
+                }
+            }
+        }
         stage('Unit Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_CASE'
-                        values '1', '2'
+                        values 'autorandom', 'availability', 'capture_session_done_during_task'
                     }
                 }
                 agent {
@@ -88,18 +104,13 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./", filter: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}") {  
+                               cache(path: "./cdc", filter: '**/*', key: "binary/tikv/migration/pull_integration_test/rev-${BUILD_TAG}") {  
                                     sh "ls -alh"
-                                    sh """
+                                    sh label: "TEST_CASE ${TEST_CASE}",script: """
                                         cd cdc/
-                                        make integration_test
+                                        ./tests/integration_tests/run.sh ${TEST_CASE}
                                     """
                                }
-                            }
-                        }
-                        post{
-                            always {
-                                junit(testResults: "**/cdc-junit-report.xml")
                             }
                         }
                     }
