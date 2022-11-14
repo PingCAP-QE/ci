@@ -76,6 +76,13 @@ pipeline {
                         values '1', '2'
                     }
                 }
+                agent {
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        yamlFile POD_TEMPLATE_FILE
+                        defaultContainer 'golang'
+                    }
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
