@@ -83,6 +83,7 @@ pipeline {
                         steps {
                             dir('migration') {
                                cache(path: "./", filter: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}") {  
+                                    sh "ls -alh"
                                     sh """
                                         cd cdc/
                                         make integration_test

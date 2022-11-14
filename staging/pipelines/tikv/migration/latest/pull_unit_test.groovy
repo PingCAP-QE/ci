@@ -74,12 +74,11 @@ pipeline {
                     options { timeout(time: 25, unit: 'MINUTES') }
                     steps {
                         dir('migration') {
-                            cache(path: "./", filter: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}") {  
-                                sh """
-                                    cd cdc/
-                                    make unit_test_in_verify_ci
-                                """
-                            }
+                            sh "ls -alh"
+                            sh """
+                                cd cdc/
+                                make unit_test_in_verify_ci
+                            """
                         }
                     }
                     post{
