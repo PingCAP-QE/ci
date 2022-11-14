@@ -72,6 +72,7 @@ pipeline {
             stages {
                 stage("Test") {
                     options { timeout(time: 25, unit: 'MINUTES') }
+                    environment {TIKV_MIGRATION_CODECOV_TOKEN = credentials('codecov-token-tikv-migration')}
                     steps {
                         dir('migration') {
                             sh "ls -alh"
