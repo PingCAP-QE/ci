@@ -70,11 +70,10 @@ pipeline {
         }
         stage('Unit Tests') {
             matrix {
-                agent{
-                    kubernetes {
-                        namespace K8S_NAMESPACE
-                        defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                axes {
+                    axis {
+                        name 'TEST_CASE'
+                        values '1', '2'
                     }
                 }
                 stages {
