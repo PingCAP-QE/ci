@@ -21,7 +21,10 @@ pipelineJob('tikv/migration/pull_unit_test') {
                     triggerPhrase('.*/(run-(all-tests|unit-test).*)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
-                    buildDescTemplate('PR #$pullId: $abbrTitle\n$url')                    whiteListTargetBranches {
+                    buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
+                    whitelist('')
+                    orgslist('')
+                    whiteListTargetBranches {
                         ghprbBranch { branch('main') }
                     }
                     // ignore when only those file changed.(
