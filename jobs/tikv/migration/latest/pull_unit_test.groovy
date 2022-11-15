@@ -68,7 +68,7 @@ pipelineJob('tikv/migration/pull_unit_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("staging/pipelines/tikv/migration/latest/pull_unit_test.groovy")
+            scriptPath("pipelines/tikv/migration/latest/pull_unit_test.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }
