@@ -84,7 +84,7 @@ pipeline {
                 }
             }
         }
-        stage('Unit Tests') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {
