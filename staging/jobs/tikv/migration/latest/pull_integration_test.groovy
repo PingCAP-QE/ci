@@ -22,6 +22,8 @@ pipelineJob('tikv/migration/pull_integration_test') {
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
+                    whitelist('')
+                    orgslist('')
                     whiteListTargetBranches {
                         ghprbBranch { branch('main') }
                     }
