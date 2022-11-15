@@ -69,25 +69,21 @@ pipeline {
             }
         }
         stage('Unit Tests') {             
-            stages {
-                stage("Test") {
-                    options { timeout(time: 25, unit: 'MINUTES') }
-                    environment {TIKV_MIGRATION_CODECOV_TOKEN = credentials('codecov-token-tikv-migration')}
-                    steps {
-                        dir('migration') {
-                            sh """
-                                cd cdc/
-                                make unit_test_in_verify_ci
-                            """
-                        }
-                    }
-                    post{
-                        always {
-                            junit(testResults: "**/cdc-junit-report.xml")
-                        }
-                    }
+            options { timeout(time: 25, unit: 'MINUTES') }
+            environment { TIKV_MIGRATION_CODECOV_TOKEN = credentials('codecov-token-tikv-migration') }
+            steps {
+                dir('migration') {
+                    sh """
+                        cd cdc/
+                        make unit_test_in_verify_ci
+                    """
                 }
-            }         
+            }
+            post{
+                always {
+                    junit(testResults: "**/cdc-junit-report.xml")
+                }
+            }      
         }
     }
 }
