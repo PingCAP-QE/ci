@@ -104,7 +104,7 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikv_cdc") {  
+                               cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
                                     sh label: "TEST_CASE ${TEST_CASE}",script: """
                                         cd cdc/
                                         ./tests/integration_tests/run.sh ${TEST_CASE}
