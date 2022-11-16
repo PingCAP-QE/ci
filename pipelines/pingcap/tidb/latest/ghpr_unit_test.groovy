@@ -66,6 +66,7 @@ pipeline {
             }
         }
         stage('Test') {
+            environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir('tidb') {
                     sh './build/jenkins_unit_test.sh' 
@@ -76,6 +77,16 @@ pipeline {
                     dir('tidb') {
                         archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
                         archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
+                    }
+                }
+                success {
+                    dir("tidb") {
+                        sh label: "upload coverage to codecov", script: """
+                        mv coverage.dat test_coverage/coverage.dat
+                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
+                        chmod +x codecov
+                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN}
+                        """
                     }
                 }
                 always {
