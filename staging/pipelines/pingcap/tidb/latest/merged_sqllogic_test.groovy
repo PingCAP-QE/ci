@@ -91,7 +91,7 @@ pipeline {
                 dir('tidb-test') {
                     cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh 'touch ws-${BUILD_TAG}'
-                        sh 'sqllogic_test && ./build.sh'
+                        sh 'cd sqllogic_test && ./build.sh'
                     }
                 }
             }
