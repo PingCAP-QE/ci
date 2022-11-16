@@ -112,36 +112,32 @@ pipeline {
             }
         }
         stage('Tests') {
-            stages {
-                stage("Test") {
-                    options { timeout(time: 40, unit: 'MINUTES') }
-                    steps {
-                        dir('tidb') {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                            sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                            sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
-                        }
-                        dir('tidb-test') {
-                            cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                sh """
-                                    mkdir -p bin
-                                    cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                    ls -alh bin/
-                                """
-                                container("golang") {
-                                    sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """
-                                        #!/usr/bin/env bash
-                                        pd_bin=${WORKSPACE}/tidb/bin/pd-server \
-                                        tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
-                                        tidb_src_dir=${WORKSPACE}/tidb \
-                                        make push-down-test
-                                    """
-                                }
-                            }
+            options { timeout(time: 40, unit: 'MINUTES') }
+            steps {
+                dir('tidb') {
+                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
+                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
+                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
+                }
+                dir('tidb-test') {
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh """
+                            mkdir -p bin
+                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                            ls -alh bin/
+                        """
+                        container("golang") {
+                            sh label: "Push Down Test", script: """
+                                #!/usr/bin/env bash
+                                pd_bin=${WORKSPACE}/tidb/bin/pd-server \
+                                tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
+                                tidb_src_dir=${WORKSPACE}/tidb \
+                                make push-down-test
+                            """
                         }
                     }
                 }
-            }                 
+            }               
         }
     }
 }
