@@ -119,23 +119,14 @@ pipeline {
                     sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
                     sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
                 }
-                dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh """
-                            mkdir -p bin
-                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                            ls -alh bin/
-                        """
-                        container("golang") {
-                            sh label: "Push Down Test", script: """
-                                #!/usr/bin/env bash
-                                pd_bin=${WORKSPACE}/tidb/bin/pd-server \
-                                tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
-                                tidb_src_dir=${WORKSPACE}/tidb \
-                                make push-down-test
-                            """
-                        }
-                    }
+                dir('tikv-copr-test') {
+                    sh label: "Push Down Test", script: """
+                        #!/usr/bin/env bash
+                        pd_bin=${WORKSPACE}/tidb/bin/pd-server \
+                        tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
+                        tidb_src_dir=${WORKSPACE}/tidb \
+                        make push-down-test
+                    """
                 }
             }               
         }
