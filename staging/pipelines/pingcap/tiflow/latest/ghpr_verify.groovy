@@ -103,9 +103,7 @@ pipeline {
                         }
                         post {
                             always {
-                                dir('tiflow') {
-                                    junit(testResults: "**/*.junit-report.xml", allowEmptyResults : true)
-                                }
+                                junit(testResults: "**/*.junit-report.xml", allowEmptyResults : true)  
                             }
                         }
                     }
