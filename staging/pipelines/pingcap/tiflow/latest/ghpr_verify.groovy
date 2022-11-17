@@ -88,10 +88,10 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-ticdc') 
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-ticdc')    
-                        }
+                        // environment { 
+                        //     TICDC_CODECOV_TOKEN = credentials('codecov-token-ticdc') 
+                        //     TICDC_COVERALLS_TOKEN = credentials('coveralls-token-ticdc')    
+                        // }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_COMMIT}") {
