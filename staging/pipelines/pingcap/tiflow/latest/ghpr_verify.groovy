@@ -101,11 +101,11 @@ pipeline {
                                 }
                             }
                         }
-                    }
-                    post {
-                        always {
-                            dir('tiflow') {
-                                junit(testResults: "**/*.junit-report.xml")
+                        post {
+                            always {
+                                dir('tiflow') {
+                                    junit(testResults: "**/*.junit-report.xml")
+                                }
                             }
                         }
                     }
