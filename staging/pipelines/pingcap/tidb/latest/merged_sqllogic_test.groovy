@@ -105,7 +105,9 @@ pipeline {
                     }
                     axis {
                         name 'TEST_PATH'
-                        values 'random/aggregates_n1', 'random/aggregates_n2', 'random/expr', 'random/select_n1'
+                        values 'random/aggregates_n1', 'random/aggregates_n2', 'random/expr', 'random/select_n1', 'random/select_n2',
+                            'select', 'random/groupby', 'index/between/1', 'index/between/10', 'index/between/100', 'index/between/1000',
+                            'index/commute/10', 'index/commute/100', 'index/commute/1000_n1', 'index/commute/1000_n2'
                     }
                     axis {
                         name 'PARALLELISM'
