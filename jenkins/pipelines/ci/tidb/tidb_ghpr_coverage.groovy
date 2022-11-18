@@ -94,6 +94,11 @@ pipeline {
                 }
             }
             post {
+                always {
+                    dir("tidb") {
+                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                    }
+                }
                 success {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
