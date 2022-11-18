@@ -88,12 +88,8 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name 'TEST_CASE'
-                        values '"autorandom availability"', '"capture_session_done_during_task cdc_hang_on"', '"changefeed_auto_stop changefeed_error"',
-                            '"changefeed_fast_fail changefeed_finish"', '"changefeed_pause_resume changefeed_reconstruct"', '"cli cli_tls"', '"disk_full flow_control"',
-                            '"gc_safepoint http_api"', '"http_proxies kill_owner"', '"kv_client_stream_reconnect multi_capture"',
-                            '"processor_err_chan processor_panic"', '"processor_resolved_ts_fallback processor_stop_delay"', '"sink_hang sink_tls"',
-                            '"sorter stop_downstream"'
+                        name 'TEST_GROUP'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'others'
                     }
                 }
                 agent {
@@ -109,9 +105,9 @@ pipeline {
                         steps {
                             dir('migration') {
                                cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
-                                    sh label: "TEST_CASE ${TEST_CASE}",script: """
+                                    sh label: "TEST_GROUP ${TEST_GROUP}",script: """
                                         cd cdc/
-                                        ./tests/integration_tests/run.sh ${TEST_CASE}
+                                        ./tests/integration_tests/run_group.sh ${TEST_GROUP}
                                     """
                                }
                             }
