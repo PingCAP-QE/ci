@@ -10,7 +10,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920221108"
       tty: true
       resources:
         requests:
@@ -47,7 +47,6 @@ pipeline {
     }
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: '')
-        string(name: 'GIT_COMMIT', defaultValue: 'master', description: '')
     }
 
     stages {
@@ -57,7 +56,7 @@ pipeline {
                 dir("tidb") {
                     retry(2) {
                         sh """
-                        wget -O tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/tidb.tar.gz -q --show-progress
+                        wget -q -O tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
                         tar -xzf tidb.tar.gz -C ./ --strip-components=1  && rm -rf tidb.tar.gz
                         """
                         checkout(
@@ -84,6 +83,7 @@ pipeline {
         }
 
         stage("Test") {
+            environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             options { timeout(time: 30, unit: "MINUTES") }
             steps {
                 dir("tidb") {
@@ -98,9 +98,10 @@ pipeline {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
                         mv coverage.dat test_coverage/coverage.dat
+                        commit_id=\$(git rev-parse HEAD)
                         wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN}
+                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -C \${commit_id}
                         """
                     }
                 }
