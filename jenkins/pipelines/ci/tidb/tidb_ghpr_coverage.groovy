@@ -43,7 +43,7 @@ pipeline {
         }
     }
     triggers {
-        cron('@daily')
+        cron('H */4 * * 1-5')
     }
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: '')
