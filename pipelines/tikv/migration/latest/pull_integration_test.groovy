@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_test.yaml'
 
 pipeline {
     agent {
@@ -89,7 +89,11 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CASE'
-                        values 'autorandom availability', 'capture_session_done_during_task cdc_hang_on'
+                        values '"autorandom availability"', '"capture_session_done_during_task cdc_hang_on"', '"changefeed_auto_stop changefeed_error"',
+                            '"changefeed_fast_fail changefeed_finish"', '"changefeed_pause_resume changefeed_reconstruct"', '"cli cli_tls"', '"disk_full flow_control"',
+                            '"gc_safepoint http_api"', '"http_proxies kill_owner"', '"kv_client_stream_reconnect multi_capture"',
+                            '"processor_err_chan processor_panic"', '"processor_resolved_ts_fallback processor_stop_delay"', '"sink_hang sink_tls"',
+                            '"sorter stop_downstream"'
                     }
                 }
                 agent {
