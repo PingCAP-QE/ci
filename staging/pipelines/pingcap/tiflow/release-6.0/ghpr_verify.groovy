@@ -6,10 +6,10 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 // TODO: remove env GIT_BRANCH and GIT_COMMIT
-final GIT_BRANCH = 'master'
-final GIT_COMMIT = '0b261dae33689714134d3bdc78a00a2002745a40'
+final GIT_BRANCH = 'release-6.1'
+final GIT_COMMIT = 'bc4a3dec15340c44c1517ab9a7fd59741352feaa'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tiflow/latest/pod-ghpr_verify.yaml'
+final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tiflow/release-6.0/pod-ghpr_verify.yaml'
 
 pipeline {
     agent {
@@ -75,7 +75,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CMD'
-                        values 'check', "build", "dm_unit_test_in_verify_ci", "unit_test_in_verify_ci", "engine_unit_test_in_verify_ci"
+                        values 'check', "build", "dm_unit_test_in_verify_ci", "unit_test_in_verify_ci"
                     }
                 }
                 agent{
