@@ -101,11 +101,6 @@ pipeline {
                                 }
                             }
                         }
-                        post {
-                            always {
-                                junit(testResults: "**/*.junit-report.xml", allowEmptyResults : true)  
-                            }
-                        }
                     }
                 }
             }        
