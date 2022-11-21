@@ -15,9 +15,6 @@ spec:
         requests:
           memory: 8Gi
           cpu: "4"
-        limits:
-          memory: 32Gi
-          cpu: "8"
       env:
         - name: GOPATH
           value: /share/.go
