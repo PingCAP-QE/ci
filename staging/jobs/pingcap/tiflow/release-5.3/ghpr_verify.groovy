@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiflow/ghpr_verify') {
+pipelineJob('pingcap/tiflow/release-5.3/ghpr_verify') {
     logRotator {
         daysToKeep(30)
     }
