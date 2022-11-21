@@ -24,9 +24,7 @@ pipelineJob('pingcap/tiflow/ghpr_verify') {
                     whitelist('')
                     orgslist('')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[3-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?5\\.[3-4]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -70,7 +68,7 @@ pipelineJob('pingcap/tiflow/ghpr_verify') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("staging/pipelines/pingcap/tiflow/latest/ghpr_verify.groovy")
+            scriptPath("staging/pipelines/pingcap/tiflow/release-5.3/ghpr_verify.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }
