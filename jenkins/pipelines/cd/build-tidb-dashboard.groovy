@@ -120,7 +120,7 @@ pipeline {
                         sh 'docker buildx create --name mybuilder --use || true'
                         writeFile file:'build-tidb-dashboard.Dockerfile',text:dockerfile
                         sh 'cat build-tidb-dashboard.Dockerfile'
-                        sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64 --cache-from hub.pingcap.net/rc/tidb-dashboard --push --platform=linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
+                        sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64 --cache-from hub.pingcap.net/rc/tidb-dashboard:cache-amd64 --push --platform=linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
                         sh """
                     docker run --platform=linux/amd64 --name=amd64 --entrypoint=/bin/cat  hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64
                     mkdir -p bin/linux-amd64/
@@ -157,7 +157,7 @@ pipeline {
                         sh 'docker buildx create --name mybuilder --use || true'
                         writeFile file:'build-tidb-dashboard.Dockerfile',text:dockerfile
                         sh 'cat build-tidb-dashboard.Dockerfile'
-                        sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64 --cache-from hub.pingcap.net/rc/tidb-dashboard --push --platform=linux/arm64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
+                        sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64 --cache-from hub.pingcap.net/rc/tidb-dashboard:cache-arm64 --push --platform=linux/arm64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
                         sh """
                     docker run --platform=linux/arm64 --name=arm64 --entrypoint=/bin/cat  hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64
                     mkdir -p bin/linux-arm64/
