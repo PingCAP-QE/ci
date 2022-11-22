@@ -123,6 +123,7 @@ pipeline {
                         sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64 --cache-from hub.pingcap.net/rc/tidb-dashboard --push --platform=linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
                         sh """
                     docker run --platform=linux/amd64 --name=amd64 --entrypoint=/bin/cat  hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64
+                    mkdir -p bin/linux-amd64/
                     docker cp amd64:/tidb-dashboard bin/linux-amd64/tidb-dashboard
                     docker stop amd64
                     docker container prune -f
@@ -158,7 +159,8 @@ pipeline {
                         sh 'cat build-tidb-dashboard.Dockerfile'
                         sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64 --cache-from hub.pingcap.net/rc/tidb-dashboard --push --platform=linux/arm64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
                         sh """
-                    docker run --platform=linux/amd64 --name=arm64 --entrypoint=/bin/cat  hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64
+                    docker run --platform=linux/arm64 --name=arm64 --entrypoint=/bin/cat  hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64
+                    mkdir -p bin/linux-arm64/
                     docker cp arm64:/tidb-dashboard bin/linux-arm64/tidb-dashboard
                     docker stop arm64
                     docker container prune -f
