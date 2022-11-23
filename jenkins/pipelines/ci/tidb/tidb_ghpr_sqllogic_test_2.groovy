@@ -169,7 +169,7 @@ try {
 
                 dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
                     container("golang") {
-                        timeout(10) {
+                        timeout(20) {
                             try {
                                 sh """
                                 set +e
@@ -212,7 +212,7 @@ try {
 
                 dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
                     container("golang") {
-                        timeout(10) {
+                        timeout(20) {
                             try{
                                 sh """
                                 set +e
