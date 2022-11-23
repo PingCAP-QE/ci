@@ -14,7 +14,7 @@ spec:
           memory: 8Gi
           cpu: "6"
         limits:
-          memory: 12Gi
+          memory: 16Gi
           cpu: "8"
       env:
         - name: GOPATH
