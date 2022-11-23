@@ -5,9 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-// TODO: remove env GIT_BRANCH and GIT_COMMIT
-final GIT_BRANCH = 'release-5.4'
-final GIT_COMMIT = 'ed9ffce29902707fdc52abd97197dc8270219331'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tiflow/release-5.3/pod-ghpr_verify.yaml'
 
@@ -45,13 +42,13 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_COMMIT ]],
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -60,7 +57,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                     ]],
                                 ]
@@ -94,7 +91,7 @@ pipeline {
                         // }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${GIT_COMMIT}") {
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}") {
                                     sh label: "${TEST_CMD}", script: """
                                         make ${TEST_CMD}
                                     """
