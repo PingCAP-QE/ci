@@ -104,7 +104,7 @@ pipeline {
             }
             post{
                 always {
-                    junit(testResults: "**/result.xml")
+                    junit(testResults: "**/result.xml", allowEmptyResults: true)
                 }
                 failure {
                     archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
