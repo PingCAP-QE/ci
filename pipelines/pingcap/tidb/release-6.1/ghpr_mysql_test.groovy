@@ -97,14 +97,14 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh 'ls mysql_test' // if cache missed, fail it(should not miss).
                         dir('mysql_test') {
-                            sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh'
+                            sh label: "mysql test", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh'
                         }
                     }
                 }
             }
             post{
                 always {
-                    junit(testResults: "**/result.xml")
+                    junit(testResults: "**/result.xml", allowEmptyResults: true)
                 }
                 failure {
                     archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
