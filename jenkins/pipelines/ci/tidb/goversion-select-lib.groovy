@@ -8,7 +8,8 @@ feature_branch_use_go19 = []
 // Version Selector
 // branch or tag
 // == branch
-//  master use go1.18
+//  master use go1.19
+//  release branch >= release-6.1 use go1.19
 //  release branch >= release-6.0 use go1.18
 //  release branch >= release-5.1 use go1.16
 //  release branch < release-5.0 use go1.13
@@ -23,7 +24,7 @@ feature_branch_use_go19 = []
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
-        if (branchNameOrTag >= "v6.3") {
+        if (branchNameOrTag >= "v6.1") {
             println "tag ${branchNameOrTag} use go 1.19"
             return "go1.19"
         }
@@ -65,11 +66,11 @@ def selectGoVersion(branchNameOrTag) {
         }
 
 
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
-            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
-            return "go1.18"
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.19")
+            return "go1.19"
         }
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.1"  && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
             return "go1.18"
         }
