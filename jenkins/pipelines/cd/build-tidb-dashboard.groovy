@@ -87,6 +87,19 @@ spec:
       image: jenkins/inbound-agent:4.10-3
 '''
 
+final dockerSyncYaml = '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: regctl
+    image: hub.pingcap.net/jenkins/regctl
+    args: ["sleep", "infinity"]
+  tolerations:
+  - effect: NoSchedule
+    key: tidb-operator
+    operator: Exists
+'''
 
 pipeline {
     agent none
@@ -184,8 +197,25 @@ pipeline {
                 }
             }
             steps {
-                sh "docker manifest create hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag} -a hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64 hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64"
-                sh "docker manifest push hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}"
+                sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
+                sh """docker manifest create hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag} -a hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64 hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64
+                      docker manifest push hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}
+                """
+            }
+        }
+        stage("sync to qa"){
+            agent {
+                kubernetes {
+                    yaml dockerSyncYaml
+                    defaultContainer 'regctl'
+                    cloud "kubernetes-ng"
+                    namespace "jenkins-tidb-operator"
+                }
+            }
+            environment { HUB = credentials('harbor-pingcap') }
+            steps {
+                sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
+                sh "regctl image copy hub.pingcap.net/rc/tidb-dashboard:${ReleaseTag}  hub.pingcap.net/qa/tidb-dashboard:${ReleaseTag}"
             }
         }
     }
