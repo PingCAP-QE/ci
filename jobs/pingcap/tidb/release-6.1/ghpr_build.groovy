@@ -1,5 +1,4 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For *6.2* branches.
 pipelineJob('pingcap/tidb/release-6.1/ghpr_build') {
     logRotator {
         daysToKeep(30)
