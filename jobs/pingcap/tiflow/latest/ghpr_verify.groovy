@@ -18,7 +18,7 @@ pipelineJob('pingcap/tiflow/ghpr_verify') {
                     gitHubAuthId('') // using the default only one.
 
                     triggerPhrase('.*/(run-verify.*)|(/merge)')
-                    onlyTriggerPhrase(true)
+                    onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
