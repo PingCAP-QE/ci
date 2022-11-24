@@ -100,7 +100,7 @@ pipeline {
                         }
                         post {
                             always {
-                                junit(testResults: "**/*.junit-report.xml", allowEmptyResults : true)  
+                                junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)  
                             }
                         }
                     }
