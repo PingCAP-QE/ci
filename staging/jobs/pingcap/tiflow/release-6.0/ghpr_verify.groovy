@@ -17,7 +17,7 @@ pipelineJob('pingcap/tiflow/release-6.0/ghpr_verify') {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
 
-                    triggerPhrase('.*/(run-(debug-verify).*)')
+                    triggerPhrase('.*/((run-debug-verify|verify).*)')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
