@@ -95,12 +95,6 @@ pipeline {
                         values(
                             'explaintest.sh y', 
                             'explaintest.sh n', 
-                            'run_real_tikv_tests.sh brietest', 
-                            'run_real_tikv_tests.sh pessimistictest', 
-                            'run_real_tikv_tests.sh sessiontest', 
-                            'run_real_tikv_tests.sh statisticstest',
-                            'run_real_tikv_tests.sh txntest',
-                            'run_real_tikv_tests.sh addindextest',
                         )
                     }
                 }
