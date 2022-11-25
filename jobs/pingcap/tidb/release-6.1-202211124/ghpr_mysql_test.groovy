@@ -23,9 +23,6 @@ pipelineJob('pingcap/tidb/release-6.1/ghpr_mysql_test') {
                     whitelist('')
                     orgslist('')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('^(release-)?6\\.1(\\.\\d+)?(\\-.*)?$') }
-                    }
-                    blackListTargetBranches {
                         ghprbBranch { branch('^release-6.1-20221124-v6.1.2$') }
                     }
                     // ignore when only those file changed.(
@@ -70,7 +67,7 @@ pipelineJob('pingcap/tidb/release-6.1/ghpr_mysql_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-6.1/ghpr_mysql_test.groovy")
+            scriptPath("pipelines/pingcap/tidb/release-6.1-20221124/ghpr_mysql_test.groovy")
             scm {
                 git{
                     remote {
