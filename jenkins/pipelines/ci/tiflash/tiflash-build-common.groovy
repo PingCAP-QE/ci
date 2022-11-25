@@ -664,14 +664,15 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
 
         cd ${install_dir} && pwd
         if [ -f tiflash ]; then
-            ./tiflash version
-            ./tiflash version | egrep -i '^Release Version.*dirty'
+            ./tiflash version 2>&1 | tee tmp-version.info
+            grep -i '^Release Version.*dirty' tmp-version.info
             if [ \$? -eq 0 ]; then
                 echo "tiflash version is dirty"
                 exit 1
             else
                 echo "tiflash version is clean"
             fi
+            rm -f tmp-version.info
         fi
         """
     }
