@@ -12,7 +12,7 @@ if (params.containsKey("release_test")) {
 def TIDB_TEST_BRANCH = "master"
 def TIDB_PRIVATE_TEST_BRANCH = "master"
 
-def MYBATIS3_URL = "${FILE_SERVER_URL}/download/static/travis-tidb.zip"
+def MYBATIS3_URL = "${FILE_SERVER_URL}/download/static/mybatis-3-tidb.zip"
 
 // parse tidb_test branch
 def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
