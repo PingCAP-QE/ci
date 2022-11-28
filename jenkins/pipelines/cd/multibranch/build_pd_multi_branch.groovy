@@ -101,7 +101,7 @@ try {
                         string(name: "ARCH", value: "amd64"),
                         string(name: "OS", value: "linux"),
                         string(name: "EDITION", value: "community"),
-                        string(name: "OUTPUT_BINARY", value: "builds/pingcap/pd/${env.BRANCH_NAME}/${githash}/centos7/pd-linux-amd64.tar.gz"),
+                        string(name: "OUTPUT_BINARY", value: "builds/pingcap/pd/${env.BRANCH_NAME}/${githash}/centos7/pd-server.tar.gz"), // why different with arm?
                         string(name: "REPO", value: 'pd'),
                         string(name: "PRODUCT", value: 'pd'),
                         string(name: "GIT_HASH", value: githash),
@@ -119,7 +119,7 @@ try {
                         string(name: "ARCH", value: "arm64"),
                         string(name: "OS", value: "linux"),
                         string(name: "EDITION", value: "community"),
-                        string(name: "OUTPUT_BINARY", value: "builds/pingcap/pd/${env.BRANCH_NAME}/${githash}/centos7/pd-linux-arm64.tar.gz"),
+                        string(name: "OUTPUT_BINARY", value: "builds/pingcap/test/pd/${githash}/centos7/pd-linux-arm64.tar.gz"), // why test?
                         string(name: "REPO", value: 'pd'),
                         string(name: "PRODUCT", value: 'pd'),
                         string(name: "GIT_HASH", value: githash),
@@ -141,7 +141,7 @@ try {
             dir("go/src/github.com/pingcap/pd") {
                 def refspath = "refs/pingcap/pd/${env.BRANCH_NAME}/sha1"
                 def filepath = "builds/pingcap/pd/${env.BRANCH_NAME}/${githash}/centos7/pd-server.tar.gz"
-                def filepath2 = "builds/pingcap/pd/${githash}/centos7/pd-server.tar.gz"
+                def filepath2 = "builds/pingcap/pd/${githash}/centos7/pd-server.tar.gz" // why ?
                 container("golang") {
                     timeout(10) {
                         sh """
