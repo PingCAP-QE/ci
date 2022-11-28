@@ -278,13 +278,16 @@ try {
                             mv ${dir}/../tidb/bin/tidb-server ./bin/ddltest_tidb-server
 
                             cd ${dir}/../tidb/
-                            GO111MODULE=on go mod vendor -v || true
+                            GO111MODULE=on go mod vendor -v
 
                             mkdir -p ${dir}/../tidb_gopath/src
                             cd ${dir}/../tidb_gopath
-                            if [ -d ../tidb/vendor/ ]; then cp -rf ../tidb/vendor/* ./src; fi
-
-                            if [ -f ../tidb/go.mod ]; then mv ${dir}/../tidb/vendor ${dir}/../tidb/_vendor; fi
+                            if [ -d ../tidb/vendor/ ]; then
+                                cp -rf ../tidb/vendor/* ./src
+                                if [ -f ../tidb/go.mod ]; then
+                                    mv ${dir}/../tidb/vendor ${dir}/../tidb/_vendor
+                                fi
+                            fi
                             """
                         }
                     }
