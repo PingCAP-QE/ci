@@ -72,6 +72,8 @@ POD_LABEL_MAP = [
     "go1.18": "${JOB_NAME}--go1180-${BUILD_NUMBER}",
     "go1.19": "${JOB_NAME}--go1190-${BUILD_NUMBER}",
 ]
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 
 node("master") {
     deleteDir()
@@ -94,12 +96,9 @@ metadata:
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
-    def namespace = "jenkins-tidb-mergeci"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -120,7 +119,7 @@ def run_with_pod(Closure body) {
                     ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} bash"
             body()
         }
     }

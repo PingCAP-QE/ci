@@ -21,7 +21,6 @@ m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
 GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
@@ -34,6 +33,9 @@ POD_LABEL_MAP = [
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
     "go1.19": "tidb-ghpr-common-test-go1190-${BUILD_NUMBER}",
 ]
+POD_GO_IMAGE = ""
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 
 node("master") {
     deleteDir()
@@ -45,7 +47,6 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
@@ -61,9 +62,8 @@ metadata:
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,

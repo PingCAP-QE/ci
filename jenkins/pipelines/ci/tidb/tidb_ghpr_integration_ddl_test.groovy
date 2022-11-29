@@ -53,13 +53,15 @@ all_task_result = []
 POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
+POD_GO_IMAGE = ""
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 
 node("master") {
     deleteDir()
@@ -95,9 +97,8 @@ def run_with_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-go1190-${BUILD_NUMBER}"
     }
 
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
@@ -141,9 +142,8 @@ def run_with_memory_volume_pod(Closure body) {
         label = "tidb-ghpr-integration-ddl-test-memory-volume-go1190-${BUILD_NUMBER}"
     }
     
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
