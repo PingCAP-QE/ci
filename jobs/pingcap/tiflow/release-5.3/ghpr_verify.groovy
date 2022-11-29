@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pingcap/tiflow/release-5.3/ghpr_verify') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
