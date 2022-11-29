@@ -3,7 +3,7 @@
 // should triggerd for master and latest release branches
 // @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tiflow/latest/pod-ghpr_verify.yaml'
