@@ -21,13 +21,15 @@ if (ghprbPullId != null && ghprbPullId != "") {
 def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
 GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
+POD_GO_IMAGE = ""
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 
 node("master") {
     deleteDir()
@@ -50,12 +52,9 @@ metadata:
 
 def run_with_pod(Closure body) {
     def label = "tidb-e2e-tests-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ksyun"
-    def namespace = "jenkins-tidb-mergeci"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -76,7 +75,7 @@ def run_with_pod(Closure body) {
                     ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} bash"
             body()
         }
     }

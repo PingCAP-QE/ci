@@ -19,57 +19,8 @@ if (m3) {
     TIDB_TEST_BRANCH = "${m3[0][1]}"
 }
 
-// if (TIDB_TEST_BRANCH.startsWith("release-3")) {
-// TIDB_TEST_BRANCH = "release-3.0"
-// }
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
-
-// @NonCPS
-// boolean isMoreRecentOrEqual( String a, String b ) {
-//     if (a == b) {
-//         return true
-//     }
-
-//     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-//        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-//        return (result == 1)
-//     } 
-// }
-
-// string trimPrefix = {
-//         it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-//     }
-
-// def boolean isBranchMatched(List<String> branches, String targetBranch) {
-//     for (String item : branches) {
-//         if (targetBranch.startsWith(item)) {
-//             println "targetBranch=${targetBranch} matched in ${branches}"
-//             return true
-//         }
-//     }
-//     return false
-// }
-
-// isNeedGo1160 = false
-// releaseBranchUseGo1160 = "release-5.1"
-
-// if (!isNeedGo1160) {
-//     isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency", "br-stream"], ghprbTargetBranch)
-// }
-// if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-//     isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-//     if (isNeedGo1160) {
-//         println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-//     }
-// }
-// if (isNeedGo1160) {
-//     println "This build use go1.16"
-//     POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
-// } else {
-//     println "This build use go1.13"
-//     POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
-// }
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
@@ -85,7 +36,8 @@ POD_LABEL_MAP = [
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
     "go1.19": "tidb-ghpr-common-test-go1190-${BUILD_NUMBER}",
 ]
-POD_NAMESPACE = "jenkins-tidb-mergeci"
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 
 node("master") {
     deleteDir()
@@ -111,11 +63,10 @@ metadata:
 '''
 
 def run_test_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
+    def label = POD_LABEL_MAP[GO_VERSION] 
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: "jenkins-tidb-mergeci",
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -145,10 +96,9 @@ def run_test_with_pod(Closure body) {
 
 def run_with_lightweight_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-lightweight"
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: "jenkins-tidb-mergeci",
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -171,9 +121,8 @@ def run_with_lightweight_pod(Closure body) {
 
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
