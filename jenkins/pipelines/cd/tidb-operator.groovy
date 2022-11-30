@@ -122,9 +122,6 @@ pipeline {
                         stage("checkout") {
                             steps {
                                 script {
-                                    sh '''curl -O http://fileserver.pingcap.net/download/tmp/tidb-operator.tar.gz
-                                          tar -xzf tidb-operator.tar.gz
-                                          rm tidb-operator.tar.gz'''
                                     def scmVars = checkout changelog: false, poll: false, scm: [
                                             $class           : 'GitSCM',
                                             branches         : [[name: "${params.GitRef}"]],
@@ -160,7 +157,7 @@ pipeline {
                                                 continue
                                             }
                                             sh """
-                                            TKCTL_CLI_PACKAGE = "tkctl-${OS}-${ARCH}-${ReleaseTag}"
+                                            TKCTL_CLI_PACKAGE="tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                             GOOS=${OS} GOARCH=${ARCH} make cli
                                             tar -czf ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.tgz tkctl
                                             sha256sum ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.tgz > ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.sha256
@@ -399,7 +396,7 @@ pipeline {
                                                 continue
                                             }
                                             sh """
-                                                TKCTL_CLI_PACKAGE = "tkctl-${OS}-${ARCH}-${ReleaseTag}"
+                                                TKCTL_CLI_PACKAGE="tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                                 cd ${TOOLS_BUILD_DIR}
                                                 upload_qiniu.py \${TKCTL_CLI_PACKAGE}.tgz \${TKCTL_CLI_PACKAGE}.tgz
                                                 upload_qiniu.py \${TKCTL_CLI_PACKAGE}.sha256 \${TKCTL_CLI_PACKAGE}.sha256
