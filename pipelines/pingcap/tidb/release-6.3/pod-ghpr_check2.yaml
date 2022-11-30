@@ -16,11 +16,11 @@ spec:
         limits:
           memory: 12Gi
           cpu: "8"
-      env:
-        - name: GOPATH
-          value: /share/.go
-        - name: GOCACHE
-          value: /share/.cache/go-build
+      # env:
+      #   - name: GOPATH
+      #     value: /share/.go
+      #   - name: GOCACHE
+      #     value: /share/.cache/go-build
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
