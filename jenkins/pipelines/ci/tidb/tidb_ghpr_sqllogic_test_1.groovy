@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -78,8 +77,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
@@ -95,23 +92,6 @@ def run_with_pod(Closure body) {
 all_task_result = []
 
 try {
-    stage("Pre-check") {
-        if (!params.force) {
-            node("lightweight_pod") {
-                container("golang") {
-                    notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-                }
-            }
-        }
-
-        if (notRun == 0) {
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
-
     stage('Prepare') {
         run_with_pod {
             def ws = pwd()
@@ -122,7 +102,8 @@ try {
                     timeout(10) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                        curl ${tidb_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                        tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         # use tidb-server with ADMIN_CHECK as default
                         mkdir -p ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/
                         mv bin/tidb-server-check ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/tidb-server
@@ -142,7 +123,8 @@ try {
                         def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                        curl ${tidb_test_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                        tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                         cd sqllogic_test && ./build.sh
                         """
                     }

@@ -112,8 +112,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
@@ -156,7 +154,8 @@ try {
                     timeout(10) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                        curl ${tidb_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                        tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         """
                     }
                 }
@@ -172,7 +171,8 @@ try {
 
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                        curl ${tidb_test_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                        tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                         cd compatible_test && ./build.sh
                         """
                     }
@@ -212,11 +212,11 @@ try {
                             sh """
                             while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tikv_url}
-                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
+                            tar -xz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 
                             while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${pd_url}
-                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
+                            tar -xz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
 
                             mkdir -p ./tidb-old-src
                             echo ${tidb_old_url}

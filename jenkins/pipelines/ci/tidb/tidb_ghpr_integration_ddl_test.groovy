@@ -113,8 +113,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
@@ -158,8 +156,6 @@ def run_with_memory_volume_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: true)
@@ -202,7 +198,8 @@ try {
                     timeout(15) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
-                        curl ${tidb_url} | tar xz -C ./
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                        tar -xvz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
                             make ddltest
                         fi
@@ -229,18 +226,6 @@ try {
 
                 container("golang") {
                     dir("go/src/github.com/pingcap/tidb-test") {
-
-                        // def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        // def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
-
-                        // def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                        // def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                        // tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-
-                        // def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                        // def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                        // pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-
                         timeout(10) {
                             def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                             sh """

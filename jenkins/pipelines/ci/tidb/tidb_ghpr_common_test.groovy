@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -52,7 +51,7 @@ node("master") {
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
+def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar.gz"
 
 podYAML = '''
 apiVersion: v1
@@ -80,8 +79,6 @@ def run_test_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
@@ -152,23 +149,6 @@ all_task_result = []
 
 try {
     timestamps {
-        // stage("Pre-check"){
-        //     if (!params.force){
-        //         run_with_lightweight_pod{
-        //             container("golang"){
-        //                 notRun = sh(returnStatus: true, script: """
-		// 		    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-		// 		    """)
-        //             }
-        //         }
-        //     }
-
-        //     if (notRun == 0){
-        //         println "the ${ghprbActualCommit} has been tested"
-        //         throw new RuntimeException("hasBeenTested")
-        //     }
-        // }
-
         stage('Prepare') {
 
             run_test_with_pod {
@@ -183,7 +163,8 @@ try {
                                 deleteDir()
                                 sh """
 	                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-	                        curl ${tidb_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                            tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
 	                        """
                             }
                         }
@@ -199,9 +180,10 @@ try {
                             def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                             sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                        curl ${tidb_test_url} | tar xz
-                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                        
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_test_url}
+                        tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+
+                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb                        
                         cd tidb_test && ./build.sh && cd ..
                         cd mysql_test && ./build.sh && cd ..
                         cd randgen-test && ./build.sh && cd ..
@@ -215,7 +197,7 @@ try {
 
                             sh """
                             echo "stash tidb-test"
-                            cd .. && tar -cf $TIDB_TEST_STASH_FILE tidb-test/
+                            cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
                             curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
                         }
@@ -240,17 +222,18 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
                         dir("go/src/github.com/pingcap") {
                             retry(3){
                                 sh """
-                                    echo "unstash tidb"
-                                    curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
+                                    echo "unstash tidb-test"
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                                    tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                                 """
                             }
                         }
@@ -314,18 +297,19 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
 
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
@@ -386,18 +370,18 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+		                            """
                                 }
                             }
                         }
-
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
@@ -462,15 +446,15 @@ try {
                             timeout(10) {
                                 retry(3){
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+		                            """
                                 }
                                 sh """
-                            if [ -f go.mod ]; then
-                                GO111MODULE=on go mod vendor -v
-                            fi
-                            """
+                                if [ -f go.mod ]; then
+                                    GO111MODULE=on go mod vendor -v
+                                fi
+                                """
                             }
                         }
 
@@ -484,9 +468,10 @@ try {
 
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
@@ -541,18 +526,19 @@ try {
                             timeout(10) {
                                 retry(3){
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+		                            """
                                 }
                             }
                         }
 
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
