@@ -217,9 +217,10 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
@@ -228,23 +229,24 @@ try {
                             timeout(20) {
                                 def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                 sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
-                            """
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
+                                """
                                 def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                                 def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                 sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                            curl ${tidb_test_url} | tar xz
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                                tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
-                            export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                            cd tidb_test && ./build.sh && cd ..
-                            if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                cd randgen-test && ./build.sh && cd ..
-                                cd randgen-test && ls t > packages.list
-                                split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
-                                cd ..
-                            fi
-                            """
+                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                cd tidb_test && ./build.sh && cd ..
+                                if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                    cd randgen-test && ./build.sh && cd ..
+                                    cd randgen-test && ls t > packages.list
+                                    split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
+                                    cd ..
+                                fi
+                                """
                             }
                         }
                     }
@@ -269,9 +271,10 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
@@ -281,19 +284,20 @@ try {
                                 timeout(20) {
                                     def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                     sh """
-                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
-                                """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
+                                    """
                                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                                     def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                     sh """
-                                echo ${tidb_test_url} 
-                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                                curl ${tidb_test_url} | tar xz
+                                    echo ${tidb_test_url} 
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                                    tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
-                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                cd mysql_test && ./build.sh && cd ..
-                                cd analyze_test && ./build.sh && cd ..
-                                """
+                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                    cd mysql_test && ./build.sh && cd ..
+                                    cd analyze_test && ./build.sh && cd ..
+                                    """
                                 }
                             }
                         }
@@ -325,14 +329,6 @@ try {
 
                     dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                         container("golang") {
-                            // def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                            // def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                            // tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-
-                            // def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                            // def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                            // pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-
                             timeout(20) {
                                 retry(3){
                                     sh """
@@ -699,9 +695,10 @@ try {
                                         retry(3){
                                             deleteDir()
                                             sh """
-                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
-                                        """
+                                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                            tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                            """
                                         }
 
                                     }
