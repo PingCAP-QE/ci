@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -21,7 +20,7 @@ if (m3) {
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
@@ -97,23 +96,6 @@ def run_with_pod(Closure body) {
 all_task_result = []
 
 try {
-    stage("Pre-check") {
-        if (!params.force) {
-            node("lightweight_pod") {
-                container("golang") {
-                    notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-                }
-            }
-        }
-
-        if (notRun == 0) {
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
-
     stage('Prepare') {
         run_with_pod {
             def ws = pwd()
@@ -129,7 +111,8 @@ try {
                         waitBuildDone = System.currentTimeMillis() - waitBuildDoneStartTimeMillis
 
                         sh """
-                    curl ${tidb_url} | tar xz
+                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                     # use tidb-server with ADMIN_CHECK as default
                     mkdir -p ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/
                     mv bin/tidb-server-check ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/tidb-server
@@ -150,7 +133,8 @@ try {
                     timeout(10) {
                         sh """
                     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                    curl ${tidb_test_url} | tar xz
+                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                    tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                     cd sqllogic_test && ./build.sh
                     """
                     }
