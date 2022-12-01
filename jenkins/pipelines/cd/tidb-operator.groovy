@@ -10,7 +10,7 @@ def EnableE2E = false
 final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-lightning tikv-importer'
 final TOOLS_BUILD_DIR = 'output/tkctl'
 final CHARTS_BUILD_DIR = 'output/chart'
-final K8S_CLUSTER = "kubernetes-ng"
+final K8S_CLUSTER = "kubernetes"
 final K8S_NAMESPACE="jenkins-tidb-operator"
 
 final dindYaml = '''
