@@ -37,6 +37,7 @@ POD_LABEL_MAP = [
 ]
 POD_CLOUD = "kubernetes-ksyun"
 POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
@@ -179,6 +180,7 @@ try {
                             def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                             def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                             sh """
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY}  && go env
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_test_url}
                         tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
@@ -248,6 +250,7 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./test.sh
@@ -330,6 +333,7 @@ try {
                                     cp \$(cat ../packages_${chunk}) ../t
                                     cd ..
                                 fi
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./test.sh
                                 
@@ -484,7 +488,7 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
                                 ./test.sh

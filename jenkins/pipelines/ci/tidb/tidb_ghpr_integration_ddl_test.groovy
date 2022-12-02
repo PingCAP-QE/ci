@@ -62,6 +62,7 @@ GO_IMAGE_MAP = [
 POD_GO_IMAGE = ""
 POD_CLOUD = "kubernetes-ksyun"
 POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
@@ -200,6 +201,7 @@ try {
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
                         tar -xvz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
                             make ddltest
                         fi
@@ -233,6 +235,7 @@ try {
                             """
                             def dir = pwd()
                             sh """
+                            unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                             tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
                             tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
@@ -289,7 +292,7 @@ try {
                                 rm -rf /tmp/tidb
                                 rm -rf ./tikv ./pd
                                 set -e
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 10
                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml

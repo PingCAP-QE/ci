@@ -61,6 +61,7 @@ GO_IMAGE_MAP = [
 POD_GO_IMAGE = ""
 POD_CLOUD = "kubernetes-ksyun"
 POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
@@ -234,6 +235,7 @@ try {
                                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
                                 tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 cd tidb_test && ./build.sh && cd ..
                                 if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
@@ -289,7 +291,7 @@ try {
                                     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
                                     tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
-
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                     cd mysql_test && ./build.sh && cd ..
                                     cd analyze_test && ./build.sh && cd ..
@@ -373,7 +375,7 @@ try {
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
                                 if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 export log_level=debug
                                 TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
@@ -463,6 +465,7 @@ try {
                                 
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
                                 if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
                                     mv t t_bak
