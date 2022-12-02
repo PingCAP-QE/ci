@@ -39,11 +39,11 @@ def selectGoVersion(branchNameOrTag) {
         }
 
 
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
-            println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
-            return "go1.18"
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.1") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.19")
+            return "go1.19"
         }
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.1"  && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
             return "go1.18"
         }
