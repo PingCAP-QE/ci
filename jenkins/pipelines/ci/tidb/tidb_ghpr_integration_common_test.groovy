@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -181,23 +180,6 @@ all_task_result = []
 
 try {
     timestamps {
-        stage("Pre-check"){
-            if (!params.force){
-                node("lightweight_pod"){
-                    container("golang"){
-                        notRun = sh(returnStatus: true, script: """
-				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-				    """)
-                    }
-                }
-            }
-
-            if (notRun == 0){
-                println "the ${ghprbActualCommit} has been tested"
-                throw new RuntimeException("hasBeenTested")
-            }
-        }
-
         stage('Prepare') {
             def prepareStartTime = System.currentTimeMillis()
 
@@ -235,7 +217,7 @@ try {
                                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
                                 tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} && go env
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 cd tidb_test && ./build.sh && cd ..
                                 if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
