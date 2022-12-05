@@ -74,6 +74,7 @@ POD_LABEL_MAP = [
 ]
 POD_CLOUD = "kubernetes-ksyun"
 POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
@@ -173,6 +174,7 @@ try {
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
                         tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         cd compatible_test && ./build.sh
                         """
                     }
@@ -245,7 +247,7 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 export log_level=debug
                                 TIKV_PATH=./bin/tikv-server \
                                 TIDB_PATH=./bin/tidb-server \
