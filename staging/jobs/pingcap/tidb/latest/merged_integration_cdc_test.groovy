@@ -27,28 +27,28 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
                         expressionType("JSONPath") //Optional, defaults to JSONPath
                         regexpFilter("") //Optional, defaults to empty string
                         defaultValue("") //Optional, defaults to empty string
-                    },
+                    }
                     genericVariable {
                         key("PULL_NUMBER")
                         value("\$.number")
                         expressionType("JSONPath") 
                         regexpFilter("") 
                         defaultValue("") 
-                    },
+                    }
                     genericVariable {
                         key("GIT_BRANCH")
                         value("\$.pull_request.base.ref")
                         expressionType("JSONPath") 
                         regexpFilter("") 
                         defaultValue("")
-                    },
+                    }
                     genericVariable {
                         key("GIT_COMMIT")
                         value("\$.pull_request.merge_commit_sha")
                         expressionType("JSONPath") 
                         regexpFilter("")
                         defaultValue("") 
-                    },
+                    }
                     genericVariable {
                         key("MERGED")
                         value("\$.pull_request.merged")
