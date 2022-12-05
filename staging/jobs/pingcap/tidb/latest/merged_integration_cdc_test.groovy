@@ -58,8 +58,8 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
                     }
                 }
                 causeString('$ACTION  $MERGED $PULL_NUMBER  $GIT_BRANCH $GIT_COMMIT')
-                token()
-                tokenCredentialId()
+                // token()
+                // tokenCredentialId()
                 printContributedVariables(true)
                 printPostContent(true)
                 silentResponse(false)
