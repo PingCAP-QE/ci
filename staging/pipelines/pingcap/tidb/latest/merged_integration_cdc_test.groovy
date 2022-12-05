@@ -5,13 +5,9 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-// TODO: remove env GIT_BRANCH and GIT_COMMIT
-final GIT_BRANCH = 'master'
-final GIT_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
 
-// TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
     agent {
         kubernetes {
