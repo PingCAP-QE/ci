@@ -195,12 +195,12 @@ try {
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
                     deleteDir()
-                    def filepath = "builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar"
+                    def filepath = "builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar.gz"
                     timeout(15) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
-                        tar -xvz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                        tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
                             make ddltest
@@ -208,8 +208,8 @@ try {
                         ls bin
                         rm -rf bin/tidb-server-*
                         cd ..
-                        tar -cf tidb-server.tar tidb
-                        curl -F ${filepath}=@tidb-server.tar ${FILE_SERVER_URL}/upload
+                        tar -czf tidb-server.tar.gz tidb
+                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
@@ -239,7 +239,7 @@ try {
                             tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
                             tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
-                            tidb_tar_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar"
+                            tidb_tar_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar.gz"
 
                             tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
                             tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
@@ -249,20 +249,21 @@ try {
 
                             while ! curl --output /dev/null --silent --head --fail \${tidb_test_url}; do sleep 10; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${tidb_test_url}
-                            tar -xvz  -f tidb-test.tar.gz
+                            tar -xz  -f tidb-test.tar.gz
 
                             cd ${test_dir}
 
                             while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 10; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
-                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
+                            tar -xz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 
                             while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 10; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
-                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
+                            tar -xz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
 
                             mkdir -p ${dir}/../tidb/
-                            curl \${tidb_tar_url} | tar -xf - -C ${dir}/../
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${tidb_tar_url}
+                            tar -xz -f tidb-server.tar.gz -C ${dir}/../ && rm -rf tidb-server.tar.gz
                             mv ${dir}/../tidb/bin/tidb-server ./bin/ddltest_tidb-server
 
                             cd ${dir}/../tidb/
