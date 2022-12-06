@@ -87,10 +87,9 @@ run_with_pod {
                     // Trigger TiCDC test and waiting its finish.
                     result = build(job: "${triggered_job_name}", parameters: default_params, wait: true, propagate: false)
                     if (result.getResult() != "SUCCESS") {
-                        currentBuild.result = "FAILURE"
                         echo "Test failed: https://ci.pingcap.net/blue/organizations/jenkins/cdc_ghpr_integration_test/detail/cdc_ghpr_integration_test/${result.number}/pipeline"
+                        throw new Exception("triggered job: cdc_ghpr_integration_test failed")
                     } else {
-                        currentBuild.result = "SUCCESS"
                         echo "Test at: https://ci.pingcap.net/blue/organizations/jenkins/cdc_ghpr_integration_test/detail/cdc_ghpr_integration_test/${result.number}/pipeline"
                     }
                 }
