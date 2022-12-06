@@ -207,10 +207,10 @@ pipeline {
                                                             url    : 'https://github.com/pingcap/tidb-dashboard.git',
                                                     ]]
                         ]
-						sh 'export PATH=$GOROOT/bin:$PATH; make package'
+						sh 'export PATH=$GOROOT/bin:/usr/local/bin:$PATH:/opt/homebrew/bin; make package'
 						sh """
 							tar -cvzf tidb-dashboard-darwin-amd64.tar.gz -C bin/ tidb-dashboard
-							curl -F build/tidb-dashboard/${params.ReleaseTag}/darwin-amd64.tar.gz=@tidb-dashboard-darwin-amd64.tar.gz http://fileserver.pingcap.net/upload"
+							curl -F build/tidb-dashboard/${params.ReleaseTag}/darwin-amd64.tar.gz=@tidb-dashboard-darwin-amd64.tar.gz http://fileserver.pingcap.net/upload
 						   """
 					}
 				}
@@ -228,10 +228,10 @@ pipeline {
                                                             url    : 'https://github.com/pingcap/tidb-dashboard.git',
                                                     ]]
                         ]
-						sh 'export PATH=$GOROOT/bin:$PATH; make package'
+						sh 'export PATH=$GOROOT/bin:/usr/local/bin:$PATH:/opt/homebrew/bin; make package'
 						sh """
 							tar -cvzf tidb-dashboard-darwin-arm64.tar.gz -C bin/ tidb-dashboard
-							curl -F build/tidb-dashboard/${params.ReleaseTag}/darwin-arm64.tar.gz=@tidb-dashboard-darwin-arm64.tar.gz http://fileserver.pingcap.net/upload"
+							curl -F build/tidb-dashboard/${params.ReleaseTag}/darwin-arm64.tar.gz=@tidb-dashboard-darwin-arm64.tar.gz http://fileserver.pingcap.net/upload
 						   """
 					}
 				}
@@ -243,8 +243,7 @@ pipeline {
                 kubernetes {
                     yaml podYaml
                     defaultContainer 'builder'
-                    cloud "kubernetes-ng"
-                    namespace "jenkins-tidb-operator"
+                    cloud "kubernetes"
                 }
             }
             steps {
@@ -278,10 +277,10 @@ pipeline {
 			steps{
 				sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
 				sh """
-					curl -o http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/linux-amd64.tar.gz"
-					curl -o http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/linux-arm64.tar.gz"
-					curl -o http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/darwin-amd64.tar.gz"
-					curl -o http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/darwin-arm64.tar.gz"
+					curl -O http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/linux-amd64.tar.gz
+					curl -O http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/linux-arm64.tar.gz
+					curl -O http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/darwin-amd64.tar.gz
+					curl -O http://fileserver.pingcap.net/download/build/tidb-dashboard/${params.ReleaseTag}/darwin-arm64.tar.gz
 				   """
 				sh """
 					tiup mirror publish tidb-dashboard ${ReleaseTag} linux-amd64.tar.gz tidb-dashboard --os=linux --arch=amd64 --desc='tidb-dashboard is a tool to'
