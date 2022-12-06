@@ -5,9 +5,9 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-// TODO: remove env GIT_BRANCH and GIT_COMMIT
-final GIT_BRANCH = 'master'
-final GIT_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
+// TODO: remove env GIT_BASE_BRANCH and GIT_MERGE_COMMIT
+final GIT_BASE_BRANCH = 'master'
+final GIT_MERGE_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_br_test.yaml'
 
@@ -45,13 +45,13 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_COMMIT ]],
+                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -105,7 +105,7 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}") { 
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}") { 
                                     sh """git status && ls -alh""" 
                                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
                                         sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'

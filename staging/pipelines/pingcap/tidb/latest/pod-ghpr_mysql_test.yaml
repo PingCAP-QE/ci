@@ -14,16 +14,6 @@ spec:
         limits:
           memory: 6Gi
           cpu: "3"
-      env:
-        - name: GOPATH
-          value: /share/.go
-        - name: GOCACHE
-          value: /share/.cache/go-build
-      volumeMounts:
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -38,10 +28,3 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
-  volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
