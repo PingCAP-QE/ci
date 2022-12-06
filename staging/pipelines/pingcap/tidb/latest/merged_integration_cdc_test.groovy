@@ -159,7 +159,7 @@ pipeline {
                             }
                         }
                         post{
-                            failure {
+                            always {
                                 script {
                                     println "Test failed, archive the log"
                                     def log_tar_name = "${CASES}".replaceAll("\\s","-")
