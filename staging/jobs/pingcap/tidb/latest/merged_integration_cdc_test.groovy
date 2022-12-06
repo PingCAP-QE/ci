@@ -7,8 +7,8 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
         stringParam("ACTION")
         stringParam("PULL_NUMBER")
         stringParam("MERGED")
-        stringParam("GIT_BRANCH")
-        stringParam("GIT_COMMIT")
+        stringParam("GIT_BASE_BRANCH")
+        stringParam("GIT_MERGE_COMMIT")
     }
     properties {
         // priority(0) // 0 fast than 1
@@ -36,14 +36,14 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
                         defaultValue("") 
                     }
                     genericVariable {
-                        key("GIT_BRANCH")
+                        key("GIT_BASE_BRANCH")
                         value("\$.pull_request.base.ref")
                         expressionType("JSONPath") 
                         regexpFilter("") 
                         defaultValue("")
                     }
                     genericVariable {
-                        key("GIT_COMMIT")
+                        key("GIT_MERGE_COMMIT")
                         value("\$.pull_request.merge_commit_sha")
                         expressionType("JSONPath") 
                         regexpFilter("")
@@ -57,14 +57,14 @@ pipelineJob('pingcap/tidb/tidb_merged_integration_cdc_test') {
                         defaultValue("") 
                     }
                 }
-                causeString('$ACTION  $MERGED $PULL_NUMBER  $GIT_BRANCH $GIT_COMMIT')
+                causeString('$ACTION  $MERGED $PULL_NUMBER  $GIT_BASE_BRANCH $GIT_MERGE_COMMIT')
                 // token()
                 // tokenCredentialId()
                 printContributedVariables(true)
                 printPostContent(true)
                 silentResponse(false)
                 shouldNotFlattern(false)
-                regexpFilterText("\${ACTION}_\${MERGED}_\${GIT_BRANCH}_\${GIT_COMMIT}")
+                regexpFilterText("\${ACTION}_\${MERGED}_\${GIT_BASE_BRANCH}_\${GIT_MERGE_COMMIT}")
                 regexpFilterExpression("^closed_true_master_[a-z0-9]{40}\$")
             }
         }
