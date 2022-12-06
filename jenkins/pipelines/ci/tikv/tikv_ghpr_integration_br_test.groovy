@@ -12,6 +12,7 @@ if (params.containsKey("release_test")) {
 
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
+result = ""
 
 catchError {
     node("${GO_TEST_SLAVE}") {
@@ -40,7 +41,13 @@ catchError {
                     ]
 
                     // Trigger BRIE test without waiting its finish.
-                    build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
+                    result = build(job: "br_ghpr_unit_and_integration_test", parameters: default_params, wait: true)
+                    if (result.getResult() != "SUCCESS") {
+                        echo "Test failed: https://ci.pingcap.net/blue/organizations/jenkins/br_ghpr_unit_and_integration_test/detail/br_ghpr_unit_and_integration_test/${result.number}/pipeline"
+                        throw new Exception("triggered job: cdc_ghpr_integration_test failed")
+                    } else {
+                        echo "Test at: https://ci.pingcap.net/blue/organizations/jenkins/br_ghpr_unit_and_integration_test/detail/br_ghpr_unit_and_integration_test/${result.number}/pipeline"
+                    }
                 }
             } else {
                 println "skip trigger BRIE tests as this PR targets to ${ghprbTargetBranch}"
