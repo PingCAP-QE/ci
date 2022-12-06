@@ -4,8 +4,8 @@ pipelineJob('pingcap/tidb/merged_integration_copr_test') {
         daysToKeep(30)
     }
     parameters {
-        stringParam("ghprbActualCommit")
-        stringParam("ghprbTargetBranch")
+        stringParam("GIT_MERGE_COMMIT")
+        stringParam("GIT_BASE_BRANCH")
     }
     properties {
         // priority(0) // 0 fast than 1
