@@ -202,7 +202,7 @@ pipeline {
                         -owner pingcap \
                         -repo tidb \
                         -ref  ${GIT_MERGE_COMMIT} \
-                        -state ${currentBuild.currentResult} \
+                        -state success \
                         -context "${COMMIT_CONTEXT}" \
                         -description "test success" \
                         -url "${env.RUN_DISPLAY_URL}"
