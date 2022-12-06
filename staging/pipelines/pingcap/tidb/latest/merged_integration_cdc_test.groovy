@@ -170,7 +170,6 @@ pipeline {
                                     """
                                     archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
                                 }
-                                archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
                             }
                         }
                     }
