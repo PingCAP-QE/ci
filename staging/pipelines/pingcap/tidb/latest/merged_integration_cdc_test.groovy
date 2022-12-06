@@ -4,6 +4,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+final COMMIT_CONTEXT = 'staging/integration-cdc-test'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
@@ -18,6 +19,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -158,20 +160,68 @@ pipeline {
                         }
                         post{
                             failure {
-                                println "Test failed, archive the log"
-                                // def log_tar_name = "${CASES}".replaceAll("\\s","-")
-                                // sh label: "archive failure logs", script: """
-                                // ls /tmp/tidb_cdc_test/
-                                // tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                // ls -alh  log-${log_tar_name}.tar.gz  
-                                // """
-                                // archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
+                                script {
+                                    println "Test failed, archive the log"
+                                    def log_tar_name = "${CASES}".replaceAll("\\s","-")
+                                    sh label: "archive failure logs", script: """
+                                    ls /tmp/tidb_cdc_test/
+                                    tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                    ls -alh  log-${log_tar_name}.tar.gz  
+                                    """
+                                    archiveArtifacts(artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false)
+                                }
                             }
                         }
                     }
                 }
             }        
         }
+    }
+    post {
+        always {
+            script {
+                println "build url: ${env.BUILD_URL}"
+                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
+                println "build name: ${env.JOB_NAME}"
+                println "build number: ${env.BUILD_NUMBER}"
+                println "build status: ${currentBuild.currentResult}"
+            } 
+        }
+        // success {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state success \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test success" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
+
+        // unsuccessful {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state failure \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test failed" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
     }
 }
 
