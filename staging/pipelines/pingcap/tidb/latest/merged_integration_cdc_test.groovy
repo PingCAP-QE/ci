@@ -185,23 +185,24 @@ pipeline {
                 println "build status: ${currentBuild.currentResult}"
             } 
         }
-        success {
-            container('status-updater') {
-                sh """
-                    set +x
-                    github-status-updater \
-                        -action update_state \
-                        -token ${GITHUB_TOKEN} \
-                        -owner pingcap \
-                        -repo tidb \
-                        -ref  ${GIT_MERGE_COMMIT} \
-                        -state success \
-                        -context "${COMMIT_CONTEXT}" \
-                        -description "test success" \
-                        -url "${env.RUN_DISPLAY_URL}"
-                """
-            }
-        }
+        // success {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state success \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test success" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
+        
         // unsuccessful {
         //     container('status-updater') {
         //         sh """
