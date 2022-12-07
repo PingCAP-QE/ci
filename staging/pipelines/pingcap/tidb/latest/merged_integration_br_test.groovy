@@ -4,10 +4,8 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+final COMMIT_CONTEXT = 'staging/integration-br-test'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-// TODO: remove env GIT_BASE_BRANCH and GIT_MERGE_COMMIT
-final GIT_BASE_BRANCH = 'master'
-final GIT_MERGE_COMMIT = '9743a9a2d2c626acbd7e13d4693cca9c58f329b7'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_br_test.yaml'
 
@@ -21,6 +19,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -87,10 +86,11 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'br_incremental_ddl', 'br_incompatible_tidb_config', 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation', 'lightning_row-format-v2',
-                            'lightning_s3', 'lightning_sqlmode', 'lightning_tiflash', 'br_s3', 'br_tiflash', 'br_tikv_outage', 'br_tikv_outage2', 'lightning_disk_quota', 'br_300_small_tables',
-                            'br_full_ddl', 'lightning_checkpoint', 'br_table_filter', 'br_systables', 'br_rawkv',
-                            'br_key_locked', 'br_other', 'br_history', 'br_full', 'br_full_index'
+                        values 'br_incremental_ddl', 'br_incompatible_tidb_config'
+                            // 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation', 'lightning_row-format-v2',
+                            // 'lightning_s3', 'lightning_sqlmode', 'lightning_tiflash', 'br_s3', 'br_tiflash', 'br_tikv_outage', 'br_tikv_outage2', 'lightning_disk_quota', 'br_300_small_tables',
+                            // 'br_full_ddl', 'lightning_checkpoint', 'br_table_filter', 'br_systables', 'br_rawkv',
+                            // 'br_key_locked', 'br_other', 'br_history', 'br_full', 'br_full_index'
                     }
                 }
                 agent{
@@ -128,12 +128,60 @@ pipeline {
                         }
                         post{
                             failure {
-                                println "Test failed, archive the log"
+                                script {
+                                    println "Test failed, archive the log"
+                                }
                             }
                         }
                     }
                 }
             }        
         }
+    }
+    post {
+        always {
+            script {
+                println "build url: ${env.BUILD_URL}"
+                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
+                println "build name: ${env.JOB_NAME}"
+                println "build number: ${env.BUILD_NUMBER}"
+                println "build status: ${currentBuild.currentResult}"
+            } 
+        }
+        // success {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state success \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test success" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
+
+        // unsuccessful {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state failure \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test failed" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
     }
 }
