@@ -95,10 +95,6 @@ spec:
   - name: regctl
     image: hub.pingcap.net/jenkins/regctl
     args: ["sleep", "infinity"]
-  tolerations:
-  - effect: NoSchedule
-    key: tidb-operator
-    operator: Exists
 '''
 
 final  tiupYaml='''
