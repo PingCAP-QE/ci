@@ -8,6 +8,7 @@ final COMMIT_CONTEXT = 'staging/integration-cdc-test'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
+TIFLOW_COMMIT_ID = "master"
 
 pipeline {
     agent {
@@ -88,6 +89,10 @@ pipeline {
                                     ]],
                                 ]
                             )
+                            script {
+                                TIFLOW_COMMIT_ID = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                                println "tiflow latest commit on ${GIT_BASE_BRANCH}: ${TIFLOW_COMMIT_ID}"
+                            }
                         }
                     }
                 }
@@ -95,26 +100,35 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
-                    sh "git branch && git status"
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                    }
-                }
-                dir('tiflow') {
-                    sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
-                        sh 'touch ws-${BUILD_TAG}'
-                        sh label: 'prepare cdc binary', script: """
-                        make cdc
-                        make integration_test_build
-                        make kafka_consumer
-                        make check_failpoint_ctl
-                        ls bin/
-                        """
-                    }
-                }
+                parallel (
+                    "tidb": {
+                        dir('tidb') {
+                            sh "git branch && git status"
+                            cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
+                                // FIXME: https://github.com/pingcap/tidb-test/issues/1987
+                                sh label: 'tidb-server', script: """
+                                ls bin/tidb-server || make
+                                ./bin/tidb-server -V
+                                """
+                            }
+                        }
+                    },
+                    "tiflow": {
+                        dir('tiflow') {
+                            sh "git branch && git status"
+                            cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/integration-cdc-test/rev-${TIFLOW_COMMIT_ID}") {
+                                sh label: 'prepare cdc binary', script: """
+                                ls bin/cdc || make cdc
+                                ls bin/cdc.test || make integration_test_build
+                                ls bin/cdc_kafka_consumer || make kafka_consumer
+                                make check_failpoint_ctl
+                                ls bin/
+                                ./bin/cdc version
+                                """
+                            }
+                        }
+                    },
+                )
             }
         }
         stage('Tests') {
@@ -122,7 +136,8 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'region_merge', 'ddl_reentrant', 'http_api_tls', 'generate_column'
+                        values 'consistent_replicate_nfs',  'consistent_replicate_s3' , 'region_merge ddl_reentrant', 
+                            'sink_retry capture_session_done_during_task', 'common_1 ddl_attributes', 
                     }
                 }
                 agent{
@@ -133,17 +148,16 @@ pipeline {
                     }
                 }
                 stages {
-                    
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                 }
                             }
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
+                                cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/integration-cdc-test/rev-${TIFLOW_COMMIT_ID}") {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
