@@ -136,7 +136,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'consistent_replicate_nfs',  'consistent_replicate_s3' , 'region_merge ddl_reentrant', 
+                        values 'consistent_replicate_nfs',  'consistent_replicate_s3' , 'region_merge ddl_reentrant',
                             'sink_retry capture_session_done_during_task', 'common_1 ddl_attributes'
                     }
                 }
