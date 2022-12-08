@@ -116,7 +116,7 @@ pipeline {
                     "tiflow": {
                         dir('tiflow') {
                             sh "git branch && git status"
-                            cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/integration-cdc-test/rev-${TIFLOW_COMMIT_ID}") {
+                            cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                 sh label: 'prepare cdc binary', script: """
                                 ls bin/cdc || make cdc
                                 ls bin/cdc.test || make integration_test_build
@@ -136,7 +136,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'consistent_replicate_nfs',  'consistent_replicate_s3' , 'region_merge ddl_reentrant',
+                        values 'consistent_replicate_nfs', 'consistent_replicate_s3' , 'region_merge ddl_reentrant', 
                             'sink_retry capture_session_done_during_task', 'common_1 ddl_attributes'
                     }
                 }
@@ -157,7 +157,7 @@ pipeline {
                                 }
                             }
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/integration-cdc-test/rev-${TIFLOW_COMMIT_ID}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
@@ -238,4 +238,3 @@ pipeline {
         // }
     }
 }
-
