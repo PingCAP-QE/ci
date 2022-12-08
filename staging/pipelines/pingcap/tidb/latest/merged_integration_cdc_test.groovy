@@ -8,6 +8,7 @@ final COMMIT_CONTEXT = 'staging/integration-cdc-test'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_cdc_test.yaml'
+TIFLOW_COMMIT_ID = "master"
 
 pipeline {
     agent {
@@ -88,6 +89,10 @@ pipeline {
                                     ]],
                                 ]
                             )
+                            script {
+                                TIFLOW_COMMIT_ID = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                                println "tiflow latest commit on ${GIT_BASE_BRANCH}: ${TIFLOW_COMMIT_ID}"
+                            }
                         }
                     }
                 }
@@ -104,14 +109,14 @@ pipeline {
                 }
                 dir('tiflow') {
                     sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
-                        sh 'touch ws-${BUILD_TAG}'
+                    cache(path: "./", filter: '**/*', key: "ws/merged_integration_cdc_test/${TIFLOW_COMMIT_ID}/tiflow") {
                         sh label: 'prepare cdc binary', script: """
-                        make cdc
-                        make integration_test_build
-                        make kafka_consumer
+                        ls bin/cdc || make cdc
+                        ls bin/cdc.test || make integration_test_build
+                        ls bin/cdc_kafka_consumer || make kafka_consumer
                         make check_failpoint_ctl
                         ls bin/
+                        ./bin/cdc version
                         """
                     }
                 }
@@ -134,7 +139,6 @@ pipeline {
                     }
                 }
                 stages {
-                    
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
@@ -144,7 +148,7 @@ pipeline {
                                 }
                             }
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow") {
+                                cache(path: "./", filter: '**/*', key: "ws/merged_integration_cdc_test/${TIFLOW_COMMIT_ID}/tiflow") {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
