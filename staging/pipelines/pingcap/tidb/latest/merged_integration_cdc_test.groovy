@@ -100,26 +100,35 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
-                    sh "git branch && git status"
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                    }
-                }
-                dir('tiflow') {
-                    sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/merged_integration_cdc_test/${TIFLOW_COMMIT_ID}/tiflow") {
-                        sh label: 'prepare cdc binary', script: """
-                        ls bin/cdc || make cdc
-                        ls bin/cdc.test || make integration_test_build
-                        ls bin/cdc_kafka_consumer || make kafka_consumer
-                        make check_failpoint_ctl
-                        ls bin/
-                        ./bin/cdc version
-                        """
-                    }
-                }
+                parallel (
+                    "tidb": {
+                        dir('tidb') {
+                            sh "git branch && git status"
+                            cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
+                                // FIXME: https://github.com/pingcap/tidb-test/issues/1987
+                                sh label: 'tidb-server', script: """
+                                ls bin/tidb-server || make
+                                ./bin/tidb-server -V
+                                """
+                            }
+                        }
+                    },
+                    "tiflow": {
+                        dir('tiflow') {
+                            sh "git branch && git status"
+                            cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/integration-cdc-test/rev-${TIFLOW_COMMIT_ID}") {
+                                sh label: 'prepare cdc binary', script: """
+                                ls bin/cdc || make cdc
+                                ls bin/cdc.test || make integration_test_build
+                                ls bin/cdc_kafka_consumer || make kafka_consumer
+                                make check_failpoint_ctl
+                                ls bin/
+                                ./bin/cdc version
+                                """
+                            }
+                        }
+                    },
+                )
             }
         }
         stage('Tests') {
@@ -148,7 +157,7 @@ pipeline {
                                 }
                             }
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/merged_integration_cdc_test/${TIFLOW_COMMIT_ID}/tiflow") {
+                                cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb/integration-cdc-test/rev-${TIFLOW_COMMIT_ID}") {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
