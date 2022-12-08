@@ -102,7 +102,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh "git branch && git status"
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                     }
@@ -143,7 +143,7 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${BUILD_TAG}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                 }
                             }
