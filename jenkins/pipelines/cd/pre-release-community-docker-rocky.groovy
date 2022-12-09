@@ -357,7 +357,8 @@ stage("docker images") {
 stage("create multi-arch image") {
     def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
     def manifest_multiarch_builds = [:]
-    for (product in imageNames) {
+    for (item in imageNames) {
+        def product = item // important: groovy closure may use the last status of loop var
         manifest_multiarch_builds[product] = {
             def paramsManifest = [
                     string(name: "AMD64_IMAGE", value: get_image_str_for_community(product, "amd64", RELEASE_TAG, false)),

@@ -165,7 +165,8 @@ stage("build enterprise image"){
 
 stage("manifest multi-arch"){
     def manifest_multiarch_builds = [:]
-    for (product in ["tikv", "tidb", "tiflash", "pd"]) {
+    for (item in ["tikv", "tidb", "tiflash", "pd"]) {
+        def product = item
         manifest_multiarch_builds[product] = {
             def paramsManifest = [
                     string(name: "AMD64_IMAGE", value: get_image_str_for_enterprise(product, "amd64", RELEASE_TAG)),
