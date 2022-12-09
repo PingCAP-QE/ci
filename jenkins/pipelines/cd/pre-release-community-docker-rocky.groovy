@@ -1,8 +1,3 @@
-/*
-* @GIT_BRANCH(string:repo branch, Required)
-* @FORCE_REBUILD(bool:if force rebuild binary,default true,Optional)
-*/
-
 properties([
         parameters([
                 string(
@@ -82,38 +77,19 @@ if (params.DEBUG_MODE) {
     println('DEBUG_MODE is true, use hub.pingcap.net/ee-debug')
 }
 
-// pre-release push image to harbor.pingcap.net
-// release push image to ucloud and dockerhub
-// version >= 6.1.0 need multi-arch image
-// not need multi-arch image name example:
-//    amd64: harbor.pingcap.net/qa/tidb:v5.4.0-pre
-//    arm64: harbor.pingcap.net/qa/tidb-arm64:v5.4.0-pre
-// version need multi-arch image name example: (user image tag to distingush multi-arch image)
-//    amd64: harbor.pingcap.net/qa/tidb:v6.1.0-pre-amd64
-//    arm64: harbor.pingcap.net/qa/tidb:v6.1.0-pre-arm64
-//    multi-arch: harbor.pingcap.net/qa/tidb:v6.1.0-pre
-def get_image_str_for_community(product, arch, tag, failpoint, if_multi_arch) {
-    def imageTag = tag+"-rocky"
+def get_image_str_for_community(product, arch, tag, failpoint) {
+    def imageTag = tag + "-rocky"+ "-pre"
     def imageName = product
     if (product == "monitoring") {
         imageName = "tidb-monitor-initializer"
     }
-    if (!if_multi_arch && arch == "arm64") {
-        imageName = imageName + "-arm64"
-    }
-
-    imageTag = imageTag + "-pre"
-    if (if_multi_arch && !failpoint) {
-        imageTag = imageTag + "-" + arch
-    }
     if (failpoint) {
         imageTag = imageTag + "-" + "failpoint"
     }
-
-
-    def imageStr = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
-
-    return imageStr
+    if (arch){
+        imageTag = imageTag + "-" + arch
+    }
+    return "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
 }
 
 def get_sha(hash, repo, branch) {
@@ -137,23 +113,18 @@ def test_binary_already_build(binary_url) {
 }
 
 
-// only release version >= v6.1.0 need multi-arch image
-def versionNeedMultiArch(version) {
-    return true
-}
-
-NEED_MULTIARCH = versionNeedMultiArch(RELEASE_TAG)
+NEED_MULTIARCH = true
 IMAGE_TAG = RELEASE_TAG +"-rocky"+ "-pre"
 
 
 def release_one(repo, arch, failpoint) {
     def actualRepo = repo
     def hash = ""
-    if (repo == "br" && RELEASE_TAG >= "v5.2.0") {
+    if (repo == "br") {
         actualRepo = "tidb"
         hash = "${TIDB_HASH}"
     }
-    if (repo == "dumpling" && RELEASE_TAG >= "v5.3.0") {
+    if (repo == "dumpling") {
         actualRepo = "tidb"
         hash = "${TIDB_HASH}"
     }
@@ -253,15 +224,7 @@ def release_one(repo, arch, failpoint) {
 
 
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${repo}.Dockerfile"
-    // if current version not need multi-arch image, then use image image to distingush amd64 and arm64.
-    // otherwise, use imageTag to distingush different version.
-    // example1:
-    // hub.pingcap.net/qa/tidb:v5.4.0-pre
-    // hub.pingcap.net/qa/tidb-arm64:v5.4.0-pre
-    // example2:
-    // hub.pingcap.net/qa/tidb:v6.1.0-pre-amd64
-    // hub.pingcap.net/qa/tidb:v6.1.0-pre-arm64
-    def image = get_image_str_for_community(repo, arch, RELEASE_TAG, failpoint, NEED_MULTIARCH)
+    def image = get_image_str_for_community(repo, arch, RELEASE_TAG, failpoint)
 
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -297,42 +260,13 @@ def release_one(repo, arch, failpoint) {
                 string(name: "RELEASE_DOCKER_IMAGES", value: imageForDebug),
         ]
         if (repo in ["dumpling", "ticdc", "tidb-binlog", "tidb", "tikv", "pd"]) {
-            println "start build debug image ${repo} ${arch}"
-            println "params: ${paramsDockerForDebug}"
+            println "build debug image ${repo} ${arch}, params: ${paramsDockerForDebug}"
             build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerForDebug
         } else {
             println "only support amd64 for debug image, only the following repo can build debug image: [dumpling,ticdc,tidb-binlog,tidb,tikv,pd]"
         }
-    }
-
-    // dm version >= v5.3.0 && < v6.0.0 need build image pingcap/dm-monitor-initializer
-    if (repo == "dm" && RELEASE_TAG < "v6.0.0") {
-        def dockerfileForDmMonitorInitializer = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/dm-monitor-initializer"
-        def imageNameForDmMonitorInitializer = "dm-monitor-initializer"
-        if (arch == "arm64") {
-            imageNameForDmMonitorInitializer = imageNameForDmMonitorInitializer + "-arm64"
-        }
-        imageNameForDmMonitorInitializer = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageNameForDmMonitorInitializer}:${IMAGE_TAG},pingcap/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
-        if (params.DEBUG_MODE) {
-            println "run pipeline in debug mode, not push dm pre-release image to dockerhub, harbor only"
-            imageNameForDmMonitorInitializer = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageNameForDmMonitorInitializer}:${IMAGE_TAG}"
-        }
-        def paramsDockerDmMonitorInitializer = [
-                string(name: "ARCH", value: arch),
-                string(name: "OS", value: "linux"),
-                string(name: "INPUT_BINARYS", value: binary),
-                string(name: "REPO", value: "dm"),
-                string(name: "PRODUCT", value: "dm_monitor_initializer"),
-                string(name: "RELEASE_TAG", value: RELEASE_TAG),
-                string(name: "DOCKERFILE", value: dockerfileForDmMonitorInitializer),
-                string(name: "RELEASE_DOCKER_IMAGES", value: imageNameForDmMonitorInitializer),
-        ]
-        build job: "docker-common",
-                wait: true,
-                parameters: paramsDockerDmMonitorInitializer
-
     }
 
     if (repo == "br") {
@@ -408,65 +342,33 @@ def release_docker(releaseRepos, builds, arch) {
 
 }
 
-
-def manifest_multiarch_image() {
-    def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
-    def manifest_multiarch_builds = [:]
-    for (imageName in imageNames) {
-        def image = imageName
-        manifest_multiarch_builds[image + " multi-arch"] = {
-            def paramsManifest = [
-                    string(name: "AMD64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${IMAGE_TAG}-amd64"),
-                    string(name: "ARM64_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${IMAGE_TAG}-arm64"),
-                    string(name: "MULTI_ARCH_IMAGE", value: "${HARBOR_REGISTRY_PROJECT_PREFIX}/${image}:${IMAGE_TAG}"),
-            ]
-            build job: "manifest-multiarch-common",
-                    wait: true,
-                    parameters: paramsManifest
-
-            if (params.DEBUG_MODE) {
-                println "run pipeline in debug mode, only push image to harbor, not push to dockerhub"
-            }
-        }
-    }
-    parallel manifest_multiarch_builds
-
-
-}
-
-
 stage("docker images") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm"]
-            if (RELEASE_TAG >= "v5.3.0") {
-                // build ng-monitoring only for v5.3.0+
-                releaseRepos.add("ng-monitoring")
-            }
+            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm", "ng-monitoring"]            
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
-
-            if (RELEASE_BRANCH >= "release-5.1") {
-                release_docker(releaseRepos, builds, "arm64")
-            } else if (params.DEBUG_MODE) {
-                release_docker(releaseRepos, builds, "arm64")
-            } else {
-                println("skip build arm64 because only v5.1.x and v5.4+ support")
-            }
-
+            release_docker(releaseRepos, builds, "arm64")
             parallel builds
-
         }
     }
 }
 
-if (NEED_MULTIARCH) {
-    node("${GO_BUILD_SLAVE}") {
-        container("golang") {
-            stage("create multi-arch image") {
-                manifest_multiarch_image()
-            }
+stage("create multi-arch image") {
+    def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
+    def manifest_multiarch_builds = [:]
+    for (product in imageNames) {
+        manifest_multiarch_builds[product] = {
+            def paramsManifest = [
+                    string(name: "AMD64_IMAGE", value: get_image_str_for_community(product, "amd64", RELEASE_TAG, false)),
+                    string(name: "ARM64_IMAGE", value: get_image_str_for_community(product, "arm64", RELEASE_TAG, false)),
+                    string(name: "MULTI_ARCH_IMAGE", value: get_image_str_for_community(product, "", RELEASE_TAG, false)),
+            ]
+            println "paramsManifest: ${paramsManifest}"
+            build job: "manifest-multiarch-common",
+                    wait: true,
+                    parameters: paramsManifest
         }
     }
+    parallel manifest_multiarch_builds
 }
-
