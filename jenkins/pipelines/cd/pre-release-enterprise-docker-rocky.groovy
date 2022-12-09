@@ -75,8 +75,8 @@ def get_image_str_for_enterprise(product, arch, tag) {
 }
 
 def build_tidb_enterprise_image(product, sha1, plugin_hash, arch) {
-    binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/centos7/${product}-linux-${arch}-enterprise.tar.gz"
-    plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
+    def binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/centos7/${product}-linux-${arch}-enterprise.tar.gz"
+    def plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${product}-enterprise.Dockerfile"
     def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG)
     def paramsDocker = [
