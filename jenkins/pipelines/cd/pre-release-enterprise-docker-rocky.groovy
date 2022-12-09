@@ -60,8 +60,6 @@ if (params.DEBUG_MODE) {
     println('DEBUG_MODE is true, use hub.pingcap.net/ee-debug')
 }
 
-// env.DOCKER_HOST = "tcp://localhost:2375"
-
 def get_image_str_for_enterprise(product, arch, tag) {
     def imageTag = tag + "-rocky" + "-pre"
     def imageName = product
