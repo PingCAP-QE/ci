@@ -316,7 +316,7 @@ try {
 
 
             stage("publish tiup staging & publish community image") {
-                publishs = [:]
+                def publishs = [:]
                 publishs["publish tiup staging"] = {
                     build job: "tiup-mirror-online-rc",
                             wait: true,
@@ -361,12 +361,36 @@ try {
                                     [$class: 'StringParameterValue', name: 'TICDC_HASH', value: cdc_sha1],
                             ]
                 }
+				if (RELEASE_TAG >= "v6.5.0"){
+                    publishs["build community image rocky"] = {
+                        build job: "pre-release-community-docker-rocky",
+                                wait: true,
+                                parameters: [
+                                        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                        [$class: 'StringParameterValue', name: 'TIKV_BUMPVERION_HASH', value: TIKV_BUMPVERION_HASH],
+                                        [$class: 'StringParameterValue', name: 'TIKV_BUMPVERSION_PRID', value: TIKV_BUMPVERSION_PRID],
+                                        [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                        [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
+                                        [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
+                                        [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                        [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                        [$class: 'StringParameterValue', name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIDB_BINLOG_HASH', value: binlog_sha1],
+                                        [$class: 'StringParameterValue', name: 'TICDC_HASH', value: cdc_sha1],
+                                ]
+                    }
+				}
 
                 parallel publishs
             }
 
             stage("publish enterprise image") {
-                build job: "pre-release-enterprise-docker",
+				def builds =[:]
+				builds["publish enterprise image"] = {
+                    build job: "pre-release-enterprise-docker",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -379,6 +403,25 @@ try {
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                         ]
+				}
+				if (RELEASE_TAG >= "v6.5.0"){
+                    builds["build enterprise image rocky"] = {
+                        build job: "pre-release-enterprise-docker-rocky",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
+                            ]
+                    }
+                }
+                parallel builds
             }
             stage("check artifact"){
                 build job: "pre-release-check",
