@@ -10,16 +10,6 @@ properties([
                         name: 'RELEASE_TAG',
                         trim: true
                 ),
-                string(
-                        defaultValue: '',
-                        name: 'TIKV_BUMPVERION_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIKV_BUMPVERSION_PRID',
-                        trim: true
-                ),
                 booleanParam(
                         defaultValue: true,
                         name: 'FORCE_REBUILD'
@@ -77,13 +67,24 @@ if (params.DEBUG_MODE) {
     println('DEBUG_MODE is true, use hub.pingcap.net/ee-debug')
 }
 
-def get_image_str_for_community(product, arch, tag, failpoint) {
+def get_dockerfile_url(product, is_enterprise, is_debug){
+    def fileName = product
+    if (product == "tidb" && is_enterprise){
+        fileName = fileName + '-enterprise'
+    }
+    if (is_debug) {
+        fileName = fileName + "-debug"
+    }
+    return "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${fileName}.Dockerfile"
+}
+
+def get_image_str_for_community(product, arch, tag, is_failpoint, is_debug) {
     def imageTag = tag + "-rocky"+ "-pre"
     def imageName = product
     if (product == "monitoring") {
         imageName = "tidb-monitor-initializer"
     }
-    if (failpoint) {
+    if (is_failpoint) {
         imageTag = imageTag + "-" + "failpoint"
     }
     if (arch){
@@ -111,11 +112,6 @@ def test_binary_already_build(binary_url) {
         return false
     }
 }
-
-
-NEED_MULTIARCH = true
-IMAGE_TAG = RELEASE_TAG +"-rocky"+ "-pre"
-
 
 def release_one(repo, arch, failpoint) {
     def actualRepo = repo
@@ -159,13 +155,6 @@ def release_one(repo, arch, failpoint) {
     }
 
     def sha1 = get_sha(hash, actualRepo, RELEASE_BRANCH)
-    if (TIKV_BUMPVERION_HASH.length() > 1 && repo == "tikv") {
-        sha1 = TIKV_BUMPVERION_HASH
-    }
-    if (repo == "monitoring") {
-        sha1 = get_sha(hash, actualRepo, RELEASE_BRANCH)
-    }
-
 
     println "${repo}: ${sha1}"
     def binary = "builds/pingcap/${repo}/optimization/${RELEASE_TAG}/${sha1}/centos7/${repo}-linux-${arch}.tar.gz"
@@ -202,9 +191,6 @@ def release_one(repo, arch, failpoint) {
     if (failpoint) {
         paramsBuild.push([$class: 'BooleanParameterValue', name: 'FAILPOINT', value: true])
     }
-    if (TIKV_BUMPVERSION_PRID.length() > 1 && repo == "tikv") {
-        paramsBuild.push([$class: 'StringParameterValue', name: 'GIT_PR', value: TIKV_BUMPVERSION_PRID])
-    }
     if (repo == "monitoring") {
         paramsBuild.push([$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_BRANCH])
     }
@@ -223,8 +209,8 @@ def release_one(repo, arch, failpoint) {
     }
 
 
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${repo}.Dockerfile"
-    def image = get_image_str_for_community(repo, arch, RELEASE_TAG, failpoint)
+    def dockerfile = get_dockerfile_url(repo, false, false)
+    def image = get_image_str_for_community(repo, arch, RELEASE_TAG, failpoint, false)
 
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -244,11 +230,8 @@ def release_one(repo, arch, failpoint) {
 
 
     if (NEED_DEBUG_IMAGE && arch == "amd64") {
-        def dockerfileForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${repo}-debug.Dockerfile"
-        def imageForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${repo}:${IMAGE_TAG}-debug"
-        if (failpoint) {
-            imageForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${repo}:${IMAGE_TAG}-failpoint-debug"
-        }
+        def dockerfileForDebug = get_dockerfile_url(repo, false, true)
+        def imageForDebug = get_image_str_for_community(repo, "", RELEASE_TAG, failpoint, true)
         def paramsDockerForDebug = [
                 string(name: "ARCH", value: "amd64"),
                 string(name: "OS", value: "linux"),
@@ -265,25 +248,14 @@ def release_one(repo, arch, failpoint) {
                     wait: true,
                     parameters: paramsDockerForDebug
         } else {
-            println "only support amd64 for debug image, only the following repo can build debug image: [dumpling,ticdc,tidb-binlog,tidb,tikv,pd]"
+            println "only amd64 of following repos can build debug image: [dumpling,ticdc,tidb-binlog,tidb,tikv,pd], but got: $repo"
         }
     }
 
     if (repo == "br") {
         println("start push tidb-lightning")
-        def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/tidb-lightning.Dockerfile"
-        imageName = "tidb-lightning"
-        if (arch == "arm64" && !NEED_MULTIARCH) {
-            imageName = imageName + "-arm64"
-        }
-        def imageTag = IMAGE_TAG
-        if (NEED_MULTIARCH) {
-            imageTag = imageTag + "-" + arch
-        }
-        def imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
-        if (params.DEBUG_MODE) {
-            imageLightling = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${imageName}:${imageTag}"
-        }
+        def dockerfileLightning = get_dockerfile_url("tidb-lightning", false, false)
+        def imageLightling = get_image_str_for_community("tidb-lightning", arch, RELEASE_TAG,false,false)
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
                 string(name: "OS", value: "linux"),
@@ -299,8 +271,8 @@ def release_one(repo, arch, failpoint) {
                 parameters: paramsDockerLightning
 
         if (NEED_DEBUG_IMAGE && arch == "amd64") {
-            def dockerfileLightningForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/tidb-lightning-debug.Dockerfile"
-            def imageLightlingForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/tidb-lightning:${IMAGE_TAG}-debug"
+            def dockerfileLightningForDebug = get_dockerfile_url("tidb-lightning", false, true)
+            def imageLightlingForDebug = get_image_str_for_community("tidb-lightning", "",RELEASE_TAG,failpoint,true)
             def paramsDockerLightningForDebug = [
                     string(name: "ARCH", value: "amd64"),
                     string(name: "OS", value: "linux"),
@@ -361,9 +333,9 @@ stage("create multi-arch image") {
         def product = item // important: groovy closure may use the last status of loop var
         manifest_multiarch_builds[product] = {
             def paramsManifest = [
-                    string(name: "AMD64_IMAGE", value: get_image_str_for_community(product, "amd64", RELEASE_TAG, false)),
-                    string(name: "ARM64_IMAGE", value: get_image_str_for_community(product, "arm64", RELEASE_TAG, false)),
-                    string(name: "MULTI_ARCH_IMAGE", value: get_image_str_for_community(product, "", RELEASE_TAG, false)),
+                    string(name: "AMD64_IMAGE", value: get_image_str_for_community(product, "amd64", RELEASE_TAG, false, false)),
+                    string(name: "ARM64_IMAGE", value: get_image_str_for_community(product, "arm64", RELEASE_TAG, false, false)),
+                    string(name: "MULTI_ARCH_IMAGE", value: get_image_str_for_community(product, "", RELEASE_TAG, false, false)),
             ]
             println "paramsManifest: ${paramsManifest}"
             build job: "manifest-multiarch-common",
