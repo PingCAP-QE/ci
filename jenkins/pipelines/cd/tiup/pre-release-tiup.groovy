@@ -367,8 +367,6 @@ try {
                                 wait: true,
                                 parameters: [
                                         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
-                                        [$class: 'StringParameterValue', name: 'TIKV_BUMPVERION_HASH', value: TIKV_BUMPVERION_HASH],
-                                        [$class: 'StringParameterValue', name: 'TIKV_BUMPVERSION_PRID', value: TIKV_BUMPVERSION_PRID],
                                         [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                         [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                         [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
