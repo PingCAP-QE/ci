@@ -32,15 +32,19 @@ def check_image = { comps, edition, registry, project ->
             container("docker") {
                 unstash 'release-check'
                 sh "pwd && ls -alh"
-                dir("release-check") {
-                    comps.each {
-                        sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+				stage("traditional image"){
+                    dir("release-check") {
+                        comps.each {
+                            sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+                        }
                     }
                 }
                 if(RELEASE_TAG>="v6.5.0"){
-                    dir("release-check-rocky") {
-                        comps.each {
-                            sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+                    stage("rocky image"){
+                        dir("release-check-rocky") {
+                            comps.each {
+                                sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+                            }
                         }
                     }
 				}
