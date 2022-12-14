@@ -369,7 +369,7 @@ try {
                                         [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
                                         [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                         [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
-                                        [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: true],
+                                        [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: false],
                                         [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                                         [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
                                         [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
