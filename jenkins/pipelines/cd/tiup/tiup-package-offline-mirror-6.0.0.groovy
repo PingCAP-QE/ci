@@ -227,7 +227,7 @@ def package_tools = { plat, arch ->
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     """
 
-    def sha256 = sh returnStdout: true ,script: "sha256sum ${toolkit_dir}.tar.gz | awk '{print \$1}'"
+    def sha256 = sh (returnStdout: true, script: "sha256sum ${toolkit_dir}.tar.gz | awk '{print \$1}'").trim()
     println "${toolkit_dir}.tar.gz sha256: $sha256"
 
     if (plat == "community") {
