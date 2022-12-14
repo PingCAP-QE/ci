@@ -253,7 +253,7 @@ def release_one(repo, arch, failpoint) {
     }
 
     if (repo == "br") {
-        println("start push tidb-lightning")
+        println("start build tidb-lightning")
         def dockerfileLightning = get_dockerfile_url("tidb-lightning", false, false)
         def imageLightling = get_image_str_for_community("tidb-lightning", arch, RELEASE_TAG,false,false)
         def paramsDockerLightning = [
@@ -292,7 +292,7 @@ def release_one(repo, arch, failpoint) {
 
 def release_docker(releaseRepos, builds, arch) {
     for (item in releaseRepos) {
-        def product = "${item}"
+        def product = item
         def product_show = product
         if (product_show == "br") {
             product_show = "br && tidb-lightning"
