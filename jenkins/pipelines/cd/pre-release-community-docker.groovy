@@ -411,7 +411,13 @@ def release_docker(releaseRepos, builds, arch) {
 
 
 def manifest_multiarch_image() {
-    def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "dm", "tidb-lightning", "ng-monitoring"]
+    def imageNames = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "tidb-lightning"]
+    if (RELEASE_TAG >= "v5.3.0") {
+        // build ng-monitoring only for v5.3.0+
+        // build dm only for v5.3.0+
+        imageNames.add("ng-monitoring")
+        imageNames.add("dm")
+    }
     def manifest_multiarch_builds = [:]
     for (imageName in imageNames) {
         def image = imageName
