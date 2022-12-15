@@ -230,7 +230,13 @@ def parallel_enterprise_docker(arch, if_release, if_multi_arch) {
         build_enterprise_image("tiflash", TIFLASH_HASH, arch, if_release, if_multi_arch)
     }
 
-    retagProducts = ["tidb-lightning", "tidb-binlog", "ticdc", "br", "dumpling", "ng-monitoring", "dm", "tidb-monitor-initializer"]
+    retagProducts = ["tidb-lightning", "tidb-binlog", "ticdc", "br", "dumpling", "tidb-monitor-initializer"]
+    if (RELEASE_TAG >= "v5.3.0") {
+        // build ng-monitoring only for v5.3.0+
+        // build dm only for v5.3.0+
+        retagProducts.add("ng-monitoring")
+        retagProducts.add("dm")
+    }
     for (item in retagProducts) {
         def product = item
         builds["Push ${product} Docker"] = {
