@@ -456,6 +456,7 @@ try {
 		                            """
                                 }
                                 sh """
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                 if [ -f go.mod ]; then
                                     GO111MODULE=on go mod vendor -v
                                 fi
