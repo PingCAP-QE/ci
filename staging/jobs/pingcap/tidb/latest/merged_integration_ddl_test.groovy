@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/merged_integration_common_test') {
-    // disabled(true)
+pipelineJob('pingcap/tidb/merged_integration_ddl_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -69,7 +69,7 @@ pipelineJob('pingcap/tidb/merged_integration_common_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('staging/pipelines/pingcap/tidb/latest/merged_integration_common_test.groovy')
+            scriptPath('staging/pipelines/pingcap/tidb/latest/merged_integration_ddl_test.groovy')
             scm {
                 github('PingCAP-QE/ci', 'main')
             }
