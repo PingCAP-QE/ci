@@ -91,13 +91,17 @@ __EOF__
 }
 
 stage("Check") {
+    def images = ["tidb", "tikv", "tiflash", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"]
+    if (RELEASE_TAG >= "v5.2"){
+        images << "dm"
+    }
     parallel(
             "X86 Image Community Docker": {
-                check_image(["tidb", "tikv", "tiflash", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling", "dm"], "community", "hub.pingcap.net", "qa")
+                check_image(images, "community", "hub.pingcap.net", "qa")
             },
 
             "X86 Image Enterprise Docker": {
-                check_image(["tidb", "tikv", "tiflash", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling","dm"], "enterprise", "hub.pingcap.net", "qa")
+                check_image(images, "enterprise", "hub.pingcap.net", "qa")
             },
     )
 }
