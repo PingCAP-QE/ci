@@ -430,7 +430,7 @@ try {
                                 string(value: tikv_sha1,name: 'TIKV_VERSION'),
                                 string(value: pd_sha1,name: 'PD_VERSION'),
                                 string(value: tiflash_sha1,name: 'TIFLASH_VERSION'),
-                                string(value: tidb_sha1,name: 'BR_VERSION'),
+                                string(value: br_sha1,name: 'BR_VERSION'),
                                 string(value: binlog_sha1,name: 'BINLOG_VERSION'),
                                 string(value: tidb_sha1,name: 'LIGHTNING_VERSION'),
                                 string(value: tools_sha1,name: 'TOOLS_VERSION'),
