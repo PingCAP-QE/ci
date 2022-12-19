@@ -24,8 +24,6 @@ spec:
         command: ["docker", "info"]
       initialDelaySeconds: 10
       failureThreshold: 6
-  - name: jnlp
-    image: jenkins/inbound-agent:4.10-3
 '''
 
 def GitHash = ''
@@ -85,6 +83,10 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
+                                sh """
+                                    sed '/RUN make engine/ i  ENV GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn,direct' -i deployments/engine/docker/Dockerfile
+                                    cat deployments/engine/docker/Dockerfile
+                                """
                                 sh "docker build --platform linux/amd64  -f deployments/engine/docker/Dockerfile -t hub.pingcap.net/pingcap/tiflow:${ImageTag}-amd64 ."
                                 sh "docker push hub.pingcap.net/pingcap/tiflow:${ImageTag}-amd64"
                             }
@@ -116,6 +118,10 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
+                                sh """
+                                    sed '/RUN make engine/ i  ENV GOPROXY=http://goproxy.pingcap.net,https://goproxy.cn,direct' -i deployments/engine/docker/Dockerfile
+                                    cat deployments/engine/docker/Dockerfile
+                                """
                                 sh "docker build --platform linux/arm64  -f deployments/engine/docker/Dockerfile -t hub.pingcap.net/pingcap/tiflow:${ImageTag}-arm64 ."
                                 sh "docker push hub.pingcap.net/pingcap/tiflow:${ImageTag}-arm64"
                             }
