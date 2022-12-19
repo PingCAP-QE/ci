@@ -1,4 +1,4 @@
-FROM hub.pingcap.net/bases/pd-base:v1.0.0
+FROM hub.pingcap.net/bases/pd-base:v1.1.0
 COPY pd-server /pd-server
 COPY pd-ctl /pd-ctl
 EXPOSE 2379 2380
