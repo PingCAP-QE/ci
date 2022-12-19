@@ -6,7 +6,7 @@ metadata:
   namespace: jenkins-cd
 spec:
   containers:
-  - name: dockerd
+  - name: docker
     image: docker:dind
     args: ["--registry-mirror=https://registry-mirror.pingcap.net"]
     env:
@@ -24,12 +24,6 @@ spec:
         command: ["docker", "info"]
       initialDelaySeconds: 10
       failureThreshold: 6
-  - name: docker
-    image: docker
-    command: ["sleep", "infinity"]
-    env:
-    - name: DOCKER_HOST
-      value: tcp://localhost:2375
 '''
 
 def GitHash = ''
