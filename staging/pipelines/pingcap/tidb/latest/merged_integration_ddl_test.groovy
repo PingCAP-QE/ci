@@ -136,7 +136,7 @@ pipeline {
                                         ls -alh bin/
                                     """
                                     sh """
-                                    go mod vendor -v
+                                    GO111MODULE=on go mod vendor -v
                                     """
                                     container("golang") {
                                         sh label: "ddl_test ${DDL_TEST}", script: """
@@ -145,6 +145,8 @@ pipeline {
                                             bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
                                             cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
                                             export log_level=debug
+                                            export PATH=`pwd`/bin:\$PATH
+                                            export TIDB_SRC_PATH=${WORKSPACE}/tidb
                                             export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
                                             export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
                                             export GOPATH=${WORKSPACE}/go/src/github.com/pingcap/tidb-test/_vendor:${WORKSPACE}/go/src/github.com/pingcap/tidb_gopath:${WORKSPACE}/go
