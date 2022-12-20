@@ -44,13 +44,13 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_COMMIT ]],
+                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -68,10 +68,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${GIT_COMMIT}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', GIT_BRANCH, "", GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', GIT_BASE_BRANCH, "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -87,7 +87,7 @@ pipeline {
                             sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest '
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BRANCH} --tikv=${GIT_BRANCH}
+                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BASE_BRANCH} --tikv=${GIT_BASE_BRANCH}
                             mv third_bin/* bin/
                             ls -alh bin/
                             """
