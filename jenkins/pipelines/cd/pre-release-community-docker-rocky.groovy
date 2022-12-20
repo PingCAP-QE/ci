@@ -229,7 +229,7 @@ def release_one(repo, arch, failpoint) {
             parameters: paramsDocker
 
 
-    if (NEED_DEBUG_IMAGE == "true" && arch == "amd64") {
+    if (NEED_DEBUG_IMAGE.toBoolean() && arch == "amd64") {
         def dockerfileForDebug = get_dockerfile_url(repo, false, true)
         def imageForDebug = get_image_str_for_community(repo, "", RELEASE_TAG, failpoint, true)
         def paramsDockerForDebug = [
@@ -270,7 +270,7 @@ def release_one(repo, arch, failpoint) {
                 wait: true,
                 parameters: paramsDockerLightning
 
-        if (NEED_DEBUG_IMAGE == "true" && arch == "amd64") {
+        if (NEED_DEBUG_IMAGE.toBoolean() && arch == "amd64") {
             def dockerfileLightningForDebug = get_dockerfile_url("tidb-lightning", false, true)
             def imageLightlingForDebug = get_image_str_for_community("tidb-lightning", "",RELEASE_TAG,failpoint,true)
             def paramsDockerLightningForDebug = [
