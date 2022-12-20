@@ -135,6 +135,9 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
+                                    sh """
+                                    go mod vendor -v
+                                    """
                                     container("golang") {
                                         sh label: "ddl_test ${DDL_TEST}", script: """
                                             #!/usr/bin/env bash
@@ -144,6 +147,8 @@ pipeline {
                                             export log_level=debug
                                             export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
                                             export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
+                                            export GOPATH=${WORKSPACE}/go/src/github.com/pingcap/tidb-test/_vendor:${WORKSPACE}/go/src/github.com/pingcap/tidb_gopath:${WORKSPACE}/go
+                                            export GO111MODULE=off
                                             cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
                                         """
                                     }
