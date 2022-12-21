@@ -96,7 +96,8 @@ pipeline {
                     """
                     sh label: 'test globalkilltest', script: """
                     cd tests/globalkilltest && make
-                    PD=${WORKSPACE}/tidb/bin/pd-server  TIKV=${WORKSPACE}/bin/tikv-server ./run-tests.sh
+                    cp ${WORKSPACE}/tidb/bin/tikv-server ${WORKSPACE}/tidb/bin/pd-server ./bin/
+                    PD=./bin/pd-server  TIKV=./bin/tikv-server ./run-tests.sh
                     """
                 }
             }
