@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final COMMIT_CONTEXT = 'staging/e2e-test'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_integration_e2e_test.yaml'
+final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_e2e_test.yaml'
 
 pipeline {
     agent {
@@ -23,7 +23,6 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -74,45 +73,42 @@ pipeline {
                 dir('tidb') {
                     container("golang") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        sh label: 'download binary', script: """
+                        chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BASE_BRANCH} --tikv=${GIT_BASE_BRANCH}
+                        mv third_bin/* bin/
+                        ls -alh bin/
+                        """
                     }
                 }                
             }
         }
         stage('Tests') {
-            matrix {
-                agent{
-                    kubernetes {
-                        namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'golang'
-                    }
-                } 
-                stages {
-                    stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
-                        steps {
-                            dir('tidb') {
-                                sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                                sh """
-                                cd tests/graceshutdown && make
-                                ./run-tests.sh
+            options { timeout(time: 30, unit: 'MINUTES') }
+            steps {
+                dir('tidb') {
+                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
+                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
+                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
+                    sh label: 'test', script: """
+                    cd tests/graceshutdown && make
+                    ./run-tests.sh
 
-                                cd tests/globalkilltest && make
-                                ls -alh ./bin
-                                PD=./bin/pd-server  TIKV=./bin/tikv-server ./run-tests.sh
-                                """
-                            }
-                        }
-                        post{
-                            failure {
-                                script {
-                                    println "Test failed, archive the log"
-                                }
-                            }
-                        }
+                    cd tests/globalkilltest && make
+                    ls -alh ./bin
+                    PD=${WORKSPACE}/tidb/bin/pd-server  TIKV=${WORKSPACE}/bin/tikv-server ./run-tests.sh
+                    """
+                }
+            }
+            post{
+                failure {
+                    script {
+                        println "Test failed, archive the log"
+                        archiveArtifacts artifacts: '/tmp/tidb_globalkilltest/*.log', fingerprint: true
+                        archiveArtifacts artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: true
                     }
                 }
-            }        
+            }       
         }
     }
     post {
