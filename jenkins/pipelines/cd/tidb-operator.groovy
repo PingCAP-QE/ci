@@ -187,18 +187,19 @@ pipeline {
                         stage("charts") {
                             steps {
                                 sh """
-                        mkdir ${CHARTS_BUILD_DIR}
-						for chartItem in ${CHART_ITEMS}
-						do
-							chartPrefixName=\$chartItem-${ReleaseTag}
-							sed -i "s/version:.*/version: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
-							sed -i "s/appVersion:.*/appVersion: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
-                            # update image tag to current release
-                            sed -r -i "s#pingcap/(tidb-operator|tidb-backup-manager):.*#pingcap/\\1:${ReleaseTag}#g" charts/\$chartItem/values.yaml
-							tar -zcf ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz -C charts \$chartItem
-							sha256sum ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz > ${CHARTS_BUILD_DIR}/\${chartPrefixName}.sha256
-						done
-						"""
+                        	mkdir ${CHARTS_BUILD_DIR}
+				for chartItem in ${CHART_ITEMS}
+				do
+					chartPrefixName=\$chartItem-${ReleaseTag}
+					sed -i "s/version:.*/version: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
+					sed -i "s/appVersion:.*/appVersion: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
+                            		# update image tag to current release
+                            		sed -r -i "s#pingcap/(tidb-operator|tidb-backup-manager):.*#pingcap/\\1:${ReleaseTag}#g" charts/\$chartItem/values.yaml
+					tar -zcf ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz -C charts \$chartItem
+					sha256sum ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz > ${CHARTS_BUILD_DIR}/\${chartPrefixName}.sha256
+				done
+				cp -R charts ${CHARTS_BUILD_DIR}/charts
+				"""
                             }
                         }
                         stage("stash") {
@@ -375,12 +376,14 @@ pipeline {
                                 QINIU_BUCKET_NAME = "charts";
                             }
                             steps {
-                                sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
-                                container("helm") {
-                                    sh "helm repo index . --url http://charts.pingcap.org/ --merge index.yaml"
+                                dir(CHARTS_BUILD_DIR){
+                                    sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
+				    container("helm") {
+                                        sh "helm repo index . --url http://charts.pingcap.org/ --merge index.yaml"
+                                    }
+                                    sh "cat index.yaml"
+                                    sh "upload_qiniu.py index.yaml index.yaml"
                                 }
-                                sh "cat index.yaml"
-                                sh "upload_qiniu.py index.yaml index.yaml"
                             }
                         }
                         stage("tkcli") {
