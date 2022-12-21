@@ -90,12 +90,12 @@ pipeline {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                     sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
                     sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
-                    sh label: 'test', script: """
+                    sh label: 'test graceshutdown', script: """
                     cd tests/graceshutdown && make
                     ./run-tests.sh
-
+                    """
+                    sh label: 'test globalkilltest', script: """
                     cd tests/globalkilltest && make
-                    ls -alh ./bin
                     PD=${WORKSPACE}/tidb/bin/pd-server  TIKV=${WORKSPACE}/bin/tikv-server ./run-tests.sh
                     """
                 }
