@@ -16,11 +16,6 @@ spec:
           cpu: "6"
       command: [/bin/sh, -c]
       args: [cat]
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
       volumeMounts:
         - name: gocache
           mountPath: /share/.cache/go-build
