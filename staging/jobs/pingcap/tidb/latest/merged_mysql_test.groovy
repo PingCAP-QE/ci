@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pingcap/tidb/merged_mysql_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
