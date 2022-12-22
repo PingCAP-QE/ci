@@ -129,7 +129,7 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("golang") {
+                                    container("java") {
                                         sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """
                                             #!/usr/bin/env bash
                                             export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
