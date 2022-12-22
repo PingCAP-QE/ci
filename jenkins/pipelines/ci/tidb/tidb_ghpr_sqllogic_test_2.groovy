@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -21,7 +20,7 @@ if (m3) {
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
-GO_VERSION = "go1.18"
+GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
@@ -35,10 +34,14 @@ POD_LABEL_MAP = [
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
     "go1.19": "tidb-ghpr-common-test-go1190-${BUILD_NUMBER}",
 ]
+POD_GO_IMAGE = ""
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -46,7 +49,6 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
@@ -62,9 +64,8 @@ metadata:
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
@@ -73,14 +74,12 @@ def run_with_pod(Closure body) {
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
@@ -96,23 +95,6 @@ def run_with_pod(Closure body) {
 all_task_result = []
 
 try {
-    stage("Pre-check") {
-        if (!params.force) {
-            node("lightweight_pod") {
-                container("golang") {
-                    notRun = sh(returnStatus: true, script: """
-                if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)
-                }
-            }
-        }
-
-        if (notRun == 0) {
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
-
     stage('Prepare') {
         run_with_pod {
             def ws = pwd()
@@ -128,7 +110,8 @@ try {
                         waitBuildDone = System.currentTimeMillis() - waitBuildDoneStartTimeMillis
 
                         sh """
-                    curl ${tidb_url} | tar xz
+                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                     # use tidb-server with ADMIN_CHECK as default
                     mkdir -p ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/
                     mv bin/tidb-server-check ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/tidb-server
@@ -149,7 +132,9 @@ try {
                     timeout(10) {
                         sh """
                     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                    curl ${tidb_test_url} | tar xz
+                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                    tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                     cd sqllogic_test && ./build.sh
                     """
                     }
@@ -169,7 +154,7 @@ try {
 
                 dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
                     container("golang") {
-                        timeout(10) {
+                        timeout(40) {
                             try {
                                 sh """
                                 set +e
@@ -179,7 +164,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -ex
                                 sleep 30
-    
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 SQLLOGIC_TEST_PATH=${sqllogictest} \
                                 TIDB_PARALLELISM=${parallelism} \
                                 TIDB_SERVER_PATH=`pwd`/tidb-server \
@@ -212,7 +197,7 @@ try {
 
                 dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
                     container("golang") {
-                        timeout(10) {
+                        timeout(40) {
                             try{
                                 sh """
                                 set +e
@@ -222,7 +207,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -ex
                                 sleep 30
-    
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 SQLLOGIC_TEST_PATH=${sqllogictest_1} \
                                 TIDB_PARALLELISM=${parallelism_1} \
                                 TIDB_SERVER_PATH=`pwd`/tidb-server \

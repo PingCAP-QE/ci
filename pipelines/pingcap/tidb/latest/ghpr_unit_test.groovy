@@ -73,13 +73,7 @@ pipeline {
                 }
             }
             post {
-                unsuccessful {
-                    dir('tidb') {
-                        archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
-                        archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
-                    }
-                }
-                success {
+                 success {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
                         mv coverage.dat test_coverage/coverage.dat

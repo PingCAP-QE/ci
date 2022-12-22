@@ -74,7 +74,7 @@ POD_LABEL_MAP = [
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -176,7 +176,8 @@ try {
                         def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
-                        curl ${tikv_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tikv_url}
+	                    tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
                         """
                     }
                 }
@@ -189,28 +190,25 @@ try {
                     timeout(30) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
-                        curl ${pd_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${pd_url}
+	                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
                         """
                     }
                 }
                 dir("tidb") {
                     deleteDir()
-                    // def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
                     def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                     def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 
                     timeout(30) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                        curl ${tidb_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                        tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         """
                     }
                 }
             }
-
-            // dir("tikv") { deleteDir() }
-            // unstash "tikv"
-            // sh "find tikv"
         }
 
         stage('Integration Push Down Test') {

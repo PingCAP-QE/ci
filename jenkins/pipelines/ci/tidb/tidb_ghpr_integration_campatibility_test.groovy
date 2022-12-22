@@ -72,10 +72,13 @@ POD_LABEL_MAP = [
     "go1.18": "${JOB_NAME}--go1180-${BUILD_NUMBER}",
     "go1.19": "${JOB_NAME}--go1190-${BUILD_NUMBER}",
 ]
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -94,12 +97,9 @@ metadata:
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
-    def namespace = "jenkins-tidb-mergeci"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -113,14 +113,12 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} bash"
             body()
         }
     }
@@ -157,7 +155,8 @@ try {
                     timeout(10) {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                        curl ${tidb_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                        tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         """
                     }
                 }
@@ -173,7 +172,9 @@ try {
 
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                        curl ${tidb_test_url} | tar xz
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                        tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         cd compatible_test && ./build.sh
                         """
                     }
@@ -213,11 +214,11 @@ try {
                             sh """
                             while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tikv_url}
-                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
+                            tar -xz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
 
                             while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${pd_url}
-                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
+                            tar -xz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
 
                             mkdir -p ./tidb-old-src
                             echo ${tidb_old_url}
@@ -246,7 +247,7 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 export log_level=debug
                                 TIKV_PATH=./bin/tikv-server \
                                 TIDB_PATH=./bin/tidb-server \

@@ -1,11 +1,12 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pingcap/tidb/merged_mysql_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
     parameters {
-        stringParam("ghprbActualCommit")
-        stringParam("ghprbTargetBranch")
+        stringParam("GIT_MERGE_COMMIT")
+        stringParam("GIT_BASE_BRANCH")
     }
     properties {
         // priority(0) // 0 fast than 1

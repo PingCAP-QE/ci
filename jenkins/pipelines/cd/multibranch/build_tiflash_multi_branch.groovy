@@ -58,10 +58,12 @@ def upload_result_to_db() {
 
 stage("Get Hash") {
     node("${GO_TEST_SLAVE}") {
-        def target_branch = (env.TAG_NAME == null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
-        echo "Target Branch: ${target_branch}"
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-        githash = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
+		container("golang"){
+				def target_branch = (env.TAG_NAME == null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
+				echo "Target Branch: ${target_branch}"
+				sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
+				githash = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
+		}
     }
 }
 

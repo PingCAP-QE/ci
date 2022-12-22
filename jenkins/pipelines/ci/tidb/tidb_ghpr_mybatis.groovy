@@ -12,7 +12,7 @@ if (params.containsKey("release_test")) {
 def TIDB_TEST_BRANCH = "master"
 def TIDB_PRIVATE_TEST_BRANCH = "master"
 
-def MYBATIS3_URL = "${FILE_SERVER_URL}/download/static/travis-tidb.zip"
+def MYBATIS3_URL = "${FILE_SERVER_URL}/download/static/mybatis-3-tidb.zip"
 
 // parse tidb_test branch
 def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
@@ -35,6 +35,8 @@ m4 = null
 println "TIDB_PRIVATE_TEST_BRANCH=${TIDB_PRIVATE_TEST_BRANCH}"
 all_task_result = []
 
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 podYAML = '''
 apiVersion: v1
 kind: Pod
@@ -45,12 +47,10 @@ metadata:
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ksyun"
-    def namespace = "jenkins-tidb-mergeci"
     def java_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -69,7 +69,7 @@ def run_with_pod(Closure body) {
                     ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${POD_NAMESPACE} exec -ti ${NODE_NAME} bash"
             body()
         }
     }

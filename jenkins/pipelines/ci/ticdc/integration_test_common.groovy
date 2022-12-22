@@ -8,6 +8,8 @@ TOTAL_COUNT = 0
  */
 GROUP_SIZE = 2
 
+COMMIT_SHA1_REG = /^[0-9a-f]{40}$/
+
 /**
  * the tidb archive is packaged differently on pr than on the branch build,
  * pr build is ./bin/tidb-server
@@ -260,7 +262,7 @@ def tests(sink_type, node_label) {
  */
 def download_binaries() {
     final defaultDependencyBranch = "master"
-    final defaultTiDbDependencyBranch = "release-6.4" // FIXME(wuhuizuo): need change it every time when new release came out?
+    final defaultTiDbDependencyBranch = "master"
     def releaseBranchReg = /^release\-(\d+)\.(\d+)/      // example: release-6.1
     def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719 
 
@@ -326,11 +328,19 @@ def download_binaries() {
     }
     m4 = null
     println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-
     println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-    def tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-    def tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
-    def pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
+    def tidb_sha1 = TIDB_BRANCH
+    if (!(TIDB_BRANCH =~ COMMIT_SHA1_REG)) {
+        tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
+    }
+    def tikv_sha1 = TIKV_BRANCH
+    if (!(TIKV_BRANCH =~ COMMIT_SHA1_REG)) {
+        tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
+    }
+    def pd_sha1 = PD_BRANCH
+    if (!(PD_BRANCH =~ COMMIT_SHA1_REG)) {
+        pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
+    }
     def tiflash_sha1 = TIFLASH_COMMIT
     if (TIFLASH_COMMIT == null) {
         tiflash_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${TIFLASH_BRANCH}/sha1").trim()

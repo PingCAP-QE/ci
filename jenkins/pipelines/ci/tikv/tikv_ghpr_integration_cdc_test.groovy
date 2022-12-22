@@ -13,6 +13,7 @@ if (params.containsKey("release_test")) {
 }
 
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
+result = ""
 
 catchError {
     node("${GO_TEST_SLAVE}") {
@@ -42,7 +43,13 @@ catchError {
                     ]
 
                     // Trigger TiCDC test and waiting its finish.
-                    build(job: "cdc_ghpr_integration_test", parameters: default_params, wait: true)
+                    result = build(job: "cdc_ghpr_integration_test", parameters: default_params, wait: true)
+                    if (result.getResult() != "SUCCESS") {
+                        echo "Test failed: https://ci.pingcap.net/blue/organizations/jenkins/cdc_ghpr_integration_test/detail/cdc_ghpr_integration_test/${result.number}/pipeline"
+                        throw new Exception("triggered job: cdc_ghpr_integration_test failed")
+                    } else {
+                        echo "Test at: https://ci.pingcap.net/blue/organizations/jenkins/cdc_ghpr_integration_test/detail/cdc_ghpr_integration_test/${result.number}/pipeline"
+                    }
                 }
             } else {
                 println "skip trigger TiCDC tests as this PR targets to ${ghprbTargetBranch}"

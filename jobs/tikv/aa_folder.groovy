@@ -9,14 +9,8 @@ folder('tikv') {
                     retriever {
                         modernSCM {
                             scm {
-                                github {
-                                    configuredByUrl(true)
-                                    // Specify the HTTPS URL of the GitHub Organization / User Account and repository.
-                                    repositoryUrl('https://github.com/PingCAP-QE/ci')
-
-                                    // useless but required.
-                                    repoOwner('PingCAP-QE')
-                                    repository('ci')
+                                git {
+                                    remote('https://github.com/PingCAP-QE/ci')
                                 }
                             }
                             // A relative path from the root of the SCM to the root of the library.

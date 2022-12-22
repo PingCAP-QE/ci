@@ -65,31 +65,12 @@ pipeline {
             }
         }
         stage("Checks") {
-          matrix {
-            axes {
-              axis {
-                  name 'SCRIPT_AND_ARGS'
-                  values(
-                      'make gogenerate',
-                      'make check',
-                      'make explaintest',
-                  )
-              }
-            }
-            stages {
-              stage('Check') {
-                // can not parallel, it will make `parser/parser.go` regenerating.
-                // cache restoring and saving should not put in parallel with same pod.
-                steps {
-                    sh label: SCRIPT_AND_ARGS, script: '''
-                      cd `mktemp -d` 
-                      cp -r ${WORKSPACE}/tidb ./
-                      cd tidb && ${SCRIPT_AND_ARGS}
-                    '''
+            // !!! concurrent go builds will encounter conflicts probabilistically.
+            steps {
+                dir('tidb') {
+                    sh script: 'make gogenerate check explaintest'
                 }
-              }
             }
-          }
         }
     }
     post {

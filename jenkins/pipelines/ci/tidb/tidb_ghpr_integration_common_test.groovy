@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -52,17 +51,20 @@ def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbA
 def testStartTimeMillis = System.currentTimeMillis()
 
 GO_VERSION = "go1.18"
-POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
 ]
+POD_GO_IMAGE = ""
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -70,7 +72,6 @@ node("master") {
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
 }
-POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 podYAML = '''
 apiVersion: v1
@@ -94,9 +95,8 @@ def run_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "tidb-ghpr-integration-common-test-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
@@ -111,8 +111,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
@@ -139,9 +137,8 @@ def run_with_memory_volume_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "tidb-ghpr-integration-common-test-memory-volume-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
@@ -156,8 +153,6 @@ def run_with_memory_volume_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: true)
@@ -185,23 +180,6 @@ all_task_result = []
 
 try {
     timestamps {
-        stage("Pre-check"){
-            if (!params.force){
-                node("lightweight_pod"){
-                    container("golang"){
-                        notRun = sh(returnStatus: true, script: """
-				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-				    """)
-                    }
-                }
-            }
-
-            if (notRun == 0){
-                println "the ${ghprbActualCommit} has been tested"
-                throw new RuntimeException("hasBeenTested")
-            }
-        }
-
         stage('Prepare') {
             def prepareStartTime = System.currentTimeMillis()
 
@@ -218,9 +196,10 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
@@ -229,23 +208,25 @@ try {
                             timeout(20) {
                                 def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                 sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
-                            """
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
+                                """
                                 def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                                 def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                 sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                            curl ${tidb_test_url} | tar xz
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                                tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
-                            export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                            cd tidb_test && ./build.sh && cd ..
-                            if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                cd randgen-test && ./build.sh && cd ..
-                                cd randgen-test && ls t > packages.list
-                                split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
-                                cd ..
-                            fi
-                            """
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} && go env
+                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                cd tidb_test && ./build.sh && cd ..
+                                if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                    cd randgen-test && ./build.sh && cd ..
+                                    cd randgen-test && ls t > packages.list
+                                    split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
+                                    cd ..
+                                fi
+                                """
                             }
                         }
                     }
@@ -270,9 +251,10 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
@@ -282,19 +264,20 @@ try {
                                 timeout(20) {
                                     def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                     sh """
-                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
-                                """
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
+                                    """
                                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                                     def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                     sh """
-                                echo ${tidb_test_url} 
-                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
-                                curl ${tidb_test_url} | tar xz
-
-                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                cd mysql_test && ./build.sh && cd ..
-                                cd analyze_test && ./build.sh && cd ..
-                                """
+                                    echo ${tidb_test_url} 
+                                    while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
+                                    tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                    cd mysql_test && ./build.sh && cd ..
+                                    cd analyze_test && ./build.sh && cd ..
+                                    """
                                 }
                             }
                         }
@@ -326,14 +309,6 @@ try {
 
                     dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                         container("golang") {
-                            // def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
-                            // def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
-                            // tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-
-                            // def pd_refs = "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"
-                            // def pd_sha1 = sh(returnStdout: true, script: "curl ${pd_refs}").trim()
-                            // pd_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
-
                             timeout(20) {
                                 retry(3){
                                     sh """
@@ -382,7 +357,7 @@ try {
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
                                 if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 export log_level=debug
                                 TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
@@ -472,6 +447,7 @@ try {
                                 
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
                                 if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
                                     mv t t_bak
@@ -700,9 +676,10 @@ try {
                                         retry(3){
                                             deleteDir()
                                             sh """
-                                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                        curl ${tidb_url} | tar xz
-                                        """
+                                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                            tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                            """
                                         }
 
                                     }

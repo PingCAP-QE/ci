@@ -62,6 +62,53 @@ if (m3) {
 m3 = null
 println "TEST_CASE=${TEST_CASE}"
 
+def list_pr_diff_files() {
+    def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
+    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
+        response = httpRequest consoleLogResponseBody: false, 
+            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+            customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
+            url: list_pr_files_api_url, validResponseCodes: '200'
+
+        def json = new groovy.json.JsonSlurper().parseText(response.content)
+
+        echo "Status: ${response.status}"
+        def files = []
+        for (element in json) { 
+            files.add(element.filename)
+        }
+
+        println "pr diff files: ${files}"
+        return files
+    }
+}
+
+// if any file matches the pattern, return true
+def pattern_match_any_file(pattern, files_list) {
+    for (file in files_list) {
+        if (file.matches(pattern)) {
+            println "diff file matched: ${file}"
+            return true
+        }
+    }
+
+    return false
+}
+
+if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
+    def pr_diff_files = list_pr_diff_files()
+    def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
+    // if any diff files start with dm/ or pkg/ , run the dm integration test
+    def matched = pattern_match_any_file(pattern, pr_diff_files)
+    if (matched) {
+        echo "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm compatibility test"
+    } else {
+        echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm compatibility test"
+        currentBuild.result = 'SUCCESS'
+        return 0
+    }
+}
+
 GO_VERSION = "go1.19"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
@@ -84,7 +131,7 @@ resultDownloadPath = ""
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)

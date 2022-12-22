@@ -1,4 +1,3 @@
-def notRun = 1
 
 echo "release test: ${params.containsKey("release_test")}"
 if (params.containsKey("release_test")) {
@@ -19,57 +18,8 @@ if (m3) {
     TIDB_TEST_BRANCH = "${m3[0][1]}"
 }
 
-// if (TIDB_TEST_BRANCH.startsWith("release-3")) {
-// TIDB_TEST_BRANCH = "release-3.0"
-// }
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
-
-// @NonCPS
-// boolean isMoreRecentOrEqual( String a, String b ) {
-//     if (a == b) {
-//         return true
-//     }
-
-//     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
-//        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
-//        return (result == 1)
-//     } 
-// }
-
-// string trimPrefix = {
-//         it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
-//     }
-
-// def boolean isBranchMatched(List<String> branches, String targetBranch) {
-//     for (String item : branches) {
-//         if (targetBranch.startsWith(item)) {
-//             println "targetBranch=${targetBranch} matched in ${branches}"
-//             return true
-//         }
-//     }
-//     return false
-// }
-
-// isNeedGo1160 = false
-// releaseBranchUseGo1160 = "release-5.1"
-
-// if (!isNeedGo1160) {
-//     isNeedGo1160 = isBranchMatched(["master", "hz-poc", "ft-data-inconsistency", "br-stream"], ghprbTargetBranch)
-// }
-// if (!isNeedGo1160 && ghprbTargetBranch.startsWith("release-")) {
-//     isNeedGo1160 = isMoreRecentOrEqual(trimPrefix(ghprbTargetBranch), trimPrefix(releaseBranchUseGo1160))
-//     if (isNeedGo1160) {
-//         println "targetBranch=${ghprbTargetBranch}  >= ${releaseBranchUseGo1160}"
-//     }
-// }
-// if (isNeedGo1160) {
-//     println "This build use go1.16"
-//     POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.16:latest"
-// } else {
-//     println "This build use go1.13"
-//     POD_GO_DOCKER_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.13:latest"
-// }
 
 GO_VERSION = "go1.18"
 POD_GO_IMAGE = ""
@@ -85,11 +35,13 @@ POD_LABEL_MAP = [
     "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
     "go1.19": "tidb-ghpr-common-test-go1190-${BUILD_NUMBER}",
 ]
-POD_NAMESPACE = "jenkins-tidb-mergeci"
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
+GOPROXY="http://goproxy.apps.svc,https://proxy.golang.org,direct"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
     sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -100,7 +52,7 @@ node("master") {
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
-def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar"
+def TIDB_TEST_STASH_FILE = "tidb_test_${UUID.randomUUID().toString()}.tar.gz"
 
 podYAML = '''
 apiVersion: v1
@@ -111,11 +63,10 @@ metadata:
 '''
 
 def run_test_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
+    def label = POD_LABEL_MAP[GO_VERSION] 
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: "jenkins-tidb-mergeci",
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -129,8 +80,6 @@ def run_test_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: false),
                             emptyDirVolume(mountPath: '/go', memory: false),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: false)
@@ -145,10 +94,9 @@ def run_test_with_pod(Closure body) {
 
 def run_with_lightweight_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-lightweight"
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
-            namespace: "jenkins-tidb-mergeci",
+            cloud: POD_CLOUD,
+            namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -171,9 +119,8 @@ def run_with_lightweight_pod(Closure body) {
 
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-common-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
-            cloud: cloud,
+            cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
             yaml: podYAML,
@@ -203,23 +150,6 @@ all_task_result = []
 
 try {
     timestamps {
-        // stage("Pre-check"){
-        //     if (!params.force){
-        //         run_with_lightweight_pod{
-        //             container("golang"){
-        //                 notRun = sh(returnStatus: true, script: """
-		// 		    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-		// 		    """)
-        //             }
-        //         }
-        //     }
-
-        //     if (notRun == 0){
-        //         println "the ${ghprbActualCommit} has been tested"
-        //         throw new RuntimeException("hasBeenTested")
-        //     }
-        // }
-
         stage('Prepare') {
 
             run_test_with_pod {
@@ -234,7 +164,8 @@ try {
                                 deleteDir()
                                 sh """
 	                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-	                        curl ${tidb_url} | tar xz
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                            tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
 	                        """
                             }
                         }
@@ -249,10 +180,12 @@ try {
                             def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                             def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                             sh """
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY}  && go env
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                        curl ${tidb_test_url} | tar xz
-                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                        
+                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_test_url}
+                        tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+
+                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb                        
                         cd tidb_test && ./build.sh && cd ..
                         cd mysql_test && ./build.sh && cd ..
                         cd randgen-test && ./build.sh && cd ..
@@ -266,7 +199,7 @@ try {
 
                             sh """
                             echo "stash tidb-test"
-                            cd .. && tar -cf $TIDB_TEST_STASH_FILE tidb-test/
+                            cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
                             curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
                         }
@@ -291,17 +224,18 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
                         dir("go/src/github.com/pingcap") {
                             retry(3){
                                 sh """
-                                    echo "unstash tidb"
-                                    curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
+                                    echo "unstash tidb-test"
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                                    tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                                 """
                             }
                         }
@@ -316,6 +250,7 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./test.sh
@@ -365,18 +300,19 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                    """
                                 }
                             }
                         }
 
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
@@ -397,6 +333,7 @@ try {
                                     cp \$(cat ../packages_${chunk}) ../t
                                     cd ..
                                 fi
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 ./test.sh
                                 
@@ -437,18 +374,18 @@ try {
                                 retry(3){
                                     deleteDir()
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+		                            """
                                 }
                             }
                         }
-
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
@@ -463,6 +400,7 @@ try {
                                     rm -rf /tmp/tidb
                                     set -e
                                     
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                     if [[ "${test_dir}" = "mysql_test" ]] && [[ "${ghprbTargetBranch}" =~ ^(master)|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?\$ ]]; then 
                                         echo "run mysql-test on master branch and branch >= release-6.2 in blacklist-mode"
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
@@ -513,15 +451,16 @@ try {
                             timeout(10) {
                                 retry(3){
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+		                            """
                                 }
                                 sh """
-                            if [ -f go.mod ]; then
-                                GO111MODULE=on go mod vendor -v
-                            fi
-                            """
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY}
+                                if [ -f go.mod ]; then
+                                    GO111MODULE=on go mod vendor -v
+                                fi
+                                """
                             }
                         }
 
@@ -535,9 +474,10 @@ try {
 
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
@@ -550,7 +490,7 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -e
-
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
                                 ./test.sh
@@ -592,18 +532,19 @@ try {
                             timeout(10) {
                                 retry(3){
                                     sh """
-		                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-		                        curl ${tidb_url} | tar xz
-		                        """
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                    tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+		                            """
                                 }
                             }
                         }
 
                         dir("go/src/github.com/pingcap") {
                             sh """
-                            echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar x
-                        """
+                            echo "unstash tidb-test"
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            """
                         }
 
                         dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {

@@ -71,12 +71,6 @@ pipeline {
                 }
             }
             post {
-                unsuccessful {
-                    dir('tidb') {
-                        archiveArtifacts(artifacts: '**/core.*', allowEmptyArchive: true)
-                        archiveArtifacts(artifacts: '**/*.test.bin', allowEmptyArchive: true)
-                    }
-                }
                 always {
                     dir('tidb') {
                         // archive test report to Jenkins.
