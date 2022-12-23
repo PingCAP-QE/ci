@@ -154,6 +154,7 @@ pipeline {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
+                                    #!/usr/bin/env bash
                                     mv third_bin/* bin/ && ls -alh bin/
                                     rm -rf /tmp/tidb_cdc_test
                                     mkdir -p /tmp/tidb_cdc_test
