@@ -129,7 +129,18 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'consistent_replicate_nfs', 'consistent_replicate_s3'    
+                        values 'consistent_replicate_nfs', 'consistent_replicate_s3', 'processor_panic owner_resign',
+                            'changefeed_error ddl_sequence', 'force_replicate_table multi_capture', 'kafka_big_messages cdc',
+                            'drop_many_tables multi_cdc_cluster', 'processor_stop_delay capture_suicide_while_balance_table',  'row_format foreign_key',
+                            'canal_json_basic ddl_puller_lag', 'partition_table changefeed_auto_stop', 'sorter charset_gbk', 'owner_remove_table_error', 
+                            'bdr_mode clustered_index', 'multi_tables_ddl bank', 'multi_source kafka_sink_error_resume', 'sink_retry kv_client_stream_reconnect',
+                            'consistent_replicate_gbk http_api', 'changefeed_fast_fail tidb_mysql_test', 'canal_json_adapter_compatibility processor_etcd_worker_delay',
+                            'batch_update_to_no_batch gc_safepoint', 'default_value changefeed_pause_resume', 'cli simple cdc_server_tips', 
+                            'changefeed_resume_with_checkpoint_ts ddl_reentrant', 'processor_err_chan resolve_lock move_table', 'kafka_compression autorandom',
+                            'ddl_attributes many_pk_or_uk', 'kafka_messages capture_session_done_during_task', 'http_api_tls tiflash', 
+                            'new_ci_collation_without_old_value region_merge common_1', 'split_region availability changefeed_reconstruct', 'http_proxies kill_owner_with_ddl',
+                            'savepoint event_filter generate_column', 'syncpoint sequence', 'processor_resolved_ts_fallback big_txn', 'csv_storage_basic changefeed_finish',
+                            'sink_hang canal_json_storage_basic', 'multi_topics new_ci_collation_with_old_value', 'batch_add_table multi_changefeed'
                     }
                 }
                 agent{
@@ -153,6 +164,7 @@ pipeline {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
                                     sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
                                     sh label: "Case ${CASES}", script: """
+                                    #!/usr/bin/env bash
                                     mv third_bin/* bin/ && ls -alh bin/
                                     rm -rf /tmp/tidb_cdc_test
                                     mkdir -p /tmp/tidb_cdc_test
