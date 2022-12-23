@@ -85,7 +85,12 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'br_incremental_ddl', 'br_incompatible_tidb_config'
+                        values 'br_incremental_ddl', 'br_incompatible_tidb_config', 
+                            'br_log_restore', 'lightning_alter_random', 'lightning_new_collation', 'lightning_row-format-v2',
+                            'lightning_s3', 'lightning_sqlmode', 'lightning_tiflash', 'br_s3', 'br_tiflash', 'br_tikv_outage', 
+                            'br_tikv_outage2', 'lightning_disk_quota', 'br_300_small_tables',
+                            'br_full_ddl', 'lightning_checkpoint', 'br_table_filter', 'br_systables', 'br_rawkv',
+                            'br_key_locked', 'br_other', 'br_history', 'br_full', 'br_full_index'
                     }
                 }
                 agent{
