@@ -5,9 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-// TODO: remove env GIT_BASE_BRANCH and GIT_MERGE_COMMIT
-final GIT_BASE_BRANCH = 'master'
-final GIT_MERGE_COMMIT = '5aa66cb5c20d9818736d082a3df4e74ef178fd08'
+final COMMIT_CONTEXT = 'staging/integration-sqllogic-test'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb/latest/pod-merged_sqllogic_test.yaml'
 
@@ -21,6 +19,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -160,5 +159,52 @@ pipeline {
                 }
             }        
         }
+    }
+
+    post {
+        always {
+            script {
+                println "build url: ${env.BUILD_URL}"
+                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
+                println "build name: ${env.JOB_NAME}"
+                println "build number: ${env.BUILD_NUMBER}"
+                println "build status: ${currentBuild.currentResult}"
+            } 
+        }
+        // success {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state success \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test success" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
+
+        // unsuccessful {
+        //     container('status-updater') {
+        //         sh """
+        //             set +x
+        //             github-status-updater \
+        //                 -action update_state \
+        //                 -token ${GITHUB_TOKEN} \
+        //                 -owner pingcap \
+        //                 -repo tidb \
+        //                 -ref  ${GIT_MERGE_COMMIT} \
+        //                 -state failure \
+        //                 -context "${COMMIT_CONTEXT}" \
+        //                 -description "test failed" \
+        //                 -url "${env.RUN_DISPLAY_URL}"
+        //         """
+        //     }
+        // }
     }
 }
