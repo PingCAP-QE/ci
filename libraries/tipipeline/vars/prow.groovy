@@ -1,6 +1,6 @@
 // require plugins: 
 //  - pipeline-utility-steps
-def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
+def getPrRefs(prowDeckUrl, prowJobId) {
     // get yaml from <prowDeckUrl>/prowjob?prowjob=<prow_job_id>
     def response = httpRequest "${prowDeckUrl}/prowjob?prowjob=${prowJobId}"
 
@@ -25,9 +25,14 @@ def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
     final refs = prowJob.spec.refs
     assert refs.pulls.size() == 1
     
+    return refs
+}
+
+
+def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
+    final refs = getPrRefs(prowDeckUrl, prowJobId)
+    
     // parse values for git checkout.
-    final org = refs.org
-    final repo = refs.repo
     final pullId = refs.pulls[0].number
     final pullCommitSha = refs.pulls[0].sha
 
@@ -46,7 +51,7 @@ def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
             submoduleCfg: [],
             userRemoteConfigs: [[
                 refspec: "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*",
-                url: "https://github.com/${org}/${repo}.git",
+                url: "https://github.com/${refs.org}/${refs.repo}.git",
                 credentialsId: credentialsId
             ]],
         ]
