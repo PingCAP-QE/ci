@@ -64,8 +64,8 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: true),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
         node(label) {
