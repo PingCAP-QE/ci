@@ -64,8 +64,8 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: true),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: true)
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
         node(label) {
@@ -125,12 +125,16 @@ __EOF__
 
                     try {
                         dir("mybatis3") {
-                            timeout(10) {
-                                sh """
-                                curl -L ${MYBATIS3_URL} -o travis-tidb.zip && unzip travis-tidb.zip && rm -rf travis-tidb.zip
-                                cp -R mybatis-3-travis-tidb/. ./ && rm -rf mybatis-3-travis-tidb
-                                mvn -B clean test
-                                """
+                            sh """
+                            curl -L ${MYBATIS3_URL} -o travis-tidb.zip && unzip travis-tidb.zip && rm -rf travis-tidb.zip
+                            cp -R mybatis-3-travis-tidb/. ./ && rm -rf mybatis-3-travis-tidb
+                            """
+                            retry(3) {
+                                timeout(10) {
+                                    sh """
+                                    mvn -B clean test
+                                    """
+                                } 
                             }
                         }
                     } catch (err) {
