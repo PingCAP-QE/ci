@@ -68,7 +68,7 @@ pipeline {
                     }
                 }
                 dir("tikv-copr-test") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${GIT_BASE_BRANCH}", restoreKeys: ['git/tikv/copr-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
