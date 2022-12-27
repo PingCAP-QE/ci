@@ -22,7 +22,7 @@ pipeline {
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
