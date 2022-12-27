@@ -4,6 +4,16 @@ spec:
   securityContext:
     fsGroup: 1000
   containers:
+    - name: golang
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      tty: true
+      resources:
+        requests:
+          memory: 12Gi
+          cpu: "4"
+        limits:
+          memory: 16Gi
+          cpu: "6"
     - name: java
       image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:cached"
       tty: true
