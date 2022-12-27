@@ -173,13 +173,6 @@ node("github-status-updater") {
                                 throw new Exception("tidb_ghpr_integration_ddl_test failed")
                             }
                         },
-                        tidb_ghpr_mybatis: {
-                            def result = build(job: "tidb_ghpr_mybatis", parameters: default_params, wait: true, propagate: false)
-                            triggered_job_result << ["name": "tidb_ghpr_mybatis", "type": "tidb-merge-ci-checker" , "result": result]
-                            if (result.getResult() != "SUCCESS") {
-                                throw new Exception("tidb_ghpr_mybatis failed")
-                            }
-                        },
                         tidb_ghpr_sqllogic_test_1: {
                             def result = build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params, wait: true, propagate: false)
                             triggered_job_result << ["name": "tidb_ghpr_sqllogic_test_1", "type": "tidb-merge-ci-checker" , "result": result]
