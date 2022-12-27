@@ -81,7 +81,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_test/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_jdbc_test/rev-${BUILD_TAG}") {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
@@ -131,7 +131,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_test/rev-${BUILD_TAG}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_jdbc_test/rev-${BUILD_TAG}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
                                     sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
                                     sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
@@ -152,7 +152,7 @@ pipeline {
                                             TEST_SCRIPT=\${params_array[1]}
                                             echo "TEST_DIR=\${TEST_DIR}"
                                             echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-                                            
+
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                                 bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
