@@ -14,7 +14,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
+            defaultContainer 'java'
         }
     }
     environment {
@@ -82,7 +82,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_jdbc_test/rev-${BUILD_TAG}") {
-                        container("golang") {
+                        container("java") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
@@ -123,7 +123,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'golang'
+                        defaultContainer 'java'
                     }
                 } 
                 stages {
@@ -144,7 +144,7 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("golang") {
+                                    container("java") {
                                         sh label: "test_params=${TEST_PARAMS} ", script: """
                                             #!/usr/bin/env bash
                                             params_array=(\${TEST_PARAMS})
