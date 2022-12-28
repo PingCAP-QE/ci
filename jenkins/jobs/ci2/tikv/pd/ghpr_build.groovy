@@ -22,11 +22,11 @@ pipelineJob('pd_ghpr_build') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("pingcap")
-                    // blackListTargetBranches {
-                    //     ghprbBranch { branch('master') }
-                    //     ghprbBranch { branch('^feature[_|/].*') }
-                    //     ghprbBranch { branch('^(release-)?6\\.[1-9]\\d*(\\.\\d+)?(\\-.*)?$') }
-                    // }
+                    blackListTargetBranches {
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^feature[_|/].*') }
+                        ghprbBranch { branch('^(release-)?6\\.[5-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
