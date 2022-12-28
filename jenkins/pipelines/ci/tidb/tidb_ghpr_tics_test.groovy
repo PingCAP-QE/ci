@@ -152,9 +152,7 @@ try {
                                                 """
                                         }
                                         sh """
-                                        printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
-                                        RUN apk add --no-cache curl \n
-                                        RUN curl -sL -o /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && chmod +x /usr/local/bin/dumb-init \n
+                                        printf 'FROM hub.pingcap.net/jenkins/alpine-glibc:tiflash-test \n
                                         COPY bin/tidb-server /tidb-server \n
                                         WORKDIR / \n
                                         EXPOSE 4000 \n
