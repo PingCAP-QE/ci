@@ -53,7 +53,11 @@ pipeline {
                 }
             }
         }
-        stage('Build') {             
+        stage('Build') {      
+            environment {
+                // FIXME: avoid gomod branch version: github.com/breeswish/gin-jwt/v2@v2.6.4-jwt-patch
+                GOPROXY = "https://goproxy.io,direct"
+            }
             steps {
                 dir('pd') {
                     sh '''
