@@ -96,13 +96,9 @@ pipeline {
             steps {
                 dir('tidb') {
                     container("golang") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        sh label: 'download binary', script: """
-                        chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BASE_BRANCH} --tikv=${GIT_BASE_BRANCH}
-                        mv third_bin/* bin/
-                        ls -alh bin/
-                        """
+                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_tiflash_test/rev-${GIT_MERGE_COMMIT}") {  
+                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        }
                     }
                 }                
             }
@@ -117,17 +113,19 @@ pipeline {
                     """
                     dir('tidb') {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                        // sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                        // sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
-                        sh label: 'build tmp tidb image', script: """
-                        printf 'FROM hub.pingcap.net/jenkins/alpine-glibc:tiflash-test \n
-                        COPY bin/tidb-server /tidb-server \n
-                        WORKDIR / \n
-                        EXPOSE 4000 \n
-                        ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
+                    }
+                    dir("build-docker-image") {
+                        sh label: 'generate dockerfile', script: """
+printf 'FROM hub.pingcap.net/jenkins/alpine-glibc:tiflash-test \n
+COPY tidb-server /tidb-server \n
+WORKDIR / \n
+EXPOSE 4000 \n
+ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
 
                         cat Dockerfile
-                        ls -alh bin/
+                        cp ../tidb/bin/tidb-server tidb-server
+                        """
+                        sh label: 'build tmp tidb image', script: """
                         docker build -t hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -f Dockerfile .
                         """
                     }
