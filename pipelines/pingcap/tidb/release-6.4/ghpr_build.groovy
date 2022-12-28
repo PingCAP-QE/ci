@@ -6,6 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.4/pod-ghpr_build.yaml'
+final REFS = prow.getPrRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -24,7 +25,6 @@ pipeline {
     }
     stages {
         stage('Debug info') {
-            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
                 sh label: 'Debug info', script: """
                     printenv
@@ -46,26 +46,11 @@ pipeline {
                 stage('tidb') {
                     steps {
                         dir('tidb') {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                                 retry(2) {
-                                    checkout(
-                                        changelog: false,
-                                        poll: false,
-                                        scm: [
-                                            $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                            doGenerateSubmoduleConfigurations: false,
-                                            extensions: [
-                                                [$class: 'PruneStaleBranch'],
-                                                [$class: 'CleanBeforeCheckout'],
-                                                [$class: 'CloneOption', timeout: 15],
-                                            ],
-                                            submoduleCfg: [],
-                                            userRemoteConfigs: [[
-                                                refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                                url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                            ]],
-                                        ]
-                                    )
+                                    script {
+                                        prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                    }
                                 }
                             }
                         }
@@ -74,10 +59,10 @@ pipeline {
                 stage("enterprise-plugin") {
                     steps {
                         dir("enterprise-plugin") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
-                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', ghprbTargetBranch, ghprbCommentBody, GIT_CREDENTIALS_ID)
+                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', REFS.base_ref, '', GIT_CREDENTIALS_ID)
                                     }
                                 }
                             }
@@ -118,20 +103,20 @@ pipeline {
                                     sh label: "create tidb-server tarball", script: """
                                         rm -rf .git
                                         tar czvf tidb-server.tar.gz ./*
-                                        echo "pr/${ghprbActualCommit}" > sha1
+                                        echo "pr/${REFS.pulls[0].sha}" > sha1
                                         echo "done" > done
                                         """
                                     sh label: 'upload to tidb dir', script: """
-                                        filepath="builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                        donepath="builds/${GIT_FULL_REPO_NAME}/pr/${ghprbActualCommit}/centos7/done"
-                                        refspath="refs/${GIT_FULL_REPO_NAME}/pr/${ghprbPullId}/sha1"
+                                        filepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
+                                        donepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/done"
+                                        refspath="refs/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].number}/sha1"
                                         curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
                                         curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
                                         curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
                                         """
                                     sh label: 'upload to tidb-checker dir', script: """
-                                        filepath="builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
-                                        donepath="builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
+                                        filepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
+                                        donepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/done"
                                         curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
                                         curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload                                    
                                         """
