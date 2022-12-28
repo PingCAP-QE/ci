@@ -127,6 +127,7 @@ pipeline {
                         ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
 
                         cat Dockerfile
+                        ls -alh bin/
                         docker build -t hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -f Dockerfile .
                         """
                     }
@@ -143,7 +144,7 @@ pipeline {
                         println "Test failed, archive the log"
                         dir("tiflash/tests/docker") {
                             archiveArtifacts artifacts: 'log/**/*.log', allowEmptyArchive: true 
-                            sh label: 'display some log', script: 'find log -name '*.log' | xargs tail -n 50'
+                            sh label: 'display some log', script: """find log -name '*.log' | xargs tail -n 50"""
                         }
                     }
                 }
