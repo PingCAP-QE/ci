@@ -12,8 +12,8 @@ spec:
           memory: 12Gi
           cpu: "4"
         limits:
-          memory: 16Gi
-          cpu: "6"
+          memory: 8Gi
+          cpu: "4"
     - name: dockerd
       image: "docker:18.09.6-dind"
       tty: true
@@ -33,7 +33,7 @@ spec:
         - "cat"
       env:
         - name: DOCKER_HOST
-          value: tcp://dockerd:2375
+          value: tcp://localhost:2375
       resources:
         requests:
           memory: 8Gi
