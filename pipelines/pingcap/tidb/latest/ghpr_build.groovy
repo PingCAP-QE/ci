@@ -25,7 +25,6 @@ pipeline {
     }
     stages {
         stage('Debug info') {
-            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
                 sh label: 'Debug info', script: """
                     printenv
