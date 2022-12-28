@@ -344,12 +344,23 @@ node("build_go1130") {
                 }
 
                 tidb_sha1 = get_hash(TIDB_HASH, "tidb")
-                br_sha1 = get_hash(BR_HASH, "tidb")
-                dumpling_sha1 = get_hash(DUMPLING_HASH, "tidb")
                 tidb_ctl_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb-ctl/master/sha1").trim()
                 tikv_sha1 = get_hash(TIKV_HASH, "tikv")
                 pd_sha1 = get_hash(PD_HASH, "pd")
+                tiflash_sha1 = get_hash(TIFLASH_HASH, "tics")
                 tidb_binlog_sha1 = get_hash(BINLOG_HASH, "tidb-binlog")
+                dumpling_sha1 = ""
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
+                    dumpling_sha1 = tidb_sha1
+                } else {
+                    dumpling_sha1 = get_hash(DUMPLING_HASH, "dumpling")
+                }
+                br_sha1 = ""
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.2.0") {
+                    br_sha1 = tidb_sha1
+                } else {
+                    br_sha1 = get_hash(BR_HASH, "br")
+                }
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
                     ticdc_sha1 = get_hash(CDC_HASH, "tiflow")
                 }
@@ -362,7 +373,7 @@ node("build_go1130") {
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
                     dm_sha1 = get_hash(DM_HASH, "tiflow")
                 }
-                tiflash_sha1 = get_hash(TIFLASH_HASH, "tics")
+                
 
                 println "tidb_sha1: ${tidb_sha1}"
                 println "br_sha1: ${br_sha1}"
