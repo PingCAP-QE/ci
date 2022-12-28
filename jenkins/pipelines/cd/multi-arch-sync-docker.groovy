@@ -16,7 +16,7 @@ node('delivery') {
             dir('centos7') {
                 checkout scm
                 libs = load "jenkins/pipelines/cd/optimization-libs.groovy"
-                release_repo = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "dm", "tidb-lightning", "tidb-monitor-initializer"]
+                release_repo = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "tidb-lightning", "tidb-monitor-initializer"]
                 if (RELEASE_TAG >= "v5.3.0") {
                     release_repo = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "dm", "tidb-lightning", "tidb-monitor-initializer", "ng-monitoring"]
                 }
