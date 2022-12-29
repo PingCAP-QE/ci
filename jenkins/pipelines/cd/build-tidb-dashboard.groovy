@@ -1,7 +1,7 @@
 package cd
 
 final dockerfile = '''
-FROM hub.pingcap.net/bases/pingcap_base:v1 as builder
+FROM hub.pingcap.net/bases/pingcap-base:v1 as builder
 ARG TARGETARCH
 
 RUN sed -e 's|^mirrorlist=|#mirrorlist=|g' \\
