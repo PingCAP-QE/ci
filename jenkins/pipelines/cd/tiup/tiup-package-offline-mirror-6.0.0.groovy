@@ -84,6 +84,7 @@ def package_community = { arch ->
     aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
     echo "upload $dst successed!"
     """
+    sh "sha256sum ${dst}.tar.gz"
 }
 
 def package_enterprise = { arch ->
@@ -153,6 +154,8 @@ def package_enterprise = { arch ->
     curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     echo "upload $dst successed!"
     """
+
+    sh "sha256sum ${dst}.tar.gz"
 
     if (is_lts_version(release_tag)) {
         println "This is LTS version, need upload enterprise package to aws s3"
@@ -226,6 +229,8 @@ def package_tools = { plat, arch ->
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
     """
+
+    sh "sha256sum ${toolkit_dir}.tar.gz"
 
     if (plat == "community") {
         sh """
