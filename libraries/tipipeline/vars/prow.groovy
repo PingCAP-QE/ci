@@ -1,6 +1,6 @@
 // require plugins: 
 //  - pipeline-utility-steps
-def getPrRefs(prowDeckUrl, prowJobId) {
+def getJobRefs(prowDeckUrl, prowJobId) {
     // get yaml from <prowDeckUrl>/prowjob?prowjob=<prow_job_id>
     def response = httpRequest "${prowDeckUrl}/prowjob?prowjob=${prowJobId}"
 
@@ -28,9 +28,9 @@ def getPrRefs(prowDeckUrl, prowJobId) {
     return refs
 }
 
-
+// checkout pull requests pre-merged commit
 def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
-    final refs = getPrRefs(prowDeckUrl, prowJobId)
+    final refs = getJobRefs(prowDeckUrl, prowJobId)
     
     // parse values for git checkout.
     final pullId = refs.pulls[0].number

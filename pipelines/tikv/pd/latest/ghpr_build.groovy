@@ -6,7 +6,7 @@ final K8S_NAMESPACE = "jenkins-pd"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/pd'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/latest/pod-ghpr_build.yaml'
-final REFS = prow.getPrRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
