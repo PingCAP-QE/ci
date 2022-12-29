@@ -27,25 +27,23 @@ spec:
         - name: bazel-out-lower
           subPath: tidb/go1.19
           mountPath: /bazel-out-lower
-        - mountPath: /bazel-out-overlay
-          name: bazel-out-overlay
-        - name: bazel-rc
-          mountPath: /data/
-          readOnly: true
+        - name: bazel-out-overlay
+          mountPath: /bazel-out-overlay
         - name: gocache
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - name: bazel-rc
+          mountPath: /data/
+          readOnly: true
+        - name: containerinfo
+          mountPath: /etc/containerinfo
       lifecycle:
         postStart:
           exec:
             command:
               - /bin/sh
-              - -c
-              - >-
-                mkdir -p /bazel-out-overlay/upper /bazel-out-overlay/work; sudo
-                mount -t overlay overlay /home/jenkins/.tidb/tmp -o
-                lowerdir=/bazel-out-lower,upperdir=/bazel-out-overlay/upper,workdir=/bazel-out-overlay/work;
+              - /data/bazel-prepare-in-container.sh
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -77,4 +75,22 @@ spec:
     - name: bazel-rc
       secret:
         secretName: bazel
-        optional: true
+    - name: containerinfo
+      downwardAPI:
+        items:
+          - path: cpu_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.cpu
+          - path: cpu_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.cpu
+          - path: mem_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.memory
+          - path: mem_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.memory

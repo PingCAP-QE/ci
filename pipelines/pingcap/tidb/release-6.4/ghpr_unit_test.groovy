@@ -1,8 +1,11 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+@Library('tipipeline') _
+
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.4/pod-ghpr_unit_test.yaml'
+final REFS = prow.getPrRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -39,38 +42,34 @@ pipeline {
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 5],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                            }
                         }
                     }
                 }
             }
         }
         stage('Test') {
+            environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir('tidb') {
                     sh './build/jenkins_unit_test.sh' 
                 }
             }
             post {
+                 success {
+                    dir("tidb") {
+                        sh label: "upload coverage to codecov", script: """
+                        mv coverage.dat test_coverage/coverage.dat
+                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
+                        chmod +x codecov
+                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN}
+                        """
+                    }
+                }
                 always {
                     dir('tidb') {
                         // archive test report to Jenkins.
@@ -78,11 +77,11 @@ pipeline {
 
                         // upload coverage report to file server
                         retry(3) {
-                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: '''
-                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
+                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
+                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
                                 curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
                                 echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
-                                '''
+                                """
                         }
                     }
                 }
@@ -94,7 +93,7 @@ pipeline {
         always {
             container('report') {
                 sh """
-                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${ghprbActualCommit}/report.xml"
+                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
                     bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" || true
                 """
             }

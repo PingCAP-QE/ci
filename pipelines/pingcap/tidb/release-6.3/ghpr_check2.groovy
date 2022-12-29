@@ -5,6 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_check2.yaml'
+final REFS = prow.getPrRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -41,26 +42,11 @@ pipeline {
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 5],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                            }
                         }
                     }
                 }
@@ -69,19 +55,19 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
                     }
                     script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', ghprbTargetBranch, ghprbCommentBody, 'centos7/tikv-server.tar.gz', 'bin')
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', ghprbTargetBranch, ghprbCommentBody, 'centos7/pd-server.tar.gz', 'bin')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, '', 'centos7/tikv-server.tar.gz', 'bin')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, '', 'centos7/pd-server.tar.gz', 'bin')
                     }
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh '''
+                        sh """
                             mv bin/tidb-server bin/explain_test_tidb-server
-                            touch rev-${ghprbActualCommit}
-                        '''
+                            touch rev-${REFS.pulls[0].sha}
+                        """
                     }
                 }
             }
@@ -116,7 +102,7 @@ pipeline {
                         steps {
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh 'ls -l rev-${ghprbActualCommit}' // will fail when not found in cache or no cached.
+                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
@@ -138,7 +124,7 @@ pipeline {
     post {
         success {
             // Upload check flag to fileserver
-            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload"
+            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${REFS.pulls[0].sha}=@done ${FILE_SERVER_URL}/upload"
         }
 
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
