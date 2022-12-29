@@ -20,17 +20,15 @@ def getJobRefs(prowDeckUrl, prowJobId) {
     //         link: <string>
     //         number: <pr number>
     //         sha: <head merge commit sha>
-    //         title: <pr title>    
+    //         title: <pr title>
     final prowJob = readYaml(text: response.content)
-    final refs = prowJob.spec.refs
-    assert refs.pulls.size() == 1
-    
-    return refs
+    return prowJob.spec.refs
 }
 
 // checkout pull requests pre-merged commit
 def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
     final refs = getJobRefs(prowDeckUrl, prowJobId)
+    assert refs.pulls.size() == 1
     
     // parse values for git checkout.
     final pullId = refs.pulls[0].number
