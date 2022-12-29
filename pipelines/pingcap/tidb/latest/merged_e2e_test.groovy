@@ -4,10 +4,8 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final COMMIT_CONTEXT = 'staging/e2e-test'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_e2e_test.yaml'
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -19,7 +17,6 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -40,29 +37,13 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                dir('tidb') {
+                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                            }
                         }
                     }
                 }
@@ -71,15 +52,13 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container("golang") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        sh label: 'download binary', script: """
-                        chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BASE_BRANCH} --tikv=${GIT_BASE_BRANCH}
+                    sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                    sh label: 'download binary', script: """
+                        chmod +x \${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                        \${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                         mv third_bin/* bin/
                         ls -alh bin/
-                        """
-                    }
+                    """
                 }                
             }
         }
@@ -109,53 +88,7 @@ pipeline {
                         archiveArtifacts artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: true
                     }
                 }
-            }       
+            }
         }
-    }
-    post {
-        always {
-            script {
-                println "build url: ${env.BUILD_URL}"
-                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
-                println "build name: ${env.JOB_NAME}"
-                println "build number: ${env.BUILD_NUMBER}"
-                println "build status: ${currentBuild.currentResult}"
-            } 
-        }
-        // success {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state success \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test success" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
-
-        // unsuccessful {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state failure \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test failed" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
     }
 }
