@@ -71,7 +71,6 @@ pipeline {
                  success {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
-                        mv coverage.dat test_coverage/coverage.dat
                         wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
                         chmod +x codecov
                         ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN}
@@ -87,7 +86,7 @@ pipeline {
                         retry(3) {
                             sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
                                 filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
-                                curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
+                                curl -f -F \${filepath}=@test_coverage/tidb-junit-report.xml \${FILE_SERVER_URL}/upload
                                 echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
                                 """
                         }
