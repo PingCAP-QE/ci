@@ -6,7 +6,7 @@ if (DEBUG_MODE == "true") {
 
 }
 
-lts_versions = ["v6.1"]
+lts_versions = ["v6.1","v6.5"]
 
 def is_lts_version = { version ->
     for (lts_version in lts_versions) {
