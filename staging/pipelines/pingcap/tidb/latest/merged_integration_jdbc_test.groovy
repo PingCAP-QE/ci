@@ -105,10 +105,11 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'jdbc8_test ./test_fast.sh', 'jdbc8_test ./test_slow.sh', 'hibernate_test/hibernate-orm-test ./test.sh',
-                            'mybatis_test ./test.sh', 'jooq_test ./test.sh', 'tidb_jdbc_test/tidb_jdbc_unique_test ./test.sh'
-                            // 'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh',
-                            // 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_slow.sh', 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_tls.sh'
+                        values 'jdbc8_test ./test_fast.sh', 'jdbc8_test ./test_slow.sh', 'mybatis_test ./test.sh',
+                            'jooq_test ./test.sh', 'tidb_jdbc_test/tidb_jdbc_unique_test ./test.sh'
+                            // 'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh', 
+                            // 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_slow.sh', 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_tls.sh',
+                            // 'hibernate_test/hibernate-orm-test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
