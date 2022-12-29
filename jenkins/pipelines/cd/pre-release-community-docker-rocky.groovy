@@ -75,7 +75,7 @@ def get_dockerfile_url(product, is_enterprise, is_debug){
     if (is_debug) {
         fileName = fileName + "-debug"
     }
-    return "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${fileName}.Dockerfile"
+    return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
 }
 
 def get_image_str_for_community(product, arch, tag, is_failpoint, is_debug) {
