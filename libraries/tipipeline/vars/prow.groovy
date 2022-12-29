@@ -57,3 +57,29 @@ def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
         ]
     )    
 }
+
+// checkout base refs, can use it to checkout the pushed codes.
+def checkoutBase(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
+    final refs = getJobRefs(prowDeckUrl, prowJobId)
+
+    checkout(
+        changelog: false,
+        poll: false,
+        scm: [
+            $class: 'GitSCM', 
+            branches: [[name: refs.base_sha ]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+                [$class: 'PruneStaleBranch'],
+                [$class: 'CleanBeforeCheckout'],
+                [$class: 'CloneOption', timeout: 5],
+            ],
+            submoduleCfg: [],
+            userRemoteConfigs: [[
+                refspec: "+refs/heads/*:refs/remotes/origin/*",
+                url: "https://github.com/${refs.org}/${refs.repo}.git",
+                credentialsId: credentialsId
+            ]],
+        ]
+    )
+}
