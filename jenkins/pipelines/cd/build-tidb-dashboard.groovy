@@ -40,7 +40,7 @@ RUN scripts/install_go_tools.sh
 COPY . .
 RUN make package PNPM_INSTALL_TAGS=--offline
 
-FROM hub.pingcap.net/bases/pingcap_base:v1.0.0
+FROM hub.pingcap.net/bases/pingcap-base:v1
 
 COPY --from=builder /root/tidb-dashboard/bin/tidb-dashboard /tidb-dashboard
 
