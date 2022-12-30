@@ -28,10 +28,4 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
-    - name: status-updater
-      image: hub.pingcap.net/pingcap/github-status-updater:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+
