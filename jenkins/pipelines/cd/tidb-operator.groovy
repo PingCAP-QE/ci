@@ -136,7 +136,7 @@ pipeline {
                             }
                         }
                         stage("bin") {
-                            environment { GOPROXY = "https://goproxy.pingcap.net,direct" }
+                            environment {GIT_COMMIT = "$GitHash"; GOPROXY = "https://goproxy.pingcap.net,direct" }
                             steps {
                                 sh """set -eux
                                     go mod download
