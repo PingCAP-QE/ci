@@ -45,6 +45,10 @@ def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
                 [$class: 'PruneStaleBranch'],
                 [$class: 'CleanBeforeCheckout'],
                 [$class: 'CloneOption', timeout: timeout],
+                [$class: 'UserIdentity', name: 'ci', email: 'noreply@ci'],
+                [$class: 'PreBuildMerge', options: [
+                    mergeRemote: 'origin', mergeTarget : refs.base_ref
+                ]],
             ],
             submoduleCfg: [],
             userRemoteConfigs: [[
