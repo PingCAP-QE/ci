@@ -4,10 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final COMMIT_CONTEXT = 'wip/common-test'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_common_test.yaml'
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -44,34 +43,19 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                            }
                         }
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', GIT_BASE_BRANCH, "", GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', "${REFS.base_ref}", "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
