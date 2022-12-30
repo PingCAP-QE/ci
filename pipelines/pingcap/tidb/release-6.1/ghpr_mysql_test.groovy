@@ -70,24 +70,13 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
                     }
                 }
-                dir('tidb-test') {
-                    sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
-                    }
-                }
             }
         }
         stage('MySQL Tests') {
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
-                dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                        dir('mysql_test') {
-                            sh label: "mysql test", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh'
-                        }
-                    }
+                dir('tidb-test/mysql_test') {
+                    sh label: "mysql test", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh'
                 }
             }
             post{
@@ -95,7 +84,6 @@ pipeline {
                     archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
                 }
             }
-     
         }
     }
     post {
