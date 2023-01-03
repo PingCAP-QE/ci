@@ -58,7 +58,7 @@ function download() {
         return
     fi
     echo "download ${file_name} from ${url}"
-    curl -C - --retry 3 -f -L -o "${file_path}" "${url}"
+    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O "${file_path}" "${url}"
 }
 
 function main() { 
