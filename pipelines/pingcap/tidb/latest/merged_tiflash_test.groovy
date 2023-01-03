@@ -4,10 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final COMMIT_CONTEXT = 'wip/tiflash-test'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_tiflash_test.yaml'
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -42,37 +41,22 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                            }
                         }
                     }
                 }
                 dir("tiflash") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflash/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tiflash/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflash/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tiflash/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_BASE_BRANCH ]],
+                                    $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -95,7 +79,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     container("golang") {
-                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_tiflash_test/rev-${GIT_MERGE_COMMIT}") {  
+                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_tiflash_test/rev-${REFS.base_sha}") {  
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         }
                     }
@@ -125,12 +109,12 @@ ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
                         cp ../tidb/bin/tidb-server tidb-server
                         """
                         sh label: 'build tmp tidb image', script: """
-                        docker build -t hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -f Dockerfile .
+                        docker build -t hub.pingcap.net/qa/tidb:${REFS.base_ref} -f Dockerfile .
                         """
                     }
                     dir("tiflash/tests/docker") {
                         sh label: 'test', script: """
-                        TIDB_CI_ONLY=1 TAG=${GIT_BASE_BRANCH} PD_BRANCH=${GIT_BASE_BRANCH} TIKV_BRANCH=${GIT_BASE_BRANCH} TIDB_BRANCH=${GIT_BASE_BRANCH} bash -xe run.sh
+                        TIDB_CI_ONLY=1 TAG=${REFS.base_ref} PD_BRANCH=${REFS.base_ref} TIKV_BRANCH=${REFS.base_ref} TIDB_BRANCH=${REFS.base_ref} bash -xe run.sh
                         """
                     }
                 }
