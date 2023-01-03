@@ -60,7 +60,7 @@ function download() {
         return
     fi
     echo "download ${file_name} from ${url}"
-    curl -C - --retry 3 -f -L -o "${file_path}" "${url}"
+    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O "${file_path}" "${url}"
 }
 
 function main() { 
@@ -71,8 +71,6 @@ function main() {
     download "$pd_download_url" "pd-server.tar.gz" "tmp/pd-server.tar.gz"
     tar -xz -C third_bin 'bin/*' -f tmp/pd-server.tar.gz && mv third_bin/bin/* third_bin/
     download "$tikv_download_url" "tikv-server.tar.gz" "tmp/tikv-server.tar.gz"
-    # tar -xz -C third_bin bin/tikv-server  -f tmp/tikv-server.tar.gz && mv third_bin/bin/tikv-server third_bin/
-    # tar -xz -C third_bin bin/tikv-ctl  -f tmp/tikv-server.tar.gz && mv third_bin/bin/tikv-ctl third_bin/
     tar -xz -C third_bin 'bin/*' -f tmp/tikv-server.tar.gz && mv third_bin/bin/* third_bin/
     download "$tiflash_download_url" "tiflash.tar.gz" "tmp/tiflash.tar.gz"
     tar -xz -C third_bin -f tmp/tiflash.tar.gz

@@ -22,7 +22,7 @@ pipeline {
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
@@ -74,9 +74,14 @@ pipeline {
                 dir('tidb') {
                     sh "git branch && git status"
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'build-for-br-integration-test', script: 'make build_for_br_integration_test'
+                        sh label: "download dependency", script: """
+                            chmod +x ../scripts/pingcap/br/*.sh
+                            ${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net
+                            mv third_bin/* bin/
+                            ls -alh bin/
+                        """
                     }
                 }
             }
@@ -86,11 +91,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'br_incremental_ddl', 'br_incompatible_tidb_config'
-                            // 'br_log_restore', 'lightning_alter_random', 'lightning_new_collation', 'lightning_row-format-v2',
-                            // 'lightning_s3', 'lightning_sqlmode', 'lightning_tiflash', 'br_s3', 'br_tiflash', 'br_tikv_outage', 'br_tikv_outage2', 'lightning_disk_quota', 'br_300_small_tables',
-                            // 'br_full_ddl', 'lightning_checkpoint', 'br_table_filter', 'br_systables', 'br_rawkv',
-                            // 'br_key_locked', 'br_other', 'br_history', 'br_full', 'br_full_index'
+                        values 'br_incremental_ddl br_incompatible_tidb_config', 'br_log_restore lightning_alter_random'
                     }
                 }
                 agent{
@@ -108,19 +109,28 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}") { 
                                     sh """git status && ls -alh""" 
                                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/br-integration-test/rev-${BUILD_TAG}") {
-                                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                        sh 'chmod +x ../scripts/pingcap/br/*.sh'
-                                        sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
+                                        sh label: 'tidb-server version', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
+                                        sh label: 'tikv-server version', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
+                                        sh label: 'pd-server version', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
                                         sh label: "Case ${CASES}", script: """
+                                            #!/usr/bin/env bash
                                             mv br/tests/*  tests/
                                             mkdir -p bin
                                             mv third_bin/* bin/ && ls -alh bin/
-                                            rm -rf /tmp/backup_restore_test
-                                            mkdir -p /tmp/backup_restore_test
-                                            rm -rf cover
-                                            mkdir cover
-                                            export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
-                                            TEST_NAME=${CASES} tests/run.sh
+                                            caseArray=(\${CASES})
+                                            for CASE in \${caseArray[@]}; do
+                                                if [[ ! -e tests/\${CASE}/run.sh ]]; then
+                                                    echo \${CASE} not exists, skip.
+                                                    break
+                                                fi
+                                                echo "Running test case: \$CASE"
+                                                rm -rf /tmp/backup_restore_test
+                                                mkdir -p /tmp/backup_restore_test
+                                                rm -rf cover
+                                                mkdir cover
+                                                export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+                                                TEST_NAME=\$CASE tests/run.sh
+                                            done
                                         """
                                     }
                                 }
@@ -137,51 +147,5 @@ pipeline {
                 }
             }        
         }
-    }
-    post {
-        always {
-            script {
-                println "build url: ${env.BUILD_URL}"
-                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
-                println "build name: ${env.JOB_NAME}"
-                println "build number: ${env.BUILD_NUMBER}"
-                println "build status: ${currentBuild.currentResult}"
-            } 
-        }
-        // success {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state success \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test success" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
-
-        // unsuccessful {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state failure \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test failed" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
     }
 }

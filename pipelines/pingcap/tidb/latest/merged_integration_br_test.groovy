@@ -22,7 +22,7 @@ pipeline {
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
@@ -76,6 +76,12 @@ pipeline {
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/br") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'build-for-br-integration-test', script: 'make build_for_br_integration_test'
+                        sh label: "download dependency", script: """
+                        chmod +x ../scripts/pingcap/br/*.sh
+                        ${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net
+                        mv third_bin/* bin/
+                        ls -alh bin/
+                        """
                     }
                 }
             }
@@ -112,18 +118,18 @@ pipeline {
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}") { 
                                     sh """git status && ls -alh""" 
                                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/br") {
-                                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                        sh 'chmod +x ../scripts/pingcap/br/*.sh'
-                                        sh "${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net"
+                                        sh label: 'tidb-server version', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
+                                        sh label: 'tikv-server version', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
+                                        sh label: 'pd-server version', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
                                         sh label: "Case ${CASES}", script: """
                                             #!/usr/bin/env bash
                                             mv br/tests/*  tests/
@@ -159,51 +165,5 @@ pipeline {
                 }
             }        
         }
-    }
-    post {
-        always {
-            script {
-                println "build url: ${env.BUILD_URL}"
-                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
-                println "build name: ${env.JOB_NAME}"
-                println "build number: ${env.BUILD_NUMBER}"
-                println "build status: ${currentBuild.currentResult}"
-            } 
-        }
-        // success {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state success \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test success" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
-
-        // unsuccessful {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state failure \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test failed" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
     }
 }
