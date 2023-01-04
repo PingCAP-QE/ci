@@ -123,7 +123,6 @@ pipeline {
                         """
                         sh label: 'build tmp tidb image', script: """
                         docker build -t hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -f tidb.Dockerfile .
-                        docker run --rm  hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -V
                         """
                     }
                     dir("tiflash/tests/docker") {
