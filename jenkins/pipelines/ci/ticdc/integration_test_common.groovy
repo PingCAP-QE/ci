@@ -72,7 +72,7 @@ def prepare_binaries() {
                     sh """
                     cd go/src/github.com/pingcap/tiflow
                     ls -alh
-                    curl -C - --retry 3 -f -o ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
                     tar -xvf ticdc_bin.tar.gz
                     chmod +x bin/cdc
                     ./bin/cdc version
@@ -388,25 +388,40 @@ def download_binaries() {
         pd_url="${pd_url}"
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
-        curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tmp \${tidb_archive_path}
-        # tar -xvf tidb.tar.gz -C ./tmp bin/tidb-server
-        curl -C - --retry 3 -f \${pd_url} | tar xz -C ./tmp bin/*
-        curl -C - --retry 3 -f \${tikv_url} | tar xz -C ./tmp bin/tikv-server
-        curl -C - --retry 3 -f \${minio_url} | tar xz -C ./tmp/bin minio
-        mv tmp/bin/* third_bin
-        curl -C - --retry 3 -f \${tiflash_url} | tar xz -C third_bin
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${tidb_url}
+        tar -xz -C ./tmp \${tidb_archive_path} -f tidb-server.tar.gz && mv tmp/bin/tidb-server third_bin/
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O pd-server.tar.gz  \${pd_url}
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tikv-server.tar.gz \${tikv_url}
+        tar -xz -C ./tmp 'bin/*' -f tikv-server.tar.gz && mv tmp/bin/* third_bin/
+        tar -xz -C ./tmp 'bin/*' -f pd-server.tar.gz && mv tmp/bin/* third_bin/
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O minio.tar.gz \${minio_url}
+        tar -xz -C third_bin -f ./minio.tar.gz
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O  tiflash.tar.gz \${tiflash_url}
+        tar -xz -C third_bin -f tiflash.tar.gz
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin
-        curl -C - --retry 3 -f ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o third_bin/go-ycsb
-        curl -C - --retry 3 -fL ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz | tar xz -C ./tmp
-        mv tmp/etcd-v3.4.7-linux-amd64/etcdctl third_bin
-        curl -C - --retry 3 -f ${sync_diff_download_url} | tar xz -C ./third_bin
-        curl -C - --retry 3 -fL ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64 -o jq
-        mv jq third_bin
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O third_bin/go-ycsb ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O third_bin/jq ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O etcd.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz 
+        tar -xz -C third_bin  etcd-v3.4.7-linux-amd64/etcdctl  -f etcd.tar.gz
+        mv third_bin/etcd-v3.4.7-linux-amd64/etcdctl third_bin/ && rm -rf third_bin/etcd-v3.4.7-linux-amd64
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O sync_diff_inspector.tar.gz ${sync_diff_download_url}
+        tar -xz -C third_bin -f sync_diff_inspector.tar.gz
+        
         chmod a+x third_bin/*
         rm -rf tmp
-        curl -C - --retry 3 -fL ${FILE_SERVER_URL}/download/${cacheBinaryPath} | tar xvz -C .
-        mv ./third_bin/* ./bin
+
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+        tar -xvz -C ./ -f ticdc_bin.tar.gz
+
+        mv ./third_bin/* ./bin && ls -lh ./bin
         rm -rf third_bin
     """
 }
