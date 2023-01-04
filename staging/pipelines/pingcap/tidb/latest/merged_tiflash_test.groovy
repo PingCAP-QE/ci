@@ -116,17 +116,14 @@ pipeline {
                     }
                     dir("build-docker-image") {
                         sh label: 'generate dockerfile', script: """
-printf 'FROM hub.pingcap.net/jenkins/alpine-glibc:tiflash-test \n
-COPY tidb-server /tidb-server \n
-WORKDIR / \n
-EXPOSE 4000 \n
-ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
-
-                        cat Dockerfile
+                        curl -o tidb.Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb.Dockerfile
+                        cat tidb.Dockerfile
                         cp ../tidb/bin/tidb-server tidb-server
+                        ./tidb-server -V
                         """
                         sh label: 'build tmp tidb image', script: """
-                        docker build -t hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -f Dockerfile .
+                        docker build -t hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -f tidb.Dockerfile .
+                        docker run --rm  hub.pingcap.net/qa/tidb:${GIT_BASE_BRANCH} -V
                         """
                     }
                     dir("tiflash/tests/docker") {
