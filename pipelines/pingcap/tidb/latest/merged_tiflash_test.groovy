@@ -79,7 +79,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     container("golang") {
-                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_tiflash_test/rev-${REFS.base_sha}") {  
+                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {  
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         }
                     }
@@ -99,17 +99,13 @@ pipeline {
                     }
                     dir("build-docker-image") {
                         sh label: 'generate dockerfile', script: """
-printf 'FROM hub.pingcap.net/jenkins/alpine-glibc:tiflash-test \n
-COPY tidb-server /tidb-server \n
-WORKDIR / \n
-EXPOSE 4000 \n
-ENTRYPOINT ["/usr/local/bin/dumb-init", "/tidb-server"] \n' > Dockerfile
-
-                        cat Dockerfile
+                        curl -o tidb.Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb.Dockerfile
+                        cat tidb.Dockerfile
                         cp ../tidb/bin/tidb-server tidb-server
+                        ./tidb-server -V
                         """
                         sh label: 'build tmp tidb image', script: """
-                        docker build -t hub.pingcap.net/qa/tidb:${REFS.base_ref} -f Dockerfile .
+                        docker build -t hub.pingcap.net/qa/tidb:${REFS.base_ref} -f tidb.Dockerfile .
                         """
                     }
                     dir("tiflash/tests/docker") {
