@@ -3,8 +3,8 @@
 
 # help
 # download some third party tools for br integration test
-# usage: ./integration_test_download_dependency.sh [target_branch] [tikv_branch] [pd_branch] [tiflash_branch] [ticdc_branch] [fileserver_url]
-# example: ./integration_test_download_dependency.sh master master master master master https://download.pingcap.org
+# usage: ./integration_test_download_dependency.sh [--tikv=tikv_branch] [--pd=pd_branch] [--tiflash=tiflash_branch] [--ticdc=ticdc_branch]
+# example: ./integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master --ticdc=master
 # binary from tibuild multiple branches pipeline
 # * tikv / pd / tiflash / ticdc / importer
 # third party tools download from fileserver
@@ -12,21 +12,51 @@
 
 set -eu
 
-target_branch=$1
-tikv_branch=$2
-pd_branch=$3
-tiflash_branch=$4
-ticdc_branch=$5
-file_server_url=$6
+for i in "$@"; do
+  case $i in
+    -pd=*|--pd=*)
+      PD="${i#*=}"
+      shift # past argument=value
+      ;;
+    -tikv=*|--tikv=*)
+      TIKV="${i#*=}"
+      shift # past argument=value
+      ;;
+    -tiflash=*|--tiflash=*)
+      TIFLASH="${i#*=}"
+      shift # past argument=value
+      ;;
+    -ticdc=*|--ticdc=*)
+      TICDC="${i#*=}"
+      shift # past argument=value
+      ;;
+    --default)
+      DEFAULT=YES
+      shift # past argument with no value
+      ;;
+    -*|--*)
+      echo "Unknown option $i"
+      exit 1
+      ;;
+    *)
+      ;;
+  esac
+done
+
+echo "TIKV          = ${PD}"
+echo "PD            = ${PD}"
+echo "TIFLASH       = ${TIFLASH}"
+echo "TICDC         = ${TICDC}"
+
+
 tikv_importer_branch="release-5.0"
+file_server_url="http://fileserver.pingcap.net"
 
-
-tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${pd_branch}/sha1"
-pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${tikv_branch}/sha1"
-tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${tiflash_branch}/sha1"
+tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${TIKV}/sha1"
+pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${PD}/sha1"
+tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${TIFLASH}/sha1"
+ticdc_sha1_url="${file_server_url}/download/refs/pingcap/ticdc/${TICDC}/sha1"
 tikv_importer_sha1_url="${file_server_url}/download/refs/pingcap/importer/${tikv_importer_branch}/sha1"
-ticdc_sha1_url="${file_server_url}/download/refs/pingcap/ticdc/${ticdc_branch}/sha1"
-
 
 pd_sha1=$(curl "$pd_sha1_url")
 tikv_sha1=$(curl "$tikv_sha1_url")
@@ -37,13 +67,12 @@ ticdc_sha1=$(curl "$ticdc_sha1_url")
 # download pd / tikv / tiflash binary build from tibuid multibranch pipeline
 pd_download_url="${file_server_url}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
 tikv_download_url="${file_server_url}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-tiflash_download_url="${file_server_url}/download/builds/pingcap/tiflash/${tiflash_branch}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+tiflash_download_url="${file_server_url}/download/builds/pingcap/tiflash/${TIFLASH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
 tikv_importer_download_url="${file_server_url}/download/builds/pingcap/importer/${tikv_importer_sha1}/centos7/importer.tar.gz"
 ticdc_download_url="${file_server_url}/download/builds/pingcap/ticdc/${ticdc_sha1}/centos7/ticdc-linux-amd64.tar.gz"
 
 
 # download some dependencies tool binary from file server
-
 minio_url="${file_server_url}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio"
 go_ycsb_url="${file_server_url}/download/builds/pingcap/go-ycsb/test-br/go-ycsb"
 minio_cli_url="${file_server_url}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc"

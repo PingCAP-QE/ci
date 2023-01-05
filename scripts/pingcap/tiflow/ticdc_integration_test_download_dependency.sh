@@ -2,17 +2,54 @@
 
 #! /usr/bin/env bash
 
+# help
+# download some third party tools for br integration test
+# usage: ./ticdc_integration_test_download_dependency.sh [--tikv=tikv_branch] [--pd=pd_branch] [--tiflash=tiflash_branch]
+# example: ./ticdc_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master
+# binary from tibuild multiple branches pipeline
+# * tikv / pd / tiflash 
+# third party tools download from fileserver
+# * sync_diff_inspector / minio / go-ycsb / etcdctl / jq
+
 set -eu
 
-target_branch=$1
-tikv_branch=$2
-pd_branch=$3
-tiflash_branch=$4
-file_server_url=$5
+for i in "$@"; do
+  case $i in
+    -pd=*|--pd=*)
+      PD="${i#*=}"
+      shift # past argument=value
+      ;;
+    -tikv=*|--tikv=*)
+      TIKV="${i#*=}"
+      shift # past argument=value
+      ;;
+    -tiflash=*|--tiflash=*)
+      TIFLASH="${i#*=}"
+      shift # past argument=value
+      ;;
+    --default)
+      DEFAULT=YES
+      shift # past argument with no value
+      ;;
+    -*|--*)
+      echo "Unknown option $i"
+      exit 1
+      ;;
+    *)
+      ;;
+  esac
+done
 
-tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${pd_branch}/sha1"
-pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${tikv_branch}/sha1"
-tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${tiflash_branch}/sha1"
+
+echo "TIKV          = ${PD}"
+echo "PD            = ${PD}"
+echo "TIFLASH       = ${TIFLASH}"
+
+file_server_url="http://fileserver.pingcap.net"
+
+tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${TIKV}/sha1"
+pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${PD}/sha1"
+tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${TIFLASH}/sha1"
 
 pd_sha1=$(curl "$pd_sha1_url")
 tikv_sha1=$(curl "$tikv_sha1_url")
@@ -21,7 +58,7 @@ tiflash_sha1=$(curl "$tiflash_sha1_url")
 # download pd / tikv / tiflash binary build from tibuid multibranch pipeline
 pd_download_url="${file_server_url}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
 tikv_download_url="${file_server_url}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-tiflash_download_url="${file_server_url}/download/builds/pingcap/tiflash/${tiflash_branch}/${tiflash_sha1}/centos7/tiflash.tar.gz"
+tiflash_download_url="${file_server_url}/download/builds/pingcap/tiflash/${TIFLASH}/${tiflash_sha1}/centos7/tiflash.tar.gz"
 
 # download some dependencies tool binary from file server
 sync_diff_url="${file_server_url}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
