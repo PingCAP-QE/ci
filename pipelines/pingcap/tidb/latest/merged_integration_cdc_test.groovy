@@ -162,7 +162,7 @@ pipeline {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
-                                    sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master --ticdc=master"
+                                    sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master"
                                     sh label: "Case ${CASES}", script: """
                                     #!/usr/bin/env bash
                                     mv third_bin/* bin/ && ls -alh bin/

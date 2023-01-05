@@ -78,7 +78,7 @@ pipeline {
                         sh label: 'build-for-br-integration-test', script: 'make build_for_br_integration_test'
                         sh label: "download dependency", script: """
                         chmod +x ../scripts/pingcap/br/*.sh
-                        ${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh master master master master master http://fileserver.pingcap.net
+                        ${WORKSPACE}/scripts/pingcap/br/integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master --ticdc=master
                         mv third_bin/* bin/
                         ls -alh bin/
                         """
