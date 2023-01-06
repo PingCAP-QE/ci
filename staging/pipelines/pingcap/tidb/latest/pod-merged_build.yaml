@@ -14,6 +14,21 @@ spec:
         limits:
           memory: 24Gi
           cpu: "8"
+      volumeMounts:
+        - mountPath: /home/jenkins/.tidb/tmp
+          name: bazel-out-merged
+        - name: bazel-out-lower
+          subPath: tidb/go1.19.2
+          mountPath: /bazel-out-lower
+        - mountPath: /bazel-out-overlay
+          name: bazel-out-overlay
+        - name: bazel-repository-cache
+          mountPath: /share/.cache/bazel-repository-cache
+        - name: bazel-rc
+          mountPath: /data/
+          readOnly: true
+        - name: containerinfo
+          mountPath: /etc/containerinfo
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -28,3 +43,36 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
+  volumes:
+    - name: bazel-out-lower
+      persistentVolumeClaim:
+        claimName: bazel-out-data
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
+    - name: bazel-out-overlay
+      emptyDir: {}
+    - name: bazel-out-merged
+      emptyDir: {}
+    - name: bazel-rc
+      secret:
+        secretName: bazel
+    - name: containerinfo
+      downwardAPI:
+        items:
+          - path: cpu_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.cpu
+          - path: cpu_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.cpu
+          - path: mem_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.memory
+          - path: mem_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.memory
