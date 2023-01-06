@@ -7,6 +7,8 @@ spec:
     - name: golang
       image: "hub.pingcap.net/wangweizhen/tidb_image:go11920221108"
       tty: true
+      securityContext:
+        privileged: true
       resources:
         requests:
           memory: 8Gi
