@@ -31,6 +31,12 @@ spec:
           readOnly: true
         - name: containerinfo
           mountPath: /etc/containerinfo
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - /data/bazel-prepare-in-container.sh
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
