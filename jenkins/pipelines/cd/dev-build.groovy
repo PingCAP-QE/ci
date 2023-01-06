@@ -18,7 +18,7 @@ def get_dockerfile_url(arch){
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = fileName + '-enterprise'
         }
-        return "https://raw.githubusercontent.com/PingCAP-QE/ci/rocky/jenkins/Dockerfile/release/rocky/${fileName}.Dockerfile"
+        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
     }else{
         def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${Product}"
         if (Product == "tidb" && Edition == "enterprise") { 
