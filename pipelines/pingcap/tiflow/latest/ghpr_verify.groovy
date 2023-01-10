@@ -93,6 +93,7 @@ pipeline {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}") {
                                     sh label: "${TEST_CMD}", script: """
+                                        unset GOPROXY && go env -w GOPROXY="https://proxy.golang.org,direct"
                                         make ${TEST_CMD}
                                     """
                                 }
