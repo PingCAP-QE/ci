@@ -68,56 +68,50 @@ pipeline {
                 }
             }
         }
-        stage("Build tidb-server and plugin"){
-            stage("Build tidb-server") {
-                stages {
-                    stage("Build"){
-                        steps {
-                            dir("tidb") {                                     
-                                sh "make bazel_build"
-                            }
-                        }
-                        post {       
-                            // TODO: statics and report logic should not put in pipelines.
-                            // Instead should only send a cloud event to a external service.
-                            always {
-                                dir("tidb") {
-                                    archiveArtifacts(
-                                        artifacts: 'importer.log,tidb-server-check.log',
-                                        allowEmptyArchive: true,
-                                    )
-                                }            
-                            }
-                        }
+        stage("Build"){
+            steps {
+                dir("tidb") {                                     
+                    sh "make bazel_build"
+                }
+            }
+            post {       
+                // TODO: statics and report logic should not put in pipelines.
+                // Instead should only send a cloud event to a external service.
+                always {
+                    dir("tidb") {
+                        archiveArtifacts(
+                            artifacts: 'importer.log,tidb-server-check.log',
+                            allowEmptyArchive: true,
+                        )
+                    }            
+                }
+            }
+        }
+        stage("Plugin Test") {
+            steps {
+                timeout(time: 20, unit: 'MINUTES') {
+                    timeout(time: 5, unit: 'MINUTES') {
+                        sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
+                    }
+                    dir('enterprise-plugin/whitelist') {
+                        sh label: 'build plugin whitelist', script: '''
+                        GO111MODULE=on go mod tidy
+                        ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                        '''
+                    }
+                    dir("enterprise-plugin") {
+                        sh label: 'audit plugin test', script: """
+                        go version
+                        cd test/
+                        export PD_BRANCH=${REFS.base_ref}
+                        export TIKV_BRANCH=${REFS.base_ref}
+                        export TIDB_REPO_PATH=${WORKSPACE}/tidb
+                        export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
+                        ./test.sh
+                        """
                     }
                 }
             }
-            stage("Plugin Test") {
-                steps {
-                    timeout(time: 20, unit: 'MINUTES') {
-                        timeout(time: 5, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
-                        }
-                        dir('enterprise-plugin/whitelist') {
-                            sh label: 'build plugin whitelist', script: '''
-                            GO111MODULE=on go mod tidy
-                            ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                            '''
-                        }
-                        dir("enterprise-plugin") {
-                            sh label: 'audit plugin test', script: """
-                            go version
-                            cd test/
-                            export PD_BRANCH=${REFS.base_ref}
-                            export TIKV_BRANCH=${REFS.base_ref}
-                            export TIDB_REPO_PATH=${WORKSPACE}/tidb
-                            export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
-                            ./test.sh
-                            """
-                        }
-                    }
-                }
-            }     
         }
     }
 }
