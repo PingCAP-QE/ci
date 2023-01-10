@@ -84,7 +84,6 @@ pipeline {
                 }
             }
         }
-
         stage("Build tidb-server") {
             steps {
                 dir("tidb") {                                     
