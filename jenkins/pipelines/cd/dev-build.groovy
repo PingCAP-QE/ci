@@ -35,6 +35,7 @@ pipeline{
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
         string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
+        string(name: 'TiBuildID', description: 'the id of tibuild object')
     }
     stages{
         stage('prepare'){
@@ -75,7 +76,7 @@ spec:
                     }
                     Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
                     BinPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
-                    BinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
+                    BinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
                     ProductForBuild = Product
                     if (ProductForBuild == "tiflash"){
                         ProductForBuild = "tics"
@@ -87,7 +88,8 @@ spec:
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$day-$ts10-dev"
                 }
                 echo "repo hash: $GitHash"
-                echo "binary path: $BinPathDict"
+                echo "binary amd64 path: http://fileserver.pingcap.net/download/${BinPathDict['amd64']}"
+                echo "binary arm64 path: http://fileserver.pingcap.net/download/${BinPathDict['arm64']}"
                 echo "image: $Image"
                 echo "image on gcr: $ImageForGcr"
             }
@@ -206,6 +208,15 @@ spec:
                             wait: true)
                 }
                 
+            }
+        }
+    }
+    post {
+        always {
+            script{
+                if (TiBuildID!=""){
+                    node("mac"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
+                 }
             }
         }
     }
