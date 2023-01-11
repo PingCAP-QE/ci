@@ -35,7 +35,7 @@ pipeline{
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
         string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
-        string(name: 'TiBuildID', description: 'the id of tibuild object')
+        string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
         booleanParam(name: 'IsPushGCR', description: 'whether push gcr')
     }
     stages{
@@ -197,7 +197,7 @@ spec:
             }
         }
         stage("push gcr"){
-            when {equals equals:true, actual:params.IsPushGCR.toBoolean()}
+            when {equals expected:true, actual:params.IsPushGCR.toBoolean()}
             steps{
                 script{
                     def default_params = [
