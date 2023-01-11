@@ -53,12 +53,12 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
+        stage('Build') {             
             steps {
                 dir('pd') {
                     sh '''
-                        GOPROXY="https://proxy.golang.org,direct" WITH_RACE=1 make && mv bin/pd-server bin/pd-server-race
-                        GOPROXY="https://proxy.golang.org,direct" make
+                        WITH_RACE=1 make && mv bin/pd-server bin/pd-server-race
+                        make
                     '''
                 }
             }
