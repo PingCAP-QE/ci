@@ -38,31 +38,54 @@ pipeline {
                 }
             }
         }
-        stage('Checkout') { 
-            stage('tidb-test') {
-                steps {
-                    dir('tidb-test') {
-                        cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                            retry(2) {
-                                checkout(
-                                    changelog: false,
-                                    poll: false,
-                                    scm: [
-                                        $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                        doGenerateSubmoduleConfigurations: false,
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'],
-                                            [$class: 'CleanBeforeCheckout'],
-                                            [$class: 'CloneOption', timeout: 15],
-                                        ],
-                                        submoduleCfg: [],
-                                        userRemoteConfigs: [[
-                                            refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                            url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                        ]],
-                                    ]
-                                )
-                            }
+        stage('Checkout') {
+            options { timeout(time: 5, unit: 'MINUTES') }
+            steps {
+                dir("tidb") {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbTargetBranch]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 15],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
+                                        url: "https://github.com/pingcap/tidb.git",
+                                    ]],
+                                ]
+                            )
+                        }
+                    }
+                }
+                dir("tidb-test") {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 15],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
+                                    ]],
+                                ]
+                            )
                         }
                     }
                 }
@@ -70,8 +93,33 @@ pipeline {
         }
         stage("Build"){
             dir("tidb-test") {
-
+                steps {
+                    sh """
+                    TIDB_SRC_PATH=${WORDSPACE}/tidb make check
+                    for binCase in {partition_test,coprocessor_test,concurrent-sql}; do
+                        TIDB_SRC_PATH=${WORDSPACE}/tidb make check && break
+                        cd \${binCase} && chmod +x build.sh && ./build.sh
+                        cd ..
+                        sleep 5
+                    done
+                    """
+                }
             }
         }
+        // stage("Upload"){
+        //     dir("tidb-test") {
+        //         steps {
+        //             def filepath = "builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+        //             def refspath = "refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
+        //             sh """
+        //                 rm -rf .git
+        //                 tar czvf tidb-test.tar.gz ./*
+        //                 curl -f -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
+        //                 echo "pr/${ghprbActualCommit}" > sha1
+        //                 curl -f -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload   
+        //             """
+        //         }
+        //     }
+        // }
     }
 }
