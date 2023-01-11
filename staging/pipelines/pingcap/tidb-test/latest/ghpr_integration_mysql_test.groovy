@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb-test/latest/pod-ghpr_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb-test/latest/pod-ghpr_integration_mysql_test.yaml'
 
 pipeline {
     agent {
@@ -96,8 +96,13 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                            sh label: 'download binary', script: """
+                                chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                                ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${ghprbTargetBranch} --tikv=${ghprbTargetBranch}
+                                mv third_bin/* bin/
+                                ls -alh bin/
+                            """
                     }
                 }
                 dir('tidb-test') {
@@ -132,18 +137,26 @@ pipeline {
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
+                                    sh label: "print version", script: """
+                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
+                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
+                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                                    """
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
                             }
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb-test/rev-${ghprbActualCommit}") {
-                                    sh 'ls mysql_test' // if cache missed, fail it(should not miss).
                                     dir('mysql_test') {
-                                        sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
-                                        export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                        export CACHE_ENABLED=${CACHE_ENABLED}
-                                        export TIDB_TEST_STORE_NAME="unistore"
-                                        ./test.sh -backlist=1 -part=${PART}
+                                        sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                            #!/usr/bin/env bash
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export CACHE_ENABLED=${CACHE_ENABLED}
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                            export TIDB_TEST_STORE_NAME="tikv"
+                                            cd mysql_test/ && ./test.sh -blacklist=1 -part=${PART}
                                         """
                                     }
                                 }
