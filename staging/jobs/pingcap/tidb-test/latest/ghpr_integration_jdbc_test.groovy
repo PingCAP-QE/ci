@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
 pipelineJob('pingcap/tidb-test/ghpr_integration_jdbc_test') {
-    disabled(true)
+    // disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -72,7 +72,12 @@ pipelineJob('pingcap/tidb-test/ghpr_integration_jdbc_test') {
             lightweight(true)
             scriptPath("staging/pipelines/pingcap/tidb-test/latest/ghpr_integration_jdbc_test.groovy")
             scm {
-                github('PingCAP-QE/ci', 'main')
+                git{
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
+                    }
+                    branch('main')
+                }
             }
         }
     }
