@@ -141,7 +141,6 @@ pipeline {
                                         ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
                                         ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
                                     """
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
                             }
                             dir('tidb-test') {
