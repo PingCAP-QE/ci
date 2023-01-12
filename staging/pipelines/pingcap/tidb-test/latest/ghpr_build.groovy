@@ -107,20 +107,21 @@ pipeline {
                 }
             }
         }
-        stage("Upload"){
-            steps {
-                dir("tidb-test") {
-                    def filepath = "builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
-                    def refspath = "refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
-                    sh """
-                        rm -rf .git
-                        tar czvf tidb-test.tar.gz ./*
-                        curl -f -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
-                        echo "pr/${ghprbActualCommit}" > sha1
-                        curl -f -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload   
-                    """
-                }
-            }
-        }
+        // stage("Upload"){
+        //     steps {
+        //         dir("tidb-test") {
+
+        //             sh """
+        //                 rm -rf .git
+        //                 tar czvf tidb-test.tar.gz ./*
+        //                 filepath="builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+        //                 refspath="refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
+        //                 curl -f -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
+        //                 echo "pr/${ghprbActualCommit}" > sha1
+        //                 curl -f -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload   
+        //             """
+        //         }
+        //     }
+        // }
     }
 }
