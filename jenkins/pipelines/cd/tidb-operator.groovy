@@ -225,7 +225,8 @@ pipeline {
                                 unstash "bin"
                                 sh "ls -Ral"
                                 sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
-                                sh 'docker buildx create --name mybuilder --use || true'
+                                writeFile file: 'buildkitd.toml', text: '''[registry."docker.io"]\nmirrors = ["registry-mirror.pingcap.net"]'''
+                                sh 'docker buildx create --name mybuilder --use --config buildkitd.toml && rm buildkitd.toml'
                             }
                         }
                         stage("e2e") {
