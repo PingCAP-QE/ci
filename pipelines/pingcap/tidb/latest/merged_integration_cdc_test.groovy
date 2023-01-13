@@ -129,7 +129,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CASES'
-                        values 'consistent_replicate_nfs', 'consistent_replicate_s3', 'processor_panic owner_resign',
+                        values 'consistent_replicate_nfs', 'consistent_replicate_storage_s3 consistent_replicate_storage_file', 'processor_panic owner_resign',
                             'changefeed_error ddl_sequence', 'force_replicate_table multi_capture', 'kafka_big_messages cdc',
                             'drop_many_tables multi_cdc_cluster', 'processor_stop_delay capture_suicide_while_balance_table',  'row_format foreign_key',
                             'canal_json_basic ddl_puller_lag', 'partition_table changefeed_auto_stop', 'sorter charset_gbk', 'owner_remove_table_error', 
@@ -162,7 +162,7 @@ pipeline {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh 'chmod +x ../scripts/pingcap/tiflow/*.sh'
-                                    sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh master master master master http://fileserver.pingcap.net"
+                                    sh "${WORKSPACE}/scripts/pingcap/tiflow/ticdc_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master"
                                     sh label: "Case ${CASES}", script: """
                                     #!/usr/bin/env bash
                                     mv third_bin/* bin/ && ls -alh bin/

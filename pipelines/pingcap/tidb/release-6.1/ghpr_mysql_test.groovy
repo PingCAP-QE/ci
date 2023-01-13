@@ -6,7 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.1/pod-ghpr_mysql_test.yaml'
-final REFS = prow.getPrRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
@@ -55,7 +55,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, '', GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -70,24 +70,13 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
                     }
                 }
-                dir('tidb-test') {
-                    sh "git branch && git status"
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
-                    }
-                }
             }
         }
         stage('MySQL Tests') {
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
-                dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                        dir('mysql_test') {
-                            sh label: "mysql test", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh'
-                        }
-                    }
+                dir('tidb-test/mysql_test') {
+                    sh label: "mysql test", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh'
                 }
             }
             post{
@@ -95,7 +84,6 @@ pipeline {
                     archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
                 }
             }
-     
         }
     }
     post {

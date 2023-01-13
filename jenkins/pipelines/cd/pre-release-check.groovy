@@ -23,7 +23,7 @@ properties([
 def task = "pre-release-check"
 def check_image = { comps, edition, registry, project ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
-            containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
+            containerTemplate(name: 'dockerd', image: 'docker:20-dind', privileged: true, command:'dockerd --host=tcp://localhost:2375'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master', alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
@@ -32,11 +32,22 @@ def check_image = { comps, edition, registry, project ->
             container("docker") {
                 unstash 'release-check'
                 sh "pwd && ls -alh"
-                dir("release-check") {
-                    comps.each {
-                        sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+                    stage("traditional image"){
+                    dir("release-check") {
+                        comps.each {
+                            sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+                        }
                     }
                 }
+                if(RELEASE_TAG>="v6.5.0"){
+                    stage("rocky image"){
+                        dir("release-check-rocky") {
+                            comps.each {
+                                sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
+                            }
+                        }
+                    }
+				}
             }
         }
     }
@@ -69,19 +80,28 @@ __EOF__
             tar -xzf release-check.tar.gz
             cp ${RELEASE_TAG}.json release-check/
             """
-            stash includes: "release-check/**", name: "release-check"
+            sh """
+            wget ${FILE_SERVER_URL}/download/cicd/scripts/release-check-rocky.tar.gz
+            tar -xzf release-check-rocky.tar.gz
+            cp ${RELEASE_TAG}.json release-check-rocky/
+            """
+            stash includes: "release-check/,release-check-rocky/", name: "release-check"
         }
     }
 }
 
 stage("Check") {
+    def images = ["tidb", "tikv", "tiflash", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"]
+    if (RELEASE_TAG >= "v5.2"){
+        images << "dm"
+    }
     parallel(
             "X86 Image Community Docker": {
-                check_image(["tidb", "tikv", "tiflash", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling", "dm"], "community", "hub.pingcap.net", "qa")
+                check_image(images, "community", "hub.pingcap.net", "qa")
             },
 
             "X86 Image Enterprise Docker": {
-                check_image(["tidb", "tikv", "tiflash", "pd", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling","dm"], "enterprise", "hub.pingcap.net", "qa")
+                check_image(images, "enterprise", "hub.pingcap.net", "qa")
             },
     )
 }

@@ -6,7 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_build.yaml'
-final REFS = prow.getPrRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -62,7 +62,7 @@ pipeline {
                             cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
-                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', REFS.base_ref, '', GIT_CREDENTIALS_ID)
+                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                                     }
                                 }
                             }

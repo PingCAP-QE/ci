@@ -4,10 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final COMMIT_CONTEXT = 'staging/integration-copr-test'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_copr_test.yaml'
+final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
 
 pipeline {
     agent {
@@ -23,7 +22,6 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -44,37 +42,22 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                            }
                         }
                     }
                 }
                 dir("tikv-copr-test") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/tikv/copr-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.base_sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_BASE_BRANCH ]],
+                                    $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -101,7 +84,7 @@ pipeline {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${GIT_BASE_BRANCH} --tikv=${GIT_BASE_BRANCH}
+                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
                             """
@@ -111,7 +94,7 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 40, unit: 'MINUTES') }
+            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
@@ -129,52 +112,5 @@ pipeline {
                 }
             }               
         }
-    }
-
-    post {
-        always {
-            script {
-                println "build url: ${env.BUILD_URL}"
-                println "build blueocean url: ${env.RUN_DISPLAY_URL}"
-                println "build name: ${env.JOB_NAME}"
-                println "build number: ${env.BUILD_NUMBER}"
-                println "build status: ${currentBuild.currentResult}"
-            } 
-        }
-        // success {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state success \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test success" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
-
-        // unsuccessful {
-        //     container('status-updater') {
-        //         sh """
-        //             set +x
-        //             github-status-updater \
-        //                 -action update_state \
-        //                 -token ${GITHUB_TOKEN} \
-        //                 -owner pingcap \
-        //                 -repo tidb \
-        //                 -ref  ${GIT_MERGE_COMMIT} \
-        //                 -state failure \
-        //                 -context "${COMMIT_CONTEXT}" \
-        //                 -description "test failed" \
-        //                 -url "${env.RUN_DISPLAY_URL}"
-        //         """
-        //     }
-        // }
     }
 }
