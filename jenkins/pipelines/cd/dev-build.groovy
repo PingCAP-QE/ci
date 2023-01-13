@@ -1,4 +1,4 @@
-final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb"]
+final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb"]
 
 def Repo = ''
 def GitHash = ''
@@ -13,24 +13,23 @@ def ProductForBuild = ''
 def NeedEnterprisePlugin = false
 
 def get_dockerfile_url(arch){
+    def fileName = Product
     if (Version>='v6.6.0'){
-        def fileName = Product
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = fileName + '-enterprise'
         }
         return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
     }else{
-        def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${Product}"
         if (Product == "tidb" && Edition == "enterprise") { 
-            dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/enterprise/${Product}"
+            fileName = "enterprise/${Product}"
         }
-        return dockerfile
+        return "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${fileName}"
     }
 }
 pipeline{
     agent none
     parameters {
-        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling"], description: 'the product to build, eg. tidb/tikv/pd')
+        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning"], description: 'the product to build, eg. tidb/tikv/pd')
         string(name: 'GitRef', description: 'the git tag or commit or branch or pull/id of repo')
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
@@ -81,6 +80,9 @@ spec:
                     ProductForBuild = Product
                     if (ProductForBuild == "tiflash"){
                         ProductForBuild = "tics"
+                    }
+                    if (Product == "tidb-lightning"){
+                        ProductForBuild = "br"
                     }
                     def date = new Date()
                     def ts13 = date.getTime() / 1000
