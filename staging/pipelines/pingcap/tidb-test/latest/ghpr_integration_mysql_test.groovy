@@ -151,13 +151,18 @@ pipeline {
                                 }
                             }
                             dir('tidb-test/mysql_test') {
+                                sh """
+                                    mkdir -p bin
+                                    mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                                    ls -alh bin/
+                                """
                                 cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh 
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                         bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
-                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb/bin/tidb-server"
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"
