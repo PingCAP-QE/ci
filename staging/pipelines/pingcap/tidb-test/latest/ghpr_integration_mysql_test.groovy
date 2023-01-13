@@ -94,11 +94,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                // TODO: use cache
-                // tidb-server: cache by tidb commit hash
-                // pd-server and tikv-server: cache by hashfiles, not cached the same file again
                 dir('tidb') {
-                    sh "rm -rf ./bin"
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'download binary', script: """
