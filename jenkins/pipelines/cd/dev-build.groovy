@@ -123,7 +123,7 @@ spec:
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 ]
                                 echo "$paramsBuild"
-                                build job: "build-common",
+                                build job: "debug-build-common",
                                     wait: true,
                                     parameters: paramsBuild
                             }
