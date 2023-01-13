@@ -20,6 +20,7 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
+        timestamps()
     }
     stages {
         stage('Debug info') {
@@ -93,20 +94,24 @@ pipeline {
         }
         stage('Prepare') {
             steps {
+                // TODO: use cache
+                // tidb-server: cache by tidb commit hash
+                // pd-server and tikv-server: cache by hashfiles, not cached the same file again
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${ghprbTargetBranch} --tikv=${ghprbTargetBranch}
-                                mv third_bin/* bin/
-                                ls -alh bin/
-                            """
+                    sh "rm -rf ./bin"
+                    cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        sh label: 'download binary', script: """
+                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${ghprbTargetBranch} --tikv=${ghprbTargetBranch}
+                            mv third_bin/* bin/
+                            ls -alh bin/
+                        """
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb-test/rev-${ghprbActualCommit}") {
-                        sh 'touch ws-${BUILD_TAG}'
+                    cache(path: "./mysql_test", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
+                        sh "touch ws-${BUILD_TAG}"
                     }
                 }
             }
@@ -130,33 +135,34 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
+                options { timestamps() }
                 stages {
                     stage("Test") {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
+                                cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                                     sh label: "print version", script: """
+                                        pwd && ls -alh
                                         ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
                                         ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
                                         ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
                                     """
                                 }
                             }
-                            dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb-test/rev-${ghprbActualCommit}") {
-                                    dir('mysql_test') {
-                                        sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
-                                            #!/usr/bin/env bash
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                            export CACHE_ENABLED=${CACHE_ENABLED}
-                                            export TIKV_PATH="127.0.0.1:2379"
-                                            export TIDB_TEST_STORE_NAME="tikv"
-                                            cd mysql_test/ && ./test.sh -blacklist=1 -part=${PART}
-                                        """
-                                    }
+                            dir('tidb-test/mysql_test') {
+                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
+                                    sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                        #!/usr/bin/env bash
+                                        ls -alh 
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb/bin/tidb-server"
+                                        export CACHE_ENABLED=${CACHE_ENABLED}
+                                        export TIKV_PATH="127.0.0.1:2379"
+                                        export TIDB_TEST_STORE_NAME="tikv"
+                                        ./test.sh -blacklist=1 -part=${PART}
+                                    """
                                 }
                             }
                         }
