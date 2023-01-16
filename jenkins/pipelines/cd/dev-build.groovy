@@ -234,6 +234,13 @@ spec:
                                 ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${BinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['arm64']}.sha256"],
                             ]
                         ]]]
+                    if (NeedEnterprisePlugin){
+                        def plugin_bins =[
+                                ["platform":"linux/amd64", "url": "$FileserverDownloadURL/${PluginBinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['amd64']}.sha256"],
+                                ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${PluginBinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['arm64']}.sha256"],
+                            ]
+                        dev_build["status"]["binaries"].addAll(plugin_bins)
+                    }
                     node("mac"){
                         writeJSON file:"status.json", json: dev_build
                         sh "curl -X PUT 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID' -d @status.json"
