@@ -93,12 +93,11 @@ pipeline {
             }
         }
         stage("Build"){
-            dir("tidb-test") {
-                steps {
+            steps {
+                dir("tidb-test") {
                     sh """
-                    TIDB_SRC_PATH=${WORDSPACE}/tidb make check
+                    TIDB_SRC_PATH=${WORKSPACE}/tidb make check
                     for binCase in {partition_test,coprocessor_test,concurrent-sql}; do
-                        TIDB_SRC_PATH=${WORDSPACE}/tidb make check && break
                         cd \${binCase} && chmod +x build.sh && ./build.sh
                         cd ..
                         sleep 5
@@ -108,13 +107,14 @@ pipeline {
             }
         }
         // stage("Upload"){
-        //     dir("tidb-test") {
-        //         steps {
-        //             def filepath = "builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
-        //             def refspath = "refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
+        //     steps {
+        //         dir("tidb-test") {
+
         //             sh """
         //                 rm -rf .git
         //                 tar czvf tidb-test.tar.gz ./*
+        //                 filepath="builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+        //                 refspath="refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
         //                 curl -f -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
         //                 echo "pr/${ghprbActualCommit}" > sha1
         //                 curl -f -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload   
