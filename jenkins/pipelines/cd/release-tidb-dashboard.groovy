@@ -1,42 +1,47 @@
 package cd
 
 final dockerfile = '''
-FROM hub.pingcap.net/bases/pingcap-base:v1 as builder
-ARG TARGETARCH
+FROM centos:7 as builder
 
-RUN sed -e 's|^mirrorlist=|#mirrorlist=|g' \\
-        -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.sjtug.sjtu.edu.cn/rocky|g' \\
-        -i.bak \\
-        /etc/yum.repos.d/rocky-extras.repo \\
-        /etc/yum.repos.d/rocky.repo \\
-    && dnf makecache
-RUN dnf install -y\\
-    make \\
-    git \\
-    bash \\
-    curl \\
-    findutils \\
-    gcc \\
-    glibc-devel \\
-    nodejs \\
-    npm \\
-    java-11-openjdk-devel &&  \\
-    dnf clean all
-RUN curl -o /tmp/go.tar.gz https://dl.google.com/go/go1.18.8.linux-${TARGETARCH}.tar.gz &&\\
-     tar -xzf /tmp/go.tar.gz -C /usr/local && ln -s /usr/local/go/bin/go /usr/local/bin/go &&\\
-     rm /tmp/go.tar.gz
+RUN yum -y update
+RUN yum -y groupinstall "Development Tools"
+
+# Install golang.
+RUN export ARCH=$(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/) && \\
+    export GO_VERSION=1.19.5 && \\
+    curl -OL https://golang.org/dl/go$GO_VERSION.linux-$ARCH.tar.gz && \\
+    tar -C / -xzf go$GO_VERSION.linux-$ARCH.tar.gz && \\
+    rm -f go$GO_VERSION.linux-$ARCH.tar.gz
+ENV PATH /go/bin:$PATH
+ENV GOROOT /go
+
+# Install nodejs.
+RUN curl -fsSL https://rpm.nodesource.com/setup_16.x | bash -
+RUN yum -y install nodejs
 RUN npm install -g pnpm
 
-RUN mkdir -p /root/tidb-dashboard/ui
-WORKDIR /root/tidb-dashboard/ui
-COPY ui/pnpm-lock.yaml .
-RUN pnpm fetch
-WORKDIR /root/tidb-dashboard
-COPY go.mod go.sum ./
-RUN go mod download
-COPY scripts/ scripts/
+# Install java.
+RUN yum -y install java-11-openjdk
+
+RUN mkdir -p /go/src/github.com/pingcap/tidb-dashboard/ui
+WORKDIR /go/src/github.com/pingcap/tidb-dashboard
+
+# Cache go module dependencies.
+COPY ./go.mod .
+COPY ./go.sum .
+RUN GO111MODULE=on go mod download
+
+# Cache go tools.
+COPY ./scripts scripts/
 RUN scripts/install_go_tools.sh
 
+# Cache npm dependencies.
+WORKDIR /go/src/github.com/pingcap/tidb-dashboard/ui
+COPY ./ui/pnpm-lock.yaml .
+RUN pnpm fetch
+
+# Build.
+WORKDIR /go/src/github.com/pingcap/tidb-dashboard
 COPY . .
 RUN make package PNPM_INSTALL_TAGS=--offline
 
