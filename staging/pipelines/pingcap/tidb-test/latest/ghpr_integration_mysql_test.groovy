@@ -19,7 +19,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
         timestamps()
     }
     stages {
@@ -134,7 +134,7 @@ pipeline {
                 options { timestamps() }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                        options { timeout(time: 35, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
