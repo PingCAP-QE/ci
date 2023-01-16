@@ -8,6 +8,8 @@ def ImageForGcr = ''
 def BinPathDict = [:]
 def PluginBinPathDict = [:]
 def EnterprisePluginHash = ''
+def PipelineStartAt = ''
+def PipelineEndAt = ''
 
 def ProductForBuild = ''
 def NeedEnterprisePlugin = false
@@ -85,6 +87,7 @@ spec:
                         ProductForBuild = "br"
                     }
                     def date = new Date()
+                    PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                     def ts13 = date.getTime() / 1000
                     def ts10 = (Long) ts13
                     def day =new java.text.SimpleDateFormat("yyyyMMdd").format(date)
@@ -216,11 +219,32 @@ spec:
         }
     }
     post {
-        always {
+        success {
+            script{
+                def date = new Date()
+                PipelineEndAt = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
+                if (TiBuildID!=""){
+                    def dev_build = ["status":["status":BUILD_STATUS, "pipelineBuildID":BUILD_NUMBER,
+                        "pipelineStartAt":PipelineStartAt , "pipelineEndAt":PipelineEndAt , "buildReport":[
+                            "gitHash":GitHash,
+                            "images":[["platform":"multi-arch", "url":Image]],
+                            "binaries":[
+                                ["platform":"linux/amd64", "url": BinPathDict["amd64"], "sha256URL":"${BinPathDict['amd64']}.sha256"],
+                                ["platform":"linux/arm64", "url": BinPathDict["arm64"], "sha256URL":"${BinPathDict['arm64']}.sha256"],
+                            ]
+                        ]]]
+                    node("mac"){
+                        writeJSON file:"status.json", json: dev_build
+                        sh "curl -X PUT 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID' -d @status.json"
+                    }
+                 }
+            }
+        }
+        always{
             script{
                 if (TiBuildID!=""){
                     node("mac"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
-                 }
+                }
             }
         }
     }
