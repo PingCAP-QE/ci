@@ -1,4 +1,5 @@
 final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb"]
+final FileserverDownloadURL = "http://fileserver.pingcap.net/download"
 
 def Repo = ''
 def GitHash = ''
@@ -94,8 +95,8 @@ spec:
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$day-$ts10-dev"
                 }
                 echo "repo hash: $GitHash"
-                echo "binary amd64 path: http://fileserver.pingcap.net/download/${BinPathDict['amd64']}"
-                echo "binary arm64 path: http://fileserver.pingcap.net/download/${BinPathDict['arm64']}"
+                echo "binary amd64 path: $FileserverDownloadURL/${BinPathDict['amd64']}"
+                echo "binary arm64 path: $FileserverDownloadURL/${BinPathDict['arm64']}"
                 echo "image: $Image"
                 echo "image on gcr: $ImageForGcr"
             }
@@ -224,13 +225,13 @@ spec:
                 def date = new Date()
                 PipelineEndAt = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                 if (TiBuildID!=""){
-                    def dev_build = ["status":["status":BUILD_STATUS, "pipelineBuildID":BUILD_NUMBER,
+                    def dev_build = ["status":["status":"SUCCESS", "pipelineBuildID":BUILD_NUMBER.toInteger(),
                         "pipelineStartAt":PipelineStartAt , "pipelineEndAt":PipelineEndAt , "buildReport":[
                             "gitHash":GitHash,
                             "images":[["platform":"multi-arch", "url":Image]],
                             "binaries":[
-                                ["platform":"linux/amd64", "url": BinPathDict["amd64"], "sha256URL":"${BinPathDict['amd64']}.sha256"],
-                                ["platform":"linux/arm64", "url": BinPathDict["arm64"], "sha256URL":"${BinPathDict['arm64']}.sha256"],
+                                ["platform":"linux/amd64", "url": "$FileserverDownloadURL/${BinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['amd64']}.sha256"],
+                                ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${BinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['arm64']}.sha256"],
                             ]
                         ]]]
                     node("mac"){
@@ -240,7 +241,7 @@ spec:
                  }
             }
         }
-        always{
+        unsuccessful{
             script{
                 if (TiBuildID!=""){
                     node("mac"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
