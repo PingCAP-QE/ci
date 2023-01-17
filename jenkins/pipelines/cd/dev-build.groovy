@@ -129,7 +129,7 @@ spec:
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 ]
                                 echo "$paramsBuild"
-                                build job: "debug-build-common",
+                                build job: "build-common",
                                     wait: true,
                                     parameters: paramsBuild
                             }
@@ -154,7 +154,7 @@ spec:
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 ]
                                 echo "$paramsBuild"
-                                build job: "debug-build-common",
+                                build job: "build-common",
                                     wait: true,
                                     parameters: paramsBuild
                             }
