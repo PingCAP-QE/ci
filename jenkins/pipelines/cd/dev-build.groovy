@@ -242,6 +242,9 @@ spec:
                             ]
                         dev_build["status"]["buildReport"]["binaries"].addAll(plugin_bins)
                     }
+                    if (params.IsPushGCR.toBoolean()){
+                        dev_build["status"]["buildReport"]["images"].add(["platform":"multi-arch", "url":ImageForGcr])
+                    }
                     node("mac"){
                         writeJSON file:"status.json", json: dev_build
                         sh "curl -X PUT 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID' -d @status.json"
