@@ -1,4 +1,4 @@
-final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb"]
+final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog"]
 final FileserverDownloadURL = "http://fileserver.pingcap.net/download"
 
 def Repo = ''
@@ -32,7 +32,7 @@ def get_dockerfile_url(arch){
 pipeline{
     agent none
     parameters {
-        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning"], description: 'the product to build, eg. tidb/tikv/pd')
+        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning", "ticdc", "dm","tidb-binlog"], description: 'the product to build, eg. tidb/tikv/pd')
         string(name: 'GitRef', description: 'the git tag or commit or branch or pull/id of repo')
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
