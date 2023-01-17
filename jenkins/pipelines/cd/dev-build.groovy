@@ -49,6 +49,7 @@ spec:
   containers:
   - name: gethash
     image: hub.pingcap.net/jenkins/gethash
+    command: ["sleep", "infinity"]
 '''
                     defaultContainer "gethash"
                 }
