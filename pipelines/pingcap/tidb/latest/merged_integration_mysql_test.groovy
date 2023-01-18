@@ -140,7 +140,7 @@ pipeline {
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIDB_TEST_STORE_NAME="unistore"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=1
+                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
                                             fi
                                         """
                                     }
