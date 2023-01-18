@@ -41,7 +41,7 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
