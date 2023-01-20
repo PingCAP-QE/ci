@@ -67,7 +67,7 @@ pipeline {
                         mv coverage.dat test_coverage/coverage.dat
                         wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN}
+                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
                         """
                     }
                 }
