@@ -55,7 +55,12 @@ pipeline {
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir('tidb') {
-                    sh script: 'make gogenerate check explaintest'
+                    sh label: "license header check", script: """
+                    wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
+                    chmod +x license-eye
+                    ./license-eye -c .github/licenserc.yml header check
+                    """
+                    sh script: 'make gogenerate check explaintest check-file-perm'
                 }
             }
         }
