@@ -101,7 +101,7 @@ pipeline {
                     if (!ReleaseTag) {
                         ReleaseTag = params.GitRef
                     }
-                    PushPublic = params.ReleaseTag.startsWith("v") and !params.ReleaseTag.contains("-alpha")
+                    PushPublic = true
                     println("ReleaseTag: $ReleaseTag")
                     println("PushPublic: $PushPublic")
                 }
