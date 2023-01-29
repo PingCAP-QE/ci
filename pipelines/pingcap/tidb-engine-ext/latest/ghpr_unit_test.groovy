@@ -68,10 +68,24 @@ pipeline {
         stage('Test') {
             steps {
                 dir('tidb-engine-ext') {
+                    script {
+                        final commentBodyReg = /\brun_mode\s*=\s*([^\s\\]+)(\s|\\|$)/ 
+                        runMode = ""
+                        if (ghprbCommentBody =~ commentBodyReg) {
+                            runMode = (ghprbCommentBody =~ commentBodyReg)[0][1]
+                        }
+                        println "run_mode: <${runMode}>"
+                    }
                     sh """
+                    run_mode=${runMode}
+
                     set -euox pipefail
                     make ci_fmt_check
-                    make ci_test
+                    if [ ! "\$run_mode" ]; then
+                        make ci_test
+                    else
+                        make ci_test run_mode=${run_mode}
+                    fi
                     """ 
                 }
             }
