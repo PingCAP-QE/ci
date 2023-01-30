@@ -31,6 +31,23 @@ def getJobRefs(prowDeckUrl, prowJobId) {
     return getJobSpec(prowDeckUrl, prowJobId).refs
 }
 
+// checkout pull requests pre-merged commit
+def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
+    final refs = getJobRefs(prowDeckUrl, prowJobId)
+    assert refs.pulls.size() > 0
+
+    checkoutRefs(refs, timeout, credentialsId)
+}
+
+// checkout base refs, can use it to checkout the pushed codes.
+def checkoutBase(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
+    final refs = getJobRefs(prowDeckUrl, prowJobId)
+    // ignore `.pulls` field.
+    refs.pulls = []
+
+    checkoutRefs(refs, timeout, credentialsId)
+}
+
 def checkoutRefs(refs, timeout=5, credentialsId='') {
     final remoteUrl = "https://github.com/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = "+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"
