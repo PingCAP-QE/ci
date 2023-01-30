@@ -28,60 +28,58 @@ def getJobRefs(prowDeckUrl, prowJobId) {
 // checkout pull requests pre-merged commit
 def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
     final refs = getJobRefs(prowDeckUrl, prowJobId)
-    assert refs.pulls.size() == 1
-    
-    // parse values for git checkout.
-    final pullId = refs.pulls[0].number
-    final pullCommitSha = refs.pulls[0].sha
+    assert refs.pulls.size() > 0
 
-    checkout(
-        changelog: false,
-        poll: false,
-        scm: [
-            $class: 'GitSCM', 
-            branches: [[name: pullCommitSha]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-                [$class: 'UserIdentity', name: 'ci', email: 'noreply@ci'],
-                [$class: 'PreBuildMerge', options: [
-                    mergeRemote: 'origin', mergeTarget : refs.base_ref
-                ]],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                refspec: "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*",
-                url: "https://github.com/${refs.org}/${refs.repo}.git",
-                credentialsId: credentialsId
-            ]],
-        ]
-    )    
+    checkoutRefs(refs, timeout, credentialsId)
 }
 
 // checkout base refs, can use it to checkout the pushed codes.
 def checkoutBase(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
     final refs = getJobRefs(prowDeckUrl, prowJobId)
+    // ignore `.pulls` field.
+    refs.pulls = []
+
+    checkoutRefs(refs, timeout, credentialsId)
+}
+
+def checkoutRefs(refs, timeout=5, credentialsId='') {
+    final remoteUrl = "https://github.com/${refs.org}/${refs.repo}.git"
+    final remoteRefSpec = "+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"
+    final extensions = [
+                [$class: 'PruneStaleBranch'],
+                [$class: 'CleanBeforeCheckout'],
+                [$class: 'CloneOption', timeout: timeout, noTags: true, honorRefspec: true]
+    ]
+    final branches = [[name: refs.base_sha]]
+
+    // for pull requests.
+    if (refs.pulls.size() > 0) {
+        // +refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*
+        final remotePullRefSpecs = refs.pulls.collect { 
+            "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head" }
+        remoteRefSpec = ([remoteRefSpec] + remotePullRefSpecs).join(' ')
+        branches = refs.pulls.collect { [name: it.sha] }
+
+        // merge before build.
+        extensions = [
+            [$class: 'PruneStaleBranch'],
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', timeout: timeout, noTags: true, honorRefspec: true],
+            [$class: 'UserIdentity', name: 'ci', email: 'noreply@ci'],
+            [$class: 'PreBuildMerge', options: [ mergeRemote: 'origin', mergeTarget : refs.base_ref ]]
+        ]
+    }
 
     checkout(
         changelog: false,
         poll: false,
         scm: [
             $class: 'GitSCM', 
-            branches: [[name: refs.base_sha ]],
+            branches: branches,
             doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: 5],
-            ],
+            extensions: extensions,
             submoduleCfg: [],
-            userRemoteConfigs: [[
-                refspec: "+refs/heads/*:refs/remotes/origin/*",
-                url: "https://github.com/${refs.org}/${refs.repo}.git",
-                credentialsId: credentialsId
-            ]],
+            userRemoteConfigs: [[refspec: remoteRefSpec, url: remoteUrl, credentialsId: credentialsId]],
         ]
     )
 }
