@@ -1,6 +1,6 @@
 // require plugins: 
 //  - pipeline-utility-steps
-def getJobRefs(prowDeckUrl, prowJobId) {
+def getJobSpec(prowDeckUrl, prowJobId) {
     // get yaml from <prowDeckUrl>/prowjob?prowjob=<prow_job_id>
     def response = httpRequest "${prowDeckUrl}/prowjob?prowjob=${prowJobId}"
 
@@ -22,24 +22,13 @@ def getJobRefs(prowDeckUrl, prowJobId) {
     //         sha: <head merge commit sha>
     //         title: <pr title>
     final prowJob = readYaml(text: response.content)
-    return prowJob.spec.refs
+    return prowJob.spec
 }
 
-// checkout pull requests pre-merged commit
-def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
-    final refs = getJobRefs(prowDeckUrl, prowJobId)
-    assert refs.pulls.size() > 0
-
-    checkoutRefs(refs, timeout, credentialsId)
-}
-
-// checkout base refs, can use it to checkout the pushed codes.
-def checkoutBase(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
-    final refs = getJobRefs(prowDeckUrl, prowJobId)
-    // ignore `.pulls` field.
-    refs.pulls = []
-
-    checkoutRefs(refs, timeout, credentialsId)
+// require plugins: 
+//  - pipeline-utility-steps
+def getJobRefs(prowDeckUrl, prowJobId) {
+    return getJobSpec(prowDeckUrl, prowJobId).refs
 }
 
 def checkoutRefs(refs, timeout=5, credentialsId='') {
