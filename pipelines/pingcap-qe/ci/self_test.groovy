@@ -1,6 +1,7 @@
 @Library('tipipeline') _
 
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/ci/pod-self_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
