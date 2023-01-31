@@ -1,4 +1,3 @@
-# prow jobs.
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   tikv/pd:
