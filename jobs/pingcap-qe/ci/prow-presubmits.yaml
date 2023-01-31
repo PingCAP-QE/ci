@@ -4,6 +4,7 @@ presubmits:
     - name: pingcap-qe/ci/self_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
       max_concurrency: 1
       run_if_changed: pipelines/.*\.groovy
+      branches:
+        - ^main$
