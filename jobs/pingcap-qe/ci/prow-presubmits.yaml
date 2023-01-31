@@ -1,4 +1,4 @@
-# Ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   PingCAP-QE/ci:
     - name: pingcap-qe/ci/self_test

@@ -1,3 +1,4 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
 postsubmits:
   pingcap/tidb:
     - name: pingcap/tidb/merged_e2e_test
