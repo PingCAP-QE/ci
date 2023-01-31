@@ -1,0 +1,48 @@
+presubmits:
+  pingcap/tidb:
+    #### for release-6.2 branch
+    - name: pingcap/tidb/release-6.2/ghpr_build
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: idc-jenkins-ci-tidb/build
+      trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
+      rerun_command: "/test build"
+      branches:
+        - ^release-6\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.2/ghpr_check
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: idc-jenkins-ci-tidb/check_dev
+      trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
+      rerun_command: "/test check-dev"
+      branches:
+        - ^release-6\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.2/ghpr_check2
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: idc-jenkins-ci-tidb/check_dev_2
+      trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
+      rerun_command: "/test check-dev2"
+      branches:
+        - ^release-6\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.2/ghpr_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: idc-jenkins-ci-tidb/mysql-test
+      trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
+      rerun_command: "/test mysql-test"
+      branches:
+        - ^release-6\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.2/ghpr_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: idc-jenkins-ci-tidb/unit-test
+      trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
+      rerun_command: "/test unit-test"
+      branches:
+        - ^release-6\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
