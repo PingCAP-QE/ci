@@ -7,7 +7,7 @@ pipelineJob('pingcap-qe/ci/self_test') {
     parameters {
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
-        stringParam("JOB_SPEC")
+        stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
         githubProjectUrl("https://github.com/PingCAP-QE/ci")

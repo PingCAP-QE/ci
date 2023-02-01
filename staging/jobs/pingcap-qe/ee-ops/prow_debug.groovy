@@ -7,6 +7,7 @@ pipelineJob('pingcap-qe/ee-ops/prow_debug') {
     parameters {
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
+        stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
         // priority(0) // 0 fast than 1

@@ -42,7 +42,7 @@ def checkoutRefs(refs, timeout=5, credentialsId='') {
     final branches = [[name: refs.base_sha]]
 
     // for pull requests.
-    if (refs.pulls.size() > 0) {
+    if (refs.pulls && refs.pulls.size() > 0) {
         // +refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*
         final remotePullRefSpecs = refs.pulls.collect { 
             "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head" }

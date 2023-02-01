@@ -6,7 +6,7 @@ pipelineJob('pingcap/tidb/merged_integration_copr_test') {
     parameters {
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
-        stringParam("PROW_DECK_URL", "https://prow.tidb.net")
+        stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
         // priority(0) // 0 fast than 1

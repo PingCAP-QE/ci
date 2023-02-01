@@ -3,7 +3,6 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 final POD_TEMPLATE_FILE = 'pipelines/ti-community-infra/test-prod/pod-prow_debug.yaml'
-final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -23,11 +22,11 @@ pipeline {
             }
         }
         stage('Checkout') {
-            when { expression { return params.PROW_JOB_ID } }
+            when { expression { return params.JOB_SPEC } }
             steps {
                 dir('test') {
                     script {
-                        prow.checkoutRefs(REFS)
+                        prow.checkoutRefs(readJSON(text: params.JOB_SPEC).refs)
                     }
                     sh "pwd && ls -l"
                 }
