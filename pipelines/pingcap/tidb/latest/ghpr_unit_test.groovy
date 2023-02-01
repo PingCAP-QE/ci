@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_unit_test.yaml'
-final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
