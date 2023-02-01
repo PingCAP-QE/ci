@@ -12,6 +12,7 @@ pipelineJob('ti-community-infra/test-prod/prow_debug') {
     }
     properties {
         // priority(0) // 0 fast than 1
+        buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/ti-community-infra/test-prod")
     }
  
