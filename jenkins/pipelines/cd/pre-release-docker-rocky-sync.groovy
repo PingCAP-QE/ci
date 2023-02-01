@@ -1,7 +1,7 @@
 pipeline {
     agent none
     parameters {
-        string defaultValue: 'latest', description: '', name: 'Version', trim: true
+        string  description: 'RC release tag', name: 'Version', trim: true
     }
     stages {
         stage('sync') {
