@@ -44,7 +44,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
                             }
                         }
                     }

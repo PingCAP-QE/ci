@@ -5,10 +5,8 @@ pipelineJob('ti-community-infra/test-prod/prow_debug') {
         daysToKeep(30)
     }
     parameters {
-        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
-        stringParam("JOB_SPEC")
     }
     properties {
         // priority(0) // 0 fast than 1
