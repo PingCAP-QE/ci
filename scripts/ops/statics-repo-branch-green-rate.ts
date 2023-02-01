@@ -10,6 +10,7 @@ interface cliParams {
   owner: string;
   repo: string;
   since: string; // 2023-01-01T08:00:00
+  until?: string; // 2023-01-01T08:00:00
 }
 
 async function main({
@@ -17,21 +18,28 @@ async function main({
   owner,
   repo,
   since,
+  until,
 }: cliParams) {
   const octokit = new Octokit({
     auth: token,
     userAgent: "myApp v1.2.3",
   });
-  const commits = await octokit.rest.repos.listCommits({
-    owner,
-    repo,
-    sha: "master",
-    per_page: 100,
-    since: since,
-  });
+
+  const commits = await octokit.paginate(
+    octokit.rest.repos.listCommits,
+    {
+      owner,
+      repo,
+      since,
+      until,
+      sha: "master",
+      per_page: 100,
+    },
+    (response) => response.data,
+  );
 
   const results = await Promise.all(
-    commits.data.map(async ({ sha }: { sha: string }) => {
+    commits.map(async ({ sha }: { sha: string }) => {
       const ss = await octokit.rest.repos.listCommitStatusesForRef({
         owner,
         repo,

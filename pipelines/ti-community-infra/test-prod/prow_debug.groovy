@@ -3,15 +3,13 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 final POD_TEMPLATE_FILE = 'pipelines/ti-community-infra/test-prod/pod-prow_debug.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
         kubernetes {
             yamlFile POD_TEMPLATE_FILE
         }
-    }
-    environment {
-        PROW_DECK_URL = 'https://prow.tidb.net'
     }
     options { skipDefaultCheckout() }
     stages {
@@ -22,7 +20,6 @@ pipeline {
                     echo "-------------------------"                    
                     ls -la                    
                 '''
-                
             }
         }
         stage('Checkout') {
@@ -30,7 +27,7 @@ pipeline {
             steps {
                 dir('test') {
                     script {
-                        prow.checkoutPr(env.PROW_DECK_URL, params.PROW_JOB_ID)
+                        prow.checkoutRefs(REFS)
                     }
                     sh "pwd && ls -l"
                 }
