@@ -131,7 +131,7 @@ retry(2) {
                             dir('tidb_docker_build') {
                                 sh """
                 cp ../centos7/bin/tidb-server ./
-                wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tidb/Dockerfile
+                curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb.Dockerfile"
                 """
                             }
                             def item = "pingcap/tidb:" + RELEASE_TAG
@@ -143,7 +143,7 @@ retry(2) {
                                 sh """
                 cp ../centos7/bin/tikv-server ./
                 cp ../centos7/bin/tikv-ctl ./
-                wget ${FILE_SERVER_URL}/download/script/release-dockerfile/tikv/Dockerfile
+                curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tikv.Dockerfile"
                 """
                             }
                             def item = "pingcap/tikv:" + RELEASE_TAG
@@ -155,7 +155,7 @@ retry(2) {
                                 sh """
                 cp ../centos7/bin/pd-server ./
                 cp ../centos7/bin/pd-ctl ./
-                wget ${FILE_SERVER_URL}/download/script/release-dockerfile/pd/Dockerfile
+                curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/pd.Dockerfile"
                 """
                             }
                             def item = "pingcap/pd:" + RELEASE_TAG
@@ -169,15 +169,7 @@ retry(2) {
                 cp ../centos7/bin/tidb-lightning-ctl ./
                 cp ../centos7/bin/tikv-importer ./
                 cp ../centos7/bin/br ./
-                cp /usr/local/go/lib/time/zoneinfo.zip ./
-                cat > Dockerfile << __EOF__
-FROM registry-mirror.pingcap.net/pingcap/alpine-glibc
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY tidb-lightning /tidb-lightning
-COPY tidb-lightning-ctl /tidb-lightning-ctl
-COPY tikv-importer /tikv-importer
-COPY br /br
-__EOF__
+                curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb-lightning.Dockerfile"
                 """
                             }
                             def item = "pingcap/tidb-lightning:" + RELEASE_TAG
@@ -191,18 +183,7 @@ __EOF__
                 cp ../centos7/bin/drainer ./
                 cp ../centos7/bin/reparo ./
                 cp ../centos7/bin/binlogctl ./
-                cp /usr/local/go/lib/time/zoneinfo.zip ./
-                cat > Dockerfile << __EOF__
-FROM registry-mirror.pingcap.net/pingcap/alpine-glibc
-COPY zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
-COPY pump /pump
-COPY drainer /drainer
-COPY reparo /reparo
-COPY binlogctl /binlogctl
-EXPOSE 4000
-EXPOSE 8249 8250
-CMD ["/pump"]
-__EOF__
+                curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb-binlog.Dockerfile"
                 """
                             }
                             def item = "pingcap/tidb-binlog:" + RELEASE_TAG
