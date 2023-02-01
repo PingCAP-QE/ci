@@ -72,9 +72,16 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
     }
 
     sh(label: 'download and extract from server', script: """
-        refUrl="${serverUrl}/download/refs/pingcap/${keyInComment}/${componentBranch}/sha1"
-        echo "ref url: \${refUrl}"
-        sha1="\$(curl --fail \${refUrl} | head -1)"
+        sha1=""
+
+        if [[ "commit_${componentBranch}" =~ ^commit_[0-9a-f]{40}\$ ]]; then
+            sha1=${componentBranch}
+        else
+            refUrl="${serverUrl}/download/refs/pingcap/${keyInComment}/${componentBranch}/sha1"
+            echo "ref url: \${refUrl}"
+            sha1="\$(curl --fail \${refUrl} | head -1)"
+        fi
+        
         artifactUrl="${serverUrl}/download/builds/pingcap/${keyInComment}/\${sha1}/${artifactPath}"
         echo "artifact url: \${artifactUrl}"
         curl --fail \${artifactUrl} | tar xz ${pathInArchive}
