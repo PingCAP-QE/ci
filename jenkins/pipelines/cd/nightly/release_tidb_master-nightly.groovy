@@ -170,7 +170,7 @@ retry(2) {
                 cp ../centos7/bin/tikv-importer ./
                 cp ../centos7/bin/br ./
                 curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb-lightning-debug.Dockerfile"
-                gsed '\$ a COPY tikv-importer /tikv-importer' -i Dockerfile
+                sed '\$ a COPY tikv-importer /tikv-importer' -i Dockerfile
                 """
                             }
                             def item = "pingcap/tidb-lightning:" + RELEASE_TAG
