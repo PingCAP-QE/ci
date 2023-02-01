@@ -1,6 +1,6 @@
 // require plugins: 
 //  - pipeline-utility-steps
-def getJobRefs(prowDeckUrl, prowJobId) {
+def getJobSpec(prowDeckUrl, prowJobId) {
     // get yaml from <prowDeckUrl>/prowjob?prowjob=<prow_job_id>
     def response = httpRequest "${prowDeckUrl}/prowjob?prowjob=${prowJobId}"
 
@@ -22,66 +22,53 @@ def getJobRefs(prowDeckUrl, prowJobId) {
     //         sha: <head merge commit sha>
     //         title: <pr title>
     final prowJob = readYaml(text: response.content)
-    return prowJob.spec.refs
+    return prowJob.spec
 }
 
-// checkout pull requests pre-merged commit
-def checkoutPr(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
-    final refs = getJobRefs(prowDeckUrl, prowJobId)
-    assert refs.pulls.size() == 1
-    
-    // parse values for git checkout.
-    final pullId = refs.pulls[0].number
-    final pullCommitSha = refs.pulls[0].sha
+// require plugins: 
+//  - pipeline-utility-steps
+def getJobRefs(prowDeckUrl, prowJobId) {
+    return getJobSpec(prowDeckUrl, prowJobId).refs
+}
 
-    checkout(
-        changelog: false,
-        poll: false,
-        scm: [
-            $class: 'GitSCM', 
-            branches: [[name: pullCommitSha]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
+def checkoutRefs(refs, timeout=5, credentialsId='') {
+    final remoteUrl = "https://github.com/${refs.org}/${refs.repo}.git"
+    final remoteRefSpec = "+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"
+    final extensions = [
                 [$class: 'PruneStaleBranch'],
                 [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-                [$class: 'UserIdentity', name: 'ci', email: 'noreply@ci'],
-                [$class: 'PreBuildMerge', options: [
-                    mergeRemote: 'origin', mergeTarget : refs.base_ref
-                ]],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                refspec: "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*",
-                url: "https://github.com/${refs.org}/${refs.repo}.git",
-                credentialsId: credentialsId
-            ]],
+                [$class: 'CloneOption', timeout: timeout, noTags: true, honorRefspec: true]
+    ]
+    final branches = [[name: refs.base_sha]]
+
+    // for pull requests.
+    if (refs.pulls.size() > 0) {
+        // +refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*
+        final remotePullRefSpecs = refs.pulls.collect { 
+            "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head" }
+        remoteRefSpec = ([remoteRefSpec] + remotePullRefSpecs).join(' ')
+        branches = refs.pulls.collect { [name: it.sha] }
+
+        // merge before build.
+        extensions = [
+            [$class: 'PruneStaleBranch'],
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', timeout: timeout, noTags: true, honorRefspec: true],
+            [$class: 'UserIdentity', name: 'ci', email: 'noreply@ci'],
+            [$class: 'PreBuildMerge', options: [ mergeRemote: 'origin', mergeTarget : refs.base_ref ]]
         ]
-    )    
-}
-
-// checkout base refs, can use it to checkout the pushed codes.
-def checkoutBase(prowDeckUrl, prowJobId, timeout=5, credentialsId='') {
-    final refs = getJobRefs(prowDeckUrl, prowJobId)
+    }
 
     checkout(
         changelog: false,
         poll: false,
         scm: [
             $class: 'GitSCM', 
-            branches: [[name: refs.base_sha ]],
+            branches: branches,
             doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: 5],
-            ],
+            extensions: extensions,
             submoduleCfg: [],
-            userRemoteConfigs: [[
-                refspec: "+refs/heads/*:refs/remotes/origin/*",
-                url: "https://github.com/${refs.org}/${refs.repo}.git",
-                credentialsId: credentialsId
-            ]],
+            userRemoteConfigs: [[refspec: remoteRefSpec, url: remoteUrl, credentialsId: credentialsId]],
         ]
     )
 }

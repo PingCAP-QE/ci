@@ -46,7 +46,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
                         retry(2) {
                             script {
-                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
