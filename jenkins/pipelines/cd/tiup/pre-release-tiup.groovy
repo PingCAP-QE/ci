@@ -341,6 +341,7 @@ try {
                                     [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "staging"],
                             ]
                 }
+				if (!(RELEASE_TAG >= "v6.6.0")){
                 publishs["publish community image"] = {
                     build job: "pre-release-docker",
                             wait: true,
@@ -360,6 +361,7 @@ try {
                                     [$class: 'StringParameterValue', name: 'TIDB_BINLOG_HASH', value: binlog_sha1],
                                     [$class: 'StringParameterValue', name: 'TICDC_HASH', value: cdc_sha1],
                             ]
+                }
                 }
 				if (RELEASE_TAG >= "v6.5.0"){
                     publishs["build community image rocky"] = {
@@ -387,6 +389,7 @@ try {
 
             stage("publish enterprise image") {
 				def builds =[:]
+				if (!(RELEASE_TAG >= "v6.6.0")){
 				builds["publish enterprise image"] = {
                     build job: "pre-release-enterprise-docker",
                         wait: true,
@@ -402,6 +405,7 @@ try {
                                 [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                         ]
 				}
+                }
 				if (RELEASE_TAG >= "v6.5.0"){
                     builds["build enterprise image rocky"] = {
                         build job: "pre-release-enterprise-docker-rocky",
@@ -420,6 +424,13 @@ try {
                     }
                 }
                 parallel builds
+                if (RELEASE_TAG >= "v6.6.0"){
+                        build job: "pre-release-docker-rocky-sync",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'Version', value: RELEASE_TAG],
+                            ]
+                }
             }
             stage("check artifact"){
                 build job: "pre-release-check",
