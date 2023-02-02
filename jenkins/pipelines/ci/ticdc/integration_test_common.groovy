@@ -89,6 +89,7 @@ def prepare_binaries() {
                             GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make cdc
                             GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make integration_test_build
                             GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make kafka_consumer
+                            GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make storage_consumer
                             GOPATH=\$GOPATH:${ws}/go PATH=\$GOPATH/bin:${ws}/go/bin:\$PATH make check_failpoint_ctl
                             tar czvf ticdc_bin.tar.gz bin/*
                             curl -F ${cacheBinaryPath}=@ticdc_bin.tar.gz http://fileserver.pingcap.net/upload
@@ -119,7 +120,7 @@ def prepare_binaries() {
 
 /**
  * Start preparesning tests.
- * @param sink_type Type of Sink, optional value: mysql/kafaka.
+ * @param sink_type Type of Sink, optional value: mysql/kafaka/storage.
  * @param node_label
  */
 def tests(sink_type, node_label) {
@@ -245,6 +246,8 @@ def tests(sink_type, node_label) {
                     ci_pipeline_name = "cdc_ghpr_kafka_integration_test"
                 } else if (sink_type == "mysql") {
                     ci_pipeline_name = "cdc_ghpr_integration_test"
+                } else if (sink_type == "storage") {
+                    ci_pipeline_name = "cdc_ghpr_storage_integration_test"
                 }
                 writeJSON file: 'ciResult.json', json: json, pretty: 4
                 sh "cat ciResult.json"
