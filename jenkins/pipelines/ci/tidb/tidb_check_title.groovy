@@ -59,7 +59,7 @@ def run_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
-                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
                         resourceRequestCpu: '2000m', resourceRequestMemory: '2Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
