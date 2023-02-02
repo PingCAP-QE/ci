@@ -10,6 +10,7 @@ pipelineJob('pingcap-qe/ci/self_test') {
         stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
+        buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/PingCAP-QE/ci")
     }
  
