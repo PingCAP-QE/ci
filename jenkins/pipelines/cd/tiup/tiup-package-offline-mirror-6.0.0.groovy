@@ -81,7 +81,6 @@ def package_community = { arch ->
 
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
     upload.py ${dst}.tar.gz ${dst}.tar.gz
-    aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
     echo "upload $dst successed!"
     """
     sh "sha256sum ${dst}.tar.gz"
@@ -158,11 +157,9 @@ def package_enterprise = { arch ->
     sh "sha256sum ${dst}.tar.gz"
 
     if (is_lts_version(release_tag)) {
-        println "This is LTS version, need upload enterprise package to aws s3"
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${dst}.tar.gz ${dst}.tar.gz
-        aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
         echo "upload $dst successed!"
         """
     }
@@ -236,15 +233,12 @@ def package_tools = { plat, arch ->
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz
-        aws s3 cp ${toolkit_dir}.tar.gz s3://download.pingcap.org/${toolkit_dir}.tar.gz --acl public-read
         """
     }
     if (is_lts_version(release_tag) && plat == "enterprise" ) { 
-        println "This is LTS version, need upload enterprise toolkit package to aws s3"
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz
-        aws s3 cp ${toolkit_dir}.tar.gz s3://download.pingcap.org/${toolkit_dir}.tar.gz --acl public-read
         """
     }
 }

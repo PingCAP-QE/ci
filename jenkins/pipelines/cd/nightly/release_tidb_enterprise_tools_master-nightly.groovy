@@ -13,7 +13,7 @@ catchError {
             cd /home/jenkins
             mkdir -p .docker
             cp /etc/dockerconfig.json .docker/config.json
-            cp -R /root/.aws ./
+
             cd $wss
             """
                 dir ('centos7') {
@@ -46,11 +46,6 @@ catchError {
             upload.py ${target}.md5 ${target}.md5
             """
 
-                sh """
-            aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-            aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-            aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-            """
             }
 
             stage('Push tidb-enterprise-tools Docker') {
