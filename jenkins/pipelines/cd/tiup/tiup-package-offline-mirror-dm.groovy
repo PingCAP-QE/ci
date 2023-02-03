@@ -39,6 +39,7 @@ def delivery = { arch ->
         
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${dst}.tar.gz ${dst}.tar.gz
+
         echo "upload $dst successed!"
         """
     }
