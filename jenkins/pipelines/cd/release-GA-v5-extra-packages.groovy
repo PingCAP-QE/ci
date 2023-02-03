@@ -141,12 +141,6 @@ catchError {
                         upload.py ${target}.sha256 ${target}.sha256
                         upload.py ${target}.md5 ${target}.md5
                         """
-
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                        """
                 }
 
                 def push_arm_bin = { target ->
@@ -197,11 +191,6 @@ catchError {
                         upload.py ${target}.md5 ${target}.md5
                         """
 
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                        """
                 }
 
                 def push_toolkit = { target ->
@@ -238,11 +227,6 @@ catchError {
                         upload.py ${target}.md5 ${target}.md5
                         """
 
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                        """
                 }
 
                 def push_arm_toolkit = { target ->
@@ -278,11 +262,6 @@ catchError {
                         upload.py ${target}.md5 ${target}.md5
                         """
 
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                        """
                 }
 
                 def push_tiflash = { target ->
@@ -346,11 +325,6 @@ catchError {
                         upload.py ${target}.md5 ${target}.md5
                         """
 
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                        """
                 }
 
                 push_bin("tidb-${release_tag}-linux-amd64")
