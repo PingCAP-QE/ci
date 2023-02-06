@@ -8,6 +8,7 @@ pipelineJob('pingcap/tidb-test/ghpr_build') {
     parameters {
         stringParam("ghprbActualCommit")
         stringParam("ghprbPullId")
+        stringParam("ghprbTargetBranch")
     }
     properties {
         // priority(0) // 0 fast than 1
