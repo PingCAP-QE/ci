@@ -37,7 +37,7 @@ def checkoutRefs(refs, timeout=5, credentialsId='') {
     final extensions = [
                 [$class: 'PruneStaleBranch'],
                 [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout, noTags: true, honorRefspec: true]
+                [$class: 'CloneOption', timeout: timeout, honorRefspec: true]
     ]
     final branches = [[name: refs.base_sha]]
 
@@ -53,7 +53,7 @@ def checkoutRefs(refs, timeout=5, credentialsId='') {
         extensions = [
             [$class: 'PruneStaleBranch'],
             [$class: 'CleanBeforeCheckout'],
-            [$class: 'CloneOption', timeout: timeout, noTags: true, honorRefspec: true],
+            [$class: 'CloneOption', timeout: timeout, honorRefspec: true],
             [$class: 'UserIdentity', name: 'ci', email: 'noreply@ci'],
             [$class: 'PreBuildMerge', options: [ mergeRemote: 'origin', mergeTarget : refs.base_ref ]]
         ]
