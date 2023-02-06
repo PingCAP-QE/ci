@@ -168,7 +168,6 @@ def upload_enterprise_plugin_binary(arch, plugin_hash, plugin_binary) {
             wget ${FILE_SERVER_URL}/download/${plugin_binary}
             export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
             upload.py ${enterprise_plugin_source}.tar.gz ${enterprise_plugin_target}.tar.gz
-            aws s3 cp ${enterprise_plugin_source}.tar.gz s3://download.pingcap.org/${enterprise_plugin_target}.tar.gz --acl public-read
         """
     }
 }
@@ -593,7 +592,7 @@ def release_dm_ansible_amd64(sha1, release_tag) {
                     cd /home/jenkins
                     mkdir -p .docker
                     cp /etc/dockerconfig.json .docker/config.json
-                    cp -R /root/.aws ./
+
                     cd $wss
                 """
                 dir('centos7') {
@@ -621,11 +620,6 @@ def release_dm_ansible_amd64(sha1, release_tag) {
                     upload.py ${target}.sha256 ${target}.sha256
                     upload.py ${target}.md5 ${target}.md5
                 """
-                sh """
-                    aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                    aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                    aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                """
             }
 
             // do not release dm-ansible after v6.0.0
@@ -652,11 +646,7 @@ def release_dm_ansible_amd64(sha1, release_tag) {
                         upload.py ${target}.sha256 ${target}.sha256
                         upload.py ${target}.md5 ${target}.md5
                     """
-                    sh """
-                        aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-                        aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-                        aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
-                    """
+
                 }
             }
         }

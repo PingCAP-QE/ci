@@ -28,7 +28,7 @@ def run_with_pod(Closure body) {
     def cloud = "kubernetes-ng"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
-    def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest"
+    def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,

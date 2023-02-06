@@ -672,7 +672,6 @@ def buildTiFlash(repo_path, build_dir, install_dir) {
 }
 
 def clangFormat(repo_path) {
-
     if (!params.ENABLE_FORMAT_CHECK) {
         echo "format check skipped"
         return
@@ -763,13 +762,23 @@ def buildStage(repo_path, build_dir, install_dir, proxy_cache_ready) {
         cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready)
     }
     stage('Build TiFlash') {
-        parallel (
+        parallel(
+            "License check": {
+                dir(repo_path) {
+                    sh label: "license header check", script: """
+                        wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
+                        chmod +x license-eye
+                        ./license-eye -c .github/licenserc.yml header check
+                    """
+                }
+            },
             "Format Check" : {
                 clangFormat(repo_path)
             },
             "Build TiFlash" : {
                 buildTiFlash(repo_path, build_dir, install_dir)
-            }
+            },
+            failFast: true
         )
     }
 }
@@ -885,7 +894,7 @@ def run_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
-                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
+                        image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
                         resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]

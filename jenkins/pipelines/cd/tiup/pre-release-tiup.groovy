@@ -316,7 +316,7 @@ try {
 
 
             stage("publish tiup staging & publish community image") {
-                publishs = [:]
+                def publishs = [:]
                 publishs["publish tiup staging"] = {
                     build job: "tiup-mirror-online-rc",
                             wait: true,
@@ -341,6 +341,7 @@ try {
                                     [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "staging"],
                             ]
                 }
+				if (!(RELEASE_TAG >= "v6.6.0")){
                 publishs["publish community image"] = {
                     build job: "pre-release-docker",
                             wait: true,
@@ -361,12 +362,36 @@ try {
                                     [$class: 'StringParameterValue', name: 'TICDC_HASH', value: cdc_sha1],
                             ]
                 }
+                }
+				if (RELEASE_TAG >= "v6.5.0"){
+                    publishs["build community image rocky"] = {
+                        build job: "pre-release-community-docker-rocky",
+                                wait: true,
+                                parameters: [
+                                        [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                        [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                        [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                        [$class: 'BooleanParameterValue', name: 'NEED_DEBUG_IMAGE', value: false],
+                                        [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
+                                        [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                        [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                        [$class: 'StringParameterValue', name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1],
+                                        [$class: 'StringParameterValue', name: 'TIDB_BINLOG_HASH', value: binlog_sha1],
+                                        [$class: 'StringParameterValue', name: 'TICDC_HASH', value: cdc_sha1],
+                                ]
+                    }
+				}
 
                 parallel publishs
             }
 
             stage("publish enterprise image") {
-                build job: "pre-release-enterprise-docker",
+				def builds =[:]
+				if (!(RELEASE_TAG >= "v6.6.0")){
+				builds["publish enterprise image"] = {
+                    build job: "pre-release-enterprise-docker",
                         wait: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
@@ -379,6 +404,33 @@ try {
                                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                 [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                         ]
+				}
+                }
+				if (RELEASE_TAG >= "v6.5.0"){
+                    builds["build enterprise image rocky"] = {
+                        build job: "pre-release-enterprise-docker-rocky",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                    [$class: 'StringParameterValue', name: 'TIDB_HASH', value: tidb_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIKV_HASH', value: tikv_sha1],
+                                    [$class: 'StringParameterValue', name: 'PD_HASH', value: pd_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'PLUGIN_HASH', value: enterprise_plugin_sha1],
+                                    [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
+                                    [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
+                            ]
+                    }
+                }
+                parallel builds
+                if (RELEASE_TAG >= "v6.6.0"){
+                        build job: "pre-release-docker-rocky-sync",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'Version', value: RELEASE_TAG],
+                            ]
+                }
             }
             stage("check artifact"){
                 build job: "pre-release-check",
@@ -389,9 +441,9 @@ try {
                                 string(value: tikv_sha1,name: 'TIKV_VERSION'),
                                 string(value: pd_sha1,name: 'PD_VERSION'),
                                 string(value: tiflash_sha1,name: 'TIFLASH_VERSION'),
-                                string(value: tidb_sha1,name: 'BR_VERSION'),
+                                string(value: br_sha1,name: 'BR_VERSION'),
                                 string(value: binlog_sha1,name: 'BINLOG_VERSION'),
-                                string(value: tidb_sha1,name: 'LIGHTNING_VERSION'),
+                                string(value: lightning_sha1, name: 'LIGHTNING_VERSION'),
                                 string(value: tools_sha1,name: 'TOOLS_VERSION'),
                                 string(value: cdc_sha1,name: 'CDC_VERSION'),
                                 string(value: dumpling_sha1,name: 'DUMPLING_VERSION'),

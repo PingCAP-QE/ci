@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.3/pod-ghpr_unit_test.yaml'
-final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -45,7 +45,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
@@ -66,7 +66,7 @@ pipeline {
                         mv coverage.dat test_coverage/coverage.dat
                         wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN}
+                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
                         """
                     }
                 }

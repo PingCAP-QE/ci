@@ -53,10 +53,10 @@ POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest",
+    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
     "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220823",
-    "master": "hub.pingcap.net/wangweizhen/tidb_image:go11920221108",
+    "master": "hub.pingcap.net/wangweizhen/tidb_image:go11920230111",
 ]
 VOLUMES = [
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',

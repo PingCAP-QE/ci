@@ -10,9 +10,6 @@ pipeline {
             yamlFile POD_TEMPLATE_FILE
         }
     }
-    environment {
-        PROW_DECK_URL = 'https://prow.tidb.net'
-    }
     options { skipDefaultCheckout() }
     stages {
         stage('Debug info') {
@@ -22,15 +19,14 @@ pipeline {
                     echo "-------------------------"                    
                     ls -la                    
                 '''
-                
             }
         }
         stage('Checkout') {
-            when { expression { return params.PROW_JOB_ID } }
+            when { expression { return params.JOB_SPEC } }
             steps {
                 dir('test') {
                     script {
-                        prow.checkoutPr(env.PROW_DECK_URL, params.PROW_JOB_ID)
+                        prow.checkoutRefs(readJSON(text: params.JOB_SPEC).refs)
                     }
                     sh "pwd && ls -l"
                 }

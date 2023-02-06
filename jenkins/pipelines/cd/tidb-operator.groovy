@@ -51,6 +51,13 @@ spec:
   - name: builder
     image: hub.pingcap.net/jenkins/centos7_golang-1.16:latest
     args: ["sleep", "infinity"]
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "32Gi"
+        cpu: "16"
   tolerations:
   - effect: NoSchedule
     key: tidb-operator
@@ -101,7 +108,7 @@ pipeline {
                     if (!ReleaseTag) {
                         ReleaseTag = params.GitRef
                     }
-                    PushPublic = params.ReleaseTag.startsWith("v") and !params.ReleaseTag.contains("-alpha")
+                    PushPublic = true
                     println("ReleaseTag: $ReleaseTag")
                     println("PushPublic: $PushPublic")
                 }
@@ -136,7 +143,7 @@ pipeline {
                             }
                         }
                         stage("bin") {
-                            environment {GIT_COMMIT = "$GitHash"; GOPROXY = "https://goproxy.pingcap.net,direct" }
+                            environment {GIT_COMMIT = "$GitHash"; GOPROXY = "https://goproxy.pingcap.net,https://proxy.golang.com.cn,direct" }
                             steps {
                                 sh """set -eux
                                     go mod download
@@ -225,7 +232,8 @@ pipeline {
                                 unstash "bin"
                                 sh "ls -Ral"
                                 sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
-                                sh 'docker buildx create --name mybuilder --use || true'
+                                writeFile file: 'buildkitd.toml', text: '''[registry."docker.io"]\nmirrors = ["registry-mirror.pingcap.net"]'''
+                                sh 'docker buildx create --name mybuilder --use --config buildkitd.toml && rm buildkitd.toml'
                             }
                         }
                         stage("e2e") {

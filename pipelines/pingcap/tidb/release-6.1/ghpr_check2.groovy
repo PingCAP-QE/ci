@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.1/pod-ghpr_check2.yaml'
-final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -45,7 +45,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
@@ -59,8 +59,8 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
                     }
                     script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, '', 'centos7/tikv-server.tar.gz', 'bin')
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, '', 'centos7/pd-server.tar.gz', 'bin')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
                     }
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {

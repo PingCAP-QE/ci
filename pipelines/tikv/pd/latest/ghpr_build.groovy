@@ -6,7 +6,7 @@ final K8S_NAMESPACE = "jenkins-pd"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/pd'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/latest/pod-ghpr_build.yaml'
-final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -46,19 +46,19 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/tikv/pd/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/pd/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutPr(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
                 }
             }
         }
-        stage('Build') {
+        stage('Build') {             
             steps {
                 dir('pd') {
                     sh '''
-                        GOPROXY="https://proxy.golang.org,direct" WITH_RACE=1 make && mv bin/pd-server bin/pd-server-race
-                        GOPROXY="https://proxy.golang.org,direct" make
+                        WITH_RACE=1 make && mv bin/pd-server bin/pd-server-race
+                        make
                     '''
                 }
             }

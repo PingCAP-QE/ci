@@ -1,0 +1,10 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  PingCAP-QE/ci:
+    - name: pingcap-qe/ci/self_test
+      agent: jenkins
+      decorate: false # need add this.
+      max_concurrency: 1
+      run_if_changed: pipelines/.*\.groovy
+      branches:
+        - ^main$

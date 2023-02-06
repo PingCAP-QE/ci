@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_e2e_test.yaml'
-final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -42,7 +42,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }

@@ -111,7 +111,7 @@ def selectGoVersion(branchNameOrTag) {
 def GO_BUILD_SLAVE = "build_go1190"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
 if ( goVersion == "go1.18" ) {
-    GO_BUILD_SLAVE = "build_go1185"
+    GO_BUILD_SLAVE = "build_go1180"
 }
 if ( goVersion == "go1.16" ) {
     GO_BUILD_SLAVE = GO1160_BUILD_SLAVE

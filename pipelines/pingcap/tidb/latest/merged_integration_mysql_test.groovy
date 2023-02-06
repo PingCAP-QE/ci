@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_mysql_test.yaml'
-final REFS = prow.getJobRefs(params.PROW_DECK_URL, params.PROW_JOB_ID)
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -40,13 +40,13 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
                         retry(2) {
                             script {
-                                prow.checkoutBase(params.PROW_DECK_URL, params.PROW_JOB_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
@@ -140,7 +140,7 @@ pipeline {
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIDB_TEST_STORE_NAME="unistore"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=1
+                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
                                             fi
                                         """
                                     }
