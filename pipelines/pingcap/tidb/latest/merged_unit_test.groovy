@@ -4,10 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final COMMIT_CONTEXT = 'staging/unit-test'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_unit_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -42,26 +41,11 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutRefs(REFS)
+                            }
                         }
                     }
                 }
@@ -82,7 +66,7 @@ pipeline {
                         mv coverage.dat test_coverage/coverage.dat
                         wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${GIT_BASE_BRANCH} -C ${GIT_MERGE_COMMIT}
+                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${REFS.base_ref} -C ${REFS.base_sha}
                         """
                     }
                 }
@@ -94,7 +78,7 @@ pipeline {
                         // upload coverage report to file server
                         retry(3) {
                             sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
-                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${GIT_MERGE_COMMIT}/report.xml"
+                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${REFS.base_sha}/report.xml"
                                 curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
                                 echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
                                 """

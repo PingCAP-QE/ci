@@ -4,10 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final COMMIT_CONTEXT = 'staging/build'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_build.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -44,26 +43,11 @@ pipeline {
                 stage('tidb') {
                     steps {
                         dir("tidb") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                            cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
                                 retry(2) {
-                                    checkout(
-                                        changelog: false,
-                                        poll: false,
-                                        scm: [
-                                            $class: 'GitSCM', branches: [[name: GIT_MERGE_COMMIT ]],
-                                            doGenerateSubmoduleConfigurations: false,
-                                            extensions: [
-                                                [$class: 'PruneStaleBranch'],
-                                                [$class: 'CleanBeforeCheckout'],
-                                                [$class: 'CloneOption', timeout: 15],
-                                            ],
-                                            submoduleCfg: [],
-                                            userRemoteConfigs: [[
-                                                refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                                url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                            ]],
-                                        ]
-                                    )
+                                    script {
+                                        prow.checkoutRefs(REFS)
+                                    }
                                 }
                             }
                         }
@@ -72,10 +56,10 @@ pipeline {
                 stage("enterprise-plugin") {
                     steps {
                         dir("enterprise-plugin") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
-                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', GIT_BASE_BRANCH, "", GIT_CREDENTIALS_ID)
+                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                                     }
                                 }
                             }
@@ -84,15 +68,13 @@ pipeline {
                 }
             }
         }
-        stage("Build tidb-server") {
+        stage("Build"){
             steps {
                 dir("tidb") {                                     
                     sh "make bazel_build"
                 }
             }
             post {       
-                // TODO: statics and report logic should not put in pipelines.
-                // Instead should only send a cloud event to a external service.
                 always {
                     dir("tidb") {
                         archiveArtifacts(
@@ -119,8 +101,8 @@ pipeline {
                         sh label: 'audit plugin test', script: """
                         go version
                         cd test/
-                        export PD_BRANCH=${GIT_BASE_BRANCH}
-                        export TIKV_BRANCH=${GIT_BASE_BRANCH}
+                        export PD_BRANCH=${REFS.base_ref}
+                        export TIKV_BRANCH=${REFS.base_ref}
                         export TIDB_REPO_PATH=${WORKSPACE}/tidb
                         export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
                         ./test.sh

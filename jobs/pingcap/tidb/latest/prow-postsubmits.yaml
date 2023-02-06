@@ -64,3 +64,18 @@ postsubmits:
       skip_report: false
       branches:
         - ^master$
+    - name: pingcap/tidb/merged_build
+      agent: jenkins
+      decorate: false # need add this.
+      context: ci/build
+      skip_report: false
+      branches:
+        - ^master$
+    - name: pingcap/tidb/merged_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: ci/unit-test
+      skip_report: false
+      branches:
+        - ^master$
+
