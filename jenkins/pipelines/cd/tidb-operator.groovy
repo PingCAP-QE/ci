@@ -51,6 +51,13 @@ spec:
   - name: builder
     image: hub.pingcap.net/jenkins/centos7_golang-1.16:latest
     args: ["sleep", "infinity"]
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "32Gi"
+        cpu: "16"
   tolerations:
   - effect: NoSchedule
     key: tidb-operator
