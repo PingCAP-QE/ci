@@ -78,7 +78,7 @@ pipeline {
                         // upload coverage report to file server
                         retry(3) {
                             sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
-                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/\${REFS.base_sha}/report.xml"
+                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.base_sha}/report.xml"
                                 curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
                                 echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
                                 """
