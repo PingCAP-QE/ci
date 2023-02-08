@@ -1,0 +1,43 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tidb:
+    - name: pingcap/tidb-test/ghpr_build
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: ci/build
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
+      rerun_command: "/test build"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/ghpr_integration_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: ci/integration-jdbc-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?integration-jdbc-test(?: .*?)?$"
+      rerun_command: "/test integration-jdbc-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/ghpr_integration_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: ci/integration-mysql-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?integration-mysql-test(?: .*?)?$"
+      rerun_command: "/test integration-mysql-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/ghpr_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: ci/mysql-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
+      rerun_command: "/test mysql-test"
+      branches:
+        - ^master$
