@@ -101,8 +101,8 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb-test/rev-${ghprbActualCommit}") {
-                        sh 'touch ws-${BUILD_TAG}'
+                    cache(path: "./mysql_test", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
+                        sh "touch ws-${BUILD_TAG}"
                     }
                 }
             }
@@ -135,17 +135,14 @@ pipeline {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
                             }
-                            dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "binary/pingcap/tidb-test/rev-${ghprbActualCommit}") {
-                                    sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                                    dir('mysql_test') {
-                                        sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
-                                        export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                        export CACHE_ENABLED=${CACHE_ENABLED}
-                                        export TIDB_TEST_STORE_NAME="unistore"
-                                        ./test.sh -backlist=1 -part=${PART}
-                                        """
-                                    }
+                            dir('tidb-test/mysql_test') {
+                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
+                                    sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
+                                    export CACHE_ENABLED=${CACHE_ENABLED}
+                                    export TIDB_TEST_STORE_NAME="unistore"
+                                    ./test.sh -backlist=1 -part=${PART}
+                                    """
                                 }
                             }
                         }
