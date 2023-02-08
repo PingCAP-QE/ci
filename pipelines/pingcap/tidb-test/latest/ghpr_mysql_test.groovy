@@ -6,6 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-ghpr_mysql_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -42,51 +43,16 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbTargetBranch]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: "https://github.com/pingcap/tidb.git",
-                                    ]],
-                                ]
-                            )
+                            component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
                         }
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        credentialsId: GIT_CREDENTIALS_ID,
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            prow.checkoutRefs(REFS)
                         }
                     }
                 }
@@ -101,7 +67,7 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
+                    cache(path: "./mysql_test", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
                         sh "touch ws-${BUILD_TAG}"
                     }
                 }
@@ -136,7 +102,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test/mysql_test') {
-                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${ghprbActualCommit}") {
+                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
                                     sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export CACHE_ENABLED=${CACHE_ENABLED}
