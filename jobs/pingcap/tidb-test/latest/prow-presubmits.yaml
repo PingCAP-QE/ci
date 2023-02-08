@@ -1,6 +1,6 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
-  pingcap/tidb:
+  pingcap/tidb-test:
     - name: pingcap/tidb-test/ghpr_build
       agent: jenkins
       decorate: false # need add this.
