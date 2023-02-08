@@ -15,6 +15,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
       context: ci/integration-jdbc-test
       skip_report: true
       trigger: "(?m)^/test (?:.*? )?integration-jdbc-test(?: .*?)?$"
@@ -25,6 +26,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
       skip_report: true
       trigger: "(?m)^/test (?:.*? )?integration-mysql-test(?: .*?)?$"
@@ -33,6 +35,7 @@ presubmits:
         - ^master$
     - name: pingcap/tidb-test/ghpr_mysql_test
       agent: jenkins
+      run_if_changed: "mysql_test/.*"
       decorate: false # need add this.
       always_run: false
       context: ci/mysql-test
