@@ -10,11 +10,8 @@ spec:
         privileged: true
       tty: true
       resources:
-        requests:
-          memory: 8Gi
-          cpu: "6"
         limits:
-          memory: 16Gi
+          memory: 32Gi
           cpu: "8"
       # env:
       #   - name: GOPATH
