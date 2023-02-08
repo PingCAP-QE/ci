@@ -48,7 +48,8 @@ pipeline{
 spec:
   containers:
   - name: gethash
-    image: hub.pingcap.net/jenkins/gethash
+    image: hub.pingcap.net/jenkins/gethash:latest
+    imagePullPolicy: Always
     command: ["sleep", "infinity"]
 '''
                     defaultContainer "gethash"
