@@ -10,9 +10,6 @@ spec:
         privileged: true
       tty: true
       resources:
-        requests:
-          memory: 8Gi
-          cpu: "4"
         limits:
           memory: 24Gi
           cpu: "8"
