@@ -12,9 +12,9 @@ spec:
         privileged: true
       tty: true
       resources:
-        limits:
-          memory: 64Gi
-          cpu: "32"
+        requests:
+          memory: 8Gi
+          cpu: "4"
       # env:
       #   - name: GOPATH
       #     value: /share/.go
