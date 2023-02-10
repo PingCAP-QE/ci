@@ -56,4 +56,3 @@ presubmits:
         - ^master$
         - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
-    
