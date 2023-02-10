@@ -35,6 +35,7 @@ properties([
                 H 18 * * * % GIT_BRANCH=release-6.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 18 * * * % GIT_BRANCH=release-6.4;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 18 * * * % GIT_BRANCH=release-6.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
+                H 18 * * * % GIT_BRANCH=release-6.6;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
             ''')
         ])
