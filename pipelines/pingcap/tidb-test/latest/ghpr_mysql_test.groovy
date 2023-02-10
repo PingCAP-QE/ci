@@ -54,9 +54,25 @@ pipeline {
                 dir("tidb-test") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: REFS.pulls[0].sha]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 15],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        credentialsId: GIT_CREDENTIALS_ID,
+                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
+                                        url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
+                                    ]],
+                                ]
+                            )
                         }
                     }
                 }
