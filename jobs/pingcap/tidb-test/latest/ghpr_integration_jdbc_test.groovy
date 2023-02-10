@@ -12,7 +12,7 @@ pipelineJob('pingcap/tidb-test/ghpr_integration_jdbc_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
+        githubProjectUrl("https://github.com/pingcap/tidb-test")
     }
  
     definition {
