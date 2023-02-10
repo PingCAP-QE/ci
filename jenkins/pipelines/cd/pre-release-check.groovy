@@ -39,15 +39,6 @@ def check_image = { comps, edition, registry, project ->
                         }
                     }
                 }
-                if(RELEASE_TAG>="v6.5.0"){
-                    stage("rocky image"){
-                        dir("release-check-rocky") {
-                            comps.each {
-                                sh script: "python3 main.py image -c $it --registry ${registry} --project qa ${RELEASE_TAG}.json ${RELEASE_TAG} ${edition} --isrcbuild=true", label: "$it"
-                            }
-                        }
-                    }
-				}
             }
         }
     }
@@ -80,12 +71,7 @@ __EOF__
             tar -xzf release-check.tar.gz
             cp ${RELEASE_TAG}.json release-check/
             """
-            sh """
-            wget ${FILE_SERVER_URL}/download/cicd/scripts/release-check-rocky.tar.gz
-            tar -xzf release-check-rocky.tar.gz
-            cp ${RELEASE_TAG}.json release-check-rocky/
-            """
-            stash includes: "release-check/,release-check-rocky/", name: "release-check"
+            stash includes: "release-check/", name: "release-check"
         }
     }
 }
