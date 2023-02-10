@@ -1,7 +1,8 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tidb:
-    - name: pingcap/tidb/ghpr_build
+    #### for release-6.5 branch
+    - name: pingcap/tidb/release-6.5/ghpr_build
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -9,10 +10,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
-        - ^master$
-        - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^feature[_/].+
-    - name: pingcap/tidb/ghpr_check
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.5/ghpr_check
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -20,10 +19,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
       branches:
-        - ^master$
-        - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^feature[_/].+
-    - name: pingcap/tidb/ghpr_check2
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.5/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -31,10 +28,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
       branches:
-        - ^master$
-        - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^feature[_/].+
-    - name: pingcap/tidb/ghpr_mysql_test
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.5/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -42,10 +37,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
       branches:
-        - ^master$
-        - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^feature[_/].+
-    - name: pingcap/tidb/ghpr_unit_test
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-6.5/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -53,6 +46,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
       branches:
-        - ^master$
-        - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^feature[_/].+
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
