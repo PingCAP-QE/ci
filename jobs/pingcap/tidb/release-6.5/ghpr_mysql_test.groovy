@@ -1,5 +1,4 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
 pipelineJob('pingcap/tidb/release-6.5/ghpr_mysql_test') {
     logRotator {
         daysToKeep(30)
