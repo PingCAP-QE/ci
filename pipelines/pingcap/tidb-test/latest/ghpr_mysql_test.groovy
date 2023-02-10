@@ -45,14 +45,18 @@ pipeline {
                 dir("tidb") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
-                            component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
+                            script {
+                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "") 
+                            }
                         }
                     }
                 }
                 dir("tidb-test") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
-                            prow.checkoutRefs(REFS)
+                            script {
+                                prow.checkoutRefs(REFS)
+                            }
                         }
                     }
                 }
