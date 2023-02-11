@@ -27,7 +27,7 @@ def push_docker_image(item, dir_name) {
 retry(2) {
     try {
         catchError {
-                node("${GO_BUILD_SLAVE}") {
+            node("${GO_BUILD_SLAVE}") {
                 def ws = pwd()
                 container("golang") {
                     stage('Build Monitor') {
