@@ -32,7 +32,7 @@ properties([
                 string(
                         defaultValue: '',
                         name: 'TIDB_PRM_ISSUE',
-                        trim: true，
+                        trim: true,
                         description: '预发布 issue id, 当填写了 issue id 的时候，sre-bot 会自动更新各组件 hash 到 issue 上'
                 ),
                 string(
@@ -64,6 +64,7 @@ properties([
                         defaultValue: true,
                         name: 'ARCH_MAC'
                 ),
+        ])
 ])
 
 
