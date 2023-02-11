@@ -54,3 +54,25 @@ def checkoutRefs(refs, timeout=5, credentialsId='') {
         echo "✅ ~~~~~All done.~~~~~~"
     """
 }
+
+// get uniq cache save key by refs.
+def getCacheKey(prefixFolder, refs, part='') {
+    final prefix = ([prefixFolder, refs.org, refs.repo, part, 'rev-'] - '').join('/')
+    if (refs.pulls && refs.pulls.size() > 0) {
+        // <base>-<p1>_<p2>_...<pN>
+        return prefix + [refs.base_sha[0..<7], refs.pulls.collect { it.sha[0..<7] }.join('_')].join('-')
+    } else {
+        return prefix + refs.base_sha[0..<7]
+    }
+}
+
+// get cache restory keys by refs.
+def getRestoreKeys(prefixFolder, refs, part='') {
+    final prefix = ([prefixFolder, refs.org, refs.repo, part, 'rev-'] - '').join('/')
+    if (refs.pulls && refs.pulls.size() > 0) {
+        return [prefix + refs.base_sha[0..<7], prefix]
+    } else {
+        return [prefix]
+    }
+}
+
