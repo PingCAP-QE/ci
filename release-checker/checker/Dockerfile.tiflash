@@ -1,4 +1,4 @@
-FROM centos:7
+FROM centos:8
 
 RUN yum -y install python3 wget
 RUN python3 -m ensurepip
