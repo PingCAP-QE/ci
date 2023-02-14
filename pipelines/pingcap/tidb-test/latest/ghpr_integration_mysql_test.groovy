@@ -21,7 +21,6 @@ pipeline {
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
-        timestamps()
     }
     stages {
         stage('Debug info') {
@@ -117,7 +116,6 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
-                options { timestamps() }
                 stages {
                     stage("Test") {
                         options { timeout(time: 35, unit: 'MINUTES') }

@@ -18,10 +18,10 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        parallelsAlwaysFailFast()
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
