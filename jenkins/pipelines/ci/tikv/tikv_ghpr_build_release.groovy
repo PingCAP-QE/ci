@@ -1,5 +1,4 @@
-def slackcolor = 'good'
-def githash
+
 
 def release="make dist_release"
 if ( ghprbTargetBranch == "master" || ghprbTargetBranch == "release-3.0" || ghprbTargetBranch == "release-3.1") {
@@ -95,43 +94,20 @@ try {
             }
         }
     }
-    if (!notcomment.toBoolean()) {
-        node("master") {
-            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                sh """
-                    rm -f comment-pr
-                    curl -O http://fileserver.pingcap.net/download/comment-pr
-                    chmod +x comment-pr
-                    ./comment-pr --token=$TOKEN --owner=tikv --repo=tikv --number=${ghprbPullId} --comment="download tikv at ${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
-                """
-            }
+
+    node("master") {
+        withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+            sh """
+                rm -f comment-pr
+                curl -O http://fileserver.pingcap.net/download/comment-pr
+                chmod +x comment-pr
+                ./comment-pr --token=$TOKEN --owner=tikv --repo=tikv --number=${ghprbPullId} --comment="download tikv at ${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
+            """
         }
     }
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
-    slackcolor = 'danger'
     echo "${e}"
 }
 
-stage("upload status"){
-    node{
-        sh """curl --connect-timeout 2 --max-time 4 -d '{"job":"$JOB_NAME","id":$BUILD_NUMBER}' http://172.16.5.13:36000/api/v1/ci/job/sync || true"""
-    }
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Build tikv: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-    slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-}

@@ -1,30 +1,3 @@
-echo "release test: ${params.containsKey("release_test")}"
-if (params.containsKey("release_test")) {
-    echo "release test: ${params.containsKey("release_test")}"
-    ghprbTargetBranch = params.getOrDefault("release_test__ghpr_target_branch", params.release_test__release_branch)
-    ghprbCommentBody = params.getOrDefault("release_test__ghpr_comment_body", "")
-    ghprbActualCommit = params.getOrDefault("release_test__ghpr_actual_commit", params.release_test__tikv_commit)
-    ghprbPullId = params.getOrDefault("release_test__ghpr_pull_id", "")
-    ghprbPullTitle = params.getOrDefault("release_test__ghpr_pull_title", "")
-    ghprbPullLink = params.getOrDefault("release_test__ghpr_pull_link", "")
-    ghprbPullDescription = params.getOrDefault("release_test__ghpr_pull_description", "")
-}
-
-def slackcolor = 'good'
-def githash
-
-// # default comment binary download url on pull request
-needComment = true
-
-// job param: notcomment default to True
-// /release : not comment binary download url
-// /release comment=true : comment binary download url
-def m1 = ghprbCommentBody =~ /\/run-build-arm64[\s]comment\s*=\s*([^\s\\]+)(\s|\\|$)/
-if (m1) {
-    needComment = "${m1[0][1]}"
-    println "needComment=${needComment}"
-}
-m1 = null
 
 binary = "builds/pingcap/test/tikv/${ghprbActualCommit}/centos7/tikv-linux-arm64.tar.gz"
 binary_existed = -1
@@ -87,20 +60,14 @@ try{
     }
 
     stage("Comment on pr") {
-        // job param: notcomment default to True
-        // /release : not comment binary download url
-        // /release comment=true : comment binary download url
-
-        if (needComment.toBoolean() ) {
-            node("master") {
-                withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                    sh """
-                    rm -f comment-pr
-                    curl -O http://fileserver.pingcap.net/download/comment-pr
-                    chmod +x comment-pr
-                    ./comment-pr --token=$TOKEN --owner=tikv --repo=tikv --number=${ghprbPullId} --comment="download tikv binary(linux arm64) at ${FILE_SERVER_URL}/download/${binary}"
-                """
-                }
+        node("master") {
+            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+                sh """
+                rm -f comment-pr
+                curl -O http://fileserver.pingcap.net/download/comment-pr
+                chmod +x comment-pr
+                ./comment-pr --token=$TOKEN --owner=tikv --repo=tikv --number=${ghprbPullId} --comment="download tikv binary(linux arm64) at ${FILE_SERVER_URL}/download/${binary}"
+            """
             }
         }
     }
