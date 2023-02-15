@@ -78,12 +78,12 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
             sha1=${componentBranch}
         else
             refUrl="${serverUrl}/download/refs/pingcap/${keyInComment}/${componentBranch}/sha1"
-            echo "ref url: \${refUrl}"
+            echo "🔍 ref url: \${refUrl}"
             sha1="\$(curl --fail \${refUrl} | head -1)"
         fi
         
         artifactUrl="${serverUrl}/download/builds/pingcap/${keyInComment}/\${sha1}/${artifactPath}"
-        echo "artifact url: \${artifactUrl}"
-        curl --fail \${artifactUrl} | tar xz ${pathInArchive}
+        echo "📦 artifact url: \${artifactUrl}"
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O - "\${artifactUrl}" | tar xz ${pathInArchive}
     """)
 }
