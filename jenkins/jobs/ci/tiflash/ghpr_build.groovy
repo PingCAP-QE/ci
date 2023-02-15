@@ -49,7 +49,7 @@ pipelineJob('tiflash-ghpr-build') {
                     gitHubAuthId('a6f8c5ac-6082-4ad1-b84d-562cc1c37682')
 
                     triggerPhrase('.*/rebuild.*')
-                    onlyTriggerPhrase(true)
+                    onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa')
