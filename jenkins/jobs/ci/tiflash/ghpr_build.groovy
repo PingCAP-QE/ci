@@ -1,14 +1,9 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('tiflash-ghpr-unit-tests') {
+pipelineJob('tiflash-ghpr-build') {
     logRotator {
         numToKeep(1500)
     }
     parameters {
-        stringParam{
-            name('COVERAGE_RATE')
-            defaultValue('20')
-            trim(true)
-        }
         stringParam{
             name('ghprbActualCommit')
             trim(true)
@@ -22,8 +17,25 @@ pipelineJob('tiflash-ghpr-unit-tests') {
             trim(true)
         }
         stringParam{
-            name('CI_COVERAGE_BASE_URL')
-            defaultValue('https://ci.pingcap.net/job/tiflash-ghpr-unit-tests')
+            name('ghprbPullLink')
+            trim(true)
+        }
+        stringParam{
+            name('ghprbPullDescription')
+            trim(true)
+        }
+        stringParam{
+            name('ghprbCommentBody')
+            trim(true)
+        }
+        stringParam{
+            name('ghprbTargetBranch')
+            defaultValue('master')
+            trim(true)
+        }
+        stringParam{
+            name('tiflashTag')
+            defaultValue('master')
             trim(true)
         }
     }
@@ -36,8 +48,8 @@ pipelineJob('tiflash-ghpr-unit-tests') {
                     cron('H/5 * * * *')
                     gitHubAuthId('a6f8c5ac-6082-4ad1-b84d-562cc1c37682')
 
-                    triggerPhrase('.*/run-(all-tests|unit-test).*')
-                    onlyTriggerPhrase(true)
+                    triggerPhrase('.*/rebuild.*')
+                    onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa')
@@ -68,7 +80,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext('idc-jenkins-ci-tiflash/unit-test')
+                            commitStatusContext('idc-jenkins-ci-tiflash/build')
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus('Jenkins job is running.')
                             triggeredStatus('Jenkins job triggered.')
@@ -84,7 +96,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/ci/tiflash/tiflash-ghpr-unit-tests.groovy')
+            scriptPath('jenkins/pipelines/ci/tiflash/tiflash-ghpr-build.groovy')
             scm {
                 git{
                     remote {

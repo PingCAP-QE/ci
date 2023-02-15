@@ -1,31 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('tiflash-ghpr-unit-tests') {
+pipelineJob('tiflash-ghpr-sanitizer') {
     logRotator {
         numToKeep(1500)
-    }
-    parameters {
-        stringParam{
-            name('COVERAGE_RATE')
-            defaultValue('20')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbActualCommit')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbPullId')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbPullTitle')
-            trim(true)
-        }
-        stringParam{
-            name('CI_COVERAGE_BASE_URL')
-            defaultValue('https://ci.pingcap.net/job/tiflash-ghpr-unit-tests')
-            trim(true)
-        }
     }
     properties {
         // priority(0) // 0 fast than 1
@@ -36,7 +12,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
                     cron('H/5 * * * *')
                     gitHubAuthId('a6f8c5ac-6082-4ad1-b84d-562cc1c37682')
 
-                    triggerPhrase('.*/run-(all-tests|unit-test).*')
+                    triggerPhrase('.*/run-sanitizer-test.*')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
@@ -68,7 +44,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext('idc-jenkins-ci-tiflash/unit-test')
+                            commitStatusContext('idc-jenkins-ci-tiflash/sanitizer')
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus('Jenkins job is running.')
                             triggeredStatus('Jenkins job triggered.')
@@ -84,7 +60,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/ci/tiflash/tiflash-ghpr-unit-tests.groovy')
+            scriptPath('jenkins/pipelines/ci/tiflash/tiflash-ghpr-sanitizer.groovy')
             scm {
                 git{
                     remote {
