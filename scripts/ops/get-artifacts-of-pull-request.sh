@@ -5,6 +5,24 @@
 
 download_base_url="http://fileserver.pingcap.net/download/builds/pingcap"
 
+function install_github_cli_if_not_exist() {
+    which gh >/dev/null || {
+        case "$(uname -s)" in
+        Darwin)
+            brew install gh
+            ;;
+        Linux)
+            echo "👉 Oh, you should install it by yourself, goto: https://github.com/cli/cli/blob/trunk/docs/install_linux.md"
+            exit 1
+            ;;
+        *)
+            echo "OS not supported"
+            exit 1
+            ;;
+        esac
+    }
+}
+
 # param $1 pull request url, example: https://github.com/pingcap/tidb/pull/41310
 function get_post_artifacts_by_pr() {
     local pull_request_url="${1}"
@@ -66,6 +84,8 @@ function main() {
     local pull_request_url="${1}"
     local type=${2:-merged}
 
+    install_github_cli_if_not_exist
+
     case "${type}" in
     merged)
         echo "The artifacts after the pull request be merged:"
@@ -86,27 +106,3 @@ function main() {
 }
 
 main "$@"
-POSITIONAL=()
-while (($# > 0)); do
-    case "${1}" in
-    -f | --flag)
-        echo flag: "${1}"
-        shift # shift once since flags have no values
-        ;;
-    -s | --switch)
-        numOfArgs=1 # number of switch arguments
-        if (($# < numOfArgs + 1)); then
-            shift $#
-        else
-            echo "switch: ${1} with value: ${2}"
-            shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-        fi
-        ;;
-    *) # unknown flag/switch
-        POSITIONAL+=("${1}")
-        shift
-        ;;
-    esac
-done
-
-set -- "${POSITIONAL[@]}" # restore positional params
