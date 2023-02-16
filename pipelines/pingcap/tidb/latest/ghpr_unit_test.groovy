@@ -60,6 +60,9 @@ pipeline {
                     sh './build/jenkins_unit_test.sh' 
                 }
             }
+            post{
+                always
+            }
             post {
                  success {
                     dir("tidb") {
@@ -70,20 +73,11 @@ pipeline {
                         ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
                         """
                     }
-                }
+                }                
                 always {
                     dir('tidb') {
                         // archive test report to Jenkins.
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
-
-                        // upload coverage report to file server
-                        retry(3) {
-                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
-                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
-                                curl -f -F \${filepath}=@test_coverage/bazel.xml \${FILE_SERVER_URL}/upload
-                                echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
-                                """
-                        }
                     }
                 }
             }
