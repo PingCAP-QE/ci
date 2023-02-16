@@ -9,7 +9,7 @@ pipelineJob('cdc_ghpr_leak_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/tikv/pd/")
+        githubProjectUrl("https://github.com/pingcap/tiflow/")
         pipelineTriggers {
             triggers {
                 ghprbTrigger {
