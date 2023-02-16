@@ -1,42 +1,18 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('tikv_ghpr_build') {
+pipelineJob('tikv_ghpr_test') {
     logRotator {
         daysToKeep(90)
         numToKeep(1000)
     }
     parameters {
         stringParam{
-            name('ghprbActualCommit')
+            name('DEBUG_VALUE')
             trim(true)
         }
         stringParam{
-            name('ghprbPullId')
+            name('TIKV_TEST_MEMORY_DISK_MOUNT_POINT')
+            defaultValue('/home/jenkins/agent/memvolume')
             trim(true)
-        }
-        stringParam{
-            name('ghprbPullTitle')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbPullLink')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbPullDescription')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbCommentBody')
-            trim(true)
-        }
-        stringParam{
-            name('ghprbTargetBranch')
-            defaultValue('master')
-            trim(true)
-        }
-        booleanParam{
-            name('notcomment')
-            defaultValue(true)
         }
     }
     properties {
@@ -48,8 +24,8 @@ pipelineJob('tikv_ghpr_build') {
                     cron('H/5 * * * *')
                     gitHubAuthId('a6f8c5ac-6082-4ad1-b84d-562cc1c37682')
 
-                    triggerPhrase('.*/(build|rebuild|run-build).*')
-                    onlyTriggerPhrase(true)
+                    triggerPhrase('.*/(run(-all-tests|-test)|test).*')
+                    onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
@@ -80,7 +56,7 @@ pipelineJob('tikv_ghpr_build') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext('idc-jenkins-ci-tikv/build')
+                            commitStatusContext('idc-jenkins-ci/test')
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus('Jenkins job is running.')
                             triggeredStatus('Jenkins job triggered.')
@@ -96,7 +72,7 @@ pipelineJob('tikv_ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/ci/tikv/tikv_ghpr_build.groovy')
+            scriptPath('jenkins/pipelines/ci/tikv/tikv_ghpr_test.groovy')
             scm {
                 git{
                     remote {

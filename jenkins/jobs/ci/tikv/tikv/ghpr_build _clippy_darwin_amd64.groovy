@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('tikv_ghpr_build') {
+pipelineJob('tikv-ghpr-clippy-darwin-amd64') {
     logRotator {
         daysToKeep(90)
         numToKeep(1000)
@@ -48,12 +48,16 @@ pipelineJob('tikv_ghpr_build') {
                     cron('H/5 * * * *')
                     gitHubAuthId('a6f8c5ac-6082-4ad1-b84d-562cc1c37682')
 
-                    triggerPhrase('.*/(build|rebuild|run-build).*')
-                    onlyTriggerPhrase(true)
+                    triggerPhrase('.*/(run-clippy-darwin-amd64.*)')
+                    onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
                     orgslist('pingcap tikv')
+                    whitelistTargetBranches {
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^feature[_|/].*') }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
@@ -80,7 +84,7 @@ pipelineJob('tikv_ghpr_build') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext('idc-jenkins-ci-tikv/build')
+                            commitStatusContext('idc-jenkins-ci-tikv/clippy-darwin-amd64')
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus('Jenkins job is running.')
                             triggeredStatus('Jenkins job triggered.')
@@ -96,7 +100,7 @@ pipelineJob('tikv_ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/ci/tikv/tikv_ghpr_build.groovy')
+            scriptPath('jenkins/pipelines/ci/tikv/tikv_ghpr_clippy_darwin_amd64.groovy')
             scm {
                 git{
                     remote {
