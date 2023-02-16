@@ -81,6 +81,15 @@ pipeline {
                     dir('tidb') {
                         // archive test report to Jenkins.
                         junit(testResults: "**/*-junit-report.xml", allowEmptyResults: true)
+
+                        // upload coverage report to file server
+                        retry(3) {
+                            sh label: "upload coverage report to ${FILE_SERVER_URL}", script: """
+                                filepath="tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
+                                curl -f -F \${filepath}=@test_coverage/tidb-junit-report.xml \${FILE_SERVER_URL}/upload
+                                echo "coverage download link: \${FILE_SERVER_URL}/download/\${filepath}"
+                                """
+                        }
                     }
                 }
             }
