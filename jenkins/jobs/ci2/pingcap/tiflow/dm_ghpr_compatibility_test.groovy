@@ -16,7 +16,7 @@ pipelineJob('dm_ghpr_compatibility_test') {
                     cron('H/5 * * * *')
                     gitHubAuthId('37c47302-ce04-4cae-a76f-b75f439c1464')
 
-                    triggerPhrase('(.*\/run(-all-tests|-dm-compatibility-tests?).*)|(\/merge)')
+                    triggerPhrase('(.*/run(-all-tests|-dm-compatibility-tests?).*)|(/merge)')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
