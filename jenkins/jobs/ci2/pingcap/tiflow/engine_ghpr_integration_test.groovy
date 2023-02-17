@@ -22,7 +22,7 @@ pipelineJob('engine_ghpr_integration_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("pingcap")
-                    whitelistTargetBranches {
+                    whiteListTargetBranches {
                         ghprbBranch { branch('master') }
                     }
                     // ignore when only those file changed.(

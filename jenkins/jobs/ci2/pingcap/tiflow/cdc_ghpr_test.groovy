@@ -22,7 +22,7 @@ pipelineJob('cdc_ghpr_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("pingcap")
-                    whitelistTargetBranches {
+                    whiteListTargetBranches {
                         ghprbBranch { branch('^(release-)?4\\.\\d+(\\.\\d+)?(\\-.*)?$') }
                         ghprbBranch { branch('^(release-)?[5]\\.[0-3](\\.\\d+)?(\\-.*)?$') }
                     }
