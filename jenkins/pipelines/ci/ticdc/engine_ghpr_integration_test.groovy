@@ -6,6 +6,7 @@ ENGINE_TEST_TAG="dataflow:test"
 labelBuild = "${JOB_NAME}-${BUILD_NUMBER}-build"
 labelTest= "${JOB_NAME}-${BUILD_NUMBER}-test"
 imageTag = "${JOB_NAME}-${ghprbPullId}"
+dummyImageTag = "dummy"
 specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 println "${specStr}"
 
@@ -64,7 +65,7 @@ def pattern_match_any_file(pattern, files_list) {
 
 if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
     def pr_diff_files = list_pr_diff_files()
-    def pattern = /(^engine\/|^pkg\/|^deployments\/engine\/|^go\.mod).*$/
+    def pattern = /(^engine\/|^dm\/|^pkg\/|^deployments\/engine\/|^go\.mod).*$/
     // if any diff files start with dm/ or pkg/ , run the dm integration test
     def matched = pattern_match_any_file(pattern, pr_diff_files)
     if (matched) {
@@ -125,6 +126,11 @@ def prepare_binaries_and_images() {
     }
 
     sh """
+    docker pull hub.pingcap.net/tiflow/minio:latest
+    docker tag hub.pingcap.net/tiflow/minio:latest minio/minio:latest
+    docker pull hub.pingcap.net/tiflow/minio:mc
+    docker tag hub.pingcap.net/tiflow/minio:mc minio/mc:latest
+
     docker pull hub.pingcap.net/tiflow/mysql:5.7
     docker tag hub.pingcap.net/tiflow/mysql:5.7 mysql:5.7
     docker pull hub.pingcap.net/tiflow/mysql:8.0
@@ -196,7 +202,7 @@ def run_with_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
-                            image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest", ttyEnabled: true,
+                            image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '6Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
@@ -229,11 +235,11 @@ def run_with_test_pod(Closure body) {
                                             envVar(key: 'DOCKER_TLS_CERTDIR', value: ''),
                                             envVar(key: 'DOCKER_REGISTRY_MIRROR', value: 'https://registry-mirror.pingcap.net/"'),
                                     ], privileged: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '10Gi'),
+                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi'),
                     containerTemplate(name: 'docker', image: 'hub.pingcap.net/tiflow/dind:alpine-docker',
                                     alwaysPullImage: true, envVars: [
                                             envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
-                                    ], resourceRequestCpu: '4000m', resourceRequestMemory: '16Gi',
+                                    ], resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                                     ttyEnabled: true, command: 'cat'),
             ],
             volumes: [
@@ -351,6 +357,27 @@ run_with_pod {
                 }
             }
             parallel tests
+        }
+
+        stage("remove image") {
+            run_with_test_pod{
+                container("docker") {
+                    echo "start to remove image..."
+                    withCredentials([usernamePassword(credentialsId: '3929b35e-6d9a-423a-a3c3-9c584ff49ea0', usernameVariable: 'harborUser', passwordVariable: 'harborPassword')]) {
+                        sh """
+                        sleep 10
+                        docker version || true
+                        docker-compose version || true
+                        echo "${harborPassword}" | docker login -u ${harborUser} --password-stdin hub.pingcap.net || true
+                        """
+                    }
+                    sh """
+                    docker pull hub-new.pingcap.net/tiflow/engine:${dummyImageTag} || true
+                    docker tag hub-new.pingcap.net/tiflow/engine:${dummyImageTag} hub.pingcap.net/tiflow/engine:${imageTag} || true
+                    docker push hub.pingcap.net/tiflow/engine:${imageTag} || true
+                    """
+                }
+            }
         }
     }
 }

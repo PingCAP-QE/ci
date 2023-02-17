@@ -71,12 +71,12 @@ run_with_pod {
     container("golang") {
         def ws = pwd()
         sh """
-        curl -f -O ${COVERAGE_FILE}
+        curl -O ${COVERAGE_FILE}
         tar -xvf tiflow_coverage.tar.gz
         ls -alh
         """
         dir("go/src/github.com/pingcap/tiflow") { 
-            withCredentials([string(credentialsId: 'coveralls-token-ticdc', variable: 'COVERALLS_TOKEN')]) {
+            withCredentials([string(credentialsId: 'coveralls-token-tiflow', variable: 'COVERALLS_TOKEN')]) {
                 timeout(30) {
                     sh """
                     export CI_NAME=${CI_NAME}
