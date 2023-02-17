@@ -22,7 +22,7 @@ pipelineJob('dm_ghpr_compatibility_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("pingcap")
-                    whitelistTargetBranches {
+                    whiteListTargetBranches {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('^(release-)?[5]\\.[3-4](\\.\\d+)?(\\-.*)?$') }
                         ghprbBranch { branch('^(release-)?[6]\\.[0-9](\\.\\d+)?(\\-.*)?$') }
