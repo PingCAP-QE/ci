@@ -16,7 +16,7 @@ pipelineJob('cdc_ghpr_leak_test') {
                     cron('H/5 * * * *')
                     gitHubAuthId('37c47302-ce04-4cae-a76f-b75f439c1464')
 
-                    triggerPhrase('(.*/run(-all-tests|-leak-test).*)|(\/merge)')
+                    triggerPhrase('(.*/run(-all-tests|-leak-test).*)|(/merge)')
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
