@@ -24,9 +24,9 @@ pipelineJob('dm_ghpr_compatibility_test') {
                     orgslist("pingcap")
                     whitelistTargetBranches {
                         ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^(release-)?[5]\.[3-4](\.\d+)?(\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?[6]\.[0-9](\.\d+)?(\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?[7]\.[0-9](\.\d+)?(\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[5]\\.[3-4](\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[6]\\.[0-9](\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[7]\\.[0-9](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
