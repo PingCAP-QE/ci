@@ -36,10 +36,13 @@ def clone_server_package = { arch, dst ->
     tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
     --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager latest \
-    --blackbox_exporter latest --prometheus $VERSION --tidb-dashboard $VERSION --node_exporter latest \
+    --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
     --tiup latest --cluster latest  --insight latest --diag latest --influxdb latest \
     --playground latest
     """
+    if (VERSION>="v6.6.0"){
+        sh "tiup mirror clone $dst --os linux --arch ${arch} --tidb-dashboard $VERSION"
+    }
 }
 
 def clone_toolkit_package = { arch, dst ->
