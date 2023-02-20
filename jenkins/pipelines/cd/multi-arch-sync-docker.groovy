@@ -35,36 +35,12 @@ node('delivery') {
                     parallel builds_enterprise
                 } else {
                     def builds_community = [:]
-//                    release_repo.remove("tidb-monitor-initializer")
                     for (item in release_repo) {
                         def product = "${item}"
                         builds_community["sync ${item} community docker image"] = {
                             libs.retag_docker_image_for_ga(product, "false", DEBUG_MODE)
                         }
-
                     }
-//                    builds_community["push tidb-monitor-initializer community docker image"] = {
-//                        if (DEBUG_MODE == "true") {
-//                            echo "DEBUG MODE:push tidb-monitor-initializer community docker image"
-//                        } else {
-//                            libs.build_push_tidb_monitor_initializer_image()
-//                        }
-//
-//                    }
-                    builds_community["push tidb-monitor-reloader arm64"] = {
-                        if (DEBUG_MODE == "true") {
-                            echo "DEBUG MODE:push tidb-monitor-reloader arm64"
-                        } else {
-                            build job: 'build-arm-image',
-                                    wait: true,
-                                    parameters: [
-                                            [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: "${RELEASE_TAG}"],
-                                            [$class: 'StringParameterValue', name: 'RELEASE_BRANCH', value: "${RELEASE_BRANCH}"]
-                                    ]
-                        }
-
-                    }
-
                     parallel builds_community
                 }
 
