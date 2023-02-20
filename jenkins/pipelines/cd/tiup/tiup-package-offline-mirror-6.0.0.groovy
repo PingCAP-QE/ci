@@ -30,7 +30,7 @@ def get_hash = { repo ->
         return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     }
 }
-·
+
 def clone_server_package = { arch, dst ->
     def dashboard_package = ""
     if (VERSION>="v6.6.0"){
