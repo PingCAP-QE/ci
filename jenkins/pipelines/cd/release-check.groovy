@@ -17,7 +17,7 @@
 def task = "release-check"
 def check_image = { comps, edition, registry ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
-            containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true),
+            containerTemplate(name: 'dockerd', image: 'docker:20-dind', privileged: true, command:'dockerd --host=tcp://localhost:2375'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master', alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
@@ -66,7 +66,7 @@ def check_pingcap = { arch, edition ->
 }
 
 def check_tiup = { comps, label ->
-    if (label == "mac" || label == "arm") {
+    if (label == "mac && validator" || label == "arm") {
         node(label) {
             unstash 'qa'
             dir("qa/release-checker/checker") {
@@ -138,7 +138,6 @@ __EOF__
                                branches         : [[name: "main"]],
                                extensions       : [[$class: 'LocalBranch']],
                                userRemoteConfigs: [[credentialsId: 'github-llh-ssh', url: 'https://github.com/PingCAP-QE/ci.git']]]
-
             }
             sh "cp ${RELEASE_TAG}.json qa/release-checker/checker"
             stash includes: "qa/**", name: "qa"
@@ -162,7 +161,7 @@ parallel(
             check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling", "dm"], "arm")
         },
         "Tiup Darwin Amd64": {
-            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac")
+            check_tiup(["tidb", "tikv", "pd", "tiflash", "br", "tidb-binlog", "tidb-lightning", "ticdc", "dumpling"], "mac && validator")
         },
 //        tiflash version is dirty,exclude
         "Tiup Darwin Arm64": {

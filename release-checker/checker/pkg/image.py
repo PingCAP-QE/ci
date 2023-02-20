@@ -17,7 +17,7 @@ COMP_TO_BINARY = {  # likewise, annoying
     Components.dumpling: ["/dumpling"],
     Components.binlog: ["/pump", "/drainer"],
     Components.ticdc: ["/cdc"],
-    Components.lightning: ["/tidb-lightning", "/tikv-importer", "/br"],
+    Components.lightning: ["/tidb-lightning"],
     Components.dm: ["/dm-master", "/dm-worker"],
 }
 
@@ -54,7 +54,7 @@ def pull_images(registry: str, version: str, edition: str, components: Iterable[
 def validates(registry: str, version: str, hashes: Dict[str, str], edition="community", user="pingcap") -> int:
     err_count = 0
     if version >= "5.2.0":
-        COMP_TO_BINARY[Components.lightning] = ["/tidb-lightning", "/br"]
+        COMP_TO_BINARY[Components.lightning] = ["/tidb-lightning"]
 
     # 1. image name = component + edtion
     # 2. map compnent to binary name for each run command
