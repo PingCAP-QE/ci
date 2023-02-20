@@ -31,7 +31,6 @@ pipelineJob('tikv-ghpr-clippy-darwin-arm64') {
         }
         stringParam{
             name('ghprbTargetBranch')
-            defaultValue('master')
             trim(true)
         }
         booleanParam{

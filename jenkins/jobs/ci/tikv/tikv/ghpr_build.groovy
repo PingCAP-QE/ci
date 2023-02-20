@@ -31,7 +31,6 @@ pipelineJob('tikv_ghpr_build') {
         }
         stringParam{
             name('ghprbTargetBranch')
-            defaultValue('master')
             trim(true)
         }
         booleanParam{
