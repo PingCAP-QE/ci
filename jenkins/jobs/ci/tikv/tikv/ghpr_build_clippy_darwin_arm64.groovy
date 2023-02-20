@@ -53,7 +53,7 @@ pipelineJob('tikv-ghpr-clippy-darwin-arm64') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
                     orgslist('pingcap tikv')
-                    whitelistTargetBranches {
+                    whiteListTargetBranches {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('^feature[_|/].*') }
                     }

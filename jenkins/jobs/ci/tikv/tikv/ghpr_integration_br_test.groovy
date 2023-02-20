@@ -33,7 +33,7 @@ pipelineJob('tikv_ghpr_integration_br_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
                     orgslist('pingcap tikv')
-                    whitelistTargetBranches {
+                    whiteListTargetBranches {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('^feature[_|/].*') }
                         ghprbBranch { branch('^release-\\d+\\.\\d+.*') }
