@@ -30,19 +30,20 @@ def get_hash = { repo ->
         return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${release_tag} -s=${FILE_SERVER_URL}").trim()
     }
 }
-
+·
 def clone_server_package = { arch, dst ->
+    def dashboard_package = ""
+    if (VERSION>="v6.6.0"){
+        dashboard_package =  " --tidb-dashboard $VERSION"
+    }
     sh """
     tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
     --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager latest \
     --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
     --tiup latest --cluster latest  --insight latest --diag latest --influxdb latest \
-    --playground latest
+    --playground latest $dashboard_package
     """
-    if (VERSION>="v6.6.0"){
-        sh "tiup mirror clone $dst --os linux --arch ${arch} --tidb-dashboard $VERSION"
-    }
 }
 
 def clone_toolkit_package = { arch, dst ->
