@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go12020230220"
       tty: true
       resources:
         requests:
