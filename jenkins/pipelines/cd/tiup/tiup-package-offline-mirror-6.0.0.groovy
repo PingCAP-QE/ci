@@ -40,6 +40,9 @@ def clone_server_package = { arch, dst ->
     --tiup latest --cluster latest  --insight latest --diag latest --influxdb latest \
     --playground latest
     """
+    if (VERSION>="v6.6.0"){
+        sh "tiup mirror clone $dst --os linux --arch ${arch} --tidb-dashboard $VERSION"
+    }
 }
 
 def clone_toolkit_package = { arch, dst ->
