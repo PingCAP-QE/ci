@@ -503,15 +503,20 @@ def run_make_coverage() {
         }
         dir('go/src/github.com/pingcap/tiflow') {
             container('golang') {
-                timeout(30) {
-                    sh """
-                    rm -rf /tmp/dm_test
-                    mkdir -p /tmp/dm_test
-                    cp cov_dir/* /tmp/dm_test
-                    set +x
-                    BUILD_NUMBER=${BUILD_NUMBER} COVERALLS_TOKEN="${COVERALLS_TOKEN}" CODECOV_TOKEN="${CODECOV_TOKEN}" PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make dm_coverage || true
-                    set -x
-                    """
+                withCredentials([
+                    string(credentialsId: 'coveralls-token-tiflow', variable: 'COVERALLS_TOKEN'),
+                    string(credentialsId: 'codecov-token-ticdc', variable: 'CODECOV_TOKEN')
+                ]) { 
+                    timeout(30) {
+                        sh """
+                        rm -rf /tmp/dm_test
+                        mkdir -p /tmp/dm_test
+                        cp cov_dir/* /tmp/dm_test
+                        set +x
+                        BUILD_NUMBER=${BUILD_NUMBER} COVERALLS_TOKEN="${COVERALLS_TOKEN}" CODECOV_TOKEN="${CODECOV_TOKEN}" PATH=${ws}/go/bin:/go/bin:\$PATH JenkinsCI=1 make dm_coverage || true
+                        set -x
+                        """
+                    }
                 }
             }
         }
