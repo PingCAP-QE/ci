@@ -55,6 +55,7 @@ def validates(registry: str, version: str, hashes: Dict[str, str], edition="comm
     err_count = 0
     if version >= "5.2.0" and version < "6.6.0":
         COMP_TO_BINARY[Components.lightning] = ["/tidb-lightning", "/br"]
+
     # 1. image name = component + edtion
     # 2. map compnent to binary name for each run command
     # 3. docker run --entrypoint $binary $image -V || ...
