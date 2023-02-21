@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: tikv/pd/ghpr_build
+    - name: tikv/pd/release-6.5/ghpr_build
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -9,6 +9,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
-        - ^master$
-        - ^feature[_/].+
         - ^release-6.[5-9](\.\d+(-\d+)?)?$
