@@ -24,7 +24,7 @@ def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
         // special for v6.1 larger than patch 3
-        if (tag.startsWith("v6.1") && tag >= "v6.1.3" || tag=="v6.1.0-nightly") {
+        if (branchNameOrTag.startsWith("v6.1") && branchNameOrTag >= "v6.1.3" || branchNameOrTag=="v6.1.0-nightly") {
             return "go1.19"
         }
         if (branchNameOrTag >= "v6.3") {
