@@ -53,7 +53,8 @@ def pull_images(registry: str, version: str, edition: str, components: Iterable[
 
 def validates(registry: str, version: str, hashes: Dict[str, str], edition="community", user="pingcap") -> int:
     err_count = 0
-
+    if version >= "5.2.0" and version < "6.6.0":
+        COMP_TO_BINARY[Components.lightning] = ["/tidb-lightning", "/br"]
     # 1. image name = component + edtion
     # 2. map compnent to binary name for each run command
     # 3. docker run --entrypoint $binary $image -V || ...
