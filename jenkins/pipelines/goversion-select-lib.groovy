@@ -6,13 +6,15 @@ feature_branch_use_go19 = []
 // Version Selector
 // branch or tag
 // == branch
-//  master use go1.18
+//  master use go1.19
+//  release branch >= release-6.1 use go1.19
 //  release branch >= release-6.0 use go1.18
 //  release branch >= release-5.1 use go1.16
 //  release branch < release-5.0 use go1.13
 //  other feature use corresponding go version
 //  the default go version is go1.18
 // == tag
+// any tag greater or eqaul to v6.1.xxx use go1.19
 // any tag greater or eqaul to v6.0.xxx use go1.18
 // any tag smaller than v6.0.0 and graeter or equal to v5.1.xxx use go1.16
 // any tag smaller than v5.1.0 use go1.13
@@ -21,6 +23,10 @@ feature_branch_use_go19 = []
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        // special for v6.1 larger than patch 3
+        if (tag.startsWith("v6.1") && tag >= "v6.1.3" || tag=="v6.1.0-nightly") {
+            return "go1.19"
+        }
         if (branchNameOrTag >= "v6.3") {
             println "tag ${branchNameOrTag} use go 1.19"
             return "go1.19"
@@ -63,11 +69,11 @@ def selectGoVersion(branchNameOrTag) {
         }
 
 
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.3") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.1") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.19")
             return "go1.19"
         }
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.1"  && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
             return "go1.18"
         }
@@ -80,7 +86,7 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
             return "go1.13"
         }
-        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.19"
         return "go1.19"
     }
 }
