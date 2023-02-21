@@ -209,8 +209,9 @@ curl -F builds/pingcap/tiflash/ci-cache/${CCACHE_REMOTE_TAR}=@ccache.tar http://
             }
         }
     }
-    stage("run") {
-        def RUN_SCRIPT='''
+    stage('run') {
+        timeout(time: 120, unit: 'MINUTES') {
+            def RUN_SCRIPT='''
 SRCPATH=${SRCPATH:-/tiflash}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Debug}
 NPROC=${NPROC:-$(nproc || grep -c ^processor /proc/cpuinfo)}
@@ -223,9 +224,10 @@ source /tests/docker/util.sh
 show_env
 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/tests/sanitize/asan.suppression  TSAN_OPTIONS="suppressions=/tests/sanitize/tsan.suppression" ENV_VARS_PATH=/tests/docker/_env.sh NPROC=12 /tests/run-gtest.sh
         '''
-        container("builder") {
-            writeFile(file: 'run.sh', text: RUN_SCRIPT)
-            sh "env CMAKE_BUILD_TYPE=${type} SRCPATH='${cwd}/tiflash' bash run.sh"
+            container('builder') {
+                writeFile(file: 'run.sh', text: RUN_SCRIPT)
+                sh "env CMAKE_BUILD_TYPE=${type} SRCPATH='${cwd}/tiflash' bash run.sh"
+            }
         }
     }
 }
