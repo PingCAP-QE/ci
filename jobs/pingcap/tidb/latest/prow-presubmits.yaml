@@ -56,3 +56,15 @@ presubmits:
         - ^master$
         - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
+    - name: pingcap/tidb/ghpr_compile_br
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: ^docs/.*$
+      run_if_changed: "^br/.*$"
+      context: ci/compile-br
+      trigger: "(?m)^/test (?:.*? )?compile-br(?: .*?)?$"
+      rerun_command: "/test compile-br"
+      branches:
+        - ^master$
+        - ^release-6\.[6-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^feature[_/].+
