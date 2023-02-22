@@ -64,7 +64,9 @@ if (params.PRODUCT.length() <= 1) {
 binarys = params.INPUT_BINARYS.split(",")
 def download() {
     for (item in binarys) {
-        sh "curl ${FILE_SERVER_URL}/download/${item} | tar xz"
+        retry(3) { 
+            sh "curl ${FILE_SERVER_URL}/download/${item} | tar xz"
+        } 
     }
 }
 
