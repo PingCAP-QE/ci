@@ -65,7 +65,7 @@ binarys = params.INPUT_BINARYS.split(",")
 def download() {
     for (item in binarys) {
         retry(3) { 
-            sh "curl ${FILE_SERVER_URL}/download/${item} | tar xz"
+            sh "curl --fail ${FILE_SERVER_URL}/download/${item} | tar xz"
         } 
     }
 }
