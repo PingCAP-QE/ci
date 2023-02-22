@@ -1,5 +1,18 @@
-reviewers:
-  - lijie0123
-  - purelind
-approvers:
-  - wuhuizuo
+filters:
+  ".*":
+    labels:
+      - area/jobs
+  "\\.groovy$":
+    labels:
+      - area/jobs/jenkins-DSL
+    reviewers:
+      - purelind
+    approvers:
+      - wuhuizuo
+  "prow-.*\\.(yaml|yml)$":
+    labels:
+      - area/jobs/prow
+    reviewers:
+      - purelind
+    approvers:
+      - wuhuizuo
