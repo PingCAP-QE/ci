@@ -60,7 +60,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: ^docs/.*$
-      run_if_changed: "^br/.*$"
+      run_if_changed: "^br\/(?!docs\/)(?:(?!.*\\.(html|md)$).)*$"
       context: ci/compile-br
       trigger: "(?m)^/test (?:.*? )?compile-br(?: .*?)?$"
       rerun_command: "/test compile-br"
