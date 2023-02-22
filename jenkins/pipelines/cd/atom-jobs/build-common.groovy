@@ -300,7 +300,7 @@ def checkoutCode() {
             println "get code from fileserver to reduce clone time"
             println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
             sh """
-            curl -O ${codeCacheInFileserverUrl}
+            curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${codeCacheInFileserverUrl}
             tar -xzf src-${REPO}.tar.gz --strip-components=1
             rm -f src-${REPO}.tar.gz
             rm -rf ./*
@@ -309,37 +309,42 @@ def checkoutCode() {
             println "get code from github"
         }
     }
-    checkout changelog: false, poll: true,
-                    scm: [$class: 'GitSCM', branches: [[name: "${GIT_HASH}"]], doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'CheckoutOption', timeout: 30],
-                                    [$class: 'CloneOption', timeout: 60],
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'SubmoduleOption', timeout: 30, disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''],
-                                    [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
-                        userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                            refspec      : specRef,
-                                            url          : repo]]]
+    retry(3) { 
+        checkout changelog: false, poll: true,
+                        scm: [$class: 'GitSCM', branches: [[name: "${GIT_HASH}"]], doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'CheckoutOption', timeout: 30],
+                                        [$class: 'CloneOption', timeout: 60],
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'SubmoduleOption', timeout: 30, disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''],
+                                        [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
+                            userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                refspec      : specRef,
+                                                url          : repo]]]
+    }
+
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
 		container("golang"){
             sh """
 			cd ../
-            curl -O ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
+            curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
             tar -xf src-tidb.tar.gz
 			rm -f src-tidb.tar.gz
             """
         }
         dir('../tidb'){
-            checkout changelog: false, poll: true,
-                    scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'CheckoutOption', timeout: 30],
-                                    [$class: 'CloneOption', timeout: 60],
-                                    [$class: 'PruneStaleBranch'],
-                                    [$class: 'SubmoduleOption', timeout: 30, disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''],
-                                    [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
-                        userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                            refspec      : specRef,
-                                            url          : 'git@github.com:pingcap/tidb.git']]]
+            retry(3) {
+                checkout changelog: false, poll: true,
+                        scm: [$class: 'GitSCM', branches: [[name: "${TIDB_HASH}"]], doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'CheckoutOption', timeout: 30],
+                                        [$class: 'CloneOption', timeout: 60],
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'SubmoduleOption', timeout: 30, disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, trackingSubmodules: false, reference: ''],
+                                        [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
+                            userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
+                                                refspec      : specRef,
+                                                url          : 'git@github.com:pingcap/tidb.git']]]
+            }
         }
     }
 }
