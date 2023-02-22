@@ -5,6 +5,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/e2e-test
+      max_concurrency: 1
       skip_report: true
       branches:
         - ^master$
@@ -12,6 +13,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/common-test
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
@@ -19,6 +21,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-common-test
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
@@ -26,6 +29,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-ddl-test
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
@@ -33,6 +37,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: wip-integration-jdbc-test
+      max_concurrency: 1
       skip_report: true
       branches:
         - ^master$
@@ -40,6 +45,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-mysql-test
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
@@ -47,6 +53,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/sqllogic-test
+      max_concurrency: 1
       skip_report: true
       branches:
         - ^master$
@@ -54,6 +61,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-copr-test
+      max_concurrency: 1
       skip_report: true
       branches:
         - ^master$
@@ -61,6 +69,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/tiflash-test
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
@@ -68,6 +77,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/build
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
@@ -75,6 +85,7 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/unit-test
+      max_concurrency: 1
       skip_report: false
       branches:
         - ^master$
