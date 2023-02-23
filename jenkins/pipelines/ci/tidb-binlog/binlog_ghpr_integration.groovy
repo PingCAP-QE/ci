@@ -54,25 +54,27 @@ if (TIDB_TOOLS_BRANCH.matches(/^(release-)?(6\.[0-9]|5\.[3-4])\d*(\.\d+)?(\-.*)?
 }
 println "TIDB_TOOLS_BRANCH=${TIDB_TOOLS_BRANCH}"
 
-GO_VERSION = "go1.19"
+GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
+    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
     "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
+    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
 ]
 
 node("master") {
     deleteDir()
     def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
@@ -96,7 +98,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -126,10 +128,10 @@ try {
                 def ws = pwd()
                 deleteDir()
                 // tidb-binlog
-  
+
                 dir("${ws}/go/src/github.com/pingcap/tidb-binlog") {
                     container("golang") {
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                         if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                             deleteDir()
@@ -153,7 +155,7 @@ try {
                         """
                     }
                 }
-               
+
                 stash includes: "go/src/github.com/pingcap/tidb-binlog/**", name: "tidb-binlog", useDefaultExcludes: false
 
                 // tikv
@@ -202,7 +204,7 @@ try {
             label = "binlog-integration-test-go1180-${BUILD_NUMBER}"
         }
         tests["Integration Test"] = {
-            podTemplate(label: label, 
+            podTemplate(label: label,
             cloud: "kubernetes-ng",
             namespace: "jenkins-tidb-binlog",
             idleMinutes: 0,
@@ -210,7 +212,7 @@ try {
                 containerTemplate(name: 'golang',alwaysPullImage: false, image: "${POD_GO_IMAGE}",
                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                 ttyEnabled: true, command: 'cat'),
-                containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper', 
+                containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                 ttyEnabled: true),
                 containerTemplate(
