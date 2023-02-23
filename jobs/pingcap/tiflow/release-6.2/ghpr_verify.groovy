@@ -1,6 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tiflow/ghpr_verify') {
+pipelineJob('pingcap/tiflow/release-6.2/ghpr_verify') {
     logRotator {
         daysToKeep(30)
     }
@@ -24,9 +23,7 @@ pipelineJob('pingcap/tiflow/ghpr_verify') {
                     whitelist('')
                     orgslist('')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -70,7 +67,7 @@ pipelineJob('pingcap/tiflow/ghpr_verify') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflow/latest/ghpr_verify.groovy")
+            scriptPath("pipelines/pingcap/tiflow/release-6.2/ghpr_verify.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }

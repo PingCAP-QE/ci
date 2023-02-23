@@ -64,9 +64,9 @@ println "TEST_CASE=${TEST_CASE}"
 
 def list_pr_diff_files() {
     def list_pr_files_api_url = "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files"
-    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
-        response = httpRequest consoleLogResponseBody: false, 
-            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) {
+        response = httpRequest consoleLogResponseBody: false,
+            contentType: 'APPLICATION_JSON', httpMode: 'GET',
             customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
             url: list_pr_files_api_url, validResponseCodes: '200'
 
@@ -74,7 +74,7 @@ def list_pr_diff_files() {
 
         echo "Status: ${response.status}"
         def files = []
-        for (element in json) { 
+        for (element in json) {
             files.add(element.filename)
         }
 
@@ -95,7 +95,7 @@ def pattern_match_any_file(pattern, files_list) {
     return false
 }
 
-if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
+if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) {
     def pr_diff_files = list_pr_diff_files()
     def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
     // if any diff files start with dm/ or pkg/ , run the dm integration test
@@ -109,19 +109,21 @@ if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_b
     }
 }
 
-GO_VERSION = "go1.19"
+GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
+    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
     "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
+    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
 ]
 
 def taskStartTimeInMillis = System.currentTimeMillis()
@@ -131,8 +133,8 @@ resultDownloadPath = ""
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
@@ -156,7 +158,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -196,20 +198,20 @@ catchError {
                         println "get code from github"
                     }
                     checkout(
-                        changelog: false, 
-                        poll: false, 
+                        changelog: false,
+                        poll: false,
                         scm: [
-                            $class: 'GitSCM', 
+                            $class: 'GitSCM',
                             branches: [[name: PRE_COMMIT]],
-                            doGenerateSubmoduleConfigurations: false, 
+                            doGenerateSubmoduleConfigurations: false,
                             extensions: [
-                                [$class: 'PruneStaleBranch'], 
+                                [$class: 'PruneStaleBranch'],
                                 [$class: 'CleanBeforeCheckout'],
                             ],
-                            submoduleCfg: [], 
+                            submoduleCfg: [],
                             userRemoteConfigs: [[
-                                credentialsId: 'github-sre-bot-ssh', 
-                                refspec: "+refs/heads/*:refs/remotes/origin/* ${specStr}", 
+                                credentialsId: 'github-sre-bot-ssh',
+                                refspec: "+refs/heads/*:refs/remotes/origin/* ${specStr}",
                                 url: 'git@github.com:pingcap/tiflow.git',
                             ]],
                         ]
@@ -219,7 +221,7 @@ catchError {
                 dir("go/src/github.com/pingcap/tiflow") {
                     sh """
                         cp -R /home/jenkins/agent/git/ticdc/. ./
-                        
+
                         echo "build binary with previous version"
                         git checkout -f ${PRE_COMMIT}
                         export PATH=$PATH:/nfs/cache/gopath/bin:/usr/local/go/bin
@@ -256,7 +258,7 @@ catchError {
                 // minio
                 sh 'curl -C - --retry 3 -fL http://fileserver.pingcap.net/download/minio.tar.gz | tar xz'
                 sh 'mv minio bin/'
-                
+
                 stash includes: "bin/**", name: "binaries"
             }
         }
