@@ -139,7 +139,10 @@ def ifFileCacheExists() {
 
 // choose which go version to use. 
 def String needUpgradeGoVersion(String tag,String branch) {
-    goVersion="go1.19"
+    goVersion="go1.20"
+    if (tag.startsWith("v") && tag >= "v6.3" && tag < "v6.7") {
+        return "go1.19"
+    }
     if (tag.startsWith("v") && tag <= "v5.1") {
         return "go1.13"
     }
@@ -166,17 +169,20 @@ def String needUpgradeGoVersion(String tag,String branch) {
     if (branch.startsWith("release-") && branch >= "release-6.0" && branch < "release-6.3"){
         return "go1.18"
     }
+    if (branch.startsWith("release-") && branch >= "release-6.3" && branch < "release-6.7"){
+        return "go1.18"
+    }
     if (branch.startsWith("hz-poc") || branch.startsWith("arm-dup") ) {
         return "go1.16"
     }
     if (REPO == "tiem") {
         return "go1.16"
     }
-    return "go1.19"
+    return "go1.20"
 }
 
-def goBuildPod = "build_go1190"
-def GO_BIN_PATH = "/usr/local/go1.19.5/bin"
+def goBuildPod = "build_go1200"
+def GO_BIN_PATH = "/usr/local/go1.20.1/bin"
 goVersion = needUpgradeGoVersion(params.RELEASE_TAG,params.TARGET_BRANCH)
 // tidb-tools only use branch master and use newest go version
 // only for version >= v5.3.0
@@ -951,6 +957,9 @@ def run_with_arm_go_pod(Closure body) {
             break
         case "go1.19":
             arm_go_pod_image = "hub.pingcap.net/jenkins/centos7_golang-1.19-arm64:latest"
+            break
+        case "go1.20":
+            arm_go_pod_image = "hub.pingcap.net/jenkins/centos7_golang-1.20-arm64:latest"
             break
         default:
             println "invalid go version ${goVersion}"
