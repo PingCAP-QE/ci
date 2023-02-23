@@ -209,10 +209,13 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
     }
 } 
 if (REPO != "tidb-tools") {
+    if (goVersion == "go1.19") {
+        goBuildPod = "build_go1190"
+        GO_BIN_PATH = "/usr/local/go1.19.5/bin"
+    }
     if (goVersion == "go1.18") {
         goBuildPod = "build_go1180"
         GO_BIN_PATH = "/usr/local/go1.18.10/bin"
-
     }
     if (goVersion == "go1.16") {
         goBuildPod = "${GO1160_BUILD_SLAVE}"
