@@ -25,25 +25,27 @@ if (m3) {
 m3 = null
 
 
-GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
+GO_VERSION = "go1.20"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
+    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
     "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
+    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
 ]
 
 node("master") {
     deleteDir()
     def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
@@ -67,7 +69,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -140,7 +142,7 @@ try {
                             ])
                         }
                         stash includes: "go/src/github.com/pingcap/tidb-test/**", name: "tidb-test"
-                    }, 
+                    },
                     'tidb': {
                         dir("go/src/github.com/pingcap/tidb") {
                             deleteDir()
@@ -192,7 +194,7 @@ try {
                                     tidb_url = "${FILE_SERVER_URL}/download/${tidb_build_ci_cache_filepath}"
                                     sh """
                                     make server
-                                    rm -rf .git 
+                                    rm -rf .git
                                     tar czvf tidb-server-linux-amd64.tar.gz ./*
                                     curl -f -F ${tidb_build_ci_cache_filepath}=@tidb-server-linux-amd64.tar.gz ${FILE_SERVER_URL}/upload
                                     """
@@ -200,7 +202,7 @@ try {
                             }
                         }
                     }
-                ) 
+                )
             }
 
             stage("Tests") {
@@ -215,14 +217,15 @@ try {
                                     sh """
                                     while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f ${tikv_url} | tar xz bin
-        
+
                                     while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 1; done
                                     curl -C - --retry 3 -f ${pd_url} | tar xz bin
-        
+
                                     mkdir -p ./tidb-src
                                     curl -C - --retry 3 -f ${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${cur_ws}/go/src/github.com/pingcap/tidb"
                                     mv tidb-src/bin/tidb-server ./bin/tidb-server
+                                    ./bin/tidb-server -V
                                     """
                                     }
                                 }
@@ -237,14 +240,14 @@ try {
                                         rm -rf /tmp/tidb
                                         rm -rf ./tikv ./pd
                                         set -e
-                                        
+
                                         bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                         sleep 10
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                         bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                         sleep 10
                                         if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-    
+
                                         export TIDB_SRC_PATH=${cur_ws}/go/src/github.com/pingcap/tidb
                                         export log_level=debug
                                         TIDB_SERVER_PATH=`pwd`/bin/tidb-server \

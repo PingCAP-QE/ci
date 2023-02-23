@@ -22,19 +22,20 @@ if (m3) {
 m3 = null
 
 
-GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
+GO_VERSION = "go1.20"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
 GO_IMAGE_MAP = [
         "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
         "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
         "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
         "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
+        "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
 ]
 
 node("master") {
     deleteDir()
     def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
@@ -294,13 +295,13 @@ run_with_toolkit_pod {
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
                                     tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${tikv_url} | tar xz bin
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${pd_url} | tar xz bin
-        
+
                                     mkdir -p ./tidb-src
                                     curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
@@ -320,7 +321,7 @@ run_with_toolkit_pod {
                                     rm -rf /tmp/tidb
                                     rm -rf ./tikv ./pd
                                     set -e
-                                    
+
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -374,13 +375,13 @@ run_with_toolkit_pod {
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
                                     tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${tikv_url} | tar xz bin
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${pd_url} | tar xz bin
-        
+
                                     mkdir -p ./tidb-src
                                     curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
@@ -399,7 +400,7 @@ run_with_toolkit_pod {
                                     rm -rf /tmp/tidb
                                     rm -rf ./tikv ./pd
                                     set -e
-                                    
+
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -452,13 +453,13 @@ run_with_toolkit_pod {
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
                                     tidb_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-check/pr/${tidb_sha1}/centos7/tidb-server.tar.gz"
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${tikv_url} | tar xz bin
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
                                     curl -C - --retry 3 -f \${pd_url} | tar xz bin
-        
+
                                     mkdir -p ./tidb-src
                                     curl -C - --retry 3 -f \${tidb_url} | tar xz -C ./tidb-src
                                     ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
@@ -477,7 +478,7 @@ run_with_toolkit_pod {
                                     rm -rf /tmp/tidb
                                     rm -rf ./tikv ./pd
                                     set -e
-                                    
+
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -578,7 +579,7 @@ run_with_toolkit_pod {
             tests["TiDB JDBC TLS Test"] = {
                 run_java("tidb_jdbc_test/tidb_jdbc8_tls_test", "tidbtlstest", "./test_tls.sh")
             }
-            
+
             tests["mysql_connector_c Test"] = {
                 run("mysql_connector_c_test", "mysql_connector_c_test", "./test.sh")
             }
