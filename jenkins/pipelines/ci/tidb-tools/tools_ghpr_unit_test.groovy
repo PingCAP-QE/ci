@@ -1,23 +1,25 @@
 
-GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
+GO_VERSION = "go1.20"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
     "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
     "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
+    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
     "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
     "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
     "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
+    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
 ]
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
-    sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
     POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
@@ -41,7 +43,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -140,29 +142,5 @@ catchError {
     }
 
     currentBuild.result = "SUCCESS"
-}
-
-stage('Summary') {
-    def getChangeLogText = {
-        def changeLogText = ""
-        for (int i = 0; i < currentBuild.changeSets.size(); i++) {
-            for (int j = 0; j < currentBuild.changeSets[i].items.length; j++) {
-                def commitId = "${currentBuild.changeSets[i].items[j].commitId}"
-                def commitMsg = "${currentBuild.changeSets[i].items[j].msg}"
-                changeLogText += "\n" + "`${commitId.take(7)}` ${commitMsg}"
-            }
-        }
-        return changeLogText
-    }
-    def changelog = getChangeLogText()
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[${env.JOB_NAME.replaceAll('%2F','/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration}` Mins" +
-            "${changelog}" + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
 }
 
