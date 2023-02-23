@@ -49,7 +49,7 @@ kind: Pod
 spec:
   containers:
   - name: builder
-    image: hub.pingcap.net/jenkins/centos7_golang-1.16:latest
+    image: hub.pingcap.net/jenkins/centos7_golang-1.19:latest
     args: ["sleep", "infinity"]
     resources:
       requests:
