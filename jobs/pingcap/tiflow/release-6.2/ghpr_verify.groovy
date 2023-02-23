@@ -67,7 +67,7 @@ pipelineJob('pingcap/tiflow/release-6.2/ghpr_verify') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflow/release-6.1/ghpr_verify.groovy")
+            scriptPath("pipelines/pingcap/tiflow/release-6.2/ghpr_verify.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }
