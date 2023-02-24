@@ -102,7 +102,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CASE'
-                        values 'check', "build"
+                        values 'clustered_index', 'consistent_replicate_storage_file'
                     }
                 }
                 agent{
