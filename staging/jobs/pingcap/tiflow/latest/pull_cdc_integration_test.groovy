@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiflow/cdc_integration_test') {
+pipelineJob('pingcap/tiflow/pull_cdc_integration_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -69,7 +69,7 @@ pipelineJob('pingcap/tiflow/cdc_integration_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("staging/pipelines/pingcap/tiflow/latest/cdc_integration_test.groovy")
+            scriptPath("staging/pipelines/pingcap/tiflow/latest/pull_cdc_integration_test.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }
