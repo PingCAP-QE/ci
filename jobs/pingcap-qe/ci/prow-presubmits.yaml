@@ -1,10 +1,21 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   PingCAP-QE/ci:
-    - name: pingcap-qe/ci/self_test
-      agent: jenkins
-      decorate: false # need add this.
+    - name: verify-jenkins-pipelines
+      decorate: true
       max_concurrency: 1
       run_if_changed: pipelines/.*\.groovy
       branches:
-        - ^main$
+        - main
+      spec:
+        containers:
+        - name: main
+          image: wbitt/network-multitool
+          env:
+            - name: JENKINS_URL
+              value: https://do.pingcap.net/jenkins
+          command: [/bin/bash, .ci/verify-jenkins-pipelines.sh]
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 200m
