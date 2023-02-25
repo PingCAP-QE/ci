@@ -20,7 +20,7 @@ def downUrl = "https://api.github.com/repos/pingcap/tidb/tarball/${downRef(TIDB_
 println "TIDB_BRANCH=${TIDB_BRANCH} DOWNLOAD_URL=${downUrl}"
 
 GO_VERSION = "go1.20"
-POD_GO_IMAGE = "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
+POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",

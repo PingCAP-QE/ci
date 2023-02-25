@@ -23,7 +23,7 @@ m3 = null
 
 
 GO_VERSION = "go1.20"
-POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
+POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
         "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
         "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
