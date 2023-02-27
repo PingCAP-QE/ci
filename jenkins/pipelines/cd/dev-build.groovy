@@ -130,7 +130,7 @@ spec:
                                     string(name: "GIT_HASH", value: GitHash),
                                     string(name: "GIT_PR", value: GitPR),
                                     string(name: "RELEASE_TAG", value: Version),
-                                    string(name: "FORKED_REPO", value: params.GithubRepo),
+                                    string(name: "GITHUB_REPO", value: params.GithubRepo),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 ]

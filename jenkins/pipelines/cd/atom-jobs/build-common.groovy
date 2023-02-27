@@ -70,7 +70,7 @@ properties([
                 ),
                 string(
                          defaultValue: '',
-                         name: 'FORKED_REPO',
+                         name: 'GITHUB_REPO',
                          trim: true
                 ),
                 booleanParam(
@@ -290,8 +290,8 @@ if (REPO == "tikv" || REPO == "importer" || REPO == "pd") {
 if (REPO == "tiem") {
     repo = "git@github.com:pingcap-inc/${REPO}.git"
 }
-if (FORKED_REPO){
-    repo = "git@github.com:${FORKED_REPO}.git"
+if (GITHUB_REPO){
+    repo = "git@github.com:${GITHUB_REPO}.git"
 }
 specRef = "+refs/heads/*:refs/remotes/origin/*"
 if (params.GIT_PR.length() >= 1) {
