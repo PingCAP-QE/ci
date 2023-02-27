@@ -387,7 +387,7 @@ try {
                 parallel publishs
             }
 
-            stage("publish enterprise image") {
+            stage("publish enterprise & sync images") {
 				def builds =[:]
 				if (!(RELEASE_TAG >= "v6.6.0")){
 				builds["publish enterprise image"] = {
