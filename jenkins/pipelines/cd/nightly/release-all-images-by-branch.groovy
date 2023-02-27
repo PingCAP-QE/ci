@@ -323,7 +323,7 @@ def release_one_normal(repo) {
                     string(name: "RELEASE_DOCKER_IMAGES", value: amd64Images),
                     string(name: "GIT_BRANCH", value: GIT_BRANCH),
             ]
-            build job: "docker-common-check",
+            build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerAmd64
         }
@@ -340,7 +340,7 @@ def release_one_normal(repo) {
                     string(name: "RELEASE_DOCKER_IMAGES", value: arm64Images),
                     string(name: "GIT_BRANCH", value: GIT_BRANCH),
             ]
-            build job: "docker-common-check",
+            build job: "docker-common",
                     wait: true,
                     parameters: paramsDockerArm64
         }
@@ -432,7 +432,7 @@ EOF
                 string(name: "GIT_BRANCH", value: GIT_BRANCH),
         ]
 
-        build job: "docker-common-check",
+        build job: "docker-common",
                 wait: true,
                 parameters: paramsDockerAmd64
 
@@ -487,7 +487,7 @@ def release_one_enable_failpoint(repo) {
                 string(name: "GIT_BRANCH", value: GIT_BRANCH),
         ]
         println "paramsDockerFailpoint: ${paramsDockerFailpoint}"
-        build job: "docker-common-check",
+        build job: "docker-common",
                 wait: true,
                 parameters: paramsDockerFailpoint
     }
@@ -527,7 +527,7 @@ def release_one_debug(repo) {
                 string(name: "GIT_BRANCH", value: GIT_BRANCH),
         ]
         println "paramsDocker: ${paramsDocker}"
-        build job: "docker-common-check",
+        build job: "docker-common",
                 wait: true,
                 parameters: paramsDocker
     }
@@ -600,7 +600,7 @@ def release_master_monitoring() {
             string(name: "RELEASE_DOCKER_IMAGES", value: imageNameAmd64),
             string(name: "GIT_BRANCH", value: GIT_BRANCH),
     ]
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDockerAmd64
     def imageNameArm64 = "${HARBOR_PROJECT_PREFIX}/tidb-monitor-initializer:master-arm64"
@@ -615,7 +615,7 @@ def release_master_monitoring() {
             string(name: "RELEASE_DOCKER_IMAGES", value: imageNameArm64),
             string(name: "GIT_BRANCH", value: GIT_BRANCH),
     ]
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDockerArm64
     def multiArchImage = "${HARBOR_PROJECT_PREFIX}/tidb-monitor-initializer:master"

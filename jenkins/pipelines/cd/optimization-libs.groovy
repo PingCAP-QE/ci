@@ -199,7 +199,7 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
             string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "build tidb enterprise image: ${paramsDocker}.if_release:${if_release}"
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDocker
     // 上传 enterprise-plugin 到 s3
@@ -352,7 +352,7 @@ def build_enterprise_image(product, sha1, arch, if_release, if_multi_arch) {
     ]
     println "build enterprise image: ${paramsDocker}.if_release:${if_release}"
     println "paramsDocker: ${paramsDocker}"
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDocker
 }
@@ -576,7 +576,7 @@ def release_online_image(product, sha1, arch, os, platform, tag, enterprise, pre
             string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "release_online_image: ${paramsDocker}"
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDocker
 }

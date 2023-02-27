@@ -91,7 +91,7 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch) {
             string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "build tidb enterprise image: ${paramsDocker}"
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDocker
 }
@@ -117,7 +117,7 @@ def build_enterprise_image(product, sha1, arch) {
             string(name: "GIT_BRANCH", value: RELEASE_BRANCH),
     ]
     println "paramsDocker: ${paramsDocker}"
-    build job: "docker-common-check",
+    build job: "docker-common",
             wait: true,
             parameters: paramsDocker
 }
