@@ -134,21 +134,13 @@ pipeline {
                             sh label: 'build plugin whitelist', script: '''
                                 GO111MODULE=on go mod tidy
                                 ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                            '''
+                                '''
                         }
                         dir('enterprise-plugin/audit') {
-                            echo "It will build in next test step"
-                        }
-                        dir("enterprise-plugin") {
-                            sh label: 'audit plugin test', script: """
-                                go version
-                                cd test/
-                                export PD_BRANCH=${REFS.base_ref}
-                                export TIKV_BRANCH=${REFS.base_ref}
-                                export TIDB_REPO_PATH=${WORKSPACE}/tidb
-                                export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
-                                ./test.sh
-                            """
+                            sh label: 'build plugin: audit', script: '''
+                                GO111MODULE=on go mod tidy
+                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
+                                '''
                         }
                     }
                 }
