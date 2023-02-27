@@ -1,7 +1,6 @@
 final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog"]
 final FileserverDownloadURL = "http://fileserver.pingcap.net/download"
 
-def Repo = ''
 def GitHash = ''
 def GitPR = ''
 def Image = ''
@@ -12,8 +11,10 @@ def EnterprisePluginHash = ''
 def PipelineStartAt = ''
 def PipelineEndAt = ''
 
+def RepoForBuild = ''
 def ProductForBuild = ''
 def NeedEnterprisePlugin = false
+
 
 def get_dockerfile_url(arch){
     def fileName = Product
@@ -37,6 +38,7 @@ pipeline{
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
         string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
+        string(name: 'GithubRepo', description: 'the github repo, eg pingcap/tidb, just ignore unless in forked repo', defaultValue: '')
         string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
         booleanParam(name: 'IsPushGCR', description: 'whether push gcr')
     }
@@ -57,8 +59,9 @@ spec:
             }
             steps{
                 script{
-                    Repo = RepoDict[Product]
-                    GitHash = sh(returnStdout: true, script: "python /gethash.py -repo=$Repo -version=$GitRef").trim()
+                    RepoForBuild = RepoDict[Product]
+                    def hash_repo = params.GithubRepo ? params.GithubRepo : RepoForBuild
+                    GitHash = sh(returnStdout: true, script: "python /gethash.py -repo=$hash_repo -version=$GitRef").trim()
                     assert GitHash.length() == 40 : "invalid GitRef: $GitRef, returned hash is $GitHash"
                     if (GitRef ==~ 'pull/(\\d+)'){
                         GitPR = "${(GitRef =~ 'pull/(\\d+)')[0][1]}"
@@ -122,11 +125,12 @@ spec:
                                     string(name: "OS", value: "linux"),
                                     string(name: "EDITION", value: Edition),
                                     string(name: "OUTPUT_BINARY", value: BinPathDict[arch]),
-                                    string(name: "REPO", value: Repo),
+                                    string(name: "REPO", value: RepoForBuild),
                                     string(name: "PRODUCT", value: ProductForBuild),
                                     string(name: "GIT_HASH", value: GitHash),
                                     string(name: "GIT_PR", value: GitPR),
                                     string(name: "RELEASE_TAG", value: Version),
+                                    string(name: "FORKED_REPO", value: params.GithubRepo),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                 ]
@@ -141,6 +145,7 @@ spec:
                         when {expression{NeedEnterprisePlugin}}
                         steps{
                             script{
+                                def tidb_hash = params.GithubRepo ? "${params.GithubRepo}:$GitHash" : GitHash
                                 def paramsBuild = [
                                     string(name: "ARCH", value: arch),
                                     string(name: "OS", value: "linux"),
@@ -149,7 +154,7 @@ spec:
                                     string(name: "REPO", value: "enterprise-plugin"),
                                     string(name: "PRODUCT", value: "enterprise-plugin"),
                                     string(name: "GIT_HASH", value: EnterprisePluginHash),
-                                    string(name: "TIDB_HASH", value: GitHash),
+                                    string(name: "TIDB_HASH", value: tidb_hash),
                                     string(name: "GIT_PR", value: GitPR),
                                     string(name: "RELEASE_TAG", value: Version),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
