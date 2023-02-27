@@ -68,6 +68,11 @@ properties([
                         name: 'TIDB_HASH',
                         trim: true
                 ),
+                string(
+                         defaultValue: '',
+                         name: 'FORKED_REPO',
+                         trim: true
+                ),
                 booleanParam(
                         defaultValue: true,
                         name: 'FORCE_REBUILD'
@@ -285,6 +290,9 @@ if (REPO == "tikv" || REPO == "importer" || REPO == "pd") {
 if (REPO == "tiem") {
     repo = "git@github.com:pingcap-inc/${REPO}.git"
 }
+if (FORKED_REPO){
+    repo = "git@github.com:${FORKED_REPO}.git"
+}
 specRef = "+refs/heads/*:refs/remotes/origin/*"
 if (params.GIT_PR.length() >= 1) {
    specRef = "+refs/pull/${GIT_PR}/*:refs/remotes/origin/pr/${GIT_PR}/*"
@@ -341,6 +349,12 @@ def checkoutCode() {
 			rm -f src-tidb.tar.gz
             """
         }
+        def tidb_repo = 'git@github.com:pingcap/tidb.git'
+        if (TIDB_HASH.contains(':')){
+            def tidb_repo_hash = TIDB_HASH.split(":")
+            tidb_repo = "git@github.com:${tidb_repo_hash[0]}.git"
+            TIDB_HASH = tidb_repo_hash[1]
+        }
         dir('../tidb'){
             retry(3) {
                 checkout changelog: false, poll: true,
@@ -352,8 +366,9 @@ def checkoutCode() {
                                         [$class: 'CleanBeforeCheckout']], submoduleCfg: [],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
                                                 refspec      : specRef,
-                                                url          : 'git@github.com:pingcap/tidb.git']]]
+                                                url          : tidb_repo]]]
             }
+            sh "git reset --hard ${TIDB_HASH}"
         }
     }
 }
@@ -849,10 +864,7 @@ if [ "${OS}" == 'darwin' ]; then
     export PATH=${binPath}
 fi;
 go version
-cd ../
-cd tidb
-git reset --hard ${TIDB_HASH}
-cd cmd/pluginpkg
+cd ../tidb/cmd/pluginpkg
 go build 
 cd ../../../enterprise-plugin
 cd whitelist
