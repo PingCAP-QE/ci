@@ -70,8 +70,10 @@ pipeline {
                                             string(name: 'SOURCE_IMAGE', value: source),
                                             string(name: 'TARGET_IMAGE', value: target)
                                     ]
-                                source = "hub.pingcap.net/qa/${prod}:${params.Version}-rocky-pre"
-                                target = "pingcap/${prod}:${params.Version}-pre"
+                            }
+                            script {
+                                def source = "hub.pingcap.net/qa/${prod}:${params.Version}-rocky-pre"
+                                def target = "pingcap/${prod}:${params.Version}-pre"
                                 echo "sync $source to $target"
                                 build job: 'jenkins-image-syncer',
                                     parameters: [
