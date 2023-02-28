@@ -87,10 +87,9 @@ pipeline {
                             [ -f ./bin/cdc ] || make cdc
                             [ -f ./bin/kafka_consumer ] || make kafka_consumer
                             [ -f ./bin/storage_consumer ] || make storage_consumer
-                            [ -f ./bin/cdc.test ] || integration_test_build
-                            # make clean
-                            # make integration_test_build kafka_consumer storage_consumer cdc
+                            [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
+
                         """
                     }
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") { 
@@ -99,7 +98,6 @@ pipeline {
                             ls -alh ./bin
                         """
                     }
-
                 }
             }
         }
@@ -135,6 +133,16 @@ pipeline {
                                         ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
                                     """
                                 }
+                            }
+                        }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /tmp/tidb_cdc_test/
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
+                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
                         }
                     }
