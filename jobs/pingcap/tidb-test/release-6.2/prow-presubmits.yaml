@@ -6,7 +6,7 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md)$"
       context: ci/build
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
@@ -16,7 +16,7 @@ presubmits:
       decorate: false # need add this.
       run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-mysql-test(?: .*?)?$"
       rerun_command: "/test integration-mysql-test"
       branches:
@@ -26,7 +26,7 @@ presubmits:
       run_if_changed: "mysql_test/.*"
       decorate: false # need add this.
       context: ci/mysql-test
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
       branches:

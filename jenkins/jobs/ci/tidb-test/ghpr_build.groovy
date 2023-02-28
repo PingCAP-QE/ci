@@ -47,6 +47,8 @@ pipelineJob('tidb_test_ghpr_build') {
                     orgslist('pingcap')
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^(release-)?6\\.[0-6]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex

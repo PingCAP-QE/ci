@@ -119,7 +119,7 @@ pipeline {
                             }
                             dir('tidb-test/mysql_test') {
                                 cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
-                                    sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                    sh label: "CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export CACHE_ENABLED=${CACHE_ENABLED}
                                     export TIDB_TEST_STORE_NAME="unistore"
