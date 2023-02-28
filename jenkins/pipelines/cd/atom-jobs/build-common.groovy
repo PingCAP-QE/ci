@@ -368,7 +368,7 @@ def checkoutCode() {
                                                 refspec      : specRef,
                                                 url          : tidb_repo]]]
             }
-            sh "git reset --hard ${TIDB_HASH}"
+            sh 'test -z "$(git status --porcelain)"'
         }
     }
 }
