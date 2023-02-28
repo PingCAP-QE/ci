@@ -123,30 +123,27 @@ def goVersion = selectGoVersion(env.BRANCH_NAME)
 switch(goVersion) {
     case "go1.20":
         GO_BUILD_SLAVE = "build_go1200"
+        break
     case "go1.19":
         GO_BUILD_SLAVE = "build_go1190"
+        break
     case "go1.18":
         GO_BUILD_SLAVE = "build_go1180"
+        break
     case "go1.16":
         GO_BUILD_SLAVE = "build_go1160"
+        break
     case "go1.13":
         GO_BUILD_SLAVE = "build_go1130"
+        break
     default:
         GO_BUILD_SLAVE = "build_go1200"        
-    break
+        break
 }
-
 println "This build use ${goVersion}"
+println "This build use ${GO_BUILD_SLAVE}"
 
 def BUILD_URL = 'git@github.com:tikv/pd.git'
-def slackcolor = 'good'
-def master_branch_node = "${GO_BUILD_SLAVE}"
-def branchNodeMap = [
-    "master" : master_branch_node,
-    "release-2.0" : "build_go1130",
-    "release-2.1" : "build_go1130",
-    "release-3.0" : "build_go1130",
-]
 
 def release_one(repo,hash) {
     def binary = "builds/pingcap/test/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
@@ -170,8 +167,7 @@ def release_one(repo,hash) {
 
 
 try {
-    // 如果不在 map 里，如 release-3.1 分支或者 tag 分支，就使用和 master 一样的环境
-    node(branchNodeMap.get("${env.BRANCH_NAME}".toString(), master_branch_node)) {
+    node("${GO_BUILD_SLAVE}") {
         def ws = pwd()
         //deleteDir()
 

@@ -67,20 +67,25 @@ def goVersion = selectGoVersion(env.BRANCH_NAME)
 switch(goVersion) {
     case "go1.20":
         GO_BUILD_SLAVE = "build_go1200"
+        break
     case "go1.19":
         GO_BUILD_SLAVE = "build_go1190"
+        break
     case "go1.18":
         GO_BUILD_SLAVE = "build_go1180"
+        break
     case "go1.16":
         GO_BUILD_SLAVE = "build_go1160"
+        break
     case "go1.13":
         GO_BUILD_SLAVE = "build_go1130"
+        break
     default:
         GO_BUILD_SLAVE = "build_go1200"        
-    break
+        break
 }
-
 println "This build use ${goVersion}"
+println "This build use ${GO_BUILD_SLAVE}"
 
 
 def BUILD_URL = 'git@github.com:pingcap/tidb-test.git'
