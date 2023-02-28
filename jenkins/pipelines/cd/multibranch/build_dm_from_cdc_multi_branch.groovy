@@ -531,20 +531,3 @@ try {
          upload_result_to_db()
     }
 }
-stage('Summary') {
-    echo "Send slack here ..."
-    //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg_succ = "[${env.JOB_NAME.replaceAll('%2F','/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration}` Mins" + "\n" +
-            "Build Branch: `${env.BRANCH_NAME}`, Githash: `${githash.take(7)}`" + "\n" +
-            "Binary Download URL:" + "\n" +
-            "${UCLOUD_OSS_URL}/builds/pingcap/dm/${githash}/centos7/dm-linux-amd64.tar.gz"
-    def slackmsg_fail = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#iamgroot', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg_fail}"
-    } else {
-        slackSend channel: '#iamgroot', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg_succ}"
-    }
-}

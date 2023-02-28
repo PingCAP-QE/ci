@@ -263,11 +263,3 @@ try {
     }
    
 }
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}"
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-}
