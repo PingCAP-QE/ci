@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tiflow/latest/pod-cdc_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_test.yaml'
 
 pipeline {
     agent {
@@ -100,8 +100,8 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name 'TEST_CASE'
-                        values 'clustered_index', 'consistent_replicate_storage_file'
+                        name 'TEST_GROUP'
+                        values 'G00', 'G01', 'others'
                     }
                 }
                 agent{
@@ -123,7 +123,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_CASE}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        make integration_test_mysql CASE="${TEST_CASE}
+                                        ./tests/integration_tests/run_group.sh ${TEST_GROUP}
                                     """
                                 }
                             }

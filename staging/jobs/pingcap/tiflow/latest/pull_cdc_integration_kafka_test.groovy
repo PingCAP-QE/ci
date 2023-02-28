@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiflow/cdc_integration_test') {
+pipelineJob('pingcap/tiflow/pull_cdc_integration_kafka_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -11,6 +11,7 @@ pipelineJob('pingcap/tiflow/cdc_integration_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
+        buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/pingcap/tiflow")
         pipelineTriggers {
             triggers {
@@ -18,7 +19,7 @@ pipelineJob('pingcap/tiflow/cdc_integration_test') {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
 
-                    triggerPhrase('.*/(debug-cdc-integration-mysql-test.*)')
+                    triggerPhrase('.*/(debug-cdc-integration-kafka-test.*)')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
@@ -53,7 +54,7 @@ pipelineJob('pingcap/tiflow/cdc_integration_test') {
                     extensions {
                         ghprbCancelBuildsOnUpdate { overrideGlobal(true) }
                         ghprbSimpleStatus {
-                            commitStatusContext("debug-ci/cdc-integration-mysql-test")
+                            commitStatusContext("debug-ci/cdc-integration-kafka-test")
                             statusUrl('${RUN_DISPLAY_URL}')
                             startedStatus("")
                             triggeredStatus("")
@@ -69,7 +70,7 @@ pipelineJob('pingcap/tiflow/cdc_integration_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("staging/pipelines/pingcap/tiflow/latest/cdc_integration_test.groovy")
+            scriptPath("staging/pipelines/pingcap/tiflow/latest/pull_cdc_integration_kafka_test.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }
