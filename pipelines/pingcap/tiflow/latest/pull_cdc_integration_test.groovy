@@ -85,8 +85,8 @@ pipeline {
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/storage_consumer ] || make storage_consumer
+                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
+                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
