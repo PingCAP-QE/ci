@@ -1,3 +1,9 @@
+/*
+    Deprecate this file, br has been merged into tidb repo since v5.2 (inclde v5.2.0)
+    Get the br binary from tidb repo instead of br repo,
+    build_tidb_multi_branch.groovy will build br binary for all branches
+*/
+
 // choose which go version to use. 
 def String selectGoVersion(String branchORTag) {
     def goVersion="go1.18"

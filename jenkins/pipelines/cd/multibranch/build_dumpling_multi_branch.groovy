@@ -1,3 +1,9 @@
+/*
+    Deprecate this file, dumpling has been merged into tidb repo since v5.3 (include v5.3.0)
+    Get the dumpling binary from tidb repo instead of dumpling repo,
+    build_tidb_multi_branch.groovy will build dumpling binary
+*/
+
 // choose which go version to use. 
 def String selectGoVersion(String branchORTag) {
     def goVersion="go1.18"

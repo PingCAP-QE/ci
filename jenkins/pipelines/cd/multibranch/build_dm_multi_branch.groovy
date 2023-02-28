@@ -1,3 +1,9 @@
+/*
+    Deprecate this file, dm has been merged into tiflow repo since v5.3 (include v5.3.0)
+    Get the br binary from tiflow repo instead of dm repo,
+    build_dm_from_cdc_multi_branch.groovy will build dm binary
+*/
+
 def boolean needGo1164(List<String> branches, String targetBranchOrTAG) {
     for (String item : branches) {
         if (targetBranchOrTAG.startsWith(item)) {
