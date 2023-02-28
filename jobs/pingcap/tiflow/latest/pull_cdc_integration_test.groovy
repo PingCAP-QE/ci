@@ -1,15 +1,16 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiflow/cdc_integration_test') {
+pipelineJob('pingcap/tiflow/pull_cdc_integration_test') {
     logRotator {
         daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")
         stringParam("ghprbPullId")
+        stringParam("ghprbTargetBranch")
     }
     properties {
-        // priority(0) // 0 fast than 1
+        buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/pingcap/tiflow")
         pipelineTriggers {
             triggers {
@@ -68,7 +69,7 @@ pipelineJob('pingcap/tiflow/cdc_integration_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflow/latest/cdc_integration_test.groovy")
+            scriptPath("pipelines/pingcap/tiflow/latest/pull_cdc_integration_test.groovy")
             scm {
                 github('PingCAP-QE/ci', 'main')
             }

@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-cdc_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_test.yaml'
 
 pipeline {
     agent {
@@ -73,13 +73,14 @@ pipeline {
                 dir("third_party_download") {
                     sh label: "download third_party", script: """
                         cd ../tiflow
-                        make cdc_prepare_test_binaries 
-                        make cdc_check_third_party_binary
+                        make prepare_test_binaries 
+                        make check_third_party_binary
+                        cd - && pwd
                         mkdir -p bin && mv ../tiflow/bin/* ./bin/
                     """
                 }
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/cdc-integration-test-binarys-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) { 
+                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/cdc-integration-test-binarys-${ghprbActualCommit}") { 
                         sh label: "prepare", script: """
                             make clean
                             make integration_test_build kafka_consumer storage_consumer cdc
@@ -101,8 +102,8 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name 'TEST_CASE'
-                        values 'clustered_index', 'consistent_replicate_storage_file'
+                        name 'TEST_GROUP'
+                        values 'G00', 'G01', 'others'
                     }
                 }
                 agent{
@@ -122,16 +123,11 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    sh label: "${TEST_CASE}", script: """
+                                    sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        make integration_test_mysql CASE="${TEST_CASE}
+                                       ./tests/integration_tests/run_group.sh  mysql ${TEST_GROUP}
                                     """
                                 }
-                            }
-                        }
-                        post {
-                            always {
-                                junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)  
                             }
                         }
                     }
