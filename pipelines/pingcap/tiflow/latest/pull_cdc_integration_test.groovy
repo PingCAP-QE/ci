@@ -72,18 +72,24 @@ pipeline {
             steps {
                 dir("third_party_download") {
                     sh label: "download third_party", script: """
-                        cd ../tiflow
-                        make prepare_test_binaries 
-                        make check_third_party_binary
-                        cd - && pwd
-                        mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                        cd ../tiflow && pwd && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
+                        # make check_third_party_binary
+                        cd - && pwd && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                        ls -alh ./bin
                     """
                 }
                 dir("tiflow") {
                     cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/cdc-integration-test-binarys-${ghprbActualCommit}") { 
+                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                        // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
-                            make clean
-                            make integration_test_build kafka_consumer storage_consumer cdc
+                            ls -alh ./bin
+                            [ -f ./bin/cdc ] || make cdc
+                            [ -f ./bin/kafka_consumer ] || make kafka_consumer
+                            [ -f ./bin/storage_consumer ] || make storage_consumer
+                            [ -f ./bin/cdc.test ] || integration_test_build
+                            # make clean
+                            # make integration_test_build kafka_consumer storage_consumer cdc
                             ls -alh ./bin
                         """
                     }
@@ -125,7 +131,8 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                       ./tests/integration_tests/run_group.sh  mysql ${TEST_GROUP}
+                                        chmod +x ./tests/integration_tests/run_group.sh
+                                        ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
                                     """
                                 }
                             }
