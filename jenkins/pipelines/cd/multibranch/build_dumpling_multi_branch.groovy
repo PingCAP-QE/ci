@@ -1,3 +1,9 @@
+/*
+    Deprecate this file, dumpling has been merged into tidb repo since v5.3 (include v5.3.0)
+    Get the dumpling binary from tidb repo instead of dumpling repo,
+    build_tidb_multi_branch.groovy will build dumpling binary
+*/
+
 // choose which go version to use. 
 def String selectGoVersion(String branchORTag) {
     def goVersion="go1.18"
@@ -151,12 +157,4 @@ try {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-}
-
-stage('Summary') {
-    echo "Send slack here ..."
-    def slackmsg = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-    if (currentBuild.result != "SUCCESS" && (branch == "master" || branch.startsWith("release") || branch.startsWith("refs/tags/v"))) {
-        slackSend channel: '#jenkins-ci-build-critical', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
 }

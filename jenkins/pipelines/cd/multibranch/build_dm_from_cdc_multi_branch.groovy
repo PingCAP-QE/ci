@@ -61,10 +61,18 @@ def upload_result_to_db() {
 
 }
 
-// choose which go version to use. 
+/// choose which go version to use. 
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        if (branchNameOrTag >= "v7.0") {
+            println "tag ${branchNameOrTag} use go 1.20"
+            return "go1.20"
+        }
+        // special for v6.1 larger than patch 3
+        if (branchNameOrTag.startsWith("v6.1") && branchNameOrTag >= "v6.1.3" || branchNameOrTag=="v6.1.0-nightly") {
+            return "go1.19"
+        }
         if (branchNameOrTag >= "v6.3") {
             println "tag ${branchNameOrTag} use go 1.19"
             return "go1.19"
@@ -81,17 +89,19 @@ def selectGoVersion(branchNameOrTag) {
             println "tag ${branchNameOrTag} use go 1.13"
             return "go1.13"
         }
-        println "tag ${branchNameOrTag} use default version go 1.19"
-        return "go1.19"
+        println "tag ${branchNameOrTag} use default version go 1.20"
+        return "go1.20"
     } else { 
         println "this is a branch"
         if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.19")
-            return "go1.19"
+            println("branchNameOrTag: master  use go1.20")
+            return "go1.20"
         }
-
-
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-6.1") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.0") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.20")
+            return "go1.20"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-7.0" && branchNameOrTag >= "release-6.1") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.19")
             return "go1.19"
         }
@@ -108,25 +118,36 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
             return "go1.13"
         }
-        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.18"
-        return "go1.19"
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.20"
+        return "go1.20"
     }
 }
 
 
-def GO_BUILD_SLAVE = "build_go1190"
+def GO_BUILD_SLAVE = "build_go1200"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
-if ( goVersion == "go1.18" ) {
-    GO_BUILD_SLAVE = "build_go1180"
+switch(goVersion) {
+    case "go1.20":
+        GO_BUILD_SLAVE = "build_go1200"
+        break
+    case "go1.19":
+        GO_BUILD_SLAVE = "build_go1190"
+        break
+    case "go1.18":
+        GO_BUILD_SLAVE = "build_go1180"
+        break
+    case "go1.16":
+        GO_BUILD_SLAVE = "build_go1160"
+        break
+    case "go1.13":
+        GO_BUILD_SLAVE = "build_go1130"
+        break
+    default:
+        GO_BUILD_SLAVE = "build_go1200"        
+        break
 }
-if ( goVersion == "go1.16" ) {
-    GO_BUILD_SLAVE = GO1160_BUILD_SLAVE
-}
-if ( goVersion == "go1.13" ) {
-    GO_BUILD_SLAVE = "build_go1130_memvolume"
-}
-
 println "This build use ${goVersion}"
+println "This build use ${GO_BUILD_SLAVE}"
 
 env.DOCKER_HOST = "tcp://localhost:2375"
 
@@ -513,22 +534,5 @@ try {
 }finally{
     if(env.BRANCH_NAME == 'master'){
          upload_result_to_db()
-    }
-}
-stage('Summary') {
-    echo "Send slack here ..."
-    //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg_succ = "[${env.JOB_NAME.replaceAll('%2F','/')}-${env.BUILD_NUMBER}] `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration}` Mins" + "\n" +
-            "Build Branch: `${env.BRANCH_NAME}`, Githash: `${githash.take(7)}`" + "\n" +
-            "Binary Download URL:" + "\n" +
-            "${UCLOUD_OSS_URL}/builds/pingcap/dm/${githash}/centos7/dm-linux-amd64.tar.gz"
-    def slackmsg_fail = "${currentBuild.result}: `${env.JOB_NAME}` #${env.BUILD_NUMBER}:\n${env.RUN_DISPLAY_URL}\n @here"
-
-    if (currentBuild.result != "SUCCESS") {
-        slackSend channel: '#iamgroot', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg_fail}"
-    } else {
-        slackSend channel: '#iamgroot', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg_succ}"
     }
 }

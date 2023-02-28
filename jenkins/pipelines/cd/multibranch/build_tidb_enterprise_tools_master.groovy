@@ -106,7 +106,3 @@ try {
     echo "${e}"
 }
 
-stage('Summary') {
-    echo "Send slack here ..."
-    //slackSend channel: "", color: "${slackcolor}", teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-}
