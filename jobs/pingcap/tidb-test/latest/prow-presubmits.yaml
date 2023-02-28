@@ -11,6 +11,7 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb-test/ghpr_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
@@ -21,6 +22,7 @@ presubmits:
       rerun_command: "/test integration-jdbc-test"
       branches:
         - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb-test/ghpr_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -31,6 +33,7 @@ presubmits:
       rerun_command: "/test integration-mysql-test"
       branches:
         - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb-test/ghpr_mysql_test
       agent: jenkins
       run_if_changed: "mysql_test/.*"
@@ -41,3 +44,4 @@ presubmits:
       rerun_command: "/test mysql-test"
       branches:
         - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
