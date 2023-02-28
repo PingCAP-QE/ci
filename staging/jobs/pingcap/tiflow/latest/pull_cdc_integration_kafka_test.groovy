@@ -11,6 +11,7 @@ pipelineJob('pingcap/tiflow/pull_cdc_integration_kafka_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
+        buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/pingcap/tiflow")
         pipelineTriggers {
             triggers {
