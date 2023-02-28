@@ -71,12 +71,14 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
-                    sh label: "download third_party", script: """
-                        cd ../tiflow && pwd && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
-                        # make check_third_party_binary
-                        cd - && pwd && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                        ls -alh ./bin
-                    """
+                    retry(2) {
+                        sh label: "download third_party", script: """
+                            cd ../tiflow && pwd && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
+                            # make check_third_party_binary
+                            cd - && pwd && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                            ls -alh ./bin
+                        """
+                    }
                 }
                 dir("tiflow") {
                     cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/cdc-integration-test-binarys-${ghprbActualCommit}") { 
