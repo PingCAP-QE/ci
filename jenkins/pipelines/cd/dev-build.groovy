@@ -39,8 +39,9 @@ pipeline{
         choice(name: 'Edition', choices : ["community", "enterprise"])
         string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
         string(name: 'GithubRepo', description: 'the github repo,just ignore unless in forked repo, eg pingcap/tidb', defaultValue: '')
-        string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
         booleanParam(name: 'IsPushGCR', description: 'whether push gcr')
+        string(name: 'Features', description: 'comma seperated features to build with', defaultValue: '')
+        string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
     }
     stages{
         stage('prepare'){
@@ -133,6 +134,7 @@ spec:
                                     string(name: "GITHUB_REPO", value: params.GithubRepo),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
+                                    [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: params.Features.contains('failpoint')],
                                 ]
                                 echo "$paramsBuild"
                                 build job: "build-common",
