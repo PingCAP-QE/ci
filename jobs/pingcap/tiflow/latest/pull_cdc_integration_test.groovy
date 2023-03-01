@@ -79,7 +79,7 @@ pipelineJob('pingcap/tiflow/pull_cdc_integration_test') {
                     extensions {
                         cloneOptions {
                             depth(1)
-                            shallowClones(true)
+                            shallow(true)
                             timeout(5)
                         } 
                     }
