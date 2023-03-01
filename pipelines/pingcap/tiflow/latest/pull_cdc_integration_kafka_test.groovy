@@ -134,17 +134,18 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    timeout(time: 6, unit: 'MINUTES') {
-                                        sh label: "Waiting for kafka", script: """
-                                            echo "Waiting for zookeeper to be ready..."
-                                            while ! nc -z localhost 2181; do sleep 10; done
-                                            echo "Waiting for kafka to be ready..."
-                                            while ! nc -z localhost 9092; do sleep 10; done
-                                            echo "Waiting for kafka-broker to be ready..."
-                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                        """
+                                    container("kafka") {
+                                        timeout(time: 6, unit: 'MINUTES') {
+                                            sh label: "Waiting for kafka", script: """
+                                                echo "Waiting for zookeeper to be ready..."
+                                                while ! nc -z localhost 2181; do sleep 10; done
+                                                echo "Waiting for kafka to be ready..."
+                                                while ! nc -z localhost 9092; do sleep 10; done
+                                                echo "Waiting for kafka-broker to be ready..."
+                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                            """
+                                        }
                                     }
-
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                         chmod +x ./tests/integration_tests/run_group.sh
