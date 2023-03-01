@@ -317,7 +317,7 @@ def checkoutCode() {
             println "get code from fileserver to reduce clone time"
             println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
             sh """
-            curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${codeCacheInFileserverUrl}
+            wget -c --tries 3 --no-verbose ${codeCacheInFileserverUrl}
             tar -xzf src-${REPO}.tar.gz --strip-components=1
             rm -f src-${REPO}.tar.gz
             rm -rf ./*
