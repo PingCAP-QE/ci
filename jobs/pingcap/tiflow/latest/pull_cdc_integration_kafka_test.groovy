@@ -71,7 +71,19 @@ pipelineJob('pingcap/tiflow/pull_cdc_integration_kafka_test') {
             lightweight(true)
             scriptPath("pipelines/pingcap/tiflow/latest/pull_cdc_integration_kafka_test.groovy")
             scm {
-                github('PingCAP-QE/ci', 'main')
+                git{
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
+                    }
+                    branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallowClones(true)
+                            timeout(5)
+                        } 
+                    }
+                }
             }
         }
     }
