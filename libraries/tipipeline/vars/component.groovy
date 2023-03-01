@@ -1,26 +1,37 @@
-// TODO: extract branch parsing codes to common function.
-
-// checkout component src from git repo.
-def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="", trunkBranch="master") {
+// compute component branch from pr info.
+def computeBranchFromPR(String keyInComment, String prTargetBranch, String prCommentBody, String trunkBranch="master") {
     // /run-xxx dep1=release-x.y
-    final commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/    
+    final commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/
     // - release-6.2
     // - release-6.2-20220801
     // - 6.2.0-pitr-dev    
     final releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
+    // - release-6.1-20230101-v6.1.2
+    final newHotfixBranchReg = /^release\-\d+\.\d+\-\d+\-v(\d+\.\d+\.\d+)/
     // - feature/abcd
     // - feature_abcd
     final featureBranchReg = /^feature[\/_].*/
 
+    // the components that will created the patch release branch when version released: release-X.Y.Z
+    final componentsSupportPatchReleaseBranch = ['tidb-test']
+
     def componentBranch = prTargetBranch
     if (prCommentBody =~ commentBodyReg) {
         componentBranch = (prCommentBody =~ commentBodyReg)[0][1]
+    } else if (prTargetBranch =~ newHotfixBranchReg && componentsSupportPatchReleaseBranch.contains(keyInComment)) {        
+        componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][1])
     } else if (prTargetBranch =~ releaseOrHotfixBranchReg) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
     } else if (prTargetBranch =~ featureBranchReg) {
        componentBranch = trunkBranch
     }
 
+    return componentBranch
+}
+
+// checkout component src from git repo.
+def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="", trunkBranch="master", timeout=5) {
+    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
     def pluginSpec = "+refs/heads/*:refs/remotes/origin/*"
     // transfer plugin branch from pr/28 to origin/pr/28/head
     if (componentBranch.startsWith("pr/")) {
@@ -38,7 +49,7 @@ def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId=
             extensions: [
                 [$class: 'PruneStaleBranch'],
                 [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: 2],
+                [$class: 'CloneOption', timeout: timeout],
             ], 
             submoduleCfg: [],
             userRemoteConfigs: [[
@@ -52,24 +63,7 @@ def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId=
 
 // fetch component artifact from artifactory(current http server)
 def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBody, artifactPath, pathInArchive="", trunkBranch="master") {
-    // /run-xxx dep1=release-x.y
-    final commentBodyReg = /\b${keyInComment}\s*=\s*([^\s\\]+)(\s|\\|$)/    
-    // - release-6.2
-    // - release-6.2-20220801
-    // - 6.2.0-pitr-dev    
-    final releaseOrHotfixBranchReg = /^(release\-)?(\d+\.\d+)(\.\d+\-.+)?/
-    // - feature/abcd
-    // - feature_abcd
-    final featureBranchReg = /^feature[\/_].*/
-
-    def componentBranch = prTargetBranch
-    if (prCommentBody =~ commentBodyReg) {
-        componentBranch = (prCommentBody =~ commentBodyReg)[0][1]
-    } else if (prTargetBranch =~ releaseOrHotfixBranchReg) {
-        componentBranch = String.format('release-%s', (prTargetBranch =~ releaseOrHotfixBranchReg)[0][2])
-    } else if (prTargetBranch =~ featureBranchReg) {
-       componentBranch = trunkBranch
-    }
+    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
 
     sh(label: 'download and extract from server', script: """
         sha1=""
