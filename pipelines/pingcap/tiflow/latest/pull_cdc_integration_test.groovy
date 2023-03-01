@@ -73,10 +73,15 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && pwd && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
-                            # make check_third_party_binary
-                            cd - && pwd && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
+                            make check_third_party_binary
+                            cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
+                            ./bin/tidb-server -V
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tiflash --version
+                            ./bin/sync_diff_inspector --version
                         """
                     }
                 }
