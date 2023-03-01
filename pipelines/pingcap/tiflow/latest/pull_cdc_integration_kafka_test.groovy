@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_kafka_test.yaml'
 
 pipeline {
     agent {
@@ -20,7 +20,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -126,7 +126,7 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         environment { 
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
@@ -134,10 +134,21 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
+                                    timeout(time: 6, unit: 'MINUTES') {
+                                        sh label: "Waiting for kafka", script: """
+                                            echo "Waiting for zookeeper to be ready..."
+                                            while ! nc -z localhost 2181; do sleep 10; done
+                                            echo "Waiting for kafka to be ready..."
+                                            while ! nc -z localhost 9092; do sleep 10; done
+                                            echo "Waiting for kafka-broker to be ready..."
+                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                        """
+                                    }
+
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                         chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
+                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
                                     """
                                 }
                             }
