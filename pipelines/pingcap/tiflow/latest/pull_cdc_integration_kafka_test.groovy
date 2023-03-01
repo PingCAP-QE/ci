@@ -136,7 +136,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     container("kafka") {
                                         timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka", script: """
+                                            sh label: "Waiting for kafka ready", script: """
                                                 echo "Waiting for zookeeper to be ready..."
                                                 while ! nc -z localhost 2181; do sleep 10; done
                                                 echo "Waiting for kafka to be ready..."
