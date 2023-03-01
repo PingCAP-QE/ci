@@ -26,7 +26,8 @@ spec:
         - name: KAFKA_BROKER_ID
           value: "1"
         - name: RACK_COMMAND
-          value: "curl -sfL http://shorturl.at/fPUW6 -o /tmp/kafka.server.keystore.jks && curl -sfL http://shorturl.at/giQS0 -o /tmp/kafka.server.truststore.jks"
+          value: "curl -sfL http://shorturl.at/fPUW6 -o /tmp/kafka.server.keystore.jks && 
+            curl -sfL http://shorturl.at/giQS0 -o /tmp/kafka.server.truststore.jks"
         - name: KAFKA_LISTENERS
           value: "SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092"
         - name: KAFKA_ADVERTISED_LISTENERS
