@@ -282,7 +282,7 @@ if (params.OS == "darwin" && params.ARCH == "arm64") {
     }
 }
 
-if (ARCH == 'arm64' ||  OS == 'darwin' ){
+if (binPath){
     env.PATH = binPath
 }
 
