@@ -112,7 +112,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 
+                        values "all_mode", "ha_cases"
                     }
                 }
                 agent{
