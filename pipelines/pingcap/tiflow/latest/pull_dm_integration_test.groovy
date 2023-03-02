@@ -74,7 +74,6 @@ pipeline {
                     retry(2) {
                         sh label: "download third_party", script: """
                             cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh master && ls -alh ./bin
-                            make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
                             ./bin/tidb-server -V
