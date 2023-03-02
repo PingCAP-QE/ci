@@ -282,6 +282,10 @@ if (params.OS == "darwin" && params.ARCH == "arm64") {
     }
 }
 
+if (binPath){
+    env.PATH = binPath
+}
+
 // define git url and git ref.
 repo = "git@github.com:pingcap/${REPO}.git"
 if (REPO == "tikv" || REPO == "importer" || REPO == "pd") {
@@ -378,9 +382,6 @@ def checkoutCode() {
 TARGET = "output" 
 buildsh = [:]
 buildsh["tidb-ctl"] = """
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 go build -o binarys/${PRODUCT}
 rm -rf ${TARGET}
@@ -397,9 +398,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
 fi;
 if [ "${EDITION}" = 'enterprise' ]; then
     export TIDB_EDITION=Enterprise
-fi;
-if [ "${OS}" = 'darwin' ]; then
-    export PATH=${binPath}
 fi;
 go version
 make clean
@@ -443,9 +441,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
 fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 make clean
 git checkout .
@@ -461,9 +456,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
-fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
 fi;
 go version
 git checkout .
@@ -487,9 +479,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
 fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 make clean
 make build
@@ -504,9 +493,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
-fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
 fi;
 go version
 make build
@@ -538,9 +524,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
-fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
 fi;
 
 go version
@@ -622,9 +605,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
 fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 if [ ${failpoint} == 'true' ]; then
     make failpoint-enable
@@ -646,9 +626,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
 fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 if [ ${REPO} == "tidb" ]; then
     make build_dumpling
@@ -667,9 +644,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
 fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 make
 rm -rf ${TARGET}
@@ -683,9 +657,6 @@ if [ ${RELEASE_TAG}x != ''x ];then
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
     git branch -D refs/tags/${RELEASE_TAG} || true
     git checkout -b refs/tags/${RELEASE_TAG}
-fi;
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
 fi;
 go version
 make syncer
@@ -779,9 +750,6 @@ if [ ${EDITION} == 'enterprise' ]; then
     export TIKV_EDITION=Enterprise
     export ROCKSDB_SYS_SSE=0
 fi;
-if [[ ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 if [ ${OS} == 'linux' ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
@@ -819,9 +787,6 @@ cp target/release/tikv-importer ${TARGET}/bin
 // NOTE: remove param --auto-push for pull-monitoring 
 //      we don't want to auto create pull request in repo https://github.com/pingcap/monitoring/pulls
 buildsh["monitoring"] = """
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go build -o pull-monitoring  cmd/monitoring.go
 ./pull-monitoring  --config=monitoring.yaml --tag=${RELEASE_TAG} --token=\$TOKEN
 rm -rf ${TARGET}
@@ -830,17 +795,11 @@ mv monitor-snapshot/${RELEASE_TAG}/operator/* ${TARGET}
 """
 
 buildsh["tiem"] = """
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 make build
 """
 
 buildsh["tidb-test"] = """
-if [[ ${ARCH} == 'arm64' ||  ${OS} == 'darwin' ]]; then
-    export PATH=${binPath}
-fi;
 go version
 if [ -d "partition_test/build.sh" ]; then
     cd partition_test
@@ -860,9 +819,6 @@ fi;
 """
 
 buildsh["enterprise-plugin"] = """
-if [ "${OS}" == 'darwin' ]; then
-    export PATH=${binPath}
-fi;
 go version
 cd ../tidb/cmd/pluginpkg
 go build 
