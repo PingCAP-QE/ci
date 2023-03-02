@@ -153,7 +153,7 @@ pipeline {
                         post {
                             failure {
                                 sh label: "collect logs", script: """
-                                     
+                                     echo "collect logs"
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
