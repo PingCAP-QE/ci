@@ -50,9 +50,9 @@ function get_pre_artifacts_by_pr() {
     commit_sha=$(gh pr view "${pull_request_url}" --json commits --jq '.commits[-1].oid')
 
     # find artifacts.
-    get_artifacts_of_by_commit_sha "tidb-checker/pr" "${commit_sha}" "tidb-server.tar.gz" # amd64
-    get_artifacts_of_by_commit_sha "tikv/pr" "${commit_sha}" "tikv-server.tar.gz"         # amd64
-    get_artifacts_of_by_commit_sha "pd/pr" "${commit_sha}" "pd-server.tar.gz"             # amd64
+    get_artifacts_of_by_commit_sha "tidb-check/pr" "${commit_sha}" "tidb-server.tar.gz" # amd64
+    get_artifacts_of_by_commit_sha "tikv/pr" "${commit_sha}" "tikv-server.tar.gz"       # amd64
+    get_artifacts_of_by_commit_sha "pd/pr" "${commit_sha}" "pd-server.tar.gz"           # amd64
 
     return 0
 }
