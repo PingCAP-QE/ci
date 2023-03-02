@@ -18,7 +18,7 @@ pipelineJob('pingcap/tiflow/pull_dm_integration_test') {
                     cron('H/5 * * * *')
                     gitHubAuthId('') // using the default only one.
 
-                    triggerPhrase('.*/(debug-dm-integration-mysql-test.*)')
+                    triggerPhrase('.*/(debug-dm-integration-test.*)')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
