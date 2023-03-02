@@ -56,9 +56,9 @@ spec:
         - name: KAFKA_SERVER
           value: '127.0.0.1:9092'
         - name: ZOOKEEPER_SERVER
-          value: 127.0.0.1:2181'
+          value: '127.0.0.1:2181'
         - name: DB_NAME
-          value: test
+          value: 'test'
         - name: DOWNSTREAM_DB_HOST
           value: "127.0.0.1"
         - name: DOWNSTREAM_DB_PORT
