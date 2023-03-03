@@ -247,7 +247,7 @@ def containerLabel = "golang"
 def binPath = ""
 def useArmPod = false
 
-if (params.ARCH == "arm64" && params.PRODUCT in ["tidb", "enterprise-plugin"]) {
+if (params.ARCH == "arm64" && params.PRODUCT in ["tidb", "enterprise-plugin", "tics"]) {
     useArmPod = true
 }
 if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
@@ -257,22 +257,21 @@ if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
 if (params.PRODUCT == "tics") {
     nodeLabel = "build_tiflash"
     containerLabel = "tiflash"
+    if (params.ARCH == "arm64" && params.OS == "linux"){
+        nodeLabel = "tiflash_build_arm"
+        containerLabel = "tiflash"
+    }
 } 
 if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPod) {
     binPath = "${GO_BIN_PATH}:/usr/local/node/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
     nodeLabel = "arm"
     containerLabel = ""
-    if (params.PRODUCT == "tics"){
-        nodeLabel = "tiflash_build_arm"
-        containerLabel = "tiflash"
-    }
 }
 if (params.OS == "darwin" && params.ARCH == "amd64") {
     binPath = "${GO_BIN_PATH}:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/opt/binutils/bin/"
     nodeLabel = "mac"
     containerLabel = ""
 }
-
 if (params.OS == "darwin" && params.ARCH == "arm64") {
     binPath = "${GO_BIN_PATH}:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/opt/binutils/bin/"
     nodeLabel = "mac-arm"
