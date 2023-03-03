@@ -25,8 +25,13 @@ spec:
         - name: MYSQL_ROOT_PASSWORD
           value: "123456"
       args:
-        - "--ssl=ON --log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON 
-          --server-id=1 --default-authentication-plugin=mysql_native_password"
+        - "--ssl=ON"
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--enforce-gtid-consistency=ON"
+        - "--gtid-mode=ON"
+        - "--server-id=1"
+        - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
       image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
       tty: true
@@ -40,8 +45,13 @@ spec:
         - name: MYSQL_TCP_PORT
           value: "3307"
       args:
-        - "--ssl=ON --log-bin --binlog-format=ROW --enforce-gtid-consistency=ON --gtid-mode=ON 
-          --server-id=1 --default-authentication-plugin=mysql_native_password"
+        - "--ssl=ON"
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--enforce-gtid-consistency=ON"
+        - "--gtid-mode=ON"
+        - "--server-id=1"
+        - "--default-authentication-plugin=mysql_native_password"
     - name: net-tool
       image: wbitt/network-multitool
       tty: true

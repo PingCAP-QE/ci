@@ -31,7 +31,7 @@ pipeline {
                     echo "-------------------------"
                     go env
                     echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
@@ -130,25 +130,24 @@ pipeline {
                         }
                         steps {
                             dir('tiflow') {
-                                timeout(time: 5, unit: 'MINUTES') {
-                                    container("mysql1") {
-                                        sh label: "wait mysql ready", script: """
-                                            pwd && ls -alh
-                                            export MYSQL_HOST="127.0.0.1"
-                                            export MYSQL_PORT="3306"
-                                            ls -alh ./dm/tests/
-                                            ./dm/tests/wait_for_mysql.sh
-                                            export MYSQL_PORT="3307"
-                                            ./dm/tests/wait_for_mysql.sh
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                                    timeout(time: 5, unit: 'MINUTES') {
+                                        container("mysql1") {
+                                            sh label: "wait mysql ready", script: """
+                                                pwd && ls -alh
+                                                export MYSQL_HOST="127.0.0.1"
+                                                export MYSQL_PORT="3306"
+                                                ls -alh ./dm/tests/
+                                                ./dm/tests/wait_for_mysql.sh
+                                                export MYSQL_PORT="3307"
+                                                ./dm/tests/wait_for_mysql.sh
+                                            """
+                                        }
+                                        sh label: "${TEST_GROUP}", script: """
+                                            export PATH=/usr/local/go/bin:\$PATH
+                                            make dm_integration_test CASE="${TEST_GROUP}"  
                                         """
                                     }
-                                    
-                                }
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        export PATH=/usr/local/go/bin:\$PATH
-                                        make dm_integration_test CASE="${TEST_GROUP}"  
-                                    """
                                 }
                             }
                         }
