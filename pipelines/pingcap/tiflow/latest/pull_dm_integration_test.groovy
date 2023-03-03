@@ -88,12 +88,12 @@ pipeline {
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             ls -alh ./bin
-                            [ -f ./bin/dm-master.test ] || make make dm_integration_test_build
+                            [ -f ./bin/dm-master.test ] || make dm_integration_test_build
                             ls -alh ./bin
                             which ./bin/dm-master.test
                             which ./bin/dm-syncer.test
-                            which ./bin/dm-master.test
-                            which ./bin/dm-master.test
+                            which ./bin/dm-worker.test
+                            which ./bin/dmctl.test
                         """
                     }
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
@@ -133,7 +133,10 @@ pipeline {
                                 timeout(time: 5, unit: 'MINUTES') {
                                     container("mysql1") {
                                         sh label: "wait mysql ready", script: """
+                                            pwd && ls -alh
+                                            export MYSQL_HOST="127.0.0.1"
                                             export MYSQL_PORT="3306"
+                                            ls -alh ./dm/tests/
                                             ./dm/tests/wait_for_mysql.sh
                                             export MYSQL_PORT="3307"
                                             ./dm/tests/wait_for_mysql.sh
