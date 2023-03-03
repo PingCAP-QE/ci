@@ -2,6 +2,4 @@
 ## hub.pingcap.net/tiflash/centos:7.9.2009-aarch64
 ##
 FROM arm64v8/centos:7.9.2009
-RUN yum update -y nss expat nss-sysinit nss-tools
-
-
+RUN yum update -y bind-license cyrus-sasl-lib expat glib2 gzip krb5-libs openssl-libs systemd systemd-libs xz xz-libs zlib nss nss-sysinit nss-tools
