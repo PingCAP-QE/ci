@@ -68,7 +68,7 @@ pipeline {
             }
         }
         stage("prepare") {
-            options { timeout(time: 10, unit: 'MINUTES') }
+            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     retry(2) {
@@ -86,10 +86,13 @@ pipeline {
                     cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-integration-test-binarys-${ghprbActualCommit}") { 
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
+                        // TODO: how to update cached binarys if needed
                         sh label: "prepare", script: """
-                            ls -alh ./bin
                             [ -f ./bin/dm-master.test ] || make dm_integration_test_build
+                            [ -d ./bin/dm-test-tools ] || make dm_integration_test_build
+                            mkdir -p ./bin/dm-test-tools && mv ./dm/tests/bin/* ./bin/dm-test-tools
                             ls -alh ./bin
+                            ls -alh ./bin/dm-test-tools
                             which ./bin/dm-master.test
                             which ./bin/dm-syncer.test
                             which ./bin/dm-worker.test
@@ -111,7 +114,12 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values "all_mode", "ha_cases"
+                        // values "all_mode", "ha_cases", "dmctl_advance dmctl_basic dmctl_command", "ha_cases_1", "ha_cases_2", "ha_cases2", 
+                        //     "ha_cases3", "ha_cases3_1", "ha_master", "handle_error", "handle_error_2", "handle_error_3", "import_goroutine_leak incremental_mode initial_unit",
+                        //     "load_interrupt", "many_tables", "online_ddl", "relay_interrupt", "safe_mode sequence_safe_mode", "shardddl1",
+                        //     "shardddl1_1", "shardddl2", "shardddl2_1", "shardddl3", "shardddl3_1", "shardddl4", "shardddl4_1", "sharding sequence_sharding",
+                        //     "start_task", "print_status http_apis", "new_relay", "import_v10x", "sharding2", "ha", "others", "others_2", "others_3"
+                        values "ha_cases_1 ha_cases_2 ha_cases2", "ha_cases3 ha_cases3_1 ha_master", "handle_error handle_error_2 handle_error_3"
                     }
                 }
                 agent{
@@ -131,32 +139,35 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
-                                    timeout(time: 5, unit: 'MINUTES') {
-                                        container("mysql1") {
-                                            sh label: "wait mysql ready", script: """
-                                                pwd && ls -alh
-                                                export MYSQL_HOST="127.0.0.1"
-                                                export MYSQL_PORT="3306"
-                                                ls -alh ./dm/tests/
-                                                ./dm/tests/wait_for_mysql.sh
-                                                export MYSQL_PORT="3307"
-                                                ./dm/tests/wait_for_mysql.sh
-                                            """
-                                        }
-                                        sh label: "${TEST_GROUP}", script: """
-                                            export PATH=/usr/local/go/bin:\$PATH
-                                            make dm_integration_test CASE="${TEST_GROUP}"  
+                                    timeout(time: 10, unit: 'MINUTES') {
+                                        sh label: "wait mysql ready", script: """
+                                            pwd && ls -alh
+                                            # export MYSQL_HOST="127.0.0.1"
+                                            # export MYSQL_PORT="3306"
+                                            # ./dm/tests/wait_for_mysql.sh
+                                            # export MYSQL_PORT="3307"
+                                            # ./dm/tests/wait_for_mysql.sh
+                                            # wait for mysql container ready.
+                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                         """
                                     }
-                                }
+                                    sh label: "${TEST_GROUP}", script: """
+                                        export PATH=/usr/local/go/bin:\$PATH
+                                        mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
+                                        make dm_integration_test CASE="${TEST_GROUP}"  
+                                    """
+                                } 
                             }
                         }
                         post {
                             failure {
                                 sh label: "collect logs", script: """
-                                     echo "collect logs"
+                                    ls /tmp/dm_test
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
+                                    ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true, allowEmptyArchive: true
                             }
                         }
                     }
