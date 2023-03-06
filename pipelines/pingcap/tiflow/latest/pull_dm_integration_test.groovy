@@ -89,8 +89,13 @@ pipeline {
                         // TODO: how to update cached binarys if needed
                         sh label: "prepare", script: """
                             [ -f ./bin/dm-master.test ] || make dm_integration_test_build
-                            [ -d ./bin/dm-test-tools ] || make dm_integration_test_build
-                            mkdir -p ./bin/dm-test-tools && mv ./dm/tests/bin/* ./bin/dm-test-tools
+                            if [ -d ./bin/dm-tests-tools ] ; then
+                                echo "dm-tests-tools already exist"
+                            else
+                                make dm_integration_test_build
+                                mkdir -p ./bin/dm-tests-tools
+                                mv ./dm/tests/bin ./bin/dm-tests-tools
+                            fi
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools
                             which ./bin/dm-master.test
