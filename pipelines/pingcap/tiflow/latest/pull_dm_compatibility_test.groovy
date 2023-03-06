@@ -130,7 +130,6 @@ pipeline {
                             export PATH=/usr/local/go/bin:\$PATH
                             make dm_compatibility_test CASE=""
                         """
-                    } 
                 }
             }
             post {
