@@ -123,8 +123,11 @@ pipeline {
                             """
                         }
                         sh label: "test", script: """
+                            export MYSQL_HOST1=127.0.0.1
+                            export MYSQL_PORT1=3306
+                            export MYSQL_HOST2=127.0.0.1
+                            export MYSQL_PORT2=3307
                             export PATH=/usr/local/go/bin:\$PATH
-                            mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                             make dm_compatibility_test CASE=""
                         """
                     } 
