@@ -124,7 +124,8 @@ pipeline {
                         //     "load_interrupt", "many_tables", "online_ddl", "relay_interrupt", "safe_mode sequence_safe_mode", "shardddl1",
                         //     "shardddl1_1", "shardddl2", "shardddl2_1", "shardddl3", "shardddl3_1", "shardddl4", "shardddl4_1", "sharding sequence_sharding",
                         //     "start_task", "print_status http_apis", "new_relay", "import_v10x", "sharding2", "ha", "others", "others_2", "others_3"
-                        values "ha_cases_1 ha_cases_2 ha_cases2", "ha_cases3 ha_cases3_1 ha_master", "handle_error handle_error_2 handle_error_3"
+                        values "ha_cases_1 ha_cases_2 ha_cases2", "ha_cases3 ha_cases3_1 ha_master", "handle_error handle_error_2 handle_error_3",
+                            "tls"
                     }
                 }
                 agent{
@@ -142,6 +143,14 @@ pipeline {
                             DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
                         }
                         steps {
+                            container("mysql1") {
+                                sh label: "copy mysql certs", script: """
+                                    mkdir ${WORKSPACE}/mysql-ssl
+                                    cp -r /var/lib/mysql/*.pem ${WORKSPACE}/mysql-ssl/
+                                    ls -alh ${WORKSPACE}/mysql-ssl/
+                                """
+                            }
+
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
                                     timeout(time: 10, unit: 'MINUTES') {
@@ -158,6 +167,18 @@ pipeline {
                                         """
                                     }
                                     sh label: "${TEST_GROUP}", script: """
+                                        if [ "tls" == "${TEST_GROUP}" ] ; then
+                                            echo "run tls test"
+                                            echo "copy mysql certs"
+                                            sudo mkdir -p /var/lib/mysql
+                                            sudo chmod 777 /var/lib/mysql
+                                            sudo chown -R 1000:1000 /var/lib/mysql
+                                            sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
+                                            sudo chown -R 1000:1000 /var/lib/mysql/*
+                                            ls -alh /var/lib/mysql/
+                                        else
+                                            echo "run ${TEST_GROUP} test"
+                                        fi
                                         export PATH=/usr/local/go/bin:\$PATH
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                         make dm_integration_test CASE="${TEST_GROUP}"  
@@ -172,7 +193,7 @@ pipeline {
                                     tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
                                     ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true, allowEmptyArchive: true
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", allowEmptyArchive: true
                             }
                         }
                     }
