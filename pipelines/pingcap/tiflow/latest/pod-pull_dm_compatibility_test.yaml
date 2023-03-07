@@ -25,7 +25,6 @@ spec:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'
       args:
-        - "--ssl=ON"
         - "--log-bin"
         - "--binlog-format=ROW"
         - "--enforce-gtid-consistency=ON"
@@ -45,7 +44,6 @@ spec:
         - name: MYSQL_TCP_PORT
           value: '3307'
       args:
-        - "--ssl=ON"
         - "--log-bin"
         - "--binlog-format=ROW"
         - "--enforce-gtid-consistency=ON"
