@@ -71,12 +71,12 @@ pipeline {
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-compatibility_test-test-binarys-${ghprbActualCommit}") { 
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
                                 git checkout ${ghprbTargetBranch}
-                                git status
+                                git pull origin ${ghprbTargetBranch} && git status
+                                git rev-parse HEAD
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
@@ -85,25 +85,24 @@ pipeline {
                             sh label: "build current", script: """
                                 echo "build binary for current version"
                                 # reset to current version
-                                git checkout ${ghprbActualCommit} && git status
+                                git checkout ${ghprbActualCommit} && git status && git rev-parse HEAD
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.current
                                 mv bin/dm-worker.test bin/dm-worker.test.current
                                 ls -alh ./bin/
                             """
                         }
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                cd dm/tests && ./download-compatibility-test-binaries.sh master && ls -alh ./bin
+                                cd - && cp -r dm/tests/bin/* ./bin
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/sync_diff_inspector -V
+                                ./bin/mydumper -V
+                            """
+                        }
                     }
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            cd dm/tests && ./download-compatibility-test-binaries.sh master && ls -alh ./bin
-                            cd - && cp -r dm/tests/bin/* ./bin
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/sync_diff_inspector -V
-                            ./bin/mydumper -V
-                        """
-                    }
-                }
             }
         }
 
@@ -137,7 +136,7 @@ pipeline {
                     sh label: "collect logs", script: """
                         ls /tmp/dm_test
                         tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
-                        ls -alh  log..tar.gz  
+                        ls -alh  log.tar.gz  
                     """
                     archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
                 }
