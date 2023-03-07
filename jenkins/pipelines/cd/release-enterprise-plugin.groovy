@@ -23,7 +23,7 @@ pipeline{
                 curl --fail -F release/enterprise-plugin-${params.Version}-linux-${arch}.tar.gz=@enterprise-plugin-linux-${arch}-enterprise.tar.gz http://fileserver.pingcap.net/upload
                 curl --fail -F release/enterprise-plugin-${params.Version}-linux-${arch}.tar.gz.sha256=@enterprise-plugin-linux-${arch}-enterprise.tar.gz.sha256 http://fileserver.pingcap.net/upload
                 upload.py enterprise-plugin-linux-${arch}-enterprise.tar.gz enterprise-plugin-${params.Version}-linux-${arch}.tar.gz
-                upload.py enterprise-plugin-linux-${arch}-enterprise.tar.gz enterprise-plugin-${params.Version}-linux-${arch}.tar.gz.sha256
+                upload.py enterprise-plugin-linux-${arch}-enterprise.tar.gz.sha256 enterprise-plugin-${params.Version}-linux-${arch}.tar.gz.sha256
                 """
                         }
                     }
