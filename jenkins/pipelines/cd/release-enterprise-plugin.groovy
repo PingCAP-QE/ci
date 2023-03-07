@@ -1,8 +1,22 @@
+final uploaderYaml = '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: uploader
+    image: hub.pingcap.net/jenkins/uploader
+    args: ["sleep", "infinity"]
+'''
 pipeline{
-    agent {label 'delivery'}
     parameters {
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         string(name: 'Hash', description: 'git hash')
+    }
+    agent {
+        kubernetes {
+            yaml uploaderYaml
+            defaultContainer 'uploader'
+        }
     }
     stages{
         stage("multi-arch"){
@@ -15,17 +29,20 @@ pipeline{
                 }
                 stages{
                 stage("upload"){
+                    environment {
+                        QINIU_BUCKET_NAME = 'tidb'
+                        QINIU_ACCESS_KEY = credentials('qn_access_key');
+                        QINIU_SECRET_KEY = credentials('qiniu_secret_key');
+                    }
                     steps{
-                        container('delivery'){
                 sh """
                 wget -q http://fileserver.pingcap.net/download/builds/pingcap/enterprise-plugin/optimization/${params.Version}/${params.Hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz
                 wget -q http://fileserver.pingcap.net/download/builds/pingcap/enterprise-plugin/optimization/${params.Version}/${params.Hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz.sha256
                 curl --fail -F release/enterprise-plugin-${params.Version}-linux-${arch}.tar.gz=@enterprise-plugin-linux-${arch}-enterprise.tar.gz http://fileserver.pingcap.net/upload
                 curl --fail -F release/enterprise-plugin-${params.Version}-linux-${arch}.tar.gz.sha256=@enterprise-plugin-linux-${arch}-enterprise.tar.gz.sha256 http://fileserver.pingcap.net/upload
-                upload.py enterprise-plugin-linux-${arch}-enterprise.tar.gz enterprise-plugin-${params.Version}-linux-${arch}.tar.gz
-                upload.py enterprise-plugin-linux-${arch}-enterprise.tar.gz.sha256 enterprise-plugin-${params.Version}-linux-${arch}.tar.gz.sha256
+                upload_qiniu.py enterprise-plugin-linux-${arch}-enterprise.tar.gz enterprise-plugin-${params.Version}-linux-${arch}.tar.gz
+                upload_qiniu.py enterprise-plugin-linux-${arch}-enterprise.tar.gz.sha256 enterprise-plugin-${params.Version}-linux-${arch}.tar.gz.sha256
                 """
-                        }
                     }
                 }
                 }
