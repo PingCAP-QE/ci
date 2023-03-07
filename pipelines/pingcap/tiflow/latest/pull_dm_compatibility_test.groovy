@@ -1,0 +1,147 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for master and latest release branches
+// @Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tiflow"
+final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test_test.yaml'
+
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
+        }
+    }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
+    }
+    stages {
+        stage('Debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
+                """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
+            }
+        }
+        stage('Checkout') {
+            options { timeout(time: 10, unit: 'MINUTES') }
+            steps {
+                dir("tiflow") {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                        retry(2) {
+                            checkout(
+                                changelog: false,
+                                poll: false,
+                                scm: [
+                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit ]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 15],
+                                    ],
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
+                                    ]],
+                                ]
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        stage("prepare") {
+            options { timeout(time: 25, unit: 'MINUTES') }
+            steps {
+                dir("tiflow") {
+                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-compatibility_test-test-binarys-${ghprbActualCommit}") { 
+                        retry(2) {
+                            sh label: "build previous", script: """
+                                echo "build binary for previous version"
+                                git checkout ${ghprbTargetBranch}
+                                git status
+                                make dm_integration_test_build
+                                mv bin/dm-master.test bin/dm-master.test.previous
+                                mv bin/dm-worker.test bin/dm-worker.test.previous
+                                ls -alh ./bin/
+                            """
+                            sh label: "build current", script: """
+                                echo "build binary for current version"
+                                # reset to current version
+                                git checkout ${ghprbActualCommit} && git status
+                                make dm_integration_test_build
+                                mv bin/dm-master.test bin/dm-master.test.current
+                                mv bin/dm-worker.test bin/dm-worker.test.current
+                                ls -alh ./bin/
+                            """
+                        }
+                    }
+                    retry(2) {
+                        sh label: "download third_party", script: """
+                            cd dm/tests && ./download-compatibility-test-binaries.sh master && ls -alh ./bin
+                            cd - && cp -r dm/tests/bin/* ./bin
+                            ls -alh ./bin
+                            ./bin/tidb-server -V
+                            ./bin/sync_diff_inspector -V
+                            ./bin/mydumper -V
+                        """
+                    }
+                }
+            }
+        }
+
+        stage("Test") {
+            options { timeout(time: 20, unit: 'MINUTES') }
+            environment { 
+                DM_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
+                DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
+            }
+            steps {
+                dir('tiflow') {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            sh label: "wait mysql ready", script: """
+                                pwd && ls -alh
+                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                            """
+                        }
+                        sh label: "test", script: """
+                            export MYSQL_HOST1=127.0.0.1
+                            export MYSQL_PORT1=3306
+                            export MYSQL_HOST2=127.0.0.1
+                            export MYSQL_PORT2=3307
+                            export PATH=/usr/local/go/bin:\$PATH
+                            make dm_compatibility_test CASE=""
+                        """
+                }
+            }
+            post {
+                failure {
+                    sh label: "collect logs", script: """
+                        ls /tmp/dm_test
+                        tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
+                        ls -alh  log..tar.gz  
+                    """
+                    archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
+                }
+            }
+        }
+    }
+}
