@@ -77,6 +77,7 @@ pipeline {
                                 git checkout ${ghprbTargetBranch}
                                 git pull origin ${ghprbTargetBranch} && git status
                                 git rev-parse HEAD
+
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
@@ -86,6 +87,7 @@ pipeline {
                                 echo "build binary for current version"
                                 # reset to current version
                                 git checkout ${ghprbActualCommit} && git status && git rev-parse HEAD
+                                
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.current
                                 mv bin/dm-worker.test bin/dm-worker.test.current
