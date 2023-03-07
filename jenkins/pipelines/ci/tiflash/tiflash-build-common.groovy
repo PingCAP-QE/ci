@@ -340,14 +340,16 @@ def fetchCCache(repo_path, target_dir) {
         if (fileExists(ccache_source)) {
             echo "ccache found"
             sh """
+            cd /tmp
             cp ${ccache_source} ccache.tar
             tar -xf ccache.tar
+            cd -
             """
         } else {
             echo "ccache not found"
         }
         sh """
-        ccache -o cache_dir="${target_dir}/.ccache"
+        ccache -o cache_dir="/tmp/.ccache"
         ccache -o max_size=2G
         ccache -o limit_multiple=0.99
         ccache -o hash_dir=false
@@ -789,9 +791,11 @@ def uploadCCache(repo_path, target_dir) {
         def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
         dir(target_dir) {
             sh"""
+            cd /tmp
             rm -rf ccache.tar
             tar -cf ccache.tar .ccache
             cp ccache.tar ${ccache_source}
+            cd -
             """
         }
     } else {
