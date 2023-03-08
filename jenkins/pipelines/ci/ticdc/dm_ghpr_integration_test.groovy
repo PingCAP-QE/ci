@@ -290,7 +290,7 @@ def build_dm_bin() {
 
 
                 tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 -f -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                sh "curl -C - --retry 3 -f -o tidb-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${TIDB_BRANCH}/${tidb_sha1}/centos7/tidb-server.tar.gz"
                 sh 'mkdir -p tidb-server'
                 sh 'tar -zxf tidb-server.tar.gz -C tidb-server'
                 sh 'mv tidb-server/bin/tidb-server bin/'
@@ -298,7 +298,7 @@ def build_dm_bin() {
                 sh 'rm -r tidb-server.tar.gz'
 
                 pd_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRACNCH}/sha1").trim()
-                sh "curl -C - --retry 3 -f -o pd-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                sh "curl -C - --retry 3 -f -o pd-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/pd/${PD_BRACNCH}/${pd_sha1}/centos7/pd-server.tar.gz"
                 sh 'mkdir -p pd-server'
                 sh 'tar -zxf pd-server.tar.gz -C pd-server'
                 sh 'mv pd-server/bin/pd-server bin/'
@@ -306,7 +306,7 @@ def build_dm_bin() {
                 sh 'rm -r pd-server.tar.gz'
 
                 tikv_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 -f -o tikv-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                sh "curl -C - --retry 3 -f -o tikv-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${TIKV_BRANCH}/${tikv_sha1}/centos7/tikv-server.tar.gz"
                 sh 'mkdir -p tikv-server'
                 sh 'tar -zxf tikv-server.tar.gz -C tikv-server'
                 sh 'mv tikv-server/bin/tikv-server bin/'
