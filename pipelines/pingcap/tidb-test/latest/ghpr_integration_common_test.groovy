@@ -99,7 +99,7 @@ pipeline {
                 }
             }
         }
-        stage('JDBC Tests') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {
