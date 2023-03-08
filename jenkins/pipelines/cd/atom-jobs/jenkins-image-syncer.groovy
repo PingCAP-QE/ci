@@ -25,6 +25,13 @@ pipeline{
             sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
         }
       }
+      stage("login harbor") {
+        environment { HUB = credentials('harbor-pingcap') }
+        when { expression { params.TARGET_IMAGE.startsWith('hub.pingcap.net/') } }
+        steps {
+            sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
+        }
+      }
       stage("login dockerhub") {
         when { expression { params.TARGET_IMAGE.startsWith('pingcap/') || params.TARGET_IMAGE.startsWith('docker.io/') } }
         environment { HUB = credentials('dockerhub-pingcap') }
