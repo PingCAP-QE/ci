@@ -276,6 +276,8 @@ def build_dm_bin() {
                     print "this is a hotfix branch: ${TIDB_BRANCH}"
                     TIDB_BRANCH_REMOVE_DATE_SUFFIX = "${m1[0][1]}"
                     TIDB_BRANCH = TIDB_BRANCH_REMOVE_DATE_SUFFIX
+                    PD_BRACNCH = TIDB_BRANCH_REMOVE_DATE_SUFFIX
+                    TIKV_BRANCH = TIDB_BRANCH_REMOVE_DATE_SUFFIX
                     println "current branch is a hotfix branch, so we will use the branch name without date suffix: ${TIDB_BRANCH}"
                 }
                 m1 = null
