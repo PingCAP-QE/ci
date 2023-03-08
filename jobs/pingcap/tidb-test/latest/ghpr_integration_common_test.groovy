@@ -11,6 +11,7 @@ pipelineJob('pingcap/tidb-test/ghpr_integration_common_test') {
         stringParam("JOB_SPEC")
     }
     properties {
+        buildFailureAnalyzer(false) // disable failure analyze
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tidb-test")
     }
