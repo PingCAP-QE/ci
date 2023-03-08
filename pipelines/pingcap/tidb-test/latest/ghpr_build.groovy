@@ -3,6 +3,8 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+// todo: add credential GIT_HTTPS_CREDENTIALS_ID
+// final GIT_HTTPS_CREDENTIALS_ID = 'github-sre-bot-https'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-ghpr_build.yaml'
@@ -54,25 +56,13 @@ pipeline {
                 dir("tidb-test") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: REFS.pulls[0].sha]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        credentialsId: GIT_CREDENTIALS_ID,
-                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
-                                        url: "git@github.com:${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                // todo: add credential GIT_HTTPS_CREDENTIALS_ID
+                                // withCredentials([gitUsernamePassword(credentialsId: GIT_HTTPS_CREDENTIALS_ID)]) {
+                                withCredentials([sshUserPrivateKey(credentialsId: GIT_CREDENTIALS_ID, keyFileVariable: 'GIT_SSH_PRIVATE_KEY')]) {
+                                    prow.checkoutRefs(REFS)
+                                }
+                            }
                         }
                     }
                 }
