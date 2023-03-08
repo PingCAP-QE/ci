@@ -28,7 +28,7 @@ presubmits:
       decorate: false # need add this.
       run_if_changed: "randgen-test/.*"
       context: ci/integration-common-test
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-common-test(?: .*?)?$"
       rerun_command: "/test integration-common-test"
       branches:
