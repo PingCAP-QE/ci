@@ -125,7 +125,7 @@ pipeline {
                             dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                                     sh label: "print version", script: """
-                                        pwd && ls -alh && ls ws-${BUILD_TAG}
+                                        pwd && ls -alh
                                         ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
                                         ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
                                         ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
