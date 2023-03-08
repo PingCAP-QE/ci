@@ -44,7 +44,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
@@ -53,7 +53,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -92,11 +92,6 @@ pipeline {
                         """
                     }
                 }
-                dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/tidb-test/rev-${REFS.pulls[0].sha}") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
-                }
             }
         }
         stage('Tests') {
@@ -104,11 +99,11 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'randgen-test ./test.sh'
+                        values "randgen-test ./test.sh"
                     }
                     axis {
                         name 'TEST_STORE'
-                        values "tikv"
+                        values "tikv", "unistore"
                     }
                 }
                 agent{
@@ -133,34 +128,36 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/rev-${REFS.pulls[0].sha}") {
-                                    sh """
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}") {
+                                    sh label: "print git version", script: """
+                                        pwd && ls -alh
+                                        git status && git rev-parse HEAD
+                                    """
+                                    sh label: "copy binaries", script: """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("golang") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/usr/bin/env bash
-                                            params_array=(\${TEST_PARAMS})
-                                            TEST_DIR=\${params_array[0]}
-                                            TEST_SCRIPT=\${params_array[1]}
-                                            echo "TEST_DIR=\${TEST_DIR}"
-                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            fi
-                                        """
-                                    }
+                                    sh label: "test_params=${TEST_PARAMS} ", script: """
+                                        #!/usr/bin/env bash
+                                        params_array=(\${TEST_PARAMS})
+                                        TEST_DIR=\${params_array[0]}
+                                        TEST_SCRIPT=\${params_array[1]}
+                                        echo "TEST_DIR=\${TEST_DIR}"
+                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                            export TIDB_TEST_STORE_NAME="tikv"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        else
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIDB_TEST_STORE_NAME="unistore"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        fi
+                                    """  
                                 }
                             }
                         }
