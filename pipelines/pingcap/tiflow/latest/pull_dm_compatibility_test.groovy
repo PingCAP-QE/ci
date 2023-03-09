@@ -82,10 +82,7 @@ pipeline {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
                                 git checkout ${ghprbTargetBranch}
-                                git merge --no-edit pull8465
-                                git status
-                                git log -n 5 --oneline
-
+                                git pull origin ${ghprbTargetBranch}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
@@ -94,10 +91,7 @@ pipeline {
                             sh label: "build current", script: """
                                 echo "build binary for current version"
                                 # reset to current version
-                                git merge --no-edit pull8465
-                                git status
-                                git log -n 5 --oneline
-
+                                git checkout ${ghprbActualCommit}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.current
                                 mv bin/dm-worker.test bin/dm-worker.test.current
@@ -116,13 +110,8 @@ pipeline {
                 }
             }
         }
-
         stage("Test") {
             options { timeout(time: 20, unit: 'MINUTES') }
-            environment { 
-                DM_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
-            }
             steps {
                 dir('tiflow') {
                         timeout(time: 10, unit: 'MINUTES') {
