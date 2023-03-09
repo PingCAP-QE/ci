@@ -71,8 +71,8 @@ pipeline {
         }
         stage("prepare") {
             options { timeout(time: 10, unit: 'MINUTES') }
-            container("docker") {
-                steps {
+            steps {
+                container("docker") { 
                     dir("tiflow") {
                         sh label: "check env", script: """
                             sleep 10
@@ -91,7 +91,6 @@ pipeline {
                 }
             }
         }
-
         stage('Tests') {
             matrix {
                 axes {
