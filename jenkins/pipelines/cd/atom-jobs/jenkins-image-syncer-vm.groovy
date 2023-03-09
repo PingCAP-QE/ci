@@ -1,4 +1,8 @@
 pipeline {
+    parameters {
+        string(name: 'SOURCE_IMAGE', description: 'source image name, habor')
+        string(name: 'TARGET_IMAGE', description: 'target image name, gcr or dockerhub')
+    }
     agent {label 'jenkins-image-syncer'}
 
     stages {
