@@ -71,6 +71,9 @@ pipeline {
         }
         stage("prepare") {
             options { timeout(time: 10, unit: 'MINUTES') }
+            environment { 
+                HARBOR_CRED = credentials('eed52b6a-9b48-4b85-9c8b-0075151d0461') 
+            }
             steps {
                 container("docker") { 
                     dir("tiflow") {
