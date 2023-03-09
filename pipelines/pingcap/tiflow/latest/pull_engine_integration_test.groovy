@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_engine_integration_test.yaml'
-final IMAGE_TAG = "${JOB_NAME}-pull-${ghprbPullId}"
+final IMAGE_TAG = "engine-ci-test-pull-${ghprbPullId}"
 final ENGINE_TEST_TAG = "dataflow:test"
 
 pipeline {
@@ -71,19 +71,22 @@ pipeline {
         }
         stage("prepare") {
             options { timeout(time: 10, unit: 'MINUTES') }
-            environment { 
-                HARBOR_CRED = credentials('eed52b6a-9b48-4b85-9c8b-0075151d0461') 
-            }
+            // environment { 
+            //     HARBOR_CRED = credentials('eed52b6a-9b48-4b85-9c8b-0075151d0461') 
+            // }
             steps {
                 container("docker") { 
                     dir("tiflow") {
-                        sh label: "check env", script: """
-                            sleep 10
-                            docker version || true
-                            docker-compose version || true
-                            echo "$HARBOR_CRED_USR" | docker login -u $HARBOR_CRED_PSW --password-stdin hub.pingcap.net
-                        """
+                        withCredentials([usernamePassword(credentialsId: 'eed52b6a-9b48-4b85-9c8b-0075151d0461', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
+                            sh label: "check env", script: """
+                                sleep 10
+                                docker version || true
+                                docker-compose version || true
+                                echo "$HARBOR_CRED_PSW" | docker login -u $HARBOR_CRED_USR --password-stdin hub.pingcap.net
+                            """
+                        }
                         sh label: "build binary for integration test", script: """
+                            git config --global --add safe.directory '*'
                             make tiflow tiflow-demo
                             touch ./bin/tiflow-chaos-case
                             make engine_image_from_local
@@ -112,9 +115,6 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            HARBOR_CRED = credentials('eed52b6a-9b48-4b85-9c8b-0075151d0461') 
-                        }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}") {
@@ -129,11 +129,16 @@ pipeline {
                                             cd -        
                                         """
                                     }
+                                    withCredentials([usernamePassword(credentialsId: 'eed52b6a-9b48-4b85-9c8b-0075151d0461', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
+                                        sh label: "check env", script: """
+                                            sleep 10
+                                            docker version || true
+                                            docker-compose version || true
+                                            echo "$HARBOR_CRED_PSW" | docker login -u $HARBOR_CRED_USR --password-stdin hub.pingcap.net
+                                        """
+                                    }
                                     sh label: "prepare image", script: """
-                                        sleep 10
-                                        docker version || true
-                                        echo "$HARBOR_CRED_USR" | docker login -u $HARBOR_CRED_PSW --password-stdin hub.pingcap.net
-                                        TIDB_CLUSTER_BRANCH=${ghprbTargetBranch:-master}
+                                        TIDB_CLUSTER_BRANCH=${ghprbTargetBranch}
                                         TIDB_TEST_TAG=nightly
 
                                         docker pull hub.pingcap.net/tiflow/minio:latest
@@ -146,17 +151,18 @@ pipeline {
                                         docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
                                         docker pull hub.pingcap.net/tiflow/etcd:latest
                                         docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
-                                        docker pull hub-new.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub-new.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH} pingcap/tidb:\${TIDB_TEST_TAG} 
-                                        docker pull hub-new.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub-new.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH} pingcap/tikv:\${TIDB_TEST_TAG}
-                                        docker pull hub-new.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub-new.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH} pingcap/pd:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH}
+                                        docker tag hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH} pingcap/tidb:\${TIDB_TEST_TAG} 
+                                        docker pull hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH}
+                                        docker tag hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH} pingcap/tikv:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH}
+                                        docker tag hub.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH} pingcap/pd:\${TIDB_TEST_TAG}
                                         docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                                         docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
                                         docker images
                                     """
                                     sh label: "${TEST_GROUP}", script: """
+                                        git config --global --add safe.directory '*'
                                         make engine_integration_test CASE="${TEST_GROUP}" 
                                     """
                                 }
@@ -175,6 +181,25 @@ pipeline {
                     }
                 }
             }        
+        }
+        stage("cleanup") {
+            steps {
+                container("docker") { 
+                    withCredentials([usernamePassword(credentialsId: 'eed52b6a-9b48-4b85-9c8b-0075151d0461', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
+                        sh label: "check env", script: """
+                            sleep 10
+                            docker version || true
+                            docker-compose version || true
+                            echo "$HARBOR_CRED_PSW" | docker login -u $HARBOR_CRED_USR --password-stdin hub.pingcap.net
+                        """
+                    }
+                    sh """
+                        docker pull hub.pingcap.net/tiflow/engine:dummy || true
+                        docker tag hub.pingcap.net/tiflow/engine:dummy hub.pingcap.net/tiflow/engine:${IMAGE_TAG} || true
+                        docker push hub.pingcap.net/tiflow/engine:${IMAGE_TAG} || true
+                    """
+                }
+            }
         }
     }
 }
