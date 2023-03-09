@@ -111,7 +111,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         environment { 
-                            HARBOR_CRED = credentials('harbor-cred-tiflow') 
+                            HARBOR_CRED = credentials('eed52b6a-9b48-4b85-9c8b-0075151d0461') 
                         }
                         steps {
                             dir('tiflow') {
