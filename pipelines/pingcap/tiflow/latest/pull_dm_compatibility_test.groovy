@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test.yaml'
 
 pipeline {
     agent {
@@ -62,6 +62,13 @@ pipeline {
                                     ]],
                                 ]
                             )
+                            sh """
+                            git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
+                            git fetch origin pull/8465/head:pull8465
+                            git merge --no-edit pull8465
+                            git status
+                            git log -n 5 --oneline
+                            """
                         }
                     }
                 }
@@ -71,12 +78,14 @@ pipeline {
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-compatibility_test-test-binarys-${ghprbActualCommit}") { 
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
                                 git checkout ${ghprbTargetBranch}
+                                git merge --no-edit pull8465
                                 git status
+                                git log -n 5 --oneline
+
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
@@ -85,24 +94,25 @@ pipeline {
                             sh label: "build current", script: """
                                 echo "build binary for current version"
                                 # reset to current version
-                                git checkout ${ghprbActualCommit} && git status
+                                git merge --no-edit pull8465
+                                git status
+                                git log -n 5 --oneline
+
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.current
                                 mv bin/dm-worker.test bin/dm-worker.test.current
                                 ls -alh ./bin/
                             """
+                            sh label: "download third_party", script: """
+                                pwd && ls -alh dm/tests/
+                                cd dm/tests && ./download-compatibility-test-binaries.sh master && ls -alh ./bin
+                                cd - && cp -r dm/tests/bin/* ./bin
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/sync_diff_inspector -V
+                                ./bin/mydumper -V
+                            """
                         }
-                    }
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            cd dm/tests && ./download-compatibility-test-binaries.sh master && ls -alh ./bin
-                            cd - && cp -r dm/tests/bin/* ./bin
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/sync_diff_inspector -V
-                            ./bin/mydumper -V
-                        """
-                    }
                 }
             }
         }
