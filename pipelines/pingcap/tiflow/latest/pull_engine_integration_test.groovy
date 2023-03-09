@@ -97,7 +97,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00'
+                        values 'external_resource'
                     }
                 }
                 agent{
