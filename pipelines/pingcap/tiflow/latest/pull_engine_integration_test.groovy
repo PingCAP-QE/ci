@@ -116,7 +116,7 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 sh label: "prepare", script: """
-                                    sync_diff_download_url="${FILE_SERVER_URL}/download/test/tiflow/engine/ci/sync_diff.tar.gz"
+                                    sync_diff_download_url="http://fileserver.pingcap.net/download/test/tiflow/engine/ci/sync_diff.tar.gz"
                                     mkdir -p ./bin/ && cd ./bin/
                                     curl \${sync_diff_download_url} | tar -xz
                                     ./sync_diff_inspector -V
