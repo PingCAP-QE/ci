@@ -62,13 +62,6 @@ pipeline {
                                     ]],
                                 ]
                             )
-                            sh """
-                            git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
-                            git fetch origin pull/8465/head:pull8465
-                            git merge --no-edit pull8465
-                            git status
-                            git log -n 5 --oneline
-                            """
                         }
                     }
                 }
