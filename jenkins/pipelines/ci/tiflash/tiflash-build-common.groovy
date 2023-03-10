@@ -768,9 +768,15 @@ def buildStage(repo_path, build_dir, install_dir, proxy_cache_ready) {
             "License check": {
                 dir(repo_path) {
                     sh label: "license header check", script: """
-                        wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                        chmod +x license-eye
-                        ./license-eye -c .github/licenserc.yml header check
+                        echo "license check"
+                        if [[ -f .github/licenserc.yml ]]; then
+                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
+                            chmod +x license-eye
+                            ./license-eye -c .github/licenserc.yml header check
+                        else
+                            echo "skip license check"
+                            exit 0
+                        fi
                     """
                 }
             },
