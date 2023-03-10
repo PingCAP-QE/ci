@@ -1,4 +1,4 @@
-# PingCap CI/CD public configurations
+# PingCAP CI/CD public configurations
 
 
 ## Servers
