@@ -10,6 +10,10 @@ spec:
         limits:
           memory: 4Gi
           cpu: 2
+      volumeMounts:
+        - name: "volume-tmp"
+          mountPath: "/tmp"
+          readOnly: false
     - name: kafka
       image: "wurstmeister/kafka:2.12-2.4.1"
       resources:
@@ -46,6 +50,10 @@ spec:
           value: "zk"
         - name: KAFKA_ZOOKEEPER_CONNECT
           value: "localhost:2181"
+      volumeMounts:
+        - name: "volume-tmp"
+          mountPath: "/tmp"
+          readOnly: false
     - name: canal-adapter
       image: "rustinliu/ticdc-canal-json-adapter:latest"
       resources:
@@ -65,6 +73,10 @@ spec:
           value: "3306"
         - name: USE_FLAT_MESSAGE
           value: "true"
+      volumeMounts:
+        - name: "volume-tmp"
+          mountPath: "/tmp"
+          readOnly: false
     - name: golang
       image: "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
       tty: true
@@ -75,6 +87,10 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
+      volumeMounts:
+        - name: "volume-tmp"
+          mountPath: "/tmp"
+          readOnly: false
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -89,3 +105,6 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
+  volumes:
+    - name: "volume-tmp"
+      emptyDir: {}
