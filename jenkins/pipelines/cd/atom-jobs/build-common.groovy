@@ -462,6 +462,7 @@ if [ ${EDITION} == 'enterprise' ]; then
     export PD_EDITION=Enterprise
 fi;
 if [ ${failpoint} == 'true' ]; then
+    export WITH_RACE=1
     make failpoint-enable
 fi;
 make
