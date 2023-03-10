@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
+DEFAULT_GO_TEST_INDEX_FILE="bazel-go-test-index.log"
+DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE="bazel-go-test-problem-cases.json"
+BAZEL_TARGET_OUTPUT_FILE_PREFIX="bazel-target-output"
+BAZEL_FLAKY_SUMMARY_FILE="bazel-flaky-summaries.log"
+
 # parse bazel go test case index log
 # param $1 file path
 function parse_bazel_go_test_index_log() {
-    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|FLAKY|(====================( Test output for //|=+))"
+    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|(====================( Test output for //|=+))"
     local logPath="$1"
-    grep --color -nE "$indexReg" "$logPath" >bazel-go-test-index.log
+    grep --color -nE "$indexReg" "$logPath" >"$DEFAULT_GO_TEST_INDEX_FILE"
 }
 
 function parse_bazel_target_output_log() {
@@ -14,7 +19,7 @@ function parse_bazel_target_output_log() {
     local indexes=($(grep -nE "====================( Test output for //|=+)" ${logPath} | grep -oE "^[0-9]+"))
     local p=0
     while [ $((2 * p)) -lt "${#indexes[@]}" ]; do
-        saveFlag="bazel-target-output-L${indexes[$((2 * p))]}-${indexes[$((2 * p + 1))]}"
+        saveFlag="$BAZEL_TARGET_OUTPUT_FILE_PREFIX-L${indexes[$((2 * p))]}-${indexes[$((2 * p + 1))]}"
         sed -n "${indexes[$((2 * p))]},${indexes[$((2 * p + 1))]}p" "${logPath}" >"$saveFlag.log"
         local append=""
 
@@ -29,7 +34,93 @@ function parse_bazel_target_output_log() {
         if [ "$append" != "" ]; then
             mv "$saveFlag.log" "$saveFlag${append}.log"
         fi
+
         p=$((p + 1))
+    done
+}
+
+function parse_bazel_go_test_new_flaky_cases() {
+    local logPath="$1"
+    local resultFile="$2"
+
+    [ -f "$DEFAULT_GO_TEST_INDEX_FILE" ] || parse_bazel_go_test_index_log "$logPath"
+
+    # extract bazel flaky summary info
+    grep -E 'FLAKY:|^\s*/.*/shard_[0-9]+_of_[0-9]+/test_attempts/attempt_[0-9]+.log\b' "$logPath" >"$BAZEL_FLAKY_SUMMARY_FILE"
+
+    # extract bazel flaky targets
+    local indexes=($(grep -n FLAKY "$BAZEL_FLAKY_SUMMARY_FILE" | grep -Eo "^[0-9]+"))
+    local p=0
+    while [ $p -lt "${#indexes[@]}" ]; do
+        local target
+        local targetShardOutputLineNum
+
+        ###### extract target name ###############
+
+        ###### extract shard flag in target ##########
+        local e
+        if [ $((p + 1)) -eq "${#indexes[@]}" ]; then
+            e='$'
+        else
+            e=$((${indexes[${p+1}]} - 1))
+        fi
+        local ts="${indexes[${p}]}"
+        local s=$((ts + 1))
+        target=$(sed -n "${ts},${ts}p" bazel-flaky-summaries.log | grep -Eo "\b//[-_:/a-zA-Z0-9]+\b")
+
+        ###### find the new flaky cases #######
+        for targetShardFlag in $(sed -n "${s},${e}p" bazel-flaky-summaries.log | grep -Eo "shard_[0-9]+_of_[0-9]+"); do
+            targetShardOutputLineNum=$(grep -E "^[0-9]+:=+ Test output for $target \(${targetShardFlag//_/ }\):" "$DEFAULT_GO_TEST_INDEX_FILE" | grep -Eo "^[0-9]+")
+            for n in $targetShardOutputLineNum; do
+                local newFlakyCases=($(
+                    sed -nE "/^${n}:/,/^[0-9]+:={80}/p" "$DEFAULT_GO_TEST_INDEX_FILE" |
+                        grep -E "=== RUN|--- PASS" |
+                        grep -Eo "\bTest\w+" | sort | uniq -c |
+                        grep "^\s*1\b" |
+                        grep -Eo "\bTest\w+"
+                ))
+                if [ "${#newFlakyCases[@]}" -gt 0 ]; then
+                    ##### add into result json file.
+                    local caseJqArray
+                    caseJqArray=$(printf ',"%s"' "${newFlakyCases[@]}")
+                    caseJqArray=${caseJqArray:1}
+
+                    jq ".\"$target\".new_flaky |= (. + [${caseJqArray}] | unique)" \
+                        "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+                fi
+            done
+        done
+
+        p=$((p + 1))
+    done
+}
+
+function parse_bazel_go_test_long_cases() {
+    local logPath="$1"
+    local resultFile="$2"
+
+    [ -f "$DEFAULT_GO_TEST_INDEX_FILE" ] || parse_bazel_go_test_index_log "$logPath"
+
+    for f in $BAZEL_TARGET_OUTPUT_FILE_PREFIX-*.timeout.log; do
+        local target
+        [[ -e "$f" ]] || break
+
+        target=$(head -n1 "$f" | grep -Eo "//[-_:/a-zA-Z0-9]+\b")
+
+        # add test cases with time cost value -1(means timed out).
+        grep -E "=== RUN|--- PASS:" "$f" | grep -Eo "\bTest\w+" | sort | uniq |
+            while read c; do
+                jq "$(printf '.["%s"].long_time.%s |= -1' "$target" $c)" \
+                    "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+            done
+
+        # update the timecost of passed test cases.
+        grep -E "\-\-\- PASS:" "$f" | grep -Eo '\bTest\w+(\s+\([0-9.]+s\))' | sed -E 's/[\(\)]//g;s/s$//g' |
+            while read rec; do
+                echo "$rec"
+                jq "$(printf '.["%s"].long_time.%s |= if (. and . >= 0) then . else %s end' "$target" $rec)" \
+                    "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+            done
     done
 }
 
@@ -47,6 +138,16 @@ function main() {
 
     parse_bazel_go_test_index_log "$logPath"
     parse_bazel_target_output_log "$logPath"
+
+    echo "{}" >"$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
+    parse_bazel_go_test_new_flaky_cases "$logPath" "$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
+    parse_bazel_go_test_long_cases "$logPath" "$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
+
+    echo "Output files:"
+    ls $DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE \
+        $DEFAULT_GO_TEST_INDEX_FILE \
+        $BAZEL_FLAKY_SUMMARY_FILE \
+        $BAZEL_TARGET_OUTPUT_FILE_PREFIX-*.log || true
 }
 
 main "$@"

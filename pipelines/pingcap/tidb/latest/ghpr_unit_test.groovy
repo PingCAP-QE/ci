@@ -77,7 +77,7 @@ pipeline {
                 }
                 failure {
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                    archiveArtifacts(artifacts: 'bazel-*.log', fingerprint: false, allowEmptyArchive: true)
+                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
                 always {
                     dir('tidb') {

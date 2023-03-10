@@ -1,4 +1,3 @@
-
 #! /usr/bin/env bash
 
 #### Notable: should run in python container with image: hub.pingcap.net/jenkins/python3-requests:latest ###
@@ -27,7 +26,7 @@ function gen() {
     local taskStartTime=$(date "+%s%3N" -d "$(stat /proc/1 | grep 'Modify: ' | sed 's/Modify: //')")
     local taskEndTime=$(date '+%s%3N')
 
-    cat <<EOF > "${savePath}"
+    cat <<EOF >"${savePath}"
 {
     "pipeline_name": "${JOB_NAME}",
     "pipeline_run_url": "${RUN_DISPLAY_URL}",
@@ -53,10 +52,10 @@ function gen() {
 EOF
 }
 
-# function 
+# function report
 # param $1: json file path
 function report() {
-    local jsonPath="$1"    
+    local jsonPath="$1"
     local fileServerUrl="${FILE_SERVER_URL:=http://fileserver.pingcap.net}"
     echo $fileServerUrl
     wget "${fileServerUrl}/download/rd-atom-agent/agent_upload_verifyci_metadata.py"
