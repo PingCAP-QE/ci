@@ -34,6 +34,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/overview.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/performance_overview.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/tidb_runtime.json || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/grafana/tidb_resource_control.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/grafana/pd.json || true;
 
     wget -qnc https://github.com/tikv/tikv/archive/${tag}.zip
