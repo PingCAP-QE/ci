@@ -43,6 +43,16 @@ spec:
             command:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
+    - name: deno
+      image: "denoland/deno:1.31.2"
+      tty: true
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
