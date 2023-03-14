@@ -16,6 +16,7 @@ function parse_bazel_go_test_index_log() {
 function parse_bazel_target_output_log() {
     local logPath="$1"
 
+    rm -rf "$BAZEL_TARGET_OUTPUT_FILE_PREFIX-*.log"
     local indexes=($(grep -nE "====================( Test output for //|=+)" ${logPath} | grep -oE "^[0-9]+"))
     local p=0
     while [ $((2 * p)) -lt "${#indexes[@]}" ]; do
