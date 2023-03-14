@@ -70,7 +70,19 @@ pipelineJob('tikv/migration/pull_integration_test') {
             lightweight(true)
             scriptPath("pipelines/tikv/migration/latest/pull_integration_test.groovy")
             scm {
-                github('PingCAP-QE/ci', 'main')
+                git{
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
+                    }
+                    branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        } 
+                    }
+                }
             }
         }
     }

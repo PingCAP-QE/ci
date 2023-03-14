@@ -69,7 +69,19 @@ pipelineJob('pingcap/tiflow/release-6.2/ghpr_verify') {
             lightweight(true)
             scriptPath("pipelines/pingcap/tiflow/release-6.2/ghpr_verify.groovy")
             scm {
-                github('PingCAP-QE/ci', 'main')
+                git{
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
+                    }
+                    branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        } 
+                    }
+                }
             }
         }
     }
