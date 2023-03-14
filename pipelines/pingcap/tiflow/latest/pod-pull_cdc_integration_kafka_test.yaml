@@ -16,8 +16,6 @@ spec:
         memory: 4Gi
     tty: true
     volumeMounts:
-    - mountPath: /home/jenkins
-      name: volume-1
     - mountPath: /tmp
       name: volume-0
   - args:
@@ -34,8 +32,6 @@ spec:
         memory: 16Gi
     tty: true
     volumeMounts:
-    - mountPath: /home/jenkins
-      name: volume-1
     - mountPath: /tmp
       name: volume-0
   - env:
@@ -81,8 +77,6 @@ spec:
         memory: 4Gi
     tty: true
     volumeMounts:
-    - mountPath: /home/jenkins
-      name: volume-1
     - mountPath: /tmp
       name: volume-0
   - env:
@@ -110,8 +104,6 @@ spec:
         memory: 4Gi
     tty: true
     volumeMounts:
-    - mountPath: /home/jenkins
-      name: volume-1
     - mountPath: /tmp
       name: volume-0
   - name: net-tool
@@ -131,6 +123,4 @@ spec:
   volumes:
   - emptyDir: {}
     name: volume-0
-  - emptyDir: {}
-    name: volume-1
   
