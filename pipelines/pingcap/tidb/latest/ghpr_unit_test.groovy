@@ -82,7 +82,7 @@ pipeline {
                             deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases.ts \
                                 --repo=${REFS.org}/${REFS.repo} \
                                 --branch=${REFS.base_ref} \
-                                --caseDataFile=bazel-go-test-problem-cases.json
+                                --caseDataFile=bazel-go-test-problem-cases.json || true
                         """
                     }
                     archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
