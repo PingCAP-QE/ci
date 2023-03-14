@@ -23,6 +23,13 @@ pipelineJob('pingcap/tidb/release-6.5/ghpr_mysql_test') {
                         url('https://github.com/PingCAP-QE/ci.git')
                     }
                     branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        } 
+                    }
                 }
             }
         }
