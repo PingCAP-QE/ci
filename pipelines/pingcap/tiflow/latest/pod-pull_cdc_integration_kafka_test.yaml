@@ -11,6 +11,9 @@ spec:
       requests:
         cpu: 200m
         memory: 4Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
     tty: true
     volumeMounts:
     - mountPath: /home/jenkins
@@ -26,6 +29,9 @@ spec:
       requests:
         cpu: "2"
         memory: 12Gi
+      limits:
+        cpu: "4"
+        memory: 16Gi
     tty: true
     volumeMounts:
     - mountPath: /home/jenkins
@@ -70,6 +76,9 @@ spec:
       requests:
         cpu: 200m
         memory: 4Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
     tty: true
     volumeMounts:
     - mountPath: /home/jenkins
@@ -96,6 +105,9 @@ spec:
       requests:
         cpu: 200m
         memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
     tty: true
     volumeMounts:
     - mountPath: /home/jenkins
