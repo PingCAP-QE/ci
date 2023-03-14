@@ -70,7 +70,19 @@ pipelineJob('pingcap/tidb/merged_integration_cdc_test') {
             lightweight(true)
             scriptPath('pipelines/pingcap/tidb/latest/merged_integration_cdc_test.groovy')
             scm {
-                github('PingCAP-QE/ci', 'main')
+                git{
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
+                    }
+                    branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        } 
+                    }
+                }
             }
         }
     }
