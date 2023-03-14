@@ -95,6 +95,9 @@ spec:
     image: rustinliu/ticdc-canal-json-adapter:latest
     imagePullPolicy: IfNotPresent
     name: canal-adapter
+    # TODO: add resource limit
+    # can't add resource limit now, because canal-adapter will OOM
+    # issue: https://github.com/PingCAP-QE/ci/issues/1893
     resources:
       requests:
         cpu: 200m
