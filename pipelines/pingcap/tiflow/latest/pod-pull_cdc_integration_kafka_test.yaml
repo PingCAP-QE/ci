@@ -117,10 +117,8 @@ spec:
         memory: 256Mi
         cpu: 100m
   volumes:
-  - emptyDir:
-      medium: Memory
+  - emptyDir: {}
     name: volume-0
-  - emptyDir:
-      medium: Memory
+  - emptyDir: {}
     name: volume-1
   
