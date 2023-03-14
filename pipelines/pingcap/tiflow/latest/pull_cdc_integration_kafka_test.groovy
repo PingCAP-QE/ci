@@ -114,9 +114,8 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values '1', '2', '3', '4', '5', '6'
-                        // values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
-                        //     'G14', 'G15', 'G16', 'G17', 'G18', 'G19', 'G20', 'G21', 'G22', 'G23', 'G24', 'others'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
+                            'G14', 'G15', 'G16', 'G17', 'G18', 'G19', 'G20', 'G21', 'G22', 'G23', 'G24', 'others'
                     }
                 }
                 agent{
@@ -150,10 +149,8 @@ pipeline {
                                     }
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        # chmod +x ./tests/integration_tests/run_group.sh
-                                        # ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
-                                        # debug: test stablity of canal_json_adapter_compatibility
-                                        make integration_test_kafka CASE=canal_json_adapter_compatibility
+                                        chmod +x ./tests/integration_tests/run_group.sh
+                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}                                        
                                     """
                                 }
                             }
