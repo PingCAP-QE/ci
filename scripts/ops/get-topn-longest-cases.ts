@@ -1,6 +1,5 @@
 import * as flags from "https://deno.land/std/flags/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { format } from "https://deno.land/std@0.170.0/path/win32.ts";
 import {
   Direction,
   ISortOptions,

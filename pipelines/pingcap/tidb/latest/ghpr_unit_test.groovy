@@ -77,6 +77,14 @@ pipeline {
                 }
                 failure {
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                    container('deno') {
+                        sh label: "Report flaky test case results", script: """
+                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases.ts \
+                                --repo=${REFS.org}/${REFS.repo} \
+                                --branch=${REFS.base_ref} \
+                                --caseDataFile=bazel-go-test-problem-cases.json || true
+                        """
+                    }
                     archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
                 always {
