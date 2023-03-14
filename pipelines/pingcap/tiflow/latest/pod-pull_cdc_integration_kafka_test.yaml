@@ -98,7 +98,7 @@ spec:
     resources:
       requests:
         cpu: 200m
-        memory: 1Gi
+        memory: 4Gi
     tty: true
     volumeMounts:
     - mountPath: /tmp
