@@ -412,7 +412,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     // pd & pd-ctl
                     scripts_builder.append("(pd_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${pd}/sha1); ")
                                 .append("mkdir pd-source; ")
-                    def pd_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+                    def pd_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd}/\${pd_sha1}/centos7/pd-server.tar.gz"
                     if (params.containsKey("upstream_pr_ci_override_pd_download_link")) {
                         pd_download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", pd_download_url)
                     }
