@@ -56,7 +56,7 @@ pipeline {
                         retry(2) {
                             script {
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
-                            }  
+                            }
                         }
                     }
                 }
