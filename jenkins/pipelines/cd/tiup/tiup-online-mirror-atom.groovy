@@ -96,7 +96,7 @@ node("build_go1130") {
             }
 
             stage("TiUP build grafana") {
-                build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                build(job: "grafana-tiup-mirror-update", wait: true, parameters: params1)
             }
 
             stage("TiUP build prometheus") {
