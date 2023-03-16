@@ -53,7 +53,7 @@ spec:
                     [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: true],
                     ]
                     echo "$paramsBuild"
-                    build job: "grafana-tiup-mirror-update",
+                    build job: "grafana-tiup-mirror-update-test",
                                     wait: true,
                                     parameters: paramsBuild
                 }
