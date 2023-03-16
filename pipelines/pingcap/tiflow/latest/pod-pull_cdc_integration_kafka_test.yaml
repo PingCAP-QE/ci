@@ -123,4 +123,3 @@ spec:
   volumes:
   - emptyDir: {}
     name: volume-0
-  

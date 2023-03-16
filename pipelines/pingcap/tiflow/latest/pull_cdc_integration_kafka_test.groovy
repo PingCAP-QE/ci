@@ -150,7 +150,7 @@ pipeline {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                         chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}                                        
+                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
                                     """
                                 }
                             }
