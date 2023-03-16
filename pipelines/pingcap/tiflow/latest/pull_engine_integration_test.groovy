@@ -71,13 +71,10 @@ pipeline {
         }
         stage("prepare") {
             options { timeout(time: 10, unit: 'MINUTES') }
-            // environment { 
-            //     HARBOR_CRED = credentials('eed52b6a-9b48-4b85-9c8b-0075151d0461') 
-            // }
             steps {
                 container("docker") { 
                     dir("tiflow") {
-                        withCredentials([usernamePassword(credentialsId: 'eed52b6a-9b48-4b85-9c8b-0075151d0461', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
+                        withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
                             sh label: "check env", script: """
                                 sleep 10
                                 docker version || true
@@ -129,7 +126,7 @@ pipeline {
                                             cd -        
                                         """
                                     }
-                                    withCredentials([usernamePassword(credentialsId: 'eed52b6a-9b48-4b85-9c8b-0075151d0461', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
+                                    withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
                                         sh label: "check env", script: """
                                             sleep 10
                                             docker version || true
@@ -185,7 +182,7 @@ pipeline {
         stage("cleanup") {
             steps {
                 container("docker") { 
-                    withCredentials([usernamePassword(credentialsId: 'eed52b6a-9b48-4b85-9c8b-0075151d0461', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
+                    withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
                         sh label: "check env", script: """
                             sleep 10
                             docker version || true
