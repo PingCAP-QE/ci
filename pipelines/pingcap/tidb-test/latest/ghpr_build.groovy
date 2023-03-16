@@ -54,7 +54,9 @@ pipeline {
                 dir("tidb-test") {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
-                            prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                            script {
+                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                            }  
                         }
                     }
                 }
