@@ -203,63 +203,6 @@ run_with_pod {
                             writeJSON file: "${name}.json", json: result_map.result.getDescription(), pretty: 4
                         }
                     }
-                    // println "name: ${name}, type: ${type}, result: triggered_job_summary"
-                    pipeline_result << [
-                        name: result_map["name"],
-                        type: result_map["type"],
-                        result: result_map["result"].getResult(),
-                        fullDisplayName: result_map.result.getFullDisplayName(), 
-                        buildNumber: result_map.result.getNumber().toString(),
-                        summary: triggered_job_summary,
-                        durationStr: result_map.result.getDurationString(),
-                        duration: result_map.result.getDuration(),
-                        startTime: result_map.result.getStartTimeInMillis(),
-                        url: "${CI_JENKINS_BASE_URL}/blue/organizations/jenkins/${result_map.result.getFullProjectName()}/detail/${result_map.result.getFullProjectName()}/${result_map.result.getNumber().toString()}/pipeline"    
-                    ]
-                }
-
-                pipeline_result << [
-                    name: "tidb-merge-ci-shadow",
-                    result: currentBuild.result,
-                    type: "mergeci-pipeline",
-                    buildNumber: BUILD_NUMBER,
-                    commitID: TIDB_COMMIT_ID,
-                    branch: TIDB_BRANCH,
-                    prID: GEWT_PULL_ID.replaceAll("#", ""),
-                    prAuthor: GEWT_AUTHOR,
-                    repo: "tidb",
-                    org: "pingcap",
-                    url: RUN_DISPLAY_URL,
-                    startTime: taskStartTimeInMillis, 
-                    duration: System.currentTimeMillis() - taskStartTimeInMillis,
-                    trigger: "tidb-merge-ci",
-                ]
-                println "PR ID : ${GEWT_PULL_ID.replaceAll("#", "")}"
-                def notify_lark = ["purelind", GEWT_AUTHOR]
-                // def notify_email = [GEWT_AUTHOR_EMAIL]
-                def notify_email = []
-                pipeline_result << [
-                    "name": "ci-notify",
-                    "type": "ci-notify",
-                    "lark": notify_lark,
-                    "email": notify_email,
-                ]
-                def json = groovy.json.JsonOutput.toJson(pipeline_result)
-                writeJSON file: 'ciResult.json', json: json, pretty: 4
-                sh 'cat ciResult.json'
-                archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-                withCredentials([string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
-                                 string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
-                ]) { 
-                    if (TIDB_BRANCH == "master") { 
-                        sh """
-                        export LC_CTYPE="en_US.UTF-8"
-                        wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-tidb-mergeci-shadow.py
-                        python3 agent-tidb-mergeci-shadow.py ciResult.json ${FEISHU_BREAK_IT_ALERT_URL}
-                        """
-                    } else {
-                        println "current branch is not master, skip ci-notify"
-                    }
                 }
             }
         }
