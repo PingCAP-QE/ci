@@ -37,7 +37,7 @@ spec:
                 )
                 script{
                     try{
-                        sh "bash scripts/prepare_dashboards.sh"
+                        sh "make output/dashboards"
                     }catch (Exception e) {
                         fallback = true
                         echo "fallback"
@@ -89,15 +89,13 @@ spec:
                     stage("tiup"){
                         options { retry(3) }
                         environment { 
-                            OS="$OS"
-                            ARCH="$ARCH"
+                            TARGET_OS="$OS"
+                            TARGET_ARCH="$ARCH"
                         }
                         steps{
+                            sh "make output/grafana-${OS}-${ARCH}.tar.gz"
                             container("tiup"){
-                                dir("$OS-$ARCH"){
-                                sh "bash ../scripts/build_tiup_grafana.sh"
-                                sh """tiup mirror publish grafana ${params.TIDB_VERSION} grafana.tar.gz "bin/grafana-server" --arch $ARCH --os $OS --desc="Grafana is the open source analytics & monitoring solution for every database" """
-                                }
+                                sh """tiup mirror publish grafana ${params.TIDB_VERSION} output/grafana-${OS}-${ARCH}.tar.gz "bin/grafana-server" --arch $ARCH --os $OS --desc="Grafana is the open source analytics & monitoring solution for every database" """
                             }
                         }
                     }
