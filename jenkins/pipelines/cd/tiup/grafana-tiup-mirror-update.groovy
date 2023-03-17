@@ -96,7 +96,7 @@ spec:
                             container("tiup"){
                                 dir("$OS-$ARCH"){
                                 sh "bash ../scripts/build_tiup_grafana.sh"
-                                sh 'tiup mirror publish grafana ${params.TIDB_VERSION} grafana.tar.gz "bin/grafana-server" --arch $ARCH --os $OS --desc="Grafana is the open source analytics & monitoring solution for every database" '
+                                sh """tiup mirror publish grafana ${params.TIDB_VERSION} grafana.tar.gz "bin/grafana-server" --arch \$ARCH --os \$OS --desc="Grafana is the open source analytics & monitoring solution for every database" """
                                 }
                             }
                         }
