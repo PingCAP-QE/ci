@@ -99,7 +99,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'external_resource'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'others'
                     }
                 }
                 agent{
@@ -160,7 +160,8 @@ pipeline {
                                     """
                                     sh label: "${TEST_GROUP}", script: """
                                         git config --global --add safe.directory '*'
-                                        make engine_integration_test CASE="${TEST_GROUP}" 
+                                        chmod +x engine/test/integration_tests/*.sh
+                                        ./engine/test/integration_tests/run_group.sh ${TEST_GROUP}
                                     """
                                 }
                             }
