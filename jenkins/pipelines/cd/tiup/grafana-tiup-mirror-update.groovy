@@ -36,27 +36,27 @@ spec:
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/monitoring.git']]]
                 )
                 script{
-                try{
-                    sh "bash scripts/prepare_dashboards.sh"
-                }catch (Exception e) {
-                    fallback = true
-                    echo "fallback"
-                    def  paramsBuild = [
-                    string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
-                    string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
-                    string(name: "ORIGIN_TAG", value: ""),
-                    string(name: "TIDB_VERSION", value: "${TIDB_VERSION}"),
-                    string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
-                    [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: true],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: true],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: true],
-                    [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: true],
-                    ]
-                    echo "$paramsBuild"
-                    build job: "grafana-tiup-mirror-update-test",
+                    try{
+                        sh "bash scripts/prepare_dashboards.sh"
+                    }catch (Exception e) {
+                        fallback = true
+                        echo "fallback"
+                        def  paramsBuild = [
+                            string(name: "RELEASE_BRANCH", value: "${RELEASE_BRANCH}"),
+                            string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
+                            string(name: "ORIGIN_TAG", value: ""),
+                            string(name: "TIDB_VERSION", value: "${TIDB_VERSION}"),
+                            string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
+                            [$class: 'BooleanParameterValue', name: 'ARCH_X86', value: true],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: true],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: true],
+                            [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: true],
+                        ]
+                        echo "$paramsBuild"
+                        build job: "grafana-tiup-mirror-update-test",
                                     wait: true,
                                     parameters: paramsBuild
-                }
+                    }
                 }
             }
         }
@@ -87,19 +87,19 @@ spec:
                 }
                 stages{
                     stage("tiup"){
-                    options { retry(3) }
-                    environment { 
-                        OS="$OS"
-                        ARCH="$ARCH"
-                    }
-                    steps{
-                        container("tiup"){
-                            dir("$OS-$ARCH"){
-                            sh "bash ../scripts/build_tiup_grafana.sh"
-                            sh 'tiup mirror publish grafana ${params.TIDB_VERSION} grafana.tar.gz "bin/grafana-server" --arch $ARCH --os $OS --desc="Grafana is the open source analytics & monitoring solution for every database" '
+                        options { retry(3) }
+                        environment { 
+                            OS="$OS"
+                            ARCH="$ARCH"
+                        }
+                        steps{
+                            container("tiup"){
+                                dir("$OS-$ARCH"){
+                                sh "bash ../scripts/build_tiup_grafana.sh"
+                                sh 'tiup mirror publish grafana ${params.TIDB_VERSION} grafana.tar.gz "bin/grafana-server" --arch $ARCH --os $OS --desc="Grafana is the open source analytics & monitoring solution for every database" '
+                                }
                             }
                         }
-                    }
                     }
                 }
             }
