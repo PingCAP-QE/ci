@@ -533,7 +533,7 @@ node("build_go1130") {
                         if (TIUP_ENV == "prod") {
                             build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
                         } else {
-                            build(job: "grafana-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsGRANFANA)
+                            build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
                         }
                     }
                 }
