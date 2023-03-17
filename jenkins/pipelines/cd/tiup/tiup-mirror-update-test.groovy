@@ -259,7 +259,7 @@ node("build_go1130") {
                 }
                 builds["TiUP build grafana"]={
                     retry(3) {
-                        build(job: "grafana-tiup-mirror-update-test", wait: true, parameters: params1)
+                        build(job: "grafana-tiup-mirror-update", wait: true, parameters: params1)
                     }
                 }
                 builds["TiUP build prometheus"]={
