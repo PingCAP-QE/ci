@@ -7,7 +7,8 @@
 
 > Only one site in our roadmap.
 
-- https://do.pingcap.net (in development)
+- `do.pingcap.net` (in development)
+  - https://do.pingcap.net/jenkins is the backend CI worker(Jenkins).
 
 > Notices: when you develop new pipeplines or jobs, 
 > you should put them in `/staging` folder and create a PR. When the PR merged, seed job will deploy it in staging CI server.
@@ -32,15 +33,8 @@
 ## File structure for jobs and pipelines
 
 - using `<org>/<repo>/<branch-special>/<pipeline-name>.groovy` structure.
-- using dir soft link to reduce duplicate pipeline files for branch special, for an example: 
-  - soft link `release-6/` to `trunk/`
-  - soft link `release-6.2/` to `release-6/`
-  - create dir `release-6.1/` because special steps.
-  - when step in release 7.x, soft link `release-7/` to `trunk/`
-  - when new step should added in release 7.x
-    1. detach the soft link `release-6/` to `trunk`
-    2. create copy `trunk/` to `release-6/`
-    3. update files in `release-7/` or `trunk`(real path).
+  - the `lastet` store CI jobs and scripts for trunk branch and feature branches.
+  - the `release-x.y` store CI jobs and scripts for the special release branch.
 
 ## Job DSL important usage
 
