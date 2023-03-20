@@ -17,7 +17,7 @@ pipelineJob('pingcap/tidb/release-7.0/ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-7.0//ghpr_build.groovy")
+            scriptPath("pipelines/pingcap/tidb/release-7.0/ghpr_build.groovy")
             scm {
                 git{
                     remote {
