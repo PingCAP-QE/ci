@@ -45,6 +45,11 @@ pipelineJob('tidb_test_ghpr_integration_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('')
                     orgslist('pingcap')
+                    blackListTargetBranches {
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^(release-)?6\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
