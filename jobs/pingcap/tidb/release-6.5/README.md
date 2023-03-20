@@ -50,7 +50,8 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
     RUN apt-get update && apt-get install -y build-essential && apt-get clean
 
     # install bazel tool
-    RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-amd64" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
+    ENV ARCH amd64    
+    RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
 
     ######### run test for tidb steps ########
     # git clone https://github.com/pingap/tidb.git --branch release-6.5
@@ -72,7 +73,7 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
         && curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz
 
     # bazel tool
-    RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-amd64" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
+    RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
 
     ######### run test for tidb steps ########
     # git clone https://github.com/pingap/tidb.git --branch release-6.5
