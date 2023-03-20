@@ -20,7 +20,7 @@ pipelineJob('tikv_ghpr_build_release') {
                 ghprbTrigger {
                     cron('H/5 * * * *')
                     gitHubAuthId('a6f8c5ac-6082-4ad1-b84d-562cc1c37682')
-                    triggerPhrase('^/release\b(\s+.*)?$')
+                    triggerPhrase('.*/(run-build-release.*)')
                     onlyTriggerPhrase(true)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
