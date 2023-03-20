@@ -26,6 +26,7 @@ pipelineJob('pd_ghpr_build') {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('^feature[_|/].*') }
                         ghprbBranch { branch('^(release-)?6\\.[5-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
