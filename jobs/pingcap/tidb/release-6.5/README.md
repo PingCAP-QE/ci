@@ -47,7 +47,9 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
     FROM golang:1.19
 
     # install build essential
-    RUN apt-get update && apt-get install -y build-essential && apt-get clean
+    RUN apt-get update && \
+        apt-get install -y build-essential unzip && \
+        apt-get clean
 
     # install bazel tool
     ENV ARCH amd64    
@@ -69,8 +71,12 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
     ENV GOPATH /go
     ENV GOROOT /usr/local/go
     ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
-    RUN yum update -y && yum groupinstall 'Development Tools' -y && yum clean all \
-        && curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz
+    RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz    
+
+    RUN yum update -y && \
+        yum groupinstall 'Development Tools' -y && \
+        yum install unzip -y && \
+        yum clean all        
 
     # bazel tool
     RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
