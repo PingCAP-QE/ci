@@ -1,7 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tikv_ghpr_build_release') {
     logRotator {
-        numToKeep（30）
+        daysToKeep(90)
+        numToKeep(30)
     }
     parameters {
         stringParam('ghprbActualCommit')
