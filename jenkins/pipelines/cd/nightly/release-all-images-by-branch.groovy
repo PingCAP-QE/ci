@@ -36,7 +36,7 @@ properties([
                 H 18 * * * % GIT_BRANCH=release-5.4;FORCE_REBUILD=false;NEED_MULTIARCH=false
                 H 18 * * * % GIT_BRANCH=release-6.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 18 * * * % GIT_BRANCH=release-6.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
-                H 18 * * * % GIT_BRANCH=release-6.6;FORCE_REBUILD=false;NEED_MULTIARCH=true
+                H 18 * * * % GIT_BRANCH=release-7.0;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
             ''')
         ])
@@ -83,7 +83,7 @@ HARBOR_PROJECT_PREFIX = "hub.pingcap.net/qa"
 
 
 // for master branch: use default local tag: v6.1.0-nightly
-RELEASE_TAG = "v6.7.0-alpha"
+RELEASE_TAG = "v7.1.0-alpha"
 if (GIT_BRANCH.startsWith("release-")) {
     RELEASE_TAG = "v" + trimPrefix(GIT_BRANCH) + ".0-nightly"
 }
