@@ -62,7 +62,7 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
 - or base on `rocky:9`
     ```Dockerfile
     # Base image
-    FROM rockylinux:9 as base
+    FROM rockylinux:9
 
     # golang tool
     ENV GOLANG_VERSION 1.19.7
