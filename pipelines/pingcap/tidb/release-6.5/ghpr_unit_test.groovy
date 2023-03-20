@@ -56,7 +56,11 @@ pipeline {
             environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir('tidb') {
-                    sh './build/jenkins_unit_test.sh' 
+                    sh '''#! /usr/bin/env bash
+                        set -o pipefail
+
+                        ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
+                        '''
                 }
             }
             post {
@@ -69,6 +73,18 @@ pipeline {
                         ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
                         """
                     }
+                }
+                failure {
+                    sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                    container('deno') {
+                        sh label: "Report flaky test case results", script: """
+                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases.ts \
+                                --repo=${REFS.org}/${REFS.repo} \
+                                --branch=${REFS.base_ref} \
+                                --caseDataFile=bazel-go-test-problem-cases.json || true
+                        """
+                    }
+                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
                 always {
                     dir('tidb') {

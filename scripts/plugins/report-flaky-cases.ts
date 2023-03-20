@@ -62,7 +62,7 @@ async function main({
       caseData,
       rest.repo,
       rest.branch,
-      Date.now(),
+      ~~(Date.now() / 1000),
     );
   } finally {
     // close the db connection.
