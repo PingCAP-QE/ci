@@ -3,9 +3,10 @@ CI Jobs
 
 ## Run before merged
 
+- Host is `Linux` & `X86_64`.
 - **Disabled cgroup v2 on the host**, there is a [reference](#how-to-check-cgroup-and-disable-cgroup2).
   - Currently some local tests are depended on cgroup.
-- The runner requirement: `64` core cpu + `128GB` memory with golang `v1.19.7` installed.
+- The runner requirement: `64` core cpu + `128GB` memory with golang `v1.19.7` installed
   - Tools and setting please refer to [container env](#dev-containers), you can setup in you bare hosts.
 
  
