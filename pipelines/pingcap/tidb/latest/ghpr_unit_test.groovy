@@ -1,6 +1,5 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and release-6.2.x branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -60,7 +59,7 @@ pipeline {
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
-                        ./build/jenkins_unit_test.sh | tee bazel-test.log
+                        ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
                         '''
                 }
             }

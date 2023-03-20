@@ -59,7 +59,7 @@ pipeline {
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
-                        ./build/jenkins_unit_test.sh | tee bazel-test.log
+                        ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
                         '''
                 }
             }
