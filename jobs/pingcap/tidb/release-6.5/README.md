@@ -8,6 +8,7 @@ CI Jobs
   - Currently some local tests are depended on cgroup.
 - The runner requirement: `64` core cpu + `128GB` memory with golang `v1.19.7` installed
   - Tools and setting please refer to [container env](#dev-containers), you can setup in you bare hosts.
+- Run as `root` user
 
  
 | Job name                                  | Description                               | Trigger comment in PR | CI script                                                          | Can be run locally by contributors | Core Instructions to run locally                                                                                                                                                         |
