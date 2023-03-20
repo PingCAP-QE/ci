@@ -1,6 +1,5 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and release-7.0 release branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
