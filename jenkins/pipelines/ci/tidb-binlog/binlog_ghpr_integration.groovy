@@ -48,7 +48,7 @@ if (m4) {
 }
 m4 = null
 
-if (TIDB_TOOLS_BRANCH.matches(/^(release-)?(6\.[0-9]|5\.[3-4])\d*(\.\d+)?(\-.*)?$/)) {
+if (TIDB_TOOLS_BRANCH.matches(/^(release-)?(6\.[0-9]|5\.[3-4]|7|8)\d*(\.\d+)?(\-.*)?$/)) {
     println "TIDB_TOOLS repo not exit branch ${TIDB_TOOLS_BRANCH}, use master instead"
     TIDB_TOOLS_BRANCH = "master"
 }
