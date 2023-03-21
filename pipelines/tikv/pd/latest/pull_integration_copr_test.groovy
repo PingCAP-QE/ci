@@ -107,20 +107,13 @@ pipeline {
             steps {
                 dir('pd') {
                     container("golang") {
-                        sh label: 'pd-server', script: """
-                            if [ ! -f bin/pd-server ]; then
-                                make
-                            fi
-                        """
-                        sh label: 'download binary', script: """
+                        sh label: 'pd-server', script: '[ -f bin/pd-server ] || make'
+                        sh label: 'tikv-server', script: """
                         chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
                         ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tikv=${REFS.base_ref}
-                        rm -rf third_bin/bin && mv third_bin/* bin/
-                        ls -alh bin/
-                        """
-                        sh label: "binary version", script: """
-                            bin/pd-server -V
-                            bin/tikv-server -V
+                        rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
+                        bin/pd-server -V
+                        bin/tikv-server -V
                         """
                     }
                 }      
@@ -133,7 +126,6 @@ pipeline {
                 //   https://github.com/tikv/copr-test/tree/master
                 dir('tikv-copr-test') {
                     sh label: "Push Down Test", script: """
-                        #!/usr/bin/env bash
                         pd_bin=${WORKSPACE}/pd/bin/pd-server \
                         tikv_bin=${WORKSPACE}/pd/bin/tikv-server \
                         tidb_src_dir=${WORKSPACE}/tidb \
