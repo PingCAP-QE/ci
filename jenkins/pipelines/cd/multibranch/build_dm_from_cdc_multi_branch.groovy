@@ -283,6 +283,7 @@ try {
         }
         // do not release dm-ansible  after v6.0.0
         if ((branch.startsWith("release-") && branch <"release-6.0") || (branch.startsWith("v") && branch <"v6.0.0")) {
+            println "For branch >= v6.0.0, Skip dm-ansible release"
             stage("package dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -335,6 +336,7 @@ try {
             }
         } else {
             stage("package dm-ansible") {
+                println "For branch < v6.0.0, need dm-ansible release"
                 dir(build_path) {
                     container("golang") {
                         timeout(10) {
