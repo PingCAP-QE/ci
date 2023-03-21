@@ -51,6 +51,32 @@ pipeline {
                         }
                     }
                 }
+                dir("tidb") {
+                        retry(2) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                                retry(2) {
+                                    checkout(
+                                        changelog: false,
+                                        poll: false,
+                                        scm: [
+                                            $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
+                                            doGenerateSubmoduleConfigurations: false,
+                                            extensions: [
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CleanBeforeCheckout'],
+                                                [$class: 'CloneOption', timeout: 15],
+                                            ],
+                                            submoduleCfg: [],
+                                            userRemoteConfigs: [[
+                                                refspec: "+refs/heads/*:refs/remotes/origin/*",
+                                                url: 'https://github.com/pingcap/tidb.git',
+                                            ]],
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+                }
                 dir("tikv-copr-test") {
                     cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.base_sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
@@ -80,39 +106,36 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('pd') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_mysql_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'pd-server', script: """
-                                if [ ! -f bin/pd-server ]; then
-                                    make
-                                fi
-                            """
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            rm -rf third_bin/bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            """
-                        }
+                    container("golang") {
+                        sh label: 'pd-server', script: """
+                            if [ ! -f bin/pd-server ]; then
+                                make
+                            fi
+                        """
+                        sh label: 'download binary', script: """
+                        chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        rm -rf third_bin/bin && mv third_bin/* bin/
+                        ls -alh bin/
+                        """
+                        sh label: "binary version", script: """
+                            bin/pd-server -V
+                            bin/tikv-server -V
+                        """
                     }
-                }
+                }      
             }
         }
         stage('Tests') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
-                }
                 //  TODO: open pull request to support tidb-server bin path in copr-test
                 //   https://github.com/tikv/copr-test/tree/master
                 dir('tikv-copr-test') {
                     sh label: "Push Down Test", script: """
                         #!/usr/bin/env bash
-                        pd_bin=${WORKSPACE}/tidb/bin/pd-server \
-                        tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
+                        pd_bin=${WORKSPACE}/pd/bin/pd-server \
+                        tikv_bin=${WORKSPACE}/pd/bin/tikv-server \
                         tidb_src_dir=${WORKSPACE}/tidb \
                         make push-down-test
                     """
