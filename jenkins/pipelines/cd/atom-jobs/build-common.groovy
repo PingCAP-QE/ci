@@ -209,11 +209,19 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
             goBuildPod = "build_go1190"
             GO_BIN_PATH = "/usr/local/go1.19.7/bin"
             break
+        case "go1.20":
+            goBuildPod = "build_go1200"
+            GO_BIN_PATH = "/usr/local/go1.20.2/bin"
+            break
         default:
             throw new Exception("go version ${goVersion} not supported")
     }
 } 
 if (REPO != "tidb-tools") {
+    if (goVersion == "go1.20") {
+        goBuildPod = "build_go1200"
+        GO_BIN_PATH = "/usr/local/go1.20.2/bin"
+    }
     if (goVersion == "go1.19") {
         goBuildPod = "build_go1190"
         GO_BIN_PATH = "/usr/local/go1.19.7/bin"
@@ -231,14 +239,6 @@ if (REPO != "tidb-tools") {
         goBuildPod = "${GO_BUILD_SLAVE}"
         GO_BIN_PATH = "/usr/local/go/bin"
     }
-}
-// workaround for v 5.3.3 tidb-tools,
-// need use go1.18.10 to build tidb-tools
-// revert this after  v5.3.3 ga
-if (REPO == "tidb-tools" && RELEASE_TAG == "v5.3.3" && GIT_HASH == "cf6b7a8ae4b5849a6155634352b3712059defb48") {
-        goBuildPod = "build_go1180"
-        GO_BIN_PATH = "/usr/local/go1.18.10/bin"
-        println "tidb-tools v5.3.3 use go1.18.10 to build"
 }
 
 // choose which node to use.
