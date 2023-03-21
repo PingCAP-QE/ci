@@ -11,7 +11,7 @@ pipelineJob('tikv/pd/pull_integration_copr_test') {
         stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
-        // priority(0) // 0 fast than 1
+        buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/tikv/pd")
     }
  
