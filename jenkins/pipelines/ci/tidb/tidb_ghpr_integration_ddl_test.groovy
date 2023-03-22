@@ -54,6 +54,8 @@ POD_NAMESPACE = "jenkins-tidb-mergeci"
 
 GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
+POD_CLOUD = "kubernetes-ksyun"
+POD_NAMESPACE = "jenkins-tidb"
 GO_IMAGE_MAP = [
     "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
     "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
