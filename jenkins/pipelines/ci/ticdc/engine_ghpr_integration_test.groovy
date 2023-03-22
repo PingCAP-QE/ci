@@ -65,13 +65,13 @@ def pattern_match_any_file(pattern, files_list) {
 
 if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
     def pr_diff_files = list_pr_diff_files()
-    def pattern = /(^engine\/|^dm\/|^pkg\/|^deployments\/engine\/|^go\.mod).*$/
-    // if any diff files start with dm/ or pkg/ , run the dm integration test
+    def pattern = /(^engine\/|^dm\/|^deployments\/engine\/|^go\.mod).*$/
+    // if any diff files start with dm/ or engine/ , run the engine integration test
     def matched = pattern_match_any_file(pattern, pr_diff_files)
     if (matched) {
-        echo "matched, some diff files full path start with engine/ or pkg/ or deployments/engine/ or go.mod, run the engine integration test"
+        echo "matched, some diff files full path start with engine/ or deployments/engine/ or go.mod, run the engine integration test"
     } else {
-        echo "not matched, all files full path not start with engine/ or pkg/ or deployments/engine/ or go.mod, current pr not releate to dm, so skip the engine integration test"
+        echo "not matched, all files full path not start with engine/ or deployments/engine/ or go.mod, current pr not releate to dm, so skip the engine integration test"
         currentBuild.result = 'SUCCESS'
         return 0
     }
