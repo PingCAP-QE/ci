@@ -57,20 +57,6 @@ catchError {
     }
 }
 
-stage('Summary') {
-    def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-    def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-            "${ghprbPullLink}" + "\n" +
-            "${ghprbPullDescription}" + "\n" +
-            "Trigger Integration BRIE Test Result: `${currentBuild.result}`" + "\n" +
-            "Elapsed Time: `${duration} mins` " + "\n" +
-            "${env.RUN_DISPLAY_URL}"
-
-    if (currentBuild.result != "SUCCESS" && currentBuild.result != "ABORTED") {
-        slackSend channel: '#jenkins-ci-migration', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-    }
-}
-
 if (params.containsKey("triggered_by_upstream_ci")) {
     stage("update commit status") {
         node("master") {
