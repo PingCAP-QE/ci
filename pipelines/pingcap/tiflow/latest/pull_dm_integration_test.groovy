@@ -88,26 +88,28 @@ pipeline {
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
                         sh label: "prepare", script: """
-                            [ -f ./bin/dm-master.test ] || make dm_integration_test_build
-                            if [ -d ./bin/dm-test-tools ] ; then
-                                echo "dm-test-tools already exist"
-                            else
+                            if [[ ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
+                                echo "Building binaries..."
                                 make dm_integration_test_build
-                                mkdir -p ./bin/dm-test-tools
-                                mv ./dm/tests/bin ./bin/dm-test-tools
+                            else
+                                echo "Binaries already exist, skipping build..."
                             fi
+                            cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools
                             which ./bin/dm-master.test
                             which ./bin/dm-syncer.test
                             which ./bin/dm-worker.test
                             which ./bin/dmctl.test
+                            which ./bin/dm-test-tools/check_master_online
+                            which ./bin/dm-test-tools/check_worker_online
                         """
                     }
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
+                            ls -alh ./bin/dm-test-tools
                         """
                     }
                 }
