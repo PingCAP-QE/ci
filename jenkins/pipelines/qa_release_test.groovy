@@ -69,16 +69,13 @@ catchError {
                     sh "inv upload --dst refs/pingcap/pd/${release_info.pd_commit}/sha1 --content ${release_info.pd_commit}"
                     // 上传集成测试流水线需要的产物路径
                     // upload tidb-server.tar.gz again for integration test
-                    sh "inv upload --force --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz 
-                        --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/done --content done"
                     // upload pd-server.tar.gz again for integration test
-                    sh "inv upload --force --dst download/builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/pd-server.tar.gz
-                        --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
+                    sh "inv upload --force --dst download/builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/done --content done"
                     // upload tikv-server.tar.gz again for integration test
-                    sh "inv upload --force --dst download/builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz
-                        --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
+                    sh "inv upload --force --dst download/builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/done --content done"
 
 
