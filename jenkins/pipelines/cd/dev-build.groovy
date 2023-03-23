@@ -107,8 +107,8 @@ spec:
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/qa/$Product:$Version"
                         ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
-                        BinPathDict["amd64"] = "builds/hotfix/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
-                        BinPathDict["arm64"] = "builds/hotfix/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
+                        BinPathDict["amd64"] = "builds/hotfix/$BUILD_NUMBER/$Product-$Version-linux-amd64.tar.gz"
+                        BinPathDict["arm64"] = "builds/hotfix/$BUILD_NUMBER/$Product-$Version-linux-arm64.tar.gz"
                     }
                 }
                 echo "repo hash: $GitHash"
