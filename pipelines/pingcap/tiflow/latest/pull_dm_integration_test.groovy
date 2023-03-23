@@ -121,11 +121,12 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values "ha_cases_1 ha_cases_2 ha_cases2", "ha_cases3 ha_cases3_1 ha_master", "handle_error handle_error_2 handle_error_3",
-                            "tls", "all_mode", "dmctl_advance dmctl_basic dmctl_command", "import_goroutine_leak incremental_mode initial_unit",
-                            "load_interrupt many_tables online_ddl", "relay_interrupt safe_mode sequence_safe_mode",
-                            "shardddl1 shardddl1_1 shardddl2 shardddl2_1", "shardddl3 shardddl3_1 shardddl4 shardddl4_1 sharding sequence_sharding",
-                            "others others_2 others_3", "start_task print_status http_apis new_relay", "import_v10x sharding2 ha"                             
+                        values 'G00' 'G01' 'G02'
+                        // values "ha_cases_1 ha_cases_2 ha_cases2", "ha_cases3 ha_cases3_1 ha_master", "handle_error handle_error_2 handle_error_3",
+                        //     "tls", "all_mode", "dmctl_advance dmctl_basic dmctl_command", "import_goroutine_leak incremental_mode initial_unit",
+                        //     "load_interrupt many_tables online_ddl", "relay_interrupt safe_mode sequence_safe_mode",
+                        //     "shardddl1 shardddl1_1 shardddl2 shardddl2_1", "shardddl3 shardddl3_1 shardddl4 shardddl4_1 sharding sequence_sharding",
+                        //     "others others_2 others_3", "start_task print_status http_apis new_relay", "import_v10x sharding2 ha"                             
                     }
                 }
                 agent{
@@ -181,7 +182,8 @@ pipeline {
                                         fi
                                         export PATH=/usr/local/go/bin:\$PATH
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
-                                        make dm_integration_test CASE="${TEST_GROUP}"  
+                                        chmod +x ./dm/run_group.sh
+                                        ./dm/run_group.sh ${TEST_GROUP}
                                     """
                                 } 
                             }
