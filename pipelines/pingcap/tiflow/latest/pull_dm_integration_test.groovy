@@ -173,8 +173,7 @@ pipeline {
                                         fi
                                         export PATH=/usr/local/go/bin:\$PATH
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
-                                        chmod +x ./dm/tests/run_group.sh
-                                        ./dm/tests/run_group.sh ${TEST_GROUP}
+                                        make dm_integration_test_in_group ${TEST_GROUP}
                                     """
                                 } 
                             }
