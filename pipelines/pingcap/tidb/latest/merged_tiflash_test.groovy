@@ -117,11 +117,18 @@ pipeline {
             }
             post{
                 failure {
-                    script {
-                        println "Test failed, archive the log"
-                        dir("tiflash/tests/docker") {
-                            archiveArtifacts artifacts: 'log/**/*.log', allowEmptyArchive: true 
-                            sh label: 'display some log', script: """find log -name '*.log' | xargs tail -n 50"""
+                    container("docker") {
+                        script {
+                            println "Test failed, archive the log"
+                            dir("tiflash/tests/docker") {
+                                sh label: 'display and collect log', script: """
+                                find log -name '*.log' | xargs tail -n 50
+                                ls -alh log/
+                                tar -cvzf log.tar.gz \$(find log/ -type f -name "*.log")
+                                ls -alh  log.tar.gz 
+                                """
+                                archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true 
+                            }
                         }
                     }
                 }
