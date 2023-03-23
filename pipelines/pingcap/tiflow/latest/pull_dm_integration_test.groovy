@@ -94,7 +94,7 @@ pipeline {
                             else
                                 echo "Binaries already exist, skipping build..."
                             fi
-                            cp -r ./dm/tests/bin/* ./bin/dm-test-tools
+                            mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools
                             which ./bin/dm-master.test
@@ -121,7 +121,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00' 'G01' 'G02'
+                        values 'G00', 'G01', 'G02'
                         // values "ha_cases_1 ha_cases_2 ha_cases2", "ha_cases3 ha_cases3_1 ha_master", "handle_error handle_error_2 handle_error_3",
                         //     "tls", "all_mode", "dmctl_advance dmctl_basic dmctl_command", "import_goroutine_leak incremental_mode initial_unit",
                         //     "load_interrupt many_tables online_ddl", "relay_interrupt safe_mode sequence_safe_mode",
