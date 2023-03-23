@@ -90,10 +90,6 @@ spec:
                         PluginBinPathDict["arm64"] = "builds/$baseDir/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"
                         echo "enterprise plugin bin path: $PluginBinPathDict"
                     }
-                    Image = "hub.pingcap.net/$baseDir/$Product:$Version-$BUILD_NUMBER"
-                    if (params.IsPushGCR.toBoolean()){
-                        Image = "hub.pingcap.net/qa/$Product:$Version"
-                    }
                     BinPathDict["amd64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
                     BinPathDict["arm64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
                     BinBuildPathDict["amd64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
@@ -110,8 +106,10 @@ spec:
                     def ts13 = date.getTime() / 1000
                     def ts10 = (Long) ts13
                     def day =new java.text.SimpleDateFormat("yyyyMMdd").format(date)
+                    Image = "hub.pingcap.net/$baseDir/$Product:$Version-$BUILD_NUMBER"
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$day-$ts10-dev"
-                    if (params.IsPushGCR.toBoolean()){
+                    if (params.IsHotfix.toBoolean()){
+                        Image = "hub.pingcap.net/qa/$Product:$Version"
                         ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
                     }
                 }
