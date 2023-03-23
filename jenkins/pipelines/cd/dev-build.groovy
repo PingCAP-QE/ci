@@ -74,10 +74,6 @@ spec:
                     if (Product == "tidb" && Edition == "enterprise"){
                         NeedEnterprisePlugin = true
                     }
-                    def baseDir = "devbuild"
-                    if (params.IsPushGCR.toBoolean()){
-                        baseDir = "hotfix"
-                    }
                     if (NeedEnterprisePlugin){
                         if (PluginGitRef == ""){
                             semverReg = /^(v)?(\d+\.\d+)(\.\d+.*)?/
@@ -86,14 +82,14 @@ spec:
                         echo "enterprise plugin commit: $PluginGitRef"
                         EnterprisePluginHash = sh(returnStdout: true, script: "python /gethash.py -repo=enterprise-plugin -version=${PluginGitRef}").trim()
                         echo "enterprise plugin hash: $EnterprisePluginHash"
-                        PluginBinPathDict["amd64"] = "builds/$baseDir/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
-                        PluginBinPathDict["arm64"] = "builds/$baseDir/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"
+                        PluginBinPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
+                        PluginBinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"
                         echo "enterprise plugin bin path: $PluginBinPathDict"
                     }
-                    BinPathDict["amd64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
-                    BinPathDict["arm64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
-                    BinBuildPathDict["amd64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
-                    BinBuildPathDict["arm64"] = "builds/$baseDir/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
+                    BinPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
+                    BinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
+                    BinBuildPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
+                    BinBuildPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
                     ProductForBuild = Product
                     if (ProductForBuild == "tiflash"){
                         ProductForBuild = "tics"
@@ -106,11 +102,13 @@ spec:
                     def ts13 = date.getTime() / 1000
                     def ts10 = (Long) ts13
                     def day =new java.text.SimpleDateFormat("yyyyMMdd").format(date)
-                    Image = "hub.pingcap.net/$baseDir/$Product:$Version-$BUILD_NUMBER"
+                    Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$day-$ts10-dev"
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/qa/$Product:$Version"
                         ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
+                        BinPathDict["amd64"] = "builds/hotfix/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
+                        BinPathDict["arm64"] = "builds/hotfix/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
                     }
                 }
                 echo "repo hash: $GitHash"
