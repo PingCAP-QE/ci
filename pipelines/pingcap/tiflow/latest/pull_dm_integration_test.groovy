@@ -91,10 +91,10 @@ pipeline {
                             if [[ ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
                                 echo "Building binaries..."
                                 make dm_integration_test_build
+                                mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             else
                                 echo "Binaries already exist, skipping build..."
                             fi
-                            mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools
                             which ./bin/dm-master.test
@@ -157,12 +157,7 @@ pipeline {
                                     timeout(time: 10, unit: 'MINUTES') {
                                         sh label: "wait mysql ready", script: """
                                             pwd && ls -alh
-                                            # export MYSQL_HOST="127.0.0.1"
-                                            # export MYSQL_PORT="3306"
-                                            # ./dm/tests/wait_for_mysql.sh
-                                            # export MYSQL_PORT="3307"
-                                            # ./dm/tests/wait_for_mysql.sh
-                                            # wait for mysql container ready.
+                                            # TODO use wait-for-mysql-ready.sh
                                             set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                             set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                         """
@@ -182,8 +177,8 @@ pipeline {
                                         fi
                                         export PATH=/usr/local/go/bin:\$PATH
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
-                                        chmod +x ./dm/run_group.sh
-                                        ./dm/run_group.sh ${TEST_GROUP}
+                                        chmod +x ./dm/tests/run_group.sh
+                                        ./dm/tests/run_group.sh ${TEST_GROUP}
                                     """
                                 } 
                             }
