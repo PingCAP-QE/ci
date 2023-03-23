@@ -12,7 +12,7 @@ presubmits:
         - ^master$
         - ^feature[_/].+
         - ^release-7.[0-9](\.\d+(-\d+)?)?$
-    - name: tikv/pd/pull-integration-copr-test
+    - name: tikv/pd/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
