@@ -159,7 +159,7 @@ pipeline {
                                         """
                                     }
                                     sh label: "${TEST_GROUP}", script: """
-                                        if [ "tls" == "${TEST_GROUP}" ] ; then
+                                        if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
                                             echo "run tls test"
                                             echo "copy mysql certs"
                                             sudo mkdir -p /var/lib/mysql
