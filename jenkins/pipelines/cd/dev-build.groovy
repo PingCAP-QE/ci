@@ -247,8 +247,7 @@ spec:
         stage("print version"){
             when {
                 beforeAgent true
-                //todo revert
-                equals expected:false, actual:params.IsHotfix.toBoolean()
+                equals expected:true, actual:params.IsHotfix.toBoolean()
             }
             agent{
                 kubernetes{
