@@ -100,32 +100,6 @@ def run_with_pod(Closure body) {
     }
 }
 
-def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-tikv"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
-    podTemplate(label: label,
-            cloud: cloud,
-            namespace: namespace,
-            idleMinutes: 0,
-            containers: [
-                    containerTemplate(
-                        name: 'golang', alwaysPullImage: true,
-                        image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                        command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
-                    )
-            ]
-    ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
-        }
-    }
-}
-
 try {
     stage('Integration DLL Test') {
         def tests = [:]
