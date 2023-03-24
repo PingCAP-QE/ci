@@ -6,10 +6,10 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       # context: idc-jenkins-ci-ticdc/kafka-integration-test
-      context: wip/cdc-kafka-integration-test
+      context: wip/cdc-integration-kafka-test
       skip_report: true
-      trigger: "(?m)^/test (?:.*? )?cdc-kafka-integration-test(?: .*?)?$"
-      rerun_command: "/test cdc-kafka-integration-test"
+      trigger: "(?m)^/test (?:.*? )?cdc-integration-kafka-test(?: .*?)?$"
+      rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^master$
     - name: pingcap/tiflow/pull_cdc_integration_mysql_test
@@ -17,7 +17,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       # context: idc-jenkins-ci-ticdc/integration-test
-      context: wip/cdc-mysql-integration-test
+      context: wip/cdc-integration-mysql-test
       skip_report: true
       trigger: "(?m)^/test (?:.*? )?cdc-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test cdc-integration-mysql-test"
