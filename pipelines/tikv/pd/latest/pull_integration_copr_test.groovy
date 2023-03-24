@@ -52,30 +52,30 @@ pipeline {
                     }
                 }
                 dir("tidb") {
-                        retry(2) {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                                retry(2) {
-                                    checkout(
-                                        changelog: false,
-                                        poll: false,
-                                        scm: [
-                                            $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
-                                            doGenerateSubmoduleConfigurations: false,
-                                            extensions: [
-                                                [$class: 'PruneStaleBranch'],
-                                                [$class: 'CleanBeforeCheckout'],
-                                                [$class: 'CloneOption', timeout: 15],
-                                            ],
-                                            submoduleCfg: [],
-                                            userRemoteConfigs: [[
-                                                refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                                url: 'https://github.com/pingcap/tidb.git',
-                                            ]],
-                                        ]
-                                    )
-                                }
+                    retry(2) {
+                        cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                            retry(2) {
+                                checkout(
+                                    changelog: false,
+                                    poll: false,
+                                    scm: [
+                                        $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
+                                        doGenerateSubmoduleConfigurations: false,
+                                        extensions: [
+                                            [$class: 'PruneStaleBranch'],
+                                            [$class: 'CleanBeforeCheckout'],
+                                            [$class: 'CloneOption', timeout: 15],
+                                        ],
+                                        submoduleCfg: [],
+                                        userRemoteConfigs: [[
+                                            refspec: "+refs/heads/*:refs/remotes/origin/*",
+                                            url: 'https://github.com/pingcap/tidb.git',
+                                        ]],
+                                    ]
+                                )
                             }
                         }
+                    }
                 }
                 dir("tikv-copr-test") {
                     cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.base_sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
@@ -110,9 +110,7 @@ pipeline {
                         sh label: 'pd-server', script: '[ -f bin/pd-server ] || make'
                         sh label: 'tikv-server', script: """
                         chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh  --tikv=${REFS.base_ref}
-                        # chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                        # ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tikv=${REFS.base_ref}
+                        ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --tikv=${REFS.base_ref}
                         rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
                         bin/pd-server -V
                         bin/tikv-server -V
