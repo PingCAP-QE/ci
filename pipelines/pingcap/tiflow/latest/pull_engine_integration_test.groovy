@@ -70,7 +70,7 @@ pipeline {
             }
         }
         stage("prepare") {
-            options { timeout(time: 10, unit: 'MINUTES') }
+            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 container("docker") { 
                     dir("tiflow") {
@@ -111,7 +111,7 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
+                        options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}") {
