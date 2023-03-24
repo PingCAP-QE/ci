@@ -48,6 +48,8 @@ catchError {
                     sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
                     sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${params.VERSION}/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
+                    sh "inv upload --force --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/tikv-server.tar.gz  --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/done --content done"
                     //sh "inv upload --force --dst builds/pingcap/tikv/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
 
 //                一些集成测试依赖其他组件，同时 e2e 测试需求，需要进行二进制替换
