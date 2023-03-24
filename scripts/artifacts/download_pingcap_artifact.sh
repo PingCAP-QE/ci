@@ -32,7 +32,7 @@ for i in "$@"; do
 done
 
 echo "TIDB          = ${TIDB}"
-echo "TIKV          = ${PD}"
+echo "TIKV          = ${TIKV}"
 echo "PD            = ${PD}"
 echo "TIFLASH       = ${TIFLASH}"
 
