@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -42,13 +43,13 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit ]],
+                                    $class: 'GitSCM', branches: [[name: REFS.pulls[0].sha ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -57,7 +58,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                     ]],
                                 ]
@@ -73,7 +74,7 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh master && ls -alh ./bin
+                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
                             ./bin/tidb-server -V
@@ -83,7 +84,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-integration-test-binarys-${ghprbActualCommit}") { 
+                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-integration-test-binarys-${REFS.pulls[0].sha}") { 
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
