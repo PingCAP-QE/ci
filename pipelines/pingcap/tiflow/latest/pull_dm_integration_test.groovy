@@ -68,7 +68,7 @@ pipeline {
             }
         }
         stage("prepare") {
-            options { timeout(time: 15, unit: 'MINUTES') }
+            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     retry(2) {
