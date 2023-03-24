@@ -75,8 +75,8 @@ pipeline {
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
-                                git checkout ${ghprbTargetBranch}
-                                git pull origin ${ghprbTargetBranch}
+                                git checkout ${REFS.base_ref}
+                                git pull origin ${REFS.base_ref}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
