@@ -1,12 +1,13 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 // @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_kafka_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -42,13 +43,13 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit ]],
+                                    $class: 'GitSCM', branches: [[name: REFS.pulls[0].sha ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -57,7 +58,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                     ]],
                                 ]
@@ -73,7 +74,7 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
+                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
@@ -86,7 +87,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/cdc-integration-test-binarys-${ghprbActualCommit}") { 
+                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/cdc-integration-test-binarys-${REFS.pulls[0].sha}") { 
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """

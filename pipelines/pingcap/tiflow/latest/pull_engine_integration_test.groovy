@@ -7,7 +7,8 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_engine_integration_test.yaml'
-final IMAGE_TAG = "engine-ci-test-pull-${ghprbPullId}"
+final REFS = readJSON(text: params.JOB_SPEC).refs
+final IMAGE_TAG = "engine-ci-test-pull-${REFS.pulls[0].number}"
 final ENGINE_TEST_TAG = "dataflow:test"
 
 pipeline {
@@ -44,13 +45,13 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit ]],
+                                    $class: 'GitSCM', branches: [[name: REFS.pulls[0].sha ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -59,7 +60,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                     ]],
                                 ]
@@ -114,7 +115,7 @@ pipeline {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}") {
+                                cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${REFS.pulls[0].sha}") {
                                     container("golang") {
                                         sh label: "prepare", script: """
                                             git rev-parse HEAD
@@ -135,7 +136,7 @@ pipeline {
                                         """
                                     }
                                     sh label: "prepare image", script: """
-                                        TIDB_CLUSTER_BRANCH=${ghprbTargetBranch}
+                                        TIDB_CLUSTER_BRANCH=${REFS.base_ref}
                                         TIDB_TEST_TAG=nightly
 
                                         docker pull hub.pingcap.net/tiflow/minio:latest

@@ -7,18 +7,18 @@ presubmits:
       always_run: false
       # context: idc-jenkins-ci-ticdc/kafka-integration-test
       context: wip/cdc-integration-kafka-test
-      skip_report: false
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?cdc-integration-kafka-test(?: .*?)?$"
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^master$
-    - name: pingcap/tiflow/pull_cdc_integration_mysql_test
+    - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
       # context: idc-jenkins-ci-ticdc/integration-test
       context: wip/cdc-integration-mysql-test
-      skip_report: false
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?cdc-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test cdc-integration-mysql-test"
       branches:
@@ -29,7 +29,7 @@ presubmits:
       always_run: false
       # context: idc-jenkins-ci-ticdc/dm-compatibility-test
       context: wip/dm-compatibility-test
-      skip_report: false
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?dm-compatibility-test(?: .*?)?$"
       rerun_command: "/test dm-compatibility-test"
       branches:
@@ -40,7 +40,7 @@ presubmits:
       always_run: false
       # context: idc-jenkins-ci-ticdc/dm-integration-test
       context: wip/dm-integration-test
-      skip_report: false
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?dm-integration-test(?: .*?)?$"
       rerun_command: "/test dm-integration-test"
       branches:
@@ -51,10 +51,8 @@ presubmits:
       always_run: false
       # context: idc-jenkins-ci-ticdc/engine-integration-test
       context: wip/engine-integration-test
-      skip_report: false
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?engine-integration-test(?: .*?)?$"
       rerun_command: "/test engine-integration-test"
       branches:
         - ^master$
-
-

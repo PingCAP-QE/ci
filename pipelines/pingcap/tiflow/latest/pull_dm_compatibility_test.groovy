@@ -1,12 +1,13 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 // @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -42,13 +43,13 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflow/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
                                 poll: false,
                                 scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit ]],
+                                    $class: 'GitSCM', branches: [[name: REFS.pulls[0].sha ]],
                                     doGenerateSubmoduleConfigurations: false,
                                     extensions: [
                                         [$class: 'PruneStaleBranch'],
@@ -57,7 +58,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                     ]],
                                 ]
@@ -84,7 +85,7 @@ pipeline {
                             sh label: "build current", script: """
                                 echo "build binary for current version"
                                 # reset to current version
-                                git checkout ${ghprbActualCommit}
+                                git checkout ${REFS.pulls[0].sha}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.current
                                 mv bin/dm-worker.test bin/dm-worker.test.current
@@ -92,7 +93,7 @@ pipeline {
                             """
                             sh label: "download third_party", script: """
                                 pwd && ls -alh dm/tests/
-                                cd dm/tests && ./download-compatibility-test-binaries.sh master && ls -alh ./bin
+                                cd dm/tests && ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
                                 cd - && cp -r dm/tests/bin/* ./bin
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
