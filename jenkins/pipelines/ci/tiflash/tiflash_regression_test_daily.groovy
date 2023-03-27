@@ -76,7 +76,7 @@ podTemplate(name: label, label: label, instanceCap: 5, cloud: "kubernetes-ng", n
                         $class                           : 'GitSCM',
                         branches                         : [[name: checkout_name]],
                         doGenerateSubmoduleConfigurations: false,
-                        userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap/tiflash-scripts.git']],
+                        userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh', refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:pingcap-inc/tiflash-scripts.git']],
                         extensions: [[
                             $class: 'CloneOption',
                             shallow: true,
