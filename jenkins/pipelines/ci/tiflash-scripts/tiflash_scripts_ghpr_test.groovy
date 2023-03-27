@@ -10,7 +10,7 @@ def checkoutTiFlash(commit, pullId) {
             ],
             userRemoteConfigs: [
                     [
-                            url: "git@github.com:pingcap/tiflash-scripts.git",
+                            url: "git@github.com:pingcap-inc/tiflash-scripts.git",
                             refspec: "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*",
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -123,7 +123,7 @@ def fallback() {
 node("toolkit") {
     container('toolkit') {
         withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-            if (sh(script: "inv resolve-dir --path .ci --repo pingcap/tiflash-scripts --commit ${params.ghprbActualCommit} --auth sre-bot:${TOKEN} && test -f integration_test.groovy", returnStatus: true) == 0) {
+            if (sh(script: "inv resolve-dir --path .ci --repo pingcap-inc/tiflash-scripts --commit ${params.ghprbActualCommit} --auth sre-bot:${TOKEN} && test -f integration_test.groovy", returnStatus: true) == 0) {
                 load 'integration_test.groovy'
             } else {
                 fallback()

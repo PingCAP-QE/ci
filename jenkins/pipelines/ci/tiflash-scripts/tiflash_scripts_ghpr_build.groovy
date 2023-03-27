@@ -6,7 +6,7 @@ def checkoutTiFlash(commit, pullId) {
             ],
             userRemoteConfigs: [
                     [
-                            url: "git@github.com:pingcap/tiflash-scripts.git",
+                            url: "git@github.com:pingcap-inc/tiflash-scripts.git",
                             refspec: "+refs/pull/${pullId}/*:refs/remotes/origin/pr/${pullId}/*",
                             credentialsId: "github-sre-bot-ssh",
                     ]
@@ -77,7 +77,7 @@ podTemplate(name: "toolkit-build-tiflash", label: "toolkit-build-tiflash", insta
     node('toolkit-build-tiflash') {
         container('toolkit') {
             withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                if (sh(script: "inv resolve-dir --path .ci --repo pingcap/tiflash-scripts --commit ${params.ghprbActualCommit} --auth sre-bot:${TOKEN} && test -f build.groovy", returnStatus: true) == 0) {
+                if (sh(script: "inv resolve-dir --path .ci --repo pingcap-inc/tiflash-scripts --commit ${params.ghprbActualCommit} --auth sre-bot:${TOKEN} && test -f build.groovy", returnStatus: true) == 0) {
                     load 'build.groovy'
                 } else {
                     fallback()

@@ -71,7 +71,7 @@ run_with_pod {
                     $class                           : 'GitSCM',
                     branches                         : [[name: checkout_name]],
                     doGenerateSubmoduleConfigurations: false,
-                    userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tiflash-scripts.git']]
+                    userRemoteConfigs                : [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap-inc/tiflash-scripts.git']]
             ]
 
             sleep time: 5, unit: 'SECONDS'
