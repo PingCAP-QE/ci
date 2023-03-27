@@ -16,7 +16,6 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_report: false
       context: pull-integration-copr-test
       trigger: "(?m)^/test (?:.*? )?integration-copr-test(?: .*?)?$"
       rerun_command: "/test integration-copr-test"
