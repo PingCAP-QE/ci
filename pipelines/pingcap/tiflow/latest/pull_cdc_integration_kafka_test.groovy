@@ -41,20 +41,22 @@ pipeline {
             }
         }
         stage('Check diff files') {
-            container("golang") {
-                script {
-                    def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                    def pattern = /(^dm\/|^engine\/).*$/
-                    println "pr_diff_files: ${pr_diff_files}"
-                    // if all diff files start with dm/, skip cdc integration test
-                    def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
-                    if (matched) {
-                        println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
-                        currentBuild.result = 'SUCCESS'
-                        return
+            steps {
+                container("golang") {
+                    script {
+                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                        def pattern = /(^dm\/|^engine\/).*$/
+                        println "pr_diff_files: ${pr_diff_files}"
+                        // if all diff files start with dm/, skip cdc integration test
+                        def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
+                        if (matched) {
+                            println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
+                            currentBuild.result = 'SUCCESS'
+                            return
+                        }
                     }
                 }
-            }
+            }  
         }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
