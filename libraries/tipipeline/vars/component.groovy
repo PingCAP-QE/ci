@@ -86,8 +86,8 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
 def getPrDiffFiles(fullRepoName, prId, credentialsId) {
     withCredentials([string(credentialsId: "${credentialsId}", variable: 'token')]) { 
         def apiUrl = "https://api.github.com/repos/${fullRepoName}/pulls/${prId}/files"
-        def headers = ['Authorization': "Bearer ${token}"]
-        def response = httpRequest(url: apiUrl, contentType: 'APPLICATION_JSON', httpMode: 'GET', headers: headers)
+        def response = httpRequest(url: apiUrl, contentType: 'APPLICATION_JSON', 
+            httpMode: 'GET', customHeaders:[[name:'Authorization', value:"token $token", maskValue: true]])
         if (response.status != 200) {
             error("Failed to retrieve diff files from GitHub API: ${response.status} ${response.content}")
             return []
