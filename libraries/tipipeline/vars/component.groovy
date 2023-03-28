@@ -83,7 +83,7 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
 }
 
 
-def getDiffFiles(fullRepoName, prId, credentialsId) {
+def getPrDiffFiles(fullRepoName, prId, credentialsId) {
     withCredentials([string(credentialsId: "${credentialsId}", variable: 'token')]) { 
         def apiUrl = "https://api.github.com/repos/${fullRepoName}/pulls/${prId}/files"
         def headers = ['Authorization': "Bearer ${token}"]
