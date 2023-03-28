@@ -79,7 +79,7 @@ async function insert_problem_case_runs(
 ) {
   // insert/update record
   for (const [target, caseResults] of Object.entries(caseData)) {
-    caseResults.new_flaky?.forEach(async (flakyCase) => {
+    await Promise.all((caseResults.new_flaky || [])?.map(async (flakyCase) => {
       await dbClient.execute(SQL_TPL_INSERT, [
         repo,
         branch,
@@ -89,7 +89,7 @@ async function insert_problem_case_runs(
         true,
         0,
       ]);
-    });
+    }));
 
     for (const [tc, timecost] of Object.entries(caseResults?.long_time || [])) {
       await dbClient.execute(SQL_TPL_INSERT, [
