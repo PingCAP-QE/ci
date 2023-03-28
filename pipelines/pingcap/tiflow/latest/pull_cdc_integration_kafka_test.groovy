@@ -1,13 +1,15 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-// @Library('tipipeline') _
+@Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_kafka_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -39,7 +41,27 @@ pipeline {
                 }
             }
         }
+        stage('Check diff files') {
+            steps {
+                container("golang") {
+                    script {
+                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                        def pattern = /(^dm\/|^engine\/).*$/
+                        println "pr_diff_files: ${pr_diff_files}"
+                        // if all diff files start with dm/, skip cdc integration test
+                        def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
+                        if (matched) {
+                            println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
+                            currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
+                            return
+                        }
+                    }
+                }
+            }  
+        }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -69,6 +91,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
@@ -111,6 +134,7 @@ pipeline {
         }
 
         stage('Tests') {
+            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {

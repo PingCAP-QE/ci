@@ -1,15 +1,17 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master and latest release branches
-// @Library('tipipeline') _
+@Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_engine_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final IMAGE_TAG = "engine-ci-test-pull-${REFS.pulls[0].number}"
 final ENGINE_TEST_TAG = "dataflow:test"
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -41,7 +43,29 @@ pipeline {
                 }
             }
         }
+        stage('Check diff files') {
+            steps {
+                container("golang") {
+                    script {
+                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                        def pattern = /(^engine\/|^dm\/|^deployments\/engine\/|^go\.mod).*$/
+                        println "pr_diff_files: ${pr_diff_files}"
+                        // if any diff files start with dm/ or engine/ , run the engine integration test
+                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
+                        if (matched) {
+                            println "matched, some diff files full path start with engine/ or deployments/engine/ or go.mod, run the engine integration test"
+                        } else {
+                            echo "not matched, all files full path not start with engine/ or deployments/engine/ or go.mod, current pr not releate to dm, so skip the engine integration test"
+                            currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
+                            return 0
+                        }
+                    }
+                }
+            }  
+        }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -71,6 +95,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 container("docker") { 
@@ -96,6 +121,7 @@ pipeline {
             }
         }
         stage('Tests') {
+            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {

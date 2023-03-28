@@ -81,3 +81,46 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O - "\${artifactUrl}" | tar xz ${pathInArchive}
     """)
 }
+
+
+def getPrDiffFiles(fullRepoName, prId, credentialsId) {
+    withCredentials([string(credentialsId: "${credentialsId}", variable: 'token')]) { 
+        def apiUrl = "https://api.github.com/repos/${fullRepoName}/pulls/${prId}/files"
+        def response = httpRequest(url: apiUrl, contentType: 'APPLICATION_JSON', 
+            httpMode: 'GET', customHeaders:[[name:'Authorization', value:"token $token", maskValue: true]])
+        if (response.status != 200) {
+            error("Failed to retrieve diff files from GitHub API: ${response.status} ${response.content}")
+            return []
+        }
+        def files = new groovy.json.JsonSlurper().parseText(response.content)
+        return files.collect { it.filename }
+    }
+}
+
+/**
+ * If all files matches the pattern, return true
+ */
+def patternMatchAllFiles(pattern, files_list) {
+    for (file in files_list) {
+        if (!file.matches(pattern)) {
+            println "diff file not matched: ${file}"
+            return false
+        }
+    }
+
+    return true
+}
+
+/**
+ * If all files matches the pattern, return true
+ */
+def patternMatchAnyFile(pattern, files_list) {
+    for (file in files_list) {
+        if (file.matches(pattern)) {
+            println "diff file matched: ${file}"
+            return true
+        }
+    }
+
+    return false
+}

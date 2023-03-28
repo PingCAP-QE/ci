@@ -1,13 +1,15 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-// @Library('tipipeline') _
+@Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -39,7 +41,29 @@ pipeline {
                 }
             }
         }
+        stage('Check diff files') {
+            steps {
+                container("golang") {
+                    script {
+                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                        def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
+                        println "pr_diff_files: ${pr_diff_files}"
+                        // if any diff files start with dm/ or pkg/ or file go.mod, run the dm compatibility test
+                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
+                        if (matched) {
+                            println "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm compatibility test"
+                        } else {
+                            echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm compatibility test"
+                            currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
+                            return // skip the remaining stages
+                        }
+                    }
+                }
+            }
+        }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -69,6 +93,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -105,6 +130,7 @@ pipeline {
             }
         }
         stage("Test") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tiflow') {
