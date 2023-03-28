@@ -43,22 +43,24 @@ pipeline {
             }
         }
         stage('Check diff files') {
-            container("golang") {
-                script {
-                    def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                    def pattern = /(^engine\/|^dm\/|^deployments\/engine\/|^go\.mod).*$/
-                    println "pr_diff_files: ${pr_diff_files}"
-                    // if any diff files start with dm/ or engine/ , run the engine integration test
-                    def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
-                    if (matched) {
-                        println "matched, some diff files full path start with engine/ or deployments/engine/ or go.mod, run the engine integration test"
-                    } else {
-                        echo "not matched, all files full path not start with engine/ or deployments/engine/ or go.mod, current pr not releate to dm, so skip the engine integration test"
-                        currentBuild.result = 'SUCCESS'
-                        return 0
+            steps {
+                container("golang") {
+                    script {
+                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                        def pattern = /(^engine\/|^dm\/|^deployments\/engine\/|^go\.mod).*$/
+                        println "pr_diff_files: ${pr_diff_files}"
+                        // if any diff files start with dm/ or engine/ , run the engine integration test
+                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
+                        if (matched) {
+                            println "matched, some diff files full path start with engine/ or deployments/engine/ or go.mod, run the engine integration test"
+                        } else {
+                            echo "not matched, all files full path not start with engine/ or deployments/engine/ or go.mod, current pr not releate to dm, so skip the engine integration test"
+                            currentBuild.result = 'SUCCESS'
+                            return 0
+                        }
                     }
                 }
-            }
+            }  
         }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
