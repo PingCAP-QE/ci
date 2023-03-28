@@ -11,6 +11,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_engine_integ
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final IMAGE_TAG = "engine-ci-test-pull-${REFS.pulls[0].number}"
 final ENGINE_TEST_TAG = "dataflow:test"
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -56,6 +57,7 @@ pipeline {
                         } else {
                             echo "not matched, all files full path not start with engine/ or deployments/engine/ or go.mod, current pr not releate to dm, so skip the engine integration test"
                             currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
                             return 0
                         }
                     }
@@ -63,6 +65,7 @@ pipeline {
             }  
         }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -92,6 +95,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 container("docker") { 
@@ -117,6 +121,7 @@ pipeline {
             }
         }
         stage('Tests') {
+            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {

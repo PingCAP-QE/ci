@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -54,6 +55,7 @@ pipeline {
                         } else {
                             println "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
                             currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
                             return 0
                         }
                     }
@@ -90,6 +92,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
@@ -139,6 +142,7 @@ pipeline {
         }
 
         stage('Tests') {
+            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {

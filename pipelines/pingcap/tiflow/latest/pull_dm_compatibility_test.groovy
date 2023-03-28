@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -54,13 +55,15 @@ pipeline {
                         } else {
                             echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm compatibility test"
                             currentBuild.result = 'SUCCESS'
-                            return 0
+                            skipRemainingStages = true
+                            return // skip the remaining stages
                         }
                     }
                 }
             }
         }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -90,6 +93,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -126,6 +130,7 @@ pipeline {
             }
         }
         stage("Test") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tiflow') {

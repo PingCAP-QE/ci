@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -52,6 +53,7 @@ pipeline {
                         if (matched) {
                             println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
                             currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
                             return
                         }
                     }
@@ -59,6 +61,7 @@ pipeline {
             }
         }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -88,6 +91,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
@@ -130,6 +134,7 @@ pipeline {
         }
 
         stage('Tests') {
+            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {
