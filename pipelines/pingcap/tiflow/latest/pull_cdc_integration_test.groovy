@@ -6,6 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -36,6 +37,22 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                }
+            }
+        }
+        stage('Check diff files') {
+            container("golang") {
+                script {
+                    def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                    def pattern = /(^dm\/|^engine\/).*$/
+                    println "pr_diff_files: ${pr_diff_files}"
+                    // if all diff files start with dm/, skip cdc integration test
+                    def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
+                    if (matched) {
+                        println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
                 }
             }
         }
