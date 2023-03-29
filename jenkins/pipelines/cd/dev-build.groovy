@@ -107,8 +107,8 @@ spec:
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/qa/$Product:$Version"
                         ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
-                        BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$GitHash/centos7/$Product-linux-amd64.tar.gz"
-                        BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$GitHash/centos7/$Product-linux-arm64.tar.gz"
+                        BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$GitHash/centos7/$Product-patch-linux-amd64.tar.gz"
+                        BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$GitHash/centos7/$Product-patch-linux-arm64.tar.gz"
                         PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$EnterprisePluginHash/centos7/enterprise-plugin-linux-amd64.tar.gz"
                         PluginBinPathDict["arm64"] = "builds/hotfix/enterprise-plugin/$Version/$EnterprisePluginHash/centos7/enterprise-plugin-linux-arm64.tar.gz"
                     }
