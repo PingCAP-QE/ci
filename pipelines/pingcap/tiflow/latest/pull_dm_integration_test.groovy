@@ -53,7 +53,7 @@ pipeline {
                         if (only_docs_matched) {
                             println "All diff files is docs, The current PR only modified the document. Skip dm integration test."
                             currentBuild.result = 'SUCCESS'
-                            currentBuild.description = 'Only docs modified, skip dm integration test.'
+                            currentBuild.description = 'All diff files is docs, The current PR only modified the document, skip dm integration test.'
                             skipRemainingStages = true
                             return
                         }
