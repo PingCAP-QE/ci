@@ -58,7 +58,7 @@ pipeline {
                                     ],
                                     submoduleCfg: [],
                                     userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${REFS.pulls[0].numbe}/*:refs/remotes/origin/pr/${REFS.pulls[0].numbe}/*",
+                                        refspec: "+refs/pull/${REFS.pulls[0].number}/*:refs/remotes/origin/pr/${REFS.pulls[0].number}/*",
                                         url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
                                     ]],
                                 ]
