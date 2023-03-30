@@ -208,6 +208,7 @@ pipeline {
             }        
         }
         stage("cleanup") {
+            when { expression { !skipRemainingStages} }
             steps {
                 container("docker") { 
                     withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {

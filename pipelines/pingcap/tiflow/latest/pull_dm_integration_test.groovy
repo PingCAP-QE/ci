@@ -63,6 +63,7 @@ pipeline {
             }    
         }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
