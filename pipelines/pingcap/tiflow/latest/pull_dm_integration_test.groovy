@@ -47,7 +47,15 @@ pipeline {
                     script {
                         def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
                         def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
+                        def pattern_docs = /.*\.md$/
                         println "pr_diff_files: ${pr_diff_files}"
+                        def only_docs_matched = component.patternMatchAllFiles(pattern_docs, pr_diff_files)
+                        if (only_docs_matched) {
+                            println "All diff files is docs, The current PR only modified the document. Skip dm integration test."
+                            currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
+                            return
+                        }
                         // if any diff files start with dm/ or pkg/ or file go.mod, run the dm integration test
                         def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
                         if (matched) {

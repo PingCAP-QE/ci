@@ -47,7 +47,15 @@ pipeline {
                     script {
                         def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
                         def pattern = /(^dm\/|^engine\/).*$/
+                        def pattern_docs = /.*\.md$/
                         println "pr_diff_files: ${pr_diff_files}"
+                        def only_docs_matched = component.patternMatchAllFiles(pattern_docs, pr_diff_files)
+                        if (only_docs_matched) {
+                            println "All diff files is docs, The current PR only modified the document. Skip cdc integration mysql test."
+                            currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
+                            return
+                        }
                         // if all diff files start with dm/, skip cdc integration test
                         def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
                         if (matched) {
