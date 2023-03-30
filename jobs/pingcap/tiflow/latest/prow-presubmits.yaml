@@ -56,3 +56,15 @@ presubmits:
       rerun_command: "/test engine-integration-test"
       branches:
         - ^master$
+    - name: pingcap/tiflow/ghpr_verify
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: jenkins-ticdc/verify 
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
+      rerun_command: "/test verify"
+      branches:
+        - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^feature[_/].+

@@ -1,0 +1,13 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: pingcap/tiflow/release-6.2/ghpr_verify
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: jenkins-ticdc/verify 
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
+      rerun_command: "/test verify"
+      branches:
+        - ^release-6\.[2-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
