@@ -22,6 +22,9 @@ pipelineJob('cdc_ghpr_kafka_integration_test') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("pingcap")
+                    blackListTargetBranches {
+                        ghprbBranch { branch('master') }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
