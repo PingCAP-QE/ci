@@ -52,8 +52,9 @@ pipeline {
                         // if all diff files is docs(markdown), skip cdc integration kafka test
                         def only_docs_matched = component.patternMatchAllFiles(pattern_docs, pr_diff_files)
                         if (only_docs_matched) {
-                            println "All diff files is docs, The current PR only modified the document. Skip cdc integration kafka test."
+                            println 'All diff files is docs, The current PR only modified the document. Skip cdc integration kafka test.'
                             currentBuild.result = 'SUCCESS'
+                            currentBuild.description = 'All diff files is docs, The current PR only modified the document. Skip cdc integration kafka test.'
                             skipRemainingStages = true
                             return
                         }

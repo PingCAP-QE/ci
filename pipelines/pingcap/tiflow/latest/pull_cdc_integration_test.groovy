@@ -53,6 +53,7 @@ pipeline {
                         if (only_docs_matched) {
                             println "All diff files is docs, The current PR only modified the document. Skip cdc integration mysql test."
                             currentBuild.result = 'SUCCESS'
+                            currentBuild.description = 'Only docs modified, skip cdc integration mysql test.'
                             skipRemainingStages = true
                             return
                         }
