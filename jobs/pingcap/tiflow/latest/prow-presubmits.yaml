@@ -8,7 +8,7 @@ presubmits:
       # context: idc-jenkins-ci-ticdc/kafka-integration-test
       context: wip/cdc-integration-kafka-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?cdc-integration-kafka-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^master$
@@ -19,7 +19,7 @@ presubmits:
       # context: idc-jenkins-ci-ticdc/integration-test
       context: wip/cdc-integration-mysql-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?cdc-integration-mysql-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-mysql-test"
       branches:
         - ^master$
@@ -30,7 +30,7 @@ presubmits:
       # context: idc-jenkins-ci-ticdc/dm-compatibility-test
       context: wip/dm-compatibility-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?dm-compatibility-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test dm-compatibility-test"
       branches:
         - ^master$
@@ -41,7 +41,7 @@ presubmits:
       # context: idc-jenkins-ci-ticdc/dm-integration-test
       context: wip/dm-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?dm-integration-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test dm-integration-test"
       branches:
         - ^master$
@@ -52,7 +52,7 @@ presubmits:
       # context: idc-jenkins-ci-ticdc/engine-integration-test
       context: wip/engine-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?engine-integration-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(engine-integration-test|all)(?: .*?)?$"
       rerun_command: "/test engine-integration-test"
       branches:
         - ^master$
