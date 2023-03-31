@@ -105,12 +105,12 @@ spec:
                     Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$day-$ts10-dev"
                     if (params.IsHotfix.toBoolean()){
-                        Image = "hub.pingcap.net/qa/$Product:$Version"
+                        Image = "hub.pingcap.net/qa/$Product:$Version-$BUILD_NUMBER"
                         ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
-                        BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$GitHash/centos7/$Product-patch-linux-amd64.tar.gz"
-                        BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$GitHash/centos7/$Product-patch-linux-arm64.tar.gz"
-                        PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$EnterprisePluginHash/centos7/enterprise-plugin-linux-amd64.tar.gz"
-                        PluginBinPathDict["arm64"] = "builds/hotfix/enterprise-plugin/$Version/$EnterprisePluginHash/centos7/enterprise-plugin-linux-arm64.tar.gz"
+                        BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
+                        BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
+                        PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
+                        PluginBinPathDict["arm64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"
                     }
                 }
                 echo "repo hash: $GitHash"
@@ -312,15 +312,15 @@ spec:
                             "gitHash":GitHash,
                             "images":[["platform":"multi-arch", "url":Image]],
                             "binaries":[
-                                ["platform":"linux/amd64", "url": "$FileserverDownloadURL/${BinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['amd64']}.sha256"],
-                                ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${BinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['arm64']}.sha256"],
+                                ["component":"${params.Product}", "platform":"linux/amd64", "url": "$FileserverDownloadURL/${BinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['amd64']}.sha256"],
+                                ["component":"${params.Product}", "platform":"linux/arm64", "url": "$FileserverDownloadURL/${BinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['arm64']}.sha256"],
                             ],
                             "printedVersion": PrintedVersion
                         ]]]
                     if (NeedEnterprisePlugin){
                         def plugin_bins =[
-                                ["platform":"linux/amd64", "url": "$FileserverDownloadURL/${PluginBinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['amd64']}.sha256"],
-                                ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${PluginBinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['arm64']}.sha256"],
+                                ["component":"enterprise-plugin", "platform":"linux/amd64", "url": "$FileserverDownloadURL/${PluginBinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['amd64']}.sha256"],
+                                ["component":"enterprise-plugin", "platform":"linux/arm64", "url": "$FileserverDownloadURL/${PluginBinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['arm64']}.sha256"],
                             ]
                         dev_build["status"]["buildReport"]["binaries"].addAll(plugin_bins)
                         dev_build["status"]["buildReport"]["pluginGitHash"] = EnterprisePluginHash
