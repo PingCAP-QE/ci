@@ -88,3 +88,4 @@ def run(label, image, Closure main) {
 catchError {
     run('utf-go-build', 'hub-new.pingcap.net/chenpeng/golang:1.18') { main() }
 }
+
