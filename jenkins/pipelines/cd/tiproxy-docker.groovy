@@ -26,8 +26,6 @@ spec:
         command: ["docker", "info"]
       initialDelaySeconds: 10
       failureThreshold: 6
-  - name: jnlp
-    image: jenkins/inbound-agent:4.10-3
 '''
 
 def GitHash = ''
@@ -115,8 +113,8 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
-                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap IMAGE_TAG=${ImageTag}-amd64"
-                                sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-amd64"
+                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap IMAGE_TAG=${ImageTag}-arm64"
+                                sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-arm64"
                             }
                         }
                     }
