@@ -136,5 +136,35 @@ pipeline {
                 sh "docker manifest push --purge hub.pingcap.net/pingcap/tiproxy:${ImageTag}"
             }
         }
+        stage("sync images"){
+            parallel{
+                stage("sync git hash to gcr"){
+                    steps{
+                        build(job: "jenkins-image-syncer", parameters: [
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiproxy:${ImageTag}"),
+                                string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiproxy:${ImageTag}"),
+                        ])
+                    }
+                }
+                stage("sync branch name or git tag as image tag to gcr"){
+                    when { not { equals expected: ImageTag, actual: params.Revision } }
+                    steps{
+                        build(job: "jenkins-image-syncer", parameters: [
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiproxy:${ImageTag}"),
+                                string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiproxy:${params.Revision}"),
+                        ])
+                    }
+                }
+                stage("sync latest tag to gcr"){
+                    when { equals expected: 'master', actual: params.Revision }
+                    steps{
+                        build(job: "jenkins-image-syncer", parameters: [
+                                string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiproxy:${ImageTag}"),
+                                string(name: 'TARGET_IMAGE', value: "gcr.io/pingcap-public/tidbcloud/tiproxy:latest"),
+                        ])
+                    }
+                }
+            }
+        }
     }
 }
