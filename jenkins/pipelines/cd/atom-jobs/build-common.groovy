@@ -187,7 +187,7 @@ def String needUpgradeGoVersion(String tag,String branch) {
 }
 
 def goBuildPod = "build_go1200"
-def GO_BIN_PATH = "/usr/local/go1.20.2/bin"
+def GO_BIN_PATH = "/usr/local/go1.20.3/bin"
 goVersion = needUpgradeGoVersion(params.RELEASE_TAG,params.TARGET_BRANCH)
 // tidb-tools only use branch master and use newest go version
 // only for version >= v5.3.0
@@ -207,11 +207,11 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
             break
         case "go1.19":
             goBuildPod = "build_go1190"
-            GO_BIN_PATH = "/usr/local/go1.19.7/bin"
+            GO_BIN_PATH = "/usr/local/go1.19.8/bin"
             break
         case "go1.20":
             goBuildPod = "build_go1200"
-            GO_BIN_PATH = "/usr/local/go1.20.2/bin"
+            GO_BIN_PATH = "/usr/local/go1.20.3/bin"
             break
         default:
             throw new Exception("go version ${goVersion} not supported")
@@ -220,11 +220,11 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
 if (REPO != "tidb-tools") {
     if (goVersion == "go1.20") {
         goBuildPod = "build_go1200"
-        GO_BIN_PATH = "/usr/local/go1.20.2/bin"
+        GO_BIN_PATH = "/usr/local/go1.20.3/bin"
     }
     if (goVersion == "go1.19") {
         goBuildPod = "build_go1190"
-        GO_BIN_PATH = "/usr/local/go1.19.7/bin"
+        GO_BIN_PATH = "/usr/local/go1.19.8/bin"
     }
     if (goVersion == "go1.18") {
         goBuildPod = "build_go1180"
