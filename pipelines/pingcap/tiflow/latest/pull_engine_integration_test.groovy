@@ -112,6 +112,7 @@ pipeline {
                             git config --global --add safe.directory '*'
                             make tiflow tiflow-demo
                             touch ./bin/tiflow-chaos-case
+                            rm -rf .dockerignore
                             make engine_image_from_local
                             docker tag ${ENGINE_TEST_TAG} hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                             docker push hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
