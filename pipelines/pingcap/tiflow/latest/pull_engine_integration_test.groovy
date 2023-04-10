@@ -108,14 +108,18 @@ pipeline {
                                 echo "$HARBOR_CRED_PSW" | docker login -u $HARBOR_CRED_USR --password-stdin hub.pingcap.net
                             """
                         }
-                        sh label: "build binary for integration test", script: """
-                            git config --global --add safe.directory '*'
-                            make tiflow tiflow-demo
-                            touch ./bin/tiflow-chaos-case
+                        container("golang") {
+                            sh label: "build binary for integration test", script: """
+                                git config --global --add safe.directory '*'
+                                make tiflow tiflow-demo
+                                touch ./bin/tiflow-chaos-case
+                            """
+                        }
+                        sh label: "build image", script: """
                             make engine_image_from_local
                             docker tag ${ENGINE_TEST_TAG} hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                             docker push hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
-                        """                              
+                        """                          
                     }
                 }
             }
