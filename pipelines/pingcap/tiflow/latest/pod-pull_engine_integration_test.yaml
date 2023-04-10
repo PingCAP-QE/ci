@@ -38,7 +38,7 @@ spec:
       - name: volume-tmp
         mountPath: /tmp
     - name: docker
-      image: 'hub.pingcap.net/tiflow/dind:alpine-docker'
+      image: 'hub.pingcap.net/tiflow/dind:alpine-docker-go1.20'
       tty: true
       env:
         - name: DOCKER_HOST
