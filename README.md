@@ -9,6 +9,7 @@
 
 - `do.pingcap.net` (in development)
   - https://do.pingcap.net/jenkins is the backend CI worker(Jenkins).
+  - https://do.pingcap.net/jenkins-gitee is the backend CI worker(Jenkins) for repos on gitee.com.
 
 > Notices: when you develop new pipeplines or jobs, 
 > you should put them in `/staging` folder and create a PR. When the PR merged, seed job will deploy it in staging CI server.
@@ -26,6 +27,8 @@
 - `/jobs` store Jenkins CI job DSL files.
 - `/pipelines` store Jenkins CI pipeline scripts.
 - `/libraries` store Jenkins CI shared libraries.
+- `/gitee` store jobs and pipelines for the [gitee instance](https://do.pingcap.net/jenkins-gitee).
+  - `/gitee/jobs` like `/jobs` but only deployed to the [gitee instance](https://do.pingcap.net/jenkins-gitee).
 - `/staging` store staging jobs and pipelines before deploying to production.
   - `/staging/jobs` like `/jobs` but only deployed to staging env.
   - ......
