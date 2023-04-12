@@ -34,17 +34,17 @@ pipeline {
         stage("Static-Checks") {
             steps {
                 dir(REFS.repo) {
-                    echo "WIP"        
+                    echo "WIP"
                 }
             }
         }
         stage("Unit-Test") {
             steps {
                 dir(REFS.repo) {
-                    echo "WIP"        
+                    echo "WIP"
                 }
             }
-            post {                
+            post {
                 always {
                     dir(REFS.repo) {
                         // archive test report to Jenkins.
@@ -55,12 +55,12 @@ pipeline {
         }
         stage("Build") {
             steps {
-                dir(REFS.repo) {                    
+                dir(REFS.repo) {
                     sh script: './build_tidb.sh'
                 }
             }
             post {
-                success {                    
+                success {
                     dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'bin/*', fingerprint: true, allowEmptyArchive: true)
                     }

@@ -35,7 +35,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh script: 'make lint'
-                    sh script: 'gocyclo -over 20 -avg ./ | tee repo_cyclo.log || true'                
+                    sh script: 'gocyclo -over 20 -avg ./ | tee repo_cyclo.log || true'
                 }
             }
         }
@@ -45,7 +45,7 @@ pipeline {
                     sh script: 'make ci_test'
                 }
             }
-            post {                
+            post {
                 always {
                     dir(REFS.repo) {
                         // archive test report to Jenkins.

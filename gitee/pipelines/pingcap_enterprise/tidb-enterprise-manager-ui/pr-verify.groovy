@@ -44,7 +44,7 @@ pipeline {
                     }
                 }
             }
-        }        
+        }
         stage("Build") {
             steps {
                 dir(REFS.repo) {
@@ -52,8 +52,8 @@ pipeline {
                 }
             }
             post {
-                success {     
-                    dir(REFS.repo) {                              
+                success {
+                    dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'dist.tar.gz, vite.config.preview.ts', fingerprint: true, allowEmptyArchive: true)
                     }
                 }

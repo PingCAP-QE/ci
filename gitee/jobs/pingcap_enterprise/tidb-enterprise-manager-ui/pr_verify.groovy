@@ -16,39 +16,41 @@ pipelineJob("${fullRepoName}/${jobName}") {
         giteeConnection {
             giteeConnection("https://gitee.com/${fullRepoName}")
         }
-    }    
-    triggers {
-        gitee {
-            triggerOnPush(false)
-            triggerOnCommitComment(false)
-
-            // pull requests
-            noteRegex("^/test\\s+${jobName}\$")
-            buildInstructionFilterType('CI_SKIP')
-            skipWorkInProgressPullRequest(true)
-            triggerOnOpenPullRequest(true)
-            // 0: None, 1: source branch updated, 2: target branch updated, 3: both source and target branch updated.
-            triggerOnUpdatePullRequest(true) 
-            cancelIncompleteBuildOnSamePullRequest(true)
-        }        
-    }
-    definition {
-        cpsScm {
-            lightweight(true)
-            scriptPath("gitee/pipelines/${fullRepoName}/pr-verify.groovy")
-            scm {
-                git{
-                    remote { url('https://github.com/PingCAP-QE/ci.git') }
-                    branch('main')
-                    extensions {
-                        cloneOptions {
-                            depth(1)
-                            shallow(true)
-                            timeout(5)
-                        } 
+        pipelineTriggers {
+            triggers {
+                gitee {
+                    triggerOnPush(false)
+                    triggerOnCommitComment(false)
+                    // pull requests
+                    noteRegex("^/test\\s+${jobName}\$")
+                    buildInstructionFilterType('CI_SKIP')
+                    skipWorkInProgressPullRequest(true)
+                    triggerOnOpenPullRequest(true)
+                    // 0: None, 1: source branch updated, 2: target branch updated, 3: both source and target branch updated.
+                    triggerOnUpdatePullRequest('3')
+                    cancelIncompleteBuildOnSamePullRequest(true)
+                }
+            }
+        }
+        definition {
+            cpsScm {
+                lightweight(true)
+                scriptPath("gitee/pipelines/${fullRepoName}/pr-verify.groovy")
+                scm {
+                    git {
+                        remote {
+                            url('https://github.com/PingCAP-QE/ci.git')
+                        }
+                        branch('main')
+                        extensions {
+                            cloneOptions {
+                                depth(1)
+                                shallow(true)
+                                timeout(5)
+                            }
+                        }
                     }
                 }
             }
         }
     }
-}
