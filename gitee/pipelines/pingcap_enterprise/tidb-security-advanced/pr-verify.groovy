@@ -3,14 +3,14 @@
 // should triggerd for master and latest releases branches
 @Library('tipipeline') _
 
-final POD_TEMPLATE_FILE = 'gitee/pipelines/pingcap_enterprise/tidb-enterprise-manager-ui/pod-pr-verify.yaml'
+final POD_TEMPLATE_FILE = 'gitee/pipelines/pingcap_enterprise/tidb-security-advanced/pod-pr-verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
         kubernetes {
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'nodejs'
+            defaultContainer 'golang'
         }
     }
     options {
@@ -31,30 +31,39 @@ pipeline {
                 }
             }
         }
-        stage("Lint") {
+        stage("Static-Checks") {
             steps {
                 dir(REFS.repo) {
-                    script {
-                        cache(path: "./node_modules", filter: '**/*', key: prow.getCacheKey('gitee', REFS, 'node_modules'), restoreKeys: prow.getRestoreKeys('gitee', REFS, 'node_modules')) {
-                            sh script: 'yarn --frozen-lockfile --network-timeout 180000'
-                            sh script: 'yarn bootstrap'
-                            sh script: 'yarn generate'
-                            sh script: 'yarn lint:ci'
-                        }
+                    echo "WIP"        
+                }
+            }
+        }
+        stage("Unit-Test") {
+            steps {
+                dir(REFS.repo) {
+                    echo "WIP"        
+                }
+            }
+            post {                
+                always {
+                    dir(REFS.repo) {
+                        // archive test report to Jenkins.
+                        junit(testResults: "test.xml", allowEmptyResults: true)
                     }
                 }
             }
-        }        
+        }
         stage("Build") {
             steps {
-                dir(REFS.repo) {
-                    sh script: 'yarn build && tar -zcf dist.tar.gz dist/'
+                dir(REFS.repo) {                    
+                    sh script: './build_tidb.sh', label: 'tidb-server'
+                    sh script: './build_plugin.sh', label: 'plugins'
                 }
             }
             post {
-                success {     
-                    dir(REFS.repo) {                              
-                        archiveArtifacts(artifacts: 'dist.tar.gz, vite.config.preview.ts', fingerprint: true, allowEmptyArchive: true)
+                success {
+                    dir(REFS.repo) {
+                        archiveArtifacts(artifacts: 'bin/*', fingerprint: true, allowEmptyArchive: true)
                     }
                 }
             }
