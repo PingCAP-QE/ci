@@ -54,3 +54,4 @@ pipelineJob("${fullRepoName}/${jobName}") {
             }
         }
     }
+}

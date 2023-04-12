@@ -1,6 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap_enterprise/tidb-enterprise-manager/pr-verify') {
+final fullRepoName = 'pingcap_enterprise/tidb-enterprise-manager'
+final jobName = 'pr-verify'
+
+pipelineJob("${fullRepoName}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -52,3 +54,4 @@ pipelineJob('pingcap_enterprise/tidb-enterprise-manager/pr-verify') {
             }
         }
     }
+}
