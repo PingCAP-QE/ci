@@ -83,7 +83,7 @@ pipeline {
                         stage('build docker') {
                             steps {
                                 sh "apk update && apk add make"
-                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-amd64 docker"
+                                sh "make DOCKERPREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-amd64 docker"
                                 sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-amd64"
                             }
                         }
@@ -115,7 +115,7 @@ pipeline {
                         stage('build docker') {
                             steps {
                                 sh "apk update && apk add make"
-                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-arm64 docker"
+                                sh "make DOCKERPREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-arm64 docker"
                                 sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-arm64"
                             }
                         }
