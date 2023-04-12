@@ -1,4 +1,5 @@
 def checkoutRefs(refs, timeout=5, credentialsId='') {
+    final remoteUrl = "https://github.com/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
             (refs.pulls && refs.pulls.size() > 0) ?
@@ -16,7 +17,7 @@ def checkoutRefs(refs, timeout=5, credentialsId='') {
         git rev-parse --resolve-git-dir .git
 
         git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
-        git config remote.origin.url ${refs.repo_link}
+        git config remote.origin.url ${remoteUrl}
         git config core.sparsecheckout true
 
         # reset & clean
@@ -24,7 +25,7 @@ def checkoutRefs(refs, timeout=5, credentialsId='') {
         git clean -fdx
 
         # fetch pull requests and target branch.
-        timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${refs.repo_link} ${remoteRefSpec}
+        timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
 
         # checkout to refs.base_sha
         git checkout -f origin/${refs.base_ref}
