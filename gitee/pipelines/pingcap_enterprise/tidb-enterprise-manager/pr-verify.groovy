@@ -24,7 +24,7 @@ pipeline {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
                             retry(2) {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, 5, '', 'https://gitee.com')
                             }
                         }
                     }
