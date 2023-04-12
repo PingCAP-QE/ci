@@ -1,5 +1,5 @@
-def checkoutRefs(refs, timeout=5, credentialsId='') {
-    final remoteUrl = "https://github.com/${refs.org}/${refs.repo}.git"
+def checkoutRefs(refs, timeout=5, credentialsId='', gitBaseUrl='https://github.com') {
+    final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
             (refs.pulls && refs.pulls.size() > 0) ?
