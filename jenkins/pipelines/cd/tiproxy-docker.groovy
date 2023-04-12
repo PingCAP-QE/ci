@@ -33,7 +33,7 @@ def ImageTag = ''
 pipeline {
     agent none
     parameters {
-        string(name: 'Revision', defaultValue: 'master', description: 'branch or commit hash')
+        string(name: 'Revision', defaultValue: 'main', description: 'branch or commit hash')
     }
     stages {
         stage ("get commit hash") {
@@ -83,7 +83,7 @@ pipeline {
                         stage('build docker') {
                             steps {
                                 sh "apk update && apk add make"
-                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-amd64"
+                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-amd64 docker"
                                 sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-amd64"
                             }
                         }
@@ -115,7 +115,7 @@ pipeline {
                         stage('build docker') {
                             steps {
                                 sh "apk update && apk add make"
-                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-arm64"
+                                sh "make DOCKER_PREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-arm64 docker"
                                 sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-arm64"
                             }
                         }
@@ -158,7 +158,7 @@ pipeline {
                     }
                 }
                 stage("dockerhub: sync latest tag"){
-                    when { equals expected: 'master', actual: params.Revision }
+                    when { equals expected: 'main', actual: params.Revision }
                     steps{
                         build(job: "jenkins-image-syncer", parameters: [
                                 string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/pingcap/tiproxy:${ImageTag}"),
