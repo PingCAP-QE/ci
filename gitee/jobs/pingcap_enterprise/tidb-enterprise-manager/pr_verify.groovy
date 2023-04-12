@@ -21,7 +21,7 @@ pipelineJob('pingcap_enterprise/tidb-enterprise-manager/pr-verify') {
             triggerOnCommitComment(false)
 
             // pull requests
-            noteRegex("^/test\\s+${jobName}$")
+            noteRegex("^/test\\s+${jobName}\$")
             buildInstructionFilterType('CI_SKIP')
             skipWorkInProgressPullRequest(true)
             triggerOnOpenPullRequest(true)

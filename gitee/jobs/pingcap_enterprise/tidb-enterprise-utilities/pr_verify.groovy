@@ -23,7 +23,7 @@ pipelineJob("${fullRepoName}/${jobName}") {
             triggerOnCommitComment(false)
 
             // pull requests
-            noteRegex("^/test\\s+${jobName}$")
+            noteRegex("^/test\\s+${jobName}\$")
             buildInstructionFilterType('CI_SKIP')
             skipWorkInProgressPullRequest(true)
             triggerOnOpenPullRequest(true)
