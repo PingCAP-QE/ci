@@ -23,8 +23,8 @@ pipelineJob("${fullRepoName}/${jobName}") {
             triggerOnCommitComment(false)
 
             // pull requests
-            noteRegex("^/test\s+${jobName}$")
-            buildInstructionFilterType(CI_SKIP)
+            noteRegex("^/test\\s+${jobName}$")
+            buildInstructionFilterType('CI_SKIP')
             skipWorkInProgressPullRequest(true)
             triggerOnOpenPullRequest(true)
             // 0: None, 1: source branch updated, 2: target branch updated, 3: both source and target branch updated.
