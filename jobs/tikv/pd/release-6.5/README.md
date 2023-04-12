@@ -17,7 +17,7 @@ Others are refactoring, comming soon.
 
 - base on `golang` office image
     ```Dockerfile
-    # Base image
+    # Base image, Go version might be varied from releases, please check the go module setting before setting the correct version.
     FROM golang:1.19
 
     # install build essential
