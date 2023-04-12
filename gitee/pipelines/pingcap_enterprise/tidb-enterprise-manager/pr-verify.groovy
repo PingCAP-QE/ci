@@ -61,8 +61,10 @@ pipeline {
                 }
             }
             post {
-                success {                    
-                    archiveArtifacts(artifacts: 'bin/*', fingerprint: true, allowEmptyArchive: true)
+                success {
+                    dir(REFS.repo) {
+                        archiveArtifacts(artifacts: 'bin/*', fingerprint: true, allowEmptyArchive: true)
+                    }
                 }
             }
         }
