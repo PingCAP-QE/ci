@@ -54,6 +54,12 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
     """
 }
 
+/*
+* Checkout refs from private repository.
+* 
+* depended on plugins:
+*  - ssh-agent 
+*/
 def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com') {
     final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
