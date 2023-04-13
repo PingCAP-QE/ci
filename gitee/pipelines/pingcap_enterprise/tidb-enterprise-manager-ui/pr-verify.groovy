@@ -5,13 +5,12 @@
 
 final GIT_CREDENTIALS_ID = 'gitee-bot-ssh'
 final POD_TEMPLATE_FILE = 'gitee/pipelines/pingcap_enterprise/tidb-enterprise-manager-ui/pod-pr-verify.yaml'
-final REFS = readJSON(text: params.JOB_SPEC).refs
+final REFS = gitee.composeRefFromEventPayload(env.jsonBody)
 
 pipeline {
     agent {
         kubernetes {
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'nodejs'
         }
     }
     options {
@@ -37,10 +36,10 @@ pipeline {
                 dir(REFS.repo) {
                     script {
                         cache(path: "./node_modules", filter: '**/*', key: prow.getCacheKey('gitee', REFS, 'node_modules'), restoreKeys: prow.getRestoreKeys('gitee', REFS, 'node_modules')) {
-                            sh script: 'yarn --frozen-lockfile --network-timeout 180000'
-                            sh script: 'yarn bootstrap'
-                            sh script: 'yarn generate'
-                            sh script: 'yarn lint:ci'
+                            container('nodejs') {
+                                sh script: 'yarn --frozen-lockfile --network-timeout 180000'
+                                sh script: 'yarn lint'
+                            }
                         }
                     }
                 }
@@ -48,14 +47,16 @@ pipeline {
         }
         stage("Build") {
             steps {
-                dir(REFS.repo) {
-                    sh script: 'yarn build && tar -zcf dist.tar.gz dist/'
+                container('nodejs') {
+                    dir(REFS.repo) {
+                        sh script: 'yarn build && tar -zcf dist.tar.gz dist/'
+                    }
                 }
             }
             post {
                 success {
                     dir(REFS.repo) {
-                        archiveArtifacts(artifacts: 'dist.tar.gz, vite.config.preview.ts', fingerprint: true, allowEmptyArchive: true)
+                        archiveArtifacts(artifacts: 'dist.tar.gz', fingerprint: true, allowEmptyArchive: true)
                     }
                 }
             }

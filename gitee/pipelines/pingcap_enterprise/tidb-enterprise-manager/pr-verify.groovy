@@ -5,7 +5,7 @@
 
 final GIT_CREDENTIALS_ID = 'gitee-bot-ssh'
 final POD_TEMPLATE_FILE = 'gitee/pipelines/pingcap_enterprise/tidb-enterprise-manager/pod-pr-verify.yaml'
-final REFS = readJSON(text: params.JOB_SPEC).refs
+final REFS = gitee.composeRefFromEventPayload(env.jsonBody)
 
 pipeline {
     agent {
@@ -21,6 +21,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                sh 'printenv'
                 dir(REFS.repo) {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
@@ -58,7 +59,7 @@ pipeline {
         stage("Build") {
             steps {
                 dir(REFS.repo) {
-                    sh script: 'make'
+                    sh script: 'make build'
                 }
             }
             post {

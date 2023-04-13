@@ -14,7 +14,7 @@ pipelineJob("${fullRepoName}/${jobName}") {
     }
     properties {
         giteeConnection {
-            giteeConnection('https://gitee.com/pingcap_enterprise/tidb-enterprise-manager')
+            giteeConnection('gitee.com')
         }
         pipelineTriggers {
             triggers {
