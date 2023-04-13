@@ -3,6 +3,7 @@
 // should triggerd for master and latest releases branches
 @Library('tipipeline') _
 
+final GIT_CREDENTIALS_ID = 'gitee-bot-ssh'
 final POD_TEMPLATE_FILE = 'gitee/pipelines/pingcap_enterprise/tidb-enterprise-manager/pod-pr-verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -24,7 +25,7 @@ pipeline {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
                             retry(2) {
-                                prow.checkoutRefs(REFS, 5, '', 'https://gitee.com')
+                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout = 5, gitSshHost = 'gitee.com')
                             }
                         }
                     }
