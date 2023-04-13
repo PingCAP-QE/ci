@@ -1,10 +1,10 @@
-def checkoutRefs(refs, timeout=5, credentialsId='', gitBaseUrl='https://github.com') {
+def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com') {
     final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
-            (refs.pulls && refs.pulls.size() > 0) ?
-            refs.pulls.collect { "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head" } :
-            []
+            (refs.pulls && refs.pulls.size() > 0) ? refs.pulls.collect {
+                "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head"
+            }: []
         )
     ).join(' ')
 
@@ -54,13 +54,13 @@ def checkoutRefs(refs, timeout=5, credentialsId='', gitBaseUrl='https://github.c
     """
 }
 
-def checkoutPrivateRefs(refs, credentialsId, timeout=5) {
-    final remoteUrl = "git@github.com:${refs.org}/${refs.repo}.git"
+def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com') {
+    final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
-            (refs.pulls && refs.pulls.size() > 0) ?
-            refs.pulls.collect { "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head" } :
-            []
+            (refs.pulls && refs.pulls.size() > 0) ? refs.pulls.collect {
+                "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head"
+            }: []
         )
     ).join(' ')
 
@@ -69,7 +69,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout=5) {
     sshagent(credentials: [credentialsId]) { 
         sh label: 'Know hosts', script: """
             [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,dsa github.com >> ~/.ssh/known_hosts
+            ssh-keyscan -t rsa,dsa ${gitSshHost} >> ~/.ssh/known_hosts
         """
         // checkout base.
         sh label: 'Checkout and merge pull request(s) to target if exist', script: """#!/usr/bin/env bash
@@ -118,7 +118,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout=5) {
 }
 
 // get uniq cache save key by refs.
-def getCacheKey(prefixFolder, refs, part='') {
+def getCacheKey(prefixFolder, refs, part = '') {
     final prefix = ([prefixFolder, refs.org, refs.repo, part, 'rev-'] - '').join('/')
     if (refs.pulls && refs.pulls.size() > 0) {
         // <base>-<p1>_<p2>_...<pN>
@@ -129,7 +129,7 @@ def getCacheKey(prefixFolder, refs, part='') {
 }
 
 // get cache restory keys by refs.
-def getRestoreKeys(prefixFolder, refs, part='') {
+def getRestoreKeys(prefixFolder, refs, part = '') {
     final prefix = ([prefixFolder, refs.org, refs.repo, part, 'rev-'] - '').join('/')
     if (refs.pulls && refs.pulls.size() > 0) {
         return [prefix + refs.base_sha[0..<7], prefix]
