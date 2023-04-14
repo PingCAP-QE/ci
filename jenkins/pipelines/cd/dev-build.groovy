@@ -61,6 +61,7 @@ spec:
                     defaultContainer "gethash"
                 }
             }
+            environment {GHTOKEN = credentials('sre-bot-token')}
             steps{
                 script{
                     RepoForBuild = RepoDict[Product]
