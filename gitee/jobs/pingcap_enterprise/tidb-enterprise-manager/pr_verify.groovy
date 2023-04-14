@@ -29,6 +29,7 @@ pipelineJob("${fullRepoName}/${jobName}") {
                     // 0: None, 1: source branch updated, 2: target branch updated, 3: both source and target branch updated.
                     triggerOnUpdatePullRequest('3')
                     cancelIncompleteBuildOnSamePullRequest(true)
+                    secretToken(env.GITEE_WEBHOOK_SECRET)
                 }
             }
         }
