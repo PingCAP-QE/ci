@@ -24,6 +24,7 @@ pipeline {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
                             retry(2) {
+                                sh "pwd && ls -l"
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout = 5, gitSshHost = 'gitee.com')
                             }
                         }
@@ -73,11 +74,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        always {
-            addGiteeMRComment("- ${JOB_NAME} `[${currentBuild.result}](${BUILD_URL})`")
         }
     }
 }
