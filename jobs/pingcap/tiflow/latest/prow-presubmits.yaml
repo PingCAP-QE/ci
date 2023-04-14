@@ -5,7 +5,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
-      context: idc-jenkins-ci-ticdc/kafka-integration-test
+      context: pull-cdc-integration-kafka-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-kafka-test"
@@ -15,7 +15,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
-      context: idc-jenkins-ci-ticdc/integration-test
+      context: pull-cdc-integration-mysql-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-mysql-test"
@@ -25,7 +25,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
-      context: idc-jenkins-ci-ticdc/dm-compatibility-test
+      context: pull-dm-compatibility-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test dm-compatibility-test"
@@ -35,7 +35,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
-      context: idc-jenkins-ci-ticdc/dm-integration-test
+      context: pull-dm-integration-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test dm-integration-test"
@@ -45,7 +45,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
-      context: tiflow/engine-integration-test
+      context: pull-engine-integration-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(engine-integration-test|all)(?: .*?)?$"
       rerun_command: "/test engine-integration-test"
