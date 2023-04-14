@@ -14,7 +14,7 @@ pipelineJob("${fullRepoName}/${jobName}") {
     }
     properties {
         giteeConnection {
-            giteeConnection("https://gitee.com/${fullRepoName}")
+            giteeConnection('gitee.com')
         }
         pipelineTriggers {
             triggers {
