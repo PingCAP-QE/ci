@@ -127,7 +127,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'others'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04'
                     }
                 }
                 agent{
