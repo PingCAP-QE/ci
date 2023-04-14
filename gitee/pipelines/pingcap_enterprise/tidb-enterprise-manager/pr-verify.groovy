@@ -11,7 +11,6 @@ pipeline {
     agent {
         kubernetes {
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
         }
     }
     options {
@@ -21,11 +20,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh 'printenv'
                 dir(REFS.repo) {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
                             retry(2) {
+                                sh "pwd && ls -l"
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout = 5, gitSshHost = 'gitee.com')
                             }
                         }
@@ -35,16 +34,20 @@ pipeline {
         }
         stage("Static-Checks") {
             steps {
-                dir(REFS.repo) {
-                    sh script: 'make lint'
-                    sh script: 'gocyclo -over 20 -avg ./ | tee repo_cyclo.log || true'
+                container('golang') {
+                    dir(REFS.repo) {
+                        sh script: 'make lint'
+                        sh script: 'gocyclo -over 20 -avg ./ | tee repo_cyclo.log || true'
+                    }
                 }
             }
         }
         stage("Unit-Test") {
             steps {
-                dir(REFS.repo) {
-                    sh script: 'make ci_test'
+                container('golang') {
+                    dir(REFS.repo) {
+                        sh script: 'make ci_test'
+                    }
                 }
             }
             post {
@@ -58,8 +61,10 @@ pipeline {
         }
         stage("Build") {
             steps {
-                dir(REFS.repo) {
-                    sh script: 'make build'
+                container('golang') {
+                    dir(REFS.repo) {
+                        sh script: 'make build'
+                    }
                 }
             }
             post {

@@ -11,7 +11,6 @@ pipeline {
     agent {
         kubernetes {
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
         }
     }
     options {
@@ -25,6 +24,7 @@ pipeline {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
                             retry(2) {
+                                sh "pwd && ls -l"
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout = 5, gitSshHost = 'gitee.com')
                             }
                         }
@@ -34,15 +34,19 @@ pipeline {
         }
         stage("Static-Checks") {
             steps {
-                dir(REFS.repo) {
-                    echo "WIP"
+                container('golang') {
+                    dir(REFS.repo) {
+                        echo "WIP"
+                    }
                 }
             }
         }
         stage("Unit-Test") {
             steps {
-                dir(REFS.repo) {
-                    echo "WIP"
+                container('golang') {
+                    dir(REFS.repo) {
+                        echo "WIP"
+                    }
                 }
             }
             post {
@@ -56,9 +60,11 @@ pipeline {
         }
         stage("Build") {
             steps {
-                dir(REFS.repo) {
-                    sh script: './build_tidb.sh', label: 'tidb-server'
-                    sh script: './build_plugin.sh', label: 'plugins'
+                container('golang') {
+                    dir(REFS.repo) {
+                        sh script: './build_tidb.sh', label: 'tidb-server'
+                        sh script: './build_plugin.sh', label: 'plugins'
+                    }
                 }
             }
             post {
