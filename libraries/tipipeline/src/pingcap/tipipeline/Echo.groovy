@@ -4,5 +4,7 @@ package pingcap.tipipeline
 class Echo {
   static def hello() {
     print "hello"
+    
+    hello // error
   }
 }
