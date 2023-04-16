@@ -20,6 +20,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                addGiteeMRComment(comment: "-  :point_right:  ${JOB_NAME} [started](${BUILD_URL})")
                 dir(REFS.repo) {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
@@ -77,7 +78,7 @@ pipeline {
     }
     post {
         always {
-            addGiteeMRComment(comment: "- ${JOB_NAME} `[${currentBuild.result}](${BUILD_URL})`")
+            addGiteeMRComment(comment: "- ${JOB_NAME} [${currentBuild.result}](${BUILD_URL})")
         }
     }
 }
