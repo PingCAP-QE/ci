@@ -75,4 +75,9 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            addGiteeMRComment(comment: "- ${JOB_NAME} `[${currentBuild.result}](${BUILD_URL})`")
+        }
+    }
 }
