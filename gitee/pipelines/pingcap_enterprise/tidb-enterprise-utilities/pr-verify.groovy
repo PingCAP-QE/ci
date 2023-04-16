@@ -11,6 +11,7 @@ pipeline {
     agent {
         kubernetes {
             yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
         }
     }
     options {
