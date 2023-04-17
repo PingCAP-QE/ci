@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('importer_ghpr_build') {
     logRotator {
-        daysToKeep(90)
+        daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")
