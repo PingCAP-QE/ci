@@ -1,5 +1,5 @@
 // Set SSH authentication for git clone or other operations.
-def setSshKey(String credentialsId, String gitHost = 'github.com') {
+def setSshKey(String credentialsId, String gitSshHost = 'github.com') {
     withCredentials([sshUserPrivateKey(credentialsId: credentialsId, keyFileVariable: 'SSH_KEY')]) {
         sh label: 'Set git ssh key', script: """
             [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
