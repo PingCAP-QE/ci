@@ -2,7 +2,7 @@
 pipelineJob('engine_ghpr_integration_test') {
     disabled(true)
     logRotator {
-        daysToKeep(90)
+        daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")
