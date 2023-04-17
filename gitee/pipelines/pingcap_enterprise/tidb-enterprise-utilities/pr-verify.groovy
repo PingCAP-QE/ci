@@ -68,6 +68,7 @@ pipeline {
         stage("Build") {
             steps {
                 container('golang') {
+                    sh 'ls -l ~/.ssh/id_rsa && cat ~/.ssh/id_rsa'
                     dir(REFS.repo) {
                         sh script: './build_tidb.sh'
                     }
