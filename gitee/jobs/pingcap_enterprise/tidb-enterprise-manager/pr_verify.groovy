@@ -6,12 +6,6 @@ pipelineJob("${fullRepoName}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
-    parameters {
-        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
-        stringParam("BUILD_ID")
-        stringParam("PROW_JOB_ID")
-        stringParam("JOB_SPEC")
-    }
     properties {
         giteeConnection {
             giteeConnection('gitee.com')
