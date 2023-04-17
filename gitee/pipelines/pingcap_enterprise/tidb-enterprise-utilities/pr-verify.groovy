@@ -31,6 +31,12 @@ pipeline {
                         }
                     }
                 }
+                // the make task will using git cli.
+                container('golang') {
+                    script {
+                        git.setSshKey(GIT_CREDENTIALS_ID, 'gitee.com')
+                    }
+                }
             }
         }
         stage("Static-Checks") {
