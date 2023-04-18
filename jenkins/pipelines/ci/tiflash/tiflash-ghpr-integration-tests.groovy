@@ -39,7 +39,7 @@ def runTest(label, name, path, tidb_branch) {
                         container("docker") {
                             try {
                                 echo "path: ${pwd()}"
-                                sh "TAG=${ghprbActualCommit} BRANCH=${tidb_branch} bash -xe ./run.sh"
+                                sh "TAG=${ghprbActualCommit} BRANCH=${tidb_branch} ./run.sh"
                             } catch (e) {
                                 sh "mv log ${name}-log"
                                 archiveArtifacts(artifacts: "${name}-log/**/*.log", allowEmptyArchive: true)
