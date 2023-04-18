@@ -22,6 +22,15 @@ pipeline {
         stage('Checkout') {
             steps {
                 addGiteeMRComment(comment: "-  :point_right:  ${JOB_NAME} [started](${BUILD_URL})")
+                dir("tidb-test") {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GITHUB_CREDENTIALS_ID)
+                            }
+                        }
+                    }
+                }                
                 dir(REFS.repo) {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
