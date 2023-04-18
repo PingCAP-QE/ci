@@ -21,7 +21,7 @@ More will be added.
 
 - base on `rust` office image `WIP`
     ```Dockerfile
-    # Base image, Go version might be varied from releases, please check the go module setting before setting the correct version.
+    # Base image, Rust version might be varied from releases, please check the go module setting before setting the correct version.
     FROM rust:1.68
 
     # install build essential
