@@ -78,6 +78,7 @@ def runBuilderClosure(label, Closure body) {
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
     ],
     volumes: [
+            // TODO: find a better way to share cache
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
             nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
@@ -95,6 +96,7 @@ def runCheckoutAndBuilderClosure(label, curws, Closure body) {
         dir("${curws}/tiflash") {
             stage("Checkout") {
                 container("docker") {
+                    // TODO: find a better way to cache code
                     def repoDailyCache = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
                     if (fileExists(repoDailyCache)) {
                         println "get code from nfs to reduce clone time"

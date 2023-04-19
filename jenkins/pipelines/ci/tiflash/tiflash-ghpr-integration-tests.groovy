@@ -24,6 +24,7 @@ def runTest(label, name, path, tidb_branch) {
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
                     alwaysPullImage: true, envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')], ttyEnabled: true, command: 'cat')],
         volumes: [
+            // TODO: find a better way to share the cache
             nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
@@ -58,6 +59,7 @@ def runTest(label, name, path, tidb_branch) {
 def checkoutTiFlash() {
     container('golang') {
         stage('Checkout') {
+            // TODO: find a better way to get the code(use s3 instead of nfs)
             def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
             if (fileExists(cache_path)) {
                 sh label: "Get code from nfs to reduce clone time", script: """
@@ -139,6 +141,7 @@ def run_with_pod(Closure body) {
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    // TODO: find a better way to get the code(use s3 instead of nfs)
                     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                         serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true)
             ],

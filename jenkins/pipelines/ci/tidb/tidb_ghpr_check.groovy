@@ -31,6 +31,7 @@ GO_IMAGE_MAP = [
 ALWAYS_PULL_IMAGE = true
 RESOURCE_REQUEST_CPU = '4000m'
 VOLUMES = [
+    // TODO: remove this after we have a better way to cache code
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
     emptyDirVolume(mountPath: '/tmp', memory: false),

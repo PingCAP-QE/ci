@@ -54,11 +54,7 @@ def run_with_pod(Closure body) {
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                             
                     )
-            ],
-            volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false)
-                    ],
+            ]
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"

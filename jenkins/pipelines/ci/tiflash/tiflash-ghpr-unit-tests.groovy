@@ -62,6 +62,7 @@ def runBuilderClosure(label, image, Closure body) {
                 resourceLimitCpu: '12000m', resourceLimitMemory: '32Gi'),
         ],
         volumes: [
+            // TODO: find a better way to share the cache
             nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
                 serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
@@ -142,6 +143,7 @@ def run_with_pod(Closure body) {
         volumes: [
             emptyDirVolume(mountPath: '/tmp', memory: false),
             emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+            // TODO: find a better way to share the cache
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                 serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
         ],
@@ -188,6 +190,7 @@ run_with_pod {
 
     stage('Checkout') {
         dir("/home/jenkins/agent/workspace/tiflash-build-common/tiflash") {
+            // TODO: remove this after we have a better way to cache code
             def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
             if (fileExists(cache_path)) {
                 println "get code from nfs to reduce clone time"

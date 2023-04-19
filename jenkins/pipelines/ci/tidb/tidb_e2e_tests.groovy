@@ -104,6 +104,8 @@ try {
                     // delete to clean workspace in case of agent pod reused lead to conflict.
                     deleteDir()
                     // copy code from nfs cache
+                    // TODO remove this after nfs cache is removed
+                    //   use s3 cache instead nfs
                     if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """

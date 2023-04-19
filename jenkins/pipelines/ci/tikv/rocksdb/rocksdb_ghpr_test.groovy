@@ -19,6 +19,7 @@ def run_with_x86_pod(Closure body) {
                     )
             ],
             volumes: [
+                    // TODO: find a better way to share cache
                     nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/cache', readOnly: false),
                     nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',

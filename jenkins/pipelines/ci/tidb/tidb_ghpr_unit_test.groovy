@@ -37,6 +37,7 @@ POD_LABEL_MAP = [
     "master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
 ]
 VOLUMES = [
+    // TODO: remove this after we use s3 to cache code
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                 serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
     emptyDirVolume(mountPath: '/tmp', memory: false),
@@ -148,6 +149,7 @@ try {
                         deleteDir()
                         // copy code from nfs cache
                         container("golang") {
+                            // TODO: remove this after we use s3 to cache code
                             if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                                 timeout(5) {
                                     sh """

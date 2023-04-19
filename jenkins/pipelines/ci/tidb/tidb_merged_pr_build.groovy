@@ -108,6 +108,7 @@ try {
                 deleteDir()
                 // copy code from nfs cache
                 container("golang") {
+                    // TODO: remove this after we have a better way to cache code
                     if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                         timeout(5) {
                             sh """
