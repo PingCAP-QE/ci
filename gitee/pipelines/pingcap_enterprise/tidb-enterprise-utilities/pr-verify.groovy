@@ -103,16 +103,17 @@ pipeline {
                         stages {
                             stage("Test") {
                                 options {
-                                    lock('mysql-test')
                                     timeout(time: 30, unit: 'MINUTES')
                                 }
                                 steps {
-                                    container('golang') {
-                                        dir(REFS.repo) {
-                                            sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                        }
-                                        dir('tidb-test/mysql_test') {
-                                            sh label: "part ${PART}", script: "TIDB_SERVER_PATH=${WORKSPACE}/${REFS.repo}/bin/tidb-server ./test.sh -backlist=1 -part=${PART}"
+                                    lock("IT-MySqlTest-${BUILD_TAG}") {
+                                        container('golang') {
+                                            dir(REFS.repo) {
+                                                sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                                            }
+                                            dir('tidb-test/mysql_test') {
+                                                sh label: "part ${PART}", script: "TIDB_SERVER_PATH=${WORKSPACE}/${REFS.repo}/bin/tidb-server ./test.sh -backlist=1 -part=${PART}"
+                                            }
                                         }
                                     }
                                 }
