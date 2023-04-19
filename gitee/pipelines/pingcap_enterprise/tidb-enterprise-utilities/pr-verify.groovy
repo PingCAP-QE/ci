@@ -21,7 +21,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                addGiteeMRComment(comment: "-  :point_right:  ${JOB_NAME} [started](${BUILD_URL})")
+                addGiteeMRComment(comment: "- :fa-heart: ${JOB_NAME} [started...](${BUILD_URL})")
                 dir(REFS.repo) {
                     script {
                         cache(path: "./", filter: '**/*', key: prow.getCacheKey('gitee', REFS), restoreKeys: prow.getRestoreKeys('gitee', REFS)) {
@@ -103,17 +103,15 @@ pipeline {
                         stages {
                             stage("Test") {
                                 options {
-                                    timeout(time: 30, unit: 'MINUTES')
+                                    lock("IT-MySqlTest-${BUILD_TAG}")
                                 }
                                 steps {
-                                    lock("IT-MySqlTest-${BUILD_TAG}") {
-                                        container('golang') {
-                                            dir(REFS.repo) {
-                                                sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                            }
-                                            dir('tidb-test/mysql_test') {
-                                                sh label: "part ${PART}", script: "TIDB_SERVER_PATH=${WORKSPACE}/${REFS.repo}/bin/tidb-server ./test.sh -backlist=1 -part=${PART}"
-                                            }
+                                    container('golang') {
+                                        dir(REFS.repo) {
+                                            sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                                        }
+                                        dir('tidb-test/mysql_test') {
+                                            sh label: "part ${PART}", script: "TIDB_SERVER_PATH=${WORKSPACE}/${REFS.repo}/bin/tidb-server ./test.sh -backlist=1 -part=${PART}"
                                         }
                                     }
                                 }
@@ -134,7 +132,7 @@ pipeline {
     }
     post {
         always {
-            addGiteeMRComment(comment: "- ${JOB_NAME} [${currentBuild.result}](${BUILD_URL})")
+            addGiteeMRComment(comment: "-  :fa-file-o: ${JOB_NAME} [${currentBuild.result}](${BUILD_URL})")
         }
     }
 }
