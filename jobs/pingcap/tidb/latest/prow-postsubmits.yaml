@@ -36,7 +36,7 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
-      context: wip-integration-jdbc-test
+      context: ci/integration-jdbc-test
       max_concurrency: 1
       skip_report: false
       branches:
