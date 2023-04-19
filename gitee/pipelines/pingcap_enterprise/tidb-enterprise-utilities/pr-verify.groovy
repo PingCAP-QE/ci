@@ -111,7 +111,7 @@ pipeline {
                                             sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
                                         }
                                         dir('tidb-test/mysql_test') {
-                                            sh label: "part ${PART}", script: "TIDB_SERVER_PATH=${WORKSPACE}/${REFS.repo}/bin/tidb-server ./test.sh -backlist=1 -part=${PART}"
+                                            sh label: "part ${PART}", script: "TIDB_SERVER_PATH=${WORKSPACE}/${REFS.repo}/bin/tidb-server ./test.sh 1 ${PART}"
                                         }
                                     }
                                 }
