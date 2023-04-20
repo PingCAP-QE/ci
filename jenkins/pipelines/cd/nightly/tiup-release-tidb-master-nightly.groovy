@@ -33,7 +33,7 @@ String PRODUCED_VERSION
 retry(2) {
     try {
         timeout(600) {
-            RELEASE_TAG = "v7.1.0-alpha"
+            RELEASE_TAG = "v7.2.0-alpha"
             node("build_go1130") {
                 container("golang") {
                     def ws = pwd()
