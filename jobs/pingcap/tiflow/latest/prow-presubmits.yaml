@@ -21,6 +21,15 @@ presubmits:
       rerun_command: "/test cdc-integration-mysql-test"
       branches:
         - ^master$
+    - name: pingcap/tiflow/pull_cdc_integration_storage_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/pull-cdc-integration-storage-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test)(?: .*?)?$"
+      rerun_command: "/test cdc-integration-storage-test"
+      branches:
+        - ^master$
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
