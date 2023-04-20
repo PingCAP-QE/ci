@@ -25,7 +25,7 @@ pipelineJob('dm_ghpr_compatibility_test') {
                     whiteListTargetBranches {
                         ghprbBranch { branch('^(release-)?[5]\\.[3-4](\\.\\d+)?(\\-.*)?$') }
                         ghprbBranch { branch('^(release-)?[6]\\.[0-9](\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?[7]\\.[0-9](\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[7]\\.0(\\.\\d+)?(\\-.*)?$') }
                     }
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }

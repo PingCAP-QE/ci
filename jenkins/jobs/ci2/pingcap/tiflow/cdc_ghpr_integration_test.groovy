@@ -24,6 +24,7 @@ pipelineJob('cdc_ghpr_integration_test') {
                     orgslist("pingcap")
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^(release-)?7\\.[1-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
