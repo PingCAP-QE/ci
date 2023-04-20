@@ -107,16 +107,10 @@ RUN cd tikv-src \
         }
         
         build_branch("master")
-        build_branch("release-7.0")
-        build_branch("release-6.6")
+        build_branch("release-7.1")
         build_branch("release-6.5")
         build_branch("release-6.1")
         build_branch("release-5.4")
         build_branch("release-5.3")
-        build_branch("release-5.2")
-        build_branch("release-5.1")
-        build_branch("release-5.0")
-        build_branch("release-4.0")
-        build_branch("release-3.0")
     }
 }
