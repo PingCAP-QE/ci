@@ -68,6 +68,11 @@ pipeline {
         stage('Test') {
             steps {
                 dir('tidb-engine-ext') {
+                    sh label: "debug git root path", script: """
+                        pwd 
+                        git rev-parse --show-toplevel
+                        ls -alh ../
+                    """
                     sh """
                     set -euox pipefail
                     make ci_fmt_check
