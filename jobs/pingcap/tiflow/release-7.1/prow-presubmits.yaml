@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tiflow:
-    - name: pingcap/tiflow/pull_cdc_integration_kafka_test
+    - name: pingcap/tiflow/release-7.1/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
@@ -10,8 +10,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
-        - ^master$
-    - name: pingcap/tiflow/pull_cdc_integration_test
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-7.1/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
@@ -20,8 +20,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-mysql-test"
       branches:
-        - ^master$
-    - name: pingcap/tiflow/pull_dm_compatibility_test
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-7.1/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
@@ -30,8 +30,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test dm-compatibility-test"
       branches:
-        - ^master$
-    - name: pingcap/tiflow/pull_dm_integration_test
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-7.1/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
@@ -40,8 +40,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test dm-integration-test"
       branches:
-        - ^master$
-    - name: pingcap/tiflow/pull_engine_integration_test
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-7.1/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
       run_before_merge: true
@@ -50,8 +50,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(engine-integration-test|all)(?: .*?)?$"
       rerun_command: "/test engine-integration-test"
       branches:
-        - ^master$
-    - name: pingcap/tiflow/ghpr_verify
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-7.1/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -60,6 +60,5 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
       rerun_command: "/test verify"
       branches:
-        - ^master$
-        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^feature[_/].+
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+
