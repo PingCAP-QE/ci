@@ -13,8 +13,8 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 32Gi
+          cpu: "16"
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
