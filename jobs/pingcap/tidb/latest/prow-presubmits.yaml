@@ -10,7 +10,6 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
-        - ^release-7\.[1-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
     - name: pingcap/tidb/ghpr_check
       agent: jenkins
@@ -21,7 +20,6 @@ presubmits:
       rerun_command: "/test check-dev"
       branches:
         - ^master$
-        - ^release-7\.[1-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
     - name: pingcap/tidb/ghpr_check2
       agent: jenkins
@@ -32,7 +30,6 @@ presubmits:
       rerun_command: "/test check-dev2"
       branches:
         - ^master$
-        - ^release-7\.[1-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
     - name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
@@ -43,7 +40,6 @@ presubmits:
       rerun_command: "/test mysql-test"
       branches:
         - ^master$
-        - ^release-7\.[1-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
     - name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
@@ -54,5 +50,4 @@ presubmits:
       rerun_command: "/test unit-test"
       branches:
         - ^master$
-        - ^release-7\.[1-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^feature[_/].+
