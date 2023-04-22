@@ -3,7 +3,7 @@ kind: Kustomization
 configMapGenerator:
   - name: prow-job-config
     namespace: apps
-    behavior: merge
+    behavior: create
     options:
       disableNameSuffixHash: true
     files:
