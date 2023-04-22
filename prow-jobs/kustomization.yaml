@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+  - name: prow-job-config
+    namespace: apps
+    behavior: create
+    options:
+      disableNameSuffixHash: true
+    files:
+      - pingcap-qe-ci-presubmits.yaml
+      - pingcap-tidb-latest-postsubmits.yaml
+      - pingcap-tidb-latest-presubmits.yaml
+      - pingcap-tidb-release-6.1-presubmits.yaml
+      - pingcap-tidb-release-6.2-presubmits.yaml
+      - pingcap-tidb-release-6.3-presubmits.yaml
+      - pingcap-tidb-release-6.4-presubmits.yaml
+      - pingcap-tidb-release-6.5-presubmits.yaml
+      - pingcap-tidb-release-6.6-presubmits.yaml
+      - pingcap-tidb-release-7.0-presubmits.yaml
+      - pingcap-tidb-test-latest-presubmits.yaml
+      - pingcap-tidb-test-release-6.0-presubmits.yaml
+      - pingcap-tidb-test-release-6.1-presubmits.yaml
+      - pingcap-tidb-test-release-6.2-presubmits.yaml
+      - pingcap-tiflow-latest-presubmits.yaml
+      - pingcap-tiflow-release-5.3-presubmits.yaml
+      - pingcap-tiflow-release-6.0-presubmits.yaml
+      - pingcap-tiflow-release-6.1-presubmits.yaml
+      - pingcap-tiflow-release-6.2-presubmits.yaml
+      - tikv-pd-latest-presubmits.yaml
+      - tikv-pd-release-6.5-presubmits.yaml

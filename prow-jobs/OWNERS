@@ -1,5 +1,5 @@
 labels:
-  - area/jobs/jenkins-DSL
+  - area/jobs/prow
 reviewers:
   - purelind
 approvers:
