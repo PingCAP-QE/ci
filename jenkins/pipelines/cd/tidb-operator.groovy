@@ -387,7 +387,7 @@ pipeline {
                                 dir(CHARTS_BUILD_DIR){
                                     sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
 				    container("helm") {
-                                        sh "helm repo index . --url http://charts.pingcap.org/ --merge index.yaml"
+                                        sh "helm repo index . --url https://charts.pingcap.org/ --merge index.yaml"
                                     }
                                     sh "cat index.yaml"
                                     sh "upload_qiniu.py index.yaml index.yaml"
