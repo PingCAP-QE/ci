@@ -740,6 +740,7 @@ try {
     }
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
+    throw e
 } finally {
     build job: 'send_notify',
             wait: true,
