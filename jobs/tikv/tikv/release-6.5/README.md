@@ -19,7 +19,7 @@ More will be added.
 
 > Currently we are not refactored the jobs, and the CI images are pulished on private registry.
 
-- base on `rust` office image `WIP`
+- base on `rust` official image `WIP`
     ```Dockerfile
     # Base image, Rust version might be varied from releases, please check the Cargo.toml before setting the correct version.
     FROM rust:1.68
