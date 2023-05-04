@@ -19,7 +19,37 @@ More will be added.
 
 > Currently we are not refactored the jobs, and the CI images are pulished on private registry.
 
-- base on `rust` office image `WIP`
+- base on `centos:7.6.1810` office image `WIP`
+  > Ref: https://github.com/tikv/tikv/pull/14678
+  ```Dockerfile
+  FROM centos:7.6.1810
+
+  RUN yum makecache -y && \
+      yum install -y epel-release centos-release-scl devtoolset-8 perl cmake3 make unzip git which && \
+      yum clean all && \
+      ln -s /usr/bin/cmake3 /usr/bin/cmake
+
+  # Install protoc
+  ENV PROTOC_VER 3.15.8
+  RUN curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-linux-x86_64.zip" && \
+    unzip protoc-${PROTOC_VER}-linux-x86_64.zip -d /usr/local/ && \
+    rm -f protoc-${PROTOC_VER}-linux-x86_64.zip
+
+  # Install Rustup
+  RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile complete --default-toolchain none -y  
+
+  ######## run test #########
+  ### run those commands under tikv repo dir to run unit tests in new terminal to reload your PATH environment variable:
+  # cargo install cargo-nextest --locked
+  # source /opt/rh/devtoolset-8/enable
+  # export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH
+  # export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+  #
+  # LOG_FILE=./target/my_test.log
+  # RUSTFLAGS=-Dwarnings FAIL_POINT=1 RUST_BACKTRACE=1 MALLOC_CONF=prof:true,prof_active:false CI=1 make test
+  ```
+
+- base on `rust` office image `WIP`, current not passed.
     ```Dockerfile
     # Base image, Rust version might be varied from releases, please check the Cargo.toml before setting the correct version.
     FROM rust:1.68
@@ -43,7 +73,7 @@ More will be added.
     # RUSTFLAGS=-Dwarnings FAIL_POINT=1 RUST_BACKTRACE=1 MALLOC_CONF=prof:true,prof_active:false CI=1 make test_with_nextest
     ```
 
-- base on `ubuntu` office image `WIP`
+- base on `ubuntu` office image `WIP`, current not passed.
   ```Dockerfile
   FROM ubuntu:22
 
@@ -65,6 +95,7 @@ More will be added.
   # LOG_FILE=./target/my_test.log
   # RUSTFLAGS=-Dwarnings FAIL_POINT=1 RUST_BACKTRACE=1 MALLOC_CONF=prof:true,prof_active:false CI=1 make test_with_nextest
   ```
+
 ## Run after merged
 
 Currently no jobs run after pull request be merged.
