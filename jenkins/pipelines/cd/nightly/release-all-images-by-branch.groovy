@@ -738,8 +738,6 @@ try {
         }
         currentBuild.result = "SUCCESS"
     }
-} catch (Exception e) {
-    currentBuild.result = "FAILURE"
 } finally {
     build job: 'send_notify',
             wait: true,
