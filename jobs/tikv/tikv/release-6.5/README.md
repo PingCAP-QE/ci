@@ -19,7 +19,7 @@ More will be added.
 
 > Currently we are not refactored the jobs, and the CI images are pulished on private registry.
 
-- base on `centos:7.6.1810` office image `WIP`
+- base on `centos:7.6.1810` official image `WIP`
   > Ref: https://github.com/tikv/tikv/pull/14678
   ```Dockerfile
   FROM centos:7.6.1810
@@ -49,7 +49,7 @@ More will be added.
   # RUSTFLAGS=-Dwarnings FAIL_POINT=1 RUST_BACKTRACE=1 MALLOC_CONF=prof:true,prof_active:false CI=1 make test
   ```
 
-- base on `rust` office image `WIP`, current not passed.
+- base on `rust` official image `WIP`, current not passed.
     ```Dockerfile
     # Base image, Rust version might be varied from releases, please check the Cargo.toml before setting the correct version.
     FROM rust:1.68
@@ -73,7 +73,7 @@ More will be added.
     # RUSTFLAGS=-Dwarnings FAIL_POINT=1 RUST_BACKTRACE=1 MALLOC_CONF=prof:true,prof_active:false CI=1 make test_with_nextest
     ```
 
-- base on `ubuntu` office image `WIP`, current not passed.
+- base on `ubuntu` official image `WIP`, current not passed.
   ```Dockerfile
   FROM ubuntu:22
 
