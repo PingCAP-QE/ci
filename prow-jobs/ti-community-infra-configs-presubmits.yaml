@@ -1,0 +1,70 @@
+presubmits:
+  ti-community-infra/configs:
+    - name: pull-configs-validate-prow-yaml
+      decorate: true
+      run_if_changed: "prow/"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - image: ticommunityinfra/checkconfig:v20221227-b4eaee6696
+            command:
+              - /ko-app/checkconfig
+            args:
+              - --plugin-config=prow/config/plugins.yaml
+              - --config-path=prow/config/config.yaml
+              - --job-config-path=prow/jobs
+    - name: pull-configs-validate-external-plugin-yaml
+      decorate: true
+      run_if_changed: "prow/config/external_plugins_config.yaml"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - image: ticommunityinfra/tichi-check-external-plugin-config:v2.0.4
+            command:
+              - check-external-plugin-config
+            args:
+              - --external-plugin-config-path=prow/config/external_plugins_config.yaml
+    - name: pull-configs-validate-labels-yaml
+      decorate: true
+      run_if_changed: "prow/config/labels.*"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - image: golang:1.18
+            command:
+              - scripts/verify-labels.sh
+    - name: pull-configs-validate-orgs
+      decorate: true
+      run_if_changed: orgs/
+      branches:
+        - ^main$
+      max_concurrency: 1
+      spec:
+        containers:
+          - image: golang:1.18
+            command:
+              - scripts/peribolos.sh
+            args:
+              - --config-path=orgs/config.yaml
+              - --github-token-path=/etc/github/token
+              - --github-endpoint=http://prow-ghproxy.apps
+              - --github-endpoint=https://api.github.com
+              - --min-admins=2
+              - --fix-org
+              - --fix-org-members
+              - --fix-teams
+              - --fix-team-members
+              - --fix-team-repos
+              - --tokens=1200
+              - --confirm=false
+            volumeMounts:
+              - name: github-token
+                mountPath: /etc/github
+                readOnly: true
+        volumes:
+          - name: github-token
+            secret:
+              secretName: github-token

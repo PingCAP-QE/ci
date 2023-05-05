@@ -1,0 +1,62 @@
+presubmits:
+  ti-community-infra/test-infra:
+    - name: pull-test-infra-unit-test
+      branches:
+        - ^release$
+      always_run: true
+      decorate: true
+      spec:
+        containers:
+          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20221223-736a4da5ba-test-infra
+            command:
+              - runner.sh
+            args:
+              - make
+              - go-unit
+    - name: pull-test-infra-prow-image-build-test
+      branches:
+        - ^release$
+      run_if_changed: '^(\.ko\.yaml|hack/(ts-rollup|make-rules|prowimagebuilder)|prow|ghproxy|label_sync/.+\.go|robots/commenter|robots/pr-creator|robots/issue-creator|testgrid/cmd|gcsweb)'
+      decorate: true
+      spec:
+        containers:
+          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20221223-736a4da5ba-test-infra
+            command:
+              - runner.sh
+            args:
+              - make
+              - -C
+              - prow
+              - build-images
+            # docker-in-docker needs privileged mode
+            securityContext:
+              privileged: true
+            resources:
+              requests:
+                # This job is very CPU intensive as building prow images in
+                # parallel
+                cpu: "4"
+    - name: pull-test-infra-verify-lint
+      branches:
+        - ^release$
+      always_run: true
+      decorate: true
+      spec:
+        containers:
+          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20221223-736a4da5ba-test-infra
+            command:
+              - runner.sh
+            args:
+              - make
+              - verify
+            env:
+              - name: VERIFY_ESLINT
+                value: "false"
+              - name: VERIFY_PYLINT
+                value: "false"
+              - name: VERIFY_TS_ROLLUP
+                value: "false"
+              - name: VERIFY_BOILERPLATE
+                value: "false"
+              - name: VERIFY_YAMLLINT
+                value: "false"

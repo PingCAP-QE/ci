@@ -1,0 +1,83 @@
+postsubmits:
+  ti-community-infra/configs:
+    - name: post-configs-update-orgs
+      decorate: true
+      run_if_changed: "orgs/"
+      branches:
+        - ^main$
+      max_concurrency: 1
+      spec:
+        containers:
+          - image: golang:1.18
+            command:
+              - scripts/peribolos.sh
+            args:
+              - --config-path=orgs/config.yaml
+              - --github-token-path=/etc/github/token
+              - --github-endpoint=http://prow-ghproxy.apps
+              - --github-endpoint=https://api.github.com
+              - --min-admins=2
+              - --fix-org
+              - --fix-org-members
+              - --fix-teams
+              - --fix-team-members
+              - --fix-team-repos
+              - --tokens=1200
+              - --confirm
+            volumeMounts:
+              - name: github-token
+                mountPath: /etc/github
+                readOnly: true
+        volumes:
+          - name: github-token
+            secret:
+              secretName: github-token
+    - name: post-configs-deploy-prow
+      run_if_changed: "prow/cluster"
+      decorate: true
+      branches:
+        - ^main$
+      max_concurrency: 1
+      spec:
+        containers:
+          - image: google/cloud-sdk:319.0.0
+            command:
+              - scripts/deploy.sh
+            args:
+              - --confirm
+              - --config=trusted
+            env:
+              - name: GOOGLE_APPLICATION_CREDENTIALS
+                value: /creds/service-account.json
+            volumeMounts:
+              - name: creds
+                mountPath: /creds
+        volumes:
+          - name: creds
+            secret:
+              secretName: deployer-credentials
+      annotations:
+        description: deploys the configured version of prow by running scripts/deploy.sh
+    - name: post-configs-label-sync
+      decorate: true
+      run_if_changed: "prow/config/labels.yaml"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - image: ticommunityinfra/label_sync:v20221227-9bc8171e1d
+            command:
+              - /ko-app/label_sync
+            args:
+              - --config=prow/config/labels.yaml
+              - --confirm=true
+              - --only=ti-community-infra/tichi,ti-community-infra/configs,ti-community-infra/ti-community-bot,ti-community-infra/rfcs,pingcap/community,pingcap/docs,pingcap/docs-cn,pingcap/docs-tidb-operator,pingcap/tidb,pingcap/tiflow,pingcap/tiflash,tikv/community,tikv/pd,chaos-mesh/website
+              - --token=/etc/github/token
+            volumeMounts:
+              - name: github-token
+                mountPath: /etc/github
+                readOnly: true
+        volumes:
+          - name: github-token
+            secret:
+              secretName: github-token
