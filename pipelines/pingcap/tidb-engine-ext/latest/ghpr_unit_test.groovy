@@ -39,40 +39,43 @@ pipeline {
             // FIXME(wuhuizuo): catch AbortException and set the job abort status
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
+                sh """
+                rm -rf .git .gitignore
+                pwd && ls -alh .
+                """
                 dir('tidb-engine-ext') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-engine-ext/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-engine-ext/rev-']) {
-                        retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 5],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
-                                    ]],
-                                ]
-                            )
-                        }
-                    }
+                    retry(2) {
+                        checkout(
+                            changelog: false,
+                            poll: false,
+                            scm: [
+                                $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [
+                                    [$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                                    [$class: 'CloneOption', timeout: 5],
+                                ],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[
+                                    refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
+                                    url: "https://github.com/${GIT_FULL_REPO_NAME}.git"
+                                ]],
+                            ]
+                        )
+                        sh label: "debug git status", script: """
+                            pwd && ls -alh .
+                            ls -alh .git
+                            which git && git --version
+                            git status
+                        """
+                    }          
                 }
             }
         }
         stage('Test') {
             steps {
                 dir('tidb-engine-ext') {
-                    sh label: "debug git root path", script: """
-                        pwd 
-                        git rev-parse --show-toplevel
-                        ls -alh ../
-                    """
                     sh """
                     set -euox pipefail
                     make ci_fmt_check
