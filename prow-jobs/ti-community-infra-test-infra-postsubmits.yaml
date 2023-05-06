@@ -1,0 +1,35 @@
+postsubmits:
+  ti-community-infra/test-infra:
+    - name: post-test-infra-push-prow-images
+      # Runs on more than just the Prow dir to include some additional images that we publish to gcr.io/k8s-prow.
+      run_if_changed: '^(\.ko\.yaml|hack/(make-rules|prowimagebuilder)|gencred|prow|ghproxy|label_sync/.+\.go|robots/commenter|robots/pr-creator|robots/issue-creator|testgrid/cmd|gcsweb)'
+      decorate: true
+      branches:
+        - ^release$
+      max_concurrency: 1
+      spec:
+        serviceAccountName: pusher
+        containers:
+          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20230222-b5208facd4-test-infra
+            command:
+              - runner.sh
+            args:
+              - make
+              - -C
+              - prow
+              - push-images
+              - REGISTRY=ticommunityinfra
+            env:
+            # docker-in-docker needs privileged mode
+            securityContext:
+              privileged: true
+            resources:
+              requests:
+                cpu: "4"
+      annotations:
+        description:
+          builds and pushes all prow on each commit by running make -C prow
+          push-images
+      rerun_auth_config:
+        github_users:
+          - wuhuizuo

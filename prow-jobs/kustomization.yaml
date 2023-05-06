@@ -28,5 +28,11 @@ configMapGenerator:
       - pingcap-tiflow-release-6.1-presubmits.yaml
       - pingcap-tiflow-release-6.2-presubmits.yaml
       - pingcap-tiflow-release-7.1-presubmits.yaml
+      - ti-community-infra-configs-periodics.yaml
+      - ti-community-infra-configs-postsubmits.yaml
+      - ti-community-infra-configs-presubmits.yaml
+      - ti-community-infra-periodics.yaml
+      - ti-community-infra-test-infra-postsubmits.yaml
+      - ti-community-infra-test-infra-presubmits.yaml
       - tikv-pd-latest-presubmits.yaml
       - tikv-pd-release-6.5-presubmits.yaml
