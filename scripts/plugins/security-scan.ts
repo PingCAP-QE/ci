@@ -79,6 +79,9 @@ async function main({
   };
   const taskId = await createTask(createPayload, base_url, token);
   console.info("%cScan task id:", "color: green", taskId);
+  if (!taskId) {
+    Deno.exit(1);
+  }
 
   const taskInfo = await waitTask(taskId, base_url, token);
   console.info("%cTask info:", "color: yellow", taskInfo);
