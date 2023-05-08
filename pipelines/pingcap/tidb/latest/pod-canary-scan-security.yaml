@@ -9,8 +9,8 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 256Mi
-          cpu: 100m
+          memory: 1Gi
+          cpu: 500m
       env:
         - name: TOKEN
           valueFrom:
