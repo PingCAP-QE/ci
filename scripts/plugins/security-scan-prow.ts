@@ -1,19 +1,25 @@
 import * as flags from "https://deno.land/std@0.185.0/flags/mod.ts";
 import * as path from "https://deno.land/std@0.185.0/path/mod.ts";
 
-interface scanParams {
-  jobSpec: string;
-  token: string;
-  serverBaseUrl: string;
+interface taskCreatePayload {
+  git_refs: Record<string, unknown>;
+  cached_key?: string;
+  scan_args?: {
+    scan_type: string; // "pr";
+    task_source: string; // "ci";
+  };
 }
 
-interface _cliParams extends scanParams {
-  taskIdSaveFile?: string;
-  reportSaveFile?: string;
+interface _cliParams extends taskCreatePayload {
+  job_spec: string;
+  base_url: string;
+  token: string;
+  save_task_id_to?: string;
+  save_report_to?: string;
 }
 
 async function createTask(
-  gitRefs: string,
+  payload: taskCreatePayload,
   serverBaseUrl: string,
   token: string,
 ) {
@@ -25,7 +31,7 @@ async function createTask(
   const resp = await fetch(apiUrl, {
     method: "POST",
     headers,
-    body: gitRefs,
+    body: JSON.stringify(payload),
   });
 
   const body = await resp.json();
@@ -59,22 +65,26 @@ async function waitTask(taskId: string, serverBaseUrl: string, token: string) {
 }
 
 async function main({
-  jobSpec,
+  base_url,
   token,
-  serverBaseUrl,
-  taskIdSaveFile,
-  reportSaveFile,
+  job_spec,
+  cached_key,
+  save_task_id_to,
+  save_report_to,
 }: _cliParams) {
-  const gitRefs = JSON.stringify(JSON.parse(jobSpec).refs);
-
-  const taskId = await createTask(gitRefs, serverBaseUrl, token);
+  const createPayload: taskCreatePayload = {
+    git_refs: JSON.parse(job_spec).refs,
+    cached_key,
+  };
+  const taskId = await createTask(createPayload, base_url, token);
   console.info("%cScan task id:", "color: green", taskId);
-  const taskInfo = await waitTask(taskId, serverBaseUrl, token);
+
+  const taskInfo = await waitTask(taskId, base_url, token);
   console.info("%cTask info:", "color: yellow", taskInfo);
 
-  taskIdSaveFile && await Deno.writeTextFile(taskIdSaveFile, taskId);
-  reportSaveFile &&
-    await Deno.writeTextFile(reportSaveFile, taskInfo.report_content);
+  save_task_id_to && await Deno.writeTextFile(save_task_id_to, taskId);
+  save_report_to &&
+    await Deno.writeTextFile(save_report_to, taskInfo.report_content);
 
   // 1: blocked, 2: pass, 3: watched, 4: not enabled.
   if (taskInfo.audit_status === 1) {
@@ -90,11 +100,12 @@ async function main({
 /**
  * ---------entry----------------
  * ****** CLI args **************
- * --jobSpec        prow job spec, please ref prow job;
- * --serverBaseUrl  base url of security scan server
+ * --job_spec       git refs, please ref prow job;
+ * --cached_git_key cached key for git refs, optional.
+ * --base_url  base url of security scan server
  * --token          api token of security scan server
- * --taskIdSaveFile file path to save task id
- * --reportSaveFile file path to save report content.
+ * --save_task_id_to file path to save task id
+ * --save_report_to file path to save report content.
  */
 const cliArgs = flags.parse<_cliParams>(Deno.args);
 await main(cliArgs);
