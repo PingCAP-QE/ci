@@ -40,12 +40,12 @@ pipeline {
             }
             steps {
                 container('deno') {
-                    sh script: """ deno run --allow-net --allow-write scripts/plugins/security-scan.ts
-                    --git_refs '${REFS}' \
-                    --cached_key "${prow.getCacheKey('git', REFS)}"
+                    sh script: """deno run --allow-net --allow-write scripts/plugins/security-scan-prow.ts \
+                    --job_spec '${params.JOB_SPEC}' \
+                    --cached_key "${prow.getCacheKey('git', REFS)}" \
                     --base_url http://sec-server.apps-sec.svc \
                     --token \$TOKEN \
-                    --save_task_id_to task_id
+                    --save_task_id_to task_id \
                     --save_report_to report.md
                     """
                 }
