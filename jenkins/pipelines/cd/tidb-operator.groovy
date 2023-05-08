@@ -100,7 +100,7 @@ pipeline {
     parameters {
         string(name: 'GitRef', defaultValue: 'master', description: 'branch or commit hash')
         string(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
-        booleanParam('BrFederation', false)
+        booleanParam(name: 'BrFederation', defaultValue: false, description: 'whether release BR federation manager')
     }
     stages {
         stage("PARAMS") {
