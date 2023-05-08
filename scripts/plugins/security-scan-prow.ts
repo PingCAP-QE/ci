@@ -4,8 +4,7 @@ import * as path from "https://deno.land/std@0.185.0/path/mod.ts";
 interface taskCreatePayload {
   git_refs: Record<string, unknown>;
   cached_key?: string;
-  scan_args?: {
-    scan_type: string; // "pr";
+  scan_args: {
     task_source: string; // "ci";
   };
 }
@@ -76,6 +75,7 @@ async function main({
   const createPayload: taskCreatePayload = {
     git_refs: JSON.parse(job_spec).refs,
     cached_key,
+    scan_args: { task_source: "ci" },
   };
   const taskId = await createTask(createPayload, base_url, token);
   console.info("%cScan task id:", "color: green", taskId);
