@@ -101,7 +101,7 @@ async function main({
  * ---------entry----------------
  * ****** CLI args **************
  * --job_spec       git refs, please ref prow job;
- * --cached_git_key cached key for git refs, optional.
+ * --cached_key cached key for git refs, optional.
  * --base_url  base url of security scan server
  * --token          api token of security scan server
  * --save_task_id_to file path to save task id

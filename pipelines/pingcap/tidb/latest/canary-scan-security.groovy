@@ -24,7 +24,7 @@ pipeline {
             // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -41,12 +41,12 @@ pipeline {
             steps {
                 container('deno') {
                     sh script: """ deno run --allow-net --allow-write scripts/plugins/security-scan.ts
-                    --gitRefs '${REFS}' \
-                    --cacheKey "git/pingcap/tidb/rev-${REFS.pulls[0].sha}"
-                    --serverBaseUrl http://sec-server.apps-sec.svc \
+                    --git_refs '${REFS}' \
+                    --cached_key "${prow.getCacheKey('git', REFS)}"
+                    --base_url http://sec-server.apps-sec.svc \
                     --token \$TOKEN \
-                    --taskIdSaveFile task_id
-                    --reportSaveFile report.md
+                    --save_task_id_to task_id
+                    --save_report_to report.md
                     """
                 }
             }       
