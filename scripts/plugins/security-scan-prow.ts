@@ -33,6 +33,7 @@ async function createTask(
     headers,
     body: JSON.stringify(payload),
   });
+  console.debug(resp.status, resp.statusText);
 
   const body = await resp.json();
   console.debug("response for task creating:", body);
