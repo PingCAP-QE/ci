@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: deno
-      image: hub.pingcap.net/jenkins/python3-requests:latest
+      image: denoland/deno:1.33.2
       tty: true
       resources:
         limits:
