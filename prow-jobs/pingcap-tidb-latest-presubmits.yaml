@@ -51,3 +51,12 @@ presubmits:
       branches:
         - ^master$
         - ^feature[_/].+
+    - name: pingcap/tidb/canary-scan-security
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: canary-scan-security
+      trigger: "(?m)^/test (?:.*? )?canary-scan-security(?: .*?)?$"
+      rerun_command: "/test canary-scan-security"
+      branches:
+        - ^master$
