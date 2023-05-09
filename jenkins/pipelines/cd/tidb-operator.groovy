@@ -372,7 +372,7 @@ pipeline {
                         }
                         stage("sync to registry br-federation") {
                             when { expression { BrFederation } }
-                            component="br-federation-manager"
+                            def component="br-federation-manager"
                             stages {
                                 stage("harbor") {
                                     environment { HUB = credentials('harbor-pingcap') }
