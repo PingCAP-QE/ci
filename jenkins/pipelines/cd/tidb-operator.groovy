@@ -434,8 +434,7 @@ pipeline {
                                     for chartItem in ${CHART_ITEMS}
                                     do
                                         chartPrefixName=\$chartItem-${ReleaseTag}
-                                        upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
-                                        upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
+                                        echo "\${chartPrefixName}.tgz"
                                     done
                                     """
                             }
@@ -451,8 +450,7 @@ pipeline {
                                     cd ${CHARTS_BUILD_DIR}
                                     chartItem=br-federation
                                     chartPrefixName=\$chartItem-${ReleaseTag}
-                                    upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
-                                    upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
+                                    echo "\${chartPrefixName}.tgz"
                                     """
                             }
                         }
