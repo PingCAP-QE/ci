@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-final fullRepoName = 'pingcap-inc/exterprise-extension'
+final fullRepoName = 'pingcap-inc/enterprise-extensions'
 final jobName = 'pr-verify'
 final ciGroovyPath = "pipelines/${fullRepoName}/latest/pr-verify.groovy"
 
