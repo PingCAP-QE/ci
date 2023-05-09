@@ -437,7 +437,7 @@ pipeline {
                                     for chartItem in ${CHART_ITEMS}
                                     do
                                         chartPrefixName=\$chartItem-${ReleaseTag}
-                                        echo "${chartPrefixName}.tgz"
+                                        echo "\${chartPrefixName}.tgz"
                                     done
                                     """
                             }
@@ -453,7 +453,7 @@ pipeline {
                                     cd ${CHARTS_BUILD_DIR}
                                     chartItem=br-federation
                                     chartPrefixName=\$chartItem-${ReleaseTag}
-                                    echo "${chartPrefixName}.tgz"
+                                    echo "\${chartPrefixName}.tgz"
                                     """
                             }
                         }
