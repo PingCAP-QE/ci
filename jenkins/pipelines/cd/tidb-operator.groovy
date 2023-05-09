@@ -115,7 +115,6 @@ pipeline {
                     println("ReleaseTag: $ReleaseTag")
                     println("PushPublic: $PushPublic")
                     println("BrFederation: $BrFederation")
-                    BrFederation = true
                 }
             }
         }
@@ -342,15 +341,14 @@ pipeline {
                                         environment { HUB = credentials('harbor-pingcap') }
                                         steps {
                                             sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            sh 'echo "hub.pingcap.net/rc/${component}:${ReleaseTag}"'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
                                         }
                                     }
                                     stage("gcr") {
                                         environment { HUB = credentials('gcr-registry-key') }
                                         steps {
                                             sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
                                         }
                                     }
                                     stage("aliyun") {
@@ -358,7 +356,7 @@ pipeline {
                                         environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
                                         steps {
                                             sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
                                         }
                                     }
                                     stage("dockerhub") {
@@ -366,7 +364,7 @@ pipeline {
                                         environment { HUB = credentials('dockerhub-pingcap') }
                                         steps {
                                             sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
+                                            sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
                                         }
                                     }
                                 }
@@ -374,21 +372,20 @@ pipeline {
                         }
                         stage("sync to registry br-federation") {
                             when { expression { BrFederation } }
-                            environment { component="br-federation-manager" }
+                            component="br-federation-manager"
                             stages {
                                 stage("harbor") {
                                     environment { HUB = credentials('harbor-pingcap') }
                                     steps {
                                         sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
-                                        sh 'echo "hub.pingcap.net/rc/${component}:${ReleaseTag}"'
-                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
                                     }
                                 }
                                 stage("gcr") {
                                     environment { HUB = credentials('gcr-registry-key') }
                                     steps {
                                         sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
-                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
                                     }
                                 }
                                 stage("aliyun") {
@@ -396,7 +393,7 @@ pipeline {
                                     environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
                                     steps {
                                         sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
-                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
                                     }
                                 }
                                 stage("dockerhub") {
@@ -404,7 +401,7 @@ pipeline {
                                     environment { HUB = credentials('dockerhub-pingcap') }
                                     steps {
                                         sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
-                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
                                     }
                                 }
                             }
@@ -437,7 +434,8 @@ pipeline {
                                     for chartItem in ${CHART_ITEMS}
                                     do
                                         chartPrefixName=\$chartItem-${ReleaseTag}
-                                        echo "\${chartPrefixName}.tgz"
+                                        upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
+                                        upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
                                     done
                                     """
                             }
@@ -453,7 +451,8 @@ pipeline {
                                     cd ${CHARTS_BUILD_DIR}
                                     chartItem=br-federation
                                     chartPrefixName=\$chartItem-${ReleaseTag}
-                                    echo "\${chartPrefixName}.tgz"
+                                    upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
+                                    upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
                                     """
                             }
                         }
@@ -469,7 +468,7 @@ pipeline {
                                         sh "helm repo index . --url https://charts.pingcap.org/ --merge index.yaml"
                                     }
                                     sh "cat index.yaml"
-                                    // sh "upload_qiniu.py index.yaml index.yaml"
+                                    sh "upload_qiniu.py index.yaml index.yaml"
                                 }
                             }
                         }
@@ -488,6 +487,8 @@ pipeline {
                                             sh """
                                                 TKCTL_CLI_PACKAGE="tkctl-${OS}-${ARCH}-${ReleaseTag}"
                                                 cd ${TOOLS_BUILD_DIR}
+                                                upload_qiniu.py \${TKCTL_CLI_PACKAGE}.tgz \${TKCTL_CLI_PACKAGE}.tgz
+                                                upload_qiniu.py \${TKCTL_CLI_PACKAGE}.sha256 \${TKCTL_CLI_PACKAGE}.sha256
                                                """
                                         }
                                     }
