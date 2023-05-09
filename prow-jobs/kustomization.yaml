@@ -7,6 +7,7 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     files:
+      - pingcap-inc-exterprise-extension-presubmits.yaml
       - pingcap-qe-ci-presubmits.yaml
       - pingcap-tidb-latest-postsubmits.yaml
       - pingcap-tidb-latest-presubmits.yaml

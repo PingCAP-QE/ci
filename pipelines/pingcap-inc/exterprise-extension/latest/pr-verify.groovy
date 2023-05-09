@@ -1,0 +1,61 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+@Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_FULL_REPO_NAME = 'pingcap-inc/exterprise-extension'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/exterprise-extension/latest/pod-pr-verify.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
+
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
+        }
+    }
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir('tidb') {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, '')
+                            }
+                        }
+                    }
+                }            
+                dir('tidb/extension/enterprise') {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        retry(2) {
+                            script {
+                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)                                        
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage("Build"){
+            steps {
+                dir('tidb') {
+                    // We should not update `extension` dir with `enterprise-server` make task.
+                    sh "make enterprise-prepare enterprise-server-build"
+                }
+            }
+            post {
+                success {
+                    // should not archive it for enterprise edition.
+                    echo 'Wont archive artifacts publicly for enterprise building'
+                    // archiveArtifacts(artifacts: 'tidb/tidb-server', fingerprint: true, allowEmptyArchive: true)
+                }
+            }
+        }
+    }   
+}

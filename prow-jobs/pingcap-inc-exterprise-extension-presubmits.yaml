@@ -1,0 +1,12 @@
+presubmits:
+  pingcap-inc/enterprise-extensions:
+    - name: pingcap-inc/enterprise-extensions/pr-verify
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: pr-verify
+      trigger: "(?m)^/test (?:.*? )?pr-verify(?: .*?)?$"
+      rerun_command: "/test pr-verify"
+      branches:
+        - ^master$
+        - ^feature[_/].+
