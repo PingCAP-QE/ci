@@ -371,40 +371,40 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("br-federation") {
-                                when { expression { BrFederation } }
-                                component="br-federation-manager"
-                                stages {
-                                    stage("harbor") {
-                                        environment { HUB = credentials('harbor-pingcap') }
-                                        steps {
-                                            sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            sh 'echo "hub.pingcap.net/rc/${component}:${ReleaseTag}"'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
-                                        }
+                        }
+                        stage("sync to registry br-federation") {
+                            when { expression { BrFederation } }
+                            component="br-federation-manager"
+                            stages {
+                                stage("harbor") {
+                                    environment { HUB = credentials('harbor-pingcap') }
+                                    steps {
+                                        sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
+                                        sh 'echo "hub.pingcap.net/rc/${component}:${ReleaseTag}"'
+                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
                                     }
-                                    stage("gcr") {
-                                        environment { HUB = credentials('gcr-registry-key') }
-                                        steps {
-                                            sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
-                                        }
+                                }
+                                stage("gcr") {
+                                    environment { HUB = credentials('gcr-registry-key') }
+                                    steps {
+                                        sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
+                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
                                     }
-                                    stage("aliyun") {
-                                        when{expression{PushPublic}}
-                                        environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
-                                        steps {
-                                            sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
-                                        }
+                                }
+                                stage("aliyun") {
+                                    when{expression{PushPublic}}
+                                    environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
+                                    steps {
+                                        sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
+                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
                                     }
-                                    stage("dockerhub") {
-                                        when{expression{PushPublic}}
-                                        environment { HUB = credentials('dockerhub-pingcap') }
-                                        steps {
-                                            sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
-                                            // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
-                                        }
+                                }
+                                stage("dockerhub") {
+                                    when{expression{PushPublic}}
+                                    environment { HUB = credentials('dockerhub-pingcap') }
+                                    steps {
+                                        sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
+                                        // sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
                                     }
                                 }
                             }
