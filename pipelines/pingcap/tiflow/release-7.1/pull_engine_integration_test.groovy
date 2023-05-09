@@ -165,17 +165,17 @@ pipeline {
                                     sh label: "prepare image", script: """
                                         TIDB_CLUSTER_BRANCH=${REFS.base_ref}
                                         TIDB_TEST_TAG=nightly
-
-                                        docker pull hub.pingcap.net/tiflow/minio:release-7.1
-                                        docker tag hub.pingcap.net/tiflow/minio:release-7.1 minio/minio:release-7.1
+                                        
+                                        docker pull hub.pingcap.net/tiflow/minio:latest
+                                        docker tag hub.pingcap.net/tiflow/minio:latest minio/minio:latest
                                         docker pull hub.pingcap.net/tiflow/minio:mc
-                                        docker tag hub.pingcap.net/tiflow/minio:mc minio/mc:release-7.1
+                                        docker tag hub.pingcap.net/tiflow/minio:mc minio/mc:latest
                                         docker pull hub.pingcap.net/tiflow/mysql:5.7
                                         docker tag hub.pingcap.net/tiflow/mysql:5.7 mysql:5.7
                                         docker pull hub.pingcap.net/tiflow/mysql:8.0
                                         docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
-                                        docker pull hub.pingcap.net/tiflow/etcd:release-7.1
-                                        docker tag hub.pingcap.net/tiflow/etcd:release-7.1 quay.io/coreos/etcd:release-7.1
+                                        docker pull hub.pingcap.net/tiflow/etcd:latest
+                                        docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
                                         docker pull hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH}
                                         docker tag hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH} pingcap/tidb:\${TIDB_TEST_TAG} 
                                         docker pull hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH}
