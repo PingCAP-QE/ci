@@ -45,7 +45,7 @@ pipeline {
             steps {
                 container('golang') {
                     dir('tidb') {
-                        sh label: 'Unit Test', script: 'go test -v ./extension/enterprise/...'
+                        sh label: 'Unit Test', script: 'go test --tags intest -v ./extension/enterprise/...'
                     }
                 }
             }
@@ -60,6 +60,7 @@ pipeline {
 
                         # We should not update `extension` dir with `enterprise-server` make task.
                         make enterprise-prepare enterprise-server-build
+                        ./bin/tidb-server -V
                         '''
                     }
                 }
