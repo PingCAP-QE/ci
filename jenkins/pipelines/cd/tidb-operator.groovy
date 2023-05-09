@@ -223,7 +223,7 @@ pipeline {
                 sed -i "s/version:.*/version: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
                 sed -i "s/appVersion:.*/appVersion: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
                                 # update image tag to current release
-                                sed -r -i "s#pingcap/br-federation-manager:.*#pingcap/\\1:${ReleaseTag}#g" charts/\$chartItem/values.yaml
+                                sed -r -i "s#pingcap/br-federation-manager:.*#pingcap/br-federation-manager:${ReleaseTag}#g" charts/\$chartItem/values.yaml
                 tar -zcf ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz -C charts \$chartItem
                 sha256sum ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz > ${CHARTS_BUILD_DIR}/\${chartPrefixName}.sha256
 				cp -R charts ${CHARTS_BUILD_DIR}/charts
