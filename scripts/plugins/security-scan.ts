@@ -88,13 +88,13 @@ async function main({
 
   save_task_id_to && await Deno.writeTextFile(save_task_id_to, taskId);
   save_report_to &&
-    await Deno.writeTextFile(save_report_to, taskInfo.report_content);
+    await Deno.writeTextFile(save_report_to, taskInfo.report);
 
   // 1: blocked, 2: pass, 3: watched, 4: not enabled.
   if (taskInfo.audit_status === 1) {
     console.error("%c Audit status", "color: red", taskInfo.audit_status);
-    console.error(`Report:\n${taskInfo.report_content}`);
-    console.error(`Report decoded:\n${atob(taskInfo.report_content)}`);
+    console.error(`Report:\n${taskInfo.report}`);
+    console.error(`Report decoded:\n${atob(taskInfo.report)}`);
     Deno.exit(1);
   } else {
     console.info("%c Audit status", "color: green", taskInfo.audit_status);
