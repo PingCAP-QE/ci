@@ -3,6 +3,7 @@ package cd
 String GitHash
 String ReleaseTag
 boolean PushPublic
+boolean BrFederation
 def EnableE2E = false
 
 
@@ -11,7 +12,7 @@ final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-li
 final TOOLS_BUILD_DIR = 'output/tkctl'
 final CHARTS_BUILD_DIR = 'output/chart'
 final K8S_CLUSTER = "kubernetes"
-final K8S_NAMESPACE="jenkins-tidb-operator"
+final K8S_NAMESPACE="jenkins-cd"
 
 final dindYaml = '''
 apiVersion: v1
@@ -99,6 +100,7 @@ pipeline {
     parameters {
         string(name: 'GitRef', defaultValue: 'master', description: 'branch or commit hash')
         string(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
+        booleanParam(name: 'BrFederation', defaultValue: false, description: 'whether release BR federation manager')
     }
     stages {
         stage("PARAMS") {
@@ -109,8 +111,10 @@ pipeline {
                         ReleaseTag = params.GitRef
                     }
                     PushPublic = true
+                    BrFederation = params.BrFederation.toBoolean()
                     println("ReleaseTag: $ReleaseTag")
                     println("PushPublic: $PushPublic")
+                    println("BrFederation: $BrFederation")
                 }
             }
         }
@@ -209,6 +213,22 @@ pipeline {
 				"""
                             }
                         }
+                        stage("charts br-federation") {
+                            when { expression { BrFederation } }
+                            steps {
+                                sh """
+                chartItem=br-federation
+                chartPrefixName=\$chartItem-${ReleaseTag}
+                sed -i "s/version:.*/version: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
+                sed -i "s/appVersion:.*/appVersion: ${ReleaseTag}/g" charts/\$chartItem/Chart.yaml
+                                # update image tag to current release
+                                sed -r -i "s#pingcap/br-federation-manager:.*#pingcap/br-federation-manager:${ReleaseTag}#g" charts/\$chartItem/values.yaml
+                tar -zcf ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz -C charts \$chartItem
+                sha256sum ${CHARTS_BUILD_DIR}/\${chartPrefixName}.tgz > ${CHARTS_BUILD_DIR}/\${chartPrefixName}.sha256
+				cp -R charts ${CHARTS_BUILD_DIR}/charts
+				"""
+                            }
+                        }
                         stage("stash") {
                             steps {
                                 stash name: "bin", includes: "Makefile,tests/images/e2e/bin/,images/,${TOOLS_BUILD_DIR}/,${CHARTS_BUILD_DIR}/,misc/images/"
@@ -254,6 +274,12 @@ pipeline {
                         stage("backup manager") {
                             steps {
                                 sh "docker buildx build --platform=linux/arm64,linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/tidb-backup-manager --push -t hub.pingcap.net/rc/tidb-backup-manager:${ReleaseTag} images/tidb-backup-manager/"
+                            }
+                        }
+                        stage("br-federation") {
+                            when { expression { BrFederation } }
+                            steps {
+                                sh "docker buildx build --platform=linux/arm64,linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/br-federation-manager --push -t hub.pingcap.net/rc/br-federation-manager:${ReleaseTag} images/br-federation-manager/"
                             }
                         }
                         stage("debug helper images") {
@@ -344,6 +370,42 @@ pipeline {
                                 }
                             }
                         }
+                        stage("sync to registry br-federation") {
+                            when { expression { BrFederation } }
+                            environment { component="br-federation-manager" }
+                            stages {
+                                stage("harbor") {
+                                    environment { HUB = credentials('harbor-pingcap') }
+                                    steps {
+                                        sh 'set +x; regctl registry login hub.pingcap.net -u $HUB_USR -p $(printenv HUB_PSW)'
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  hub.pingcap.net/release/${component}:${ReleaseTag}"
+                                    }
+                                }
+                                stage("gcr") {
+                                    environment { HUB = credentials('gcr-registry-key') }
+                                    steps {
+                                        sh 'set +x; regctl registry login gcr.io -u _json_key -p "$(cat $(printenv HUB))"'
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  gcr.io/pingcap-public/dbaas/${component}:${ReleaseTag}"
+                                    }
+                                }
+                                stage("aliyun") {
+                                    when{expression{PushPublic}}
+                                    environment { HUB = credentials('ACR_TIDB_ACCOUNT') }
+                                    steps {
+                                        sh 'set +x; regctl registry login registry.cn-beijing.aliyuncs.com -u $HUB_USR -p $(printenv HUB_PSW)'
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  registry.cn-beijing.aliyuncs.com/tidb/${component}:${ReleaseTag}"
+                                    }
+                                }
+                                stage("dockerhub") {
+                                    when{expression{PushPublic}}
+                                    environment { HUB = credentials('dockerhub-pingcap') }
+                                    steps {
+                                        sh 'set +x; regctl registry login docker.io -u $HUB_USR -p $(printenv HUB_PSW)'
+                                        sh "regctl image copy hub.pingcap.net/rc/${component}:${ReleaseTag}  docker.io/pingcap/${component}:${ReleaseTag}"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 stage("Publish Files") {
@@ -375,6 +437,22 @@ pipeline {
                                         upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
                                         upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
                                     done
+                                    """
+                            }
+                        }
+                        stage("charts br-federation") {
+                            when { expression { BrFederation } }
+                            environment {
+                                QINIU_BUCKET_NAME = "charts";
+                            }
+                            steps {
+                                unstash "bin"
+                                sh """
+                                    cd ${CHARTS_BUILD_DIR}
+                                    chartItem=br-federation
+                                    chartPrefixName=\$chartItem-${ReleaseTag}
+                                    upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
+                                    upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
                                     """
                             }
                         }
