@@ -21,12 +21,12 @@ def PrintedVersion = ''
 def get_dockerfile_url(arch){
     def fileName = Product
     if (Version>='v6.6.0'){
-        if (Product == "tidb" && Edition == "enterprise") { 
+        if (NeedEnterprisePlugin) {
             fileName = fileName + '-enterprise'
         }
         return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
     }else{
-        if (Product == "tidb" && Edition == "enterprise") { 
+        if (NeedEnterprisePlugin) {
             fileName = "enterprise/${Product}"
         }
         return "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${fileName}"
@@ -72,7 +72,7 @@ spec:
                         GitPR = "${(GitRef =~ 'pull/(\\d+)')[0][1]}"
                     }
                     assert Version ==~ /v\d\.\d\.\d+.*/ : "invalid Version: $Version"
-                    if (Product == "tidb" && Edition == "enterprise"){
+                    if (Product == "tidb" && Edition == "enterprise" && Version < "v7.1.0"){
                         NeedEnterprisePlugin = true
                     }
                     if (NeedEnterprisePlugin){

@@ -69,7 +69,7 @@ if (params.DEBUG_MODE) {
 
 def get_dockerfile_url(product, is_enterprise, is_debug){
     def fileName = product
-    if (product == "tidb" && is_enterprise){
+    if (product == "tidb" && is_enterprise && RELEASE_TAG < "v7.1.0"){
         fileName = fileName + '-enterprise'
     }
     if (is_debug) {
