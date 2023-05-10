@@ -1,4 +1,4 @@
-def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com') {
+def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
     final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
@@ -50,6 +50,12 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
             echo "✅ Pre merged 🎉"
         fi
 
+        if [ "${withSubmodule}" == "true" ]; then
+            echo "📁 update submodules ..."
+            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
+            echo "✅ update submodules done"
+        fi
+
         echo "✅ ~~~~~All done.~~~~~~"
     """
 }
@@ -60,7 +66,7 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 * depended on plugins:
 *  - ssh-agent 
 */
-def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com') {
+def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
     final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
@@ -116,6 +122,12 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
                 git log -n 3 --oneline
 
                 echo "✅ Pre merged 🎉"
+            fi
+
+            if [ "${withSubmodule}" == "true" ]; then
+                echo "📁 update submodules ..."
+                GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
+                echo "✅ update submodules done"
             fi
 
             echo "✅ ~~~~~All done.~~~~~~"
