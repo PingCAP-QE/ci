@@ -41,6 +41,23 @@ pipeline {
                 }
             }
         }
+        stage('Prepare') {
+            steps {
+                container('golang') {
+                    sh '''
+                        git config --global --add safe.directory $(pwd)/tidb
+                        git config --global --add safe.directory $(pwd)/tidb/extension/enterprise
+                    '''
+                }
+            }
+        }
+        stage('Check') {
+            steps {
+                container('golang') {
+                    sh script: 'make gogenerate check explaintest -C tidb'
+                }
+            }
+        }
         stage("Test") {
             steps {
                 container('golang') {
@@ -53,16 +70,8 @@ pipeline {
         stage("Build") {
             steps {
                 container('golang') {
-                    dir('tidb') {
-                        sh '''
-                        git config --global --add safe.directory $(pwd)
-                        git config --global --add safe.directory $(pwd)/extension/enterprise
-
-                        # We should not update `extension` dir with `enterprise-server` make task.
-                        make enterprise-prepare enterprise-server-build
-                        ./bin/tidb-server -V
-                        '''
-                    }
+                    // We should not update `extension` dir with `enterprise-server` make task.
+                    sh 'make enterprise-prepare enterprise-server-build -C tidb'
                 }
             }
             post {
