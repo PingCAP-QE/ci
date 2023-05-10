@@ -1,4 +1,4 @@
-final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog"]
+final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog", "tidb-tools":"tidb-tools"]
 final FileserverDownloadURL = "http://fileserver.pingcap.net/download"
 
 def GitHash = ''
@@ -6,6 +6,7 @@ def GitPR = ''
 def Image = ''
 def ImageForGcr = ''
 def BinPathDict = [:]
+def BinBuildPathDict = [:]
 def PluginBinPathDict = [:]
 def EnterprisePluginHash = ''
 def PipelineStartAt = ''
@@ -14,6 +15,7 @@ def PipelineEndAt = ''
 def RepoForBuild = ''
 def ProductForBuild = ''
 def NeedEnterprisePlugin = false
+def PrintedVersion = ''
 
 
 def get_dockerfile_url(arch){
@@ -33,13 +35,14 @@ def get_dockerfile_url(arch){
 pipeline{
     agent none
     parameters {
-        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning", "ticdc", "dm","tidb-binlog"], description: 'the product to build, eg. tidb/tikv/pd')
+        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning", "ticdc", "dm","tidb-binlog", "tidb-tools"], description: 'the product to build, eg. tidb/tikv/pd')
         string(name: 'GitRef', description: 'the git tag or commit or branch or pull/id of repo')
         string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
         string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
         string(name: 'GithubRepo', description: 'the github repo,just ignore unless in forked repo, eg pingcap/tidb', defaultValue: '')
         booleanParam(name: 'IsPushGCR', description: 'whether push gcr')
+        booleanParam(name: 'IsHotfix', description: 'is it a hotfix build', defaultValue: false)
         string(name: 'Features', description: 'comma seperated features to build with', defaultValue: '')
         string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
     }
@@ -58,6 +61,7 @@ spec:
                     defaultContainer "gethash"
                 }
             }
+            environment {GHTOKEN = credentials('github-token-gethash')}
             steps{
                 script{
                     RepoForBuild = RepoDict[Product]
@@ -83,9 +87,10 @@ spec:
                         PluginBinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"
                         echo "enterprise plugin bin path: $PluginBinPathDict"
                     }
-                    Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
                     BinPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-amd64.tar.gz"
                     BinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
+                    BinBuildPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
+                    BinBuildPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
                     ProductForBuild = Product
                     if (ProductForBuild == "tiflash"){
                         ProductForBuild = "tics"
@@ -98,7 +103,16 @@ spec:
                     def ts13 = date.getTime() / 1000
                     def ts10 = (Long) ts13
                     def day =new java.text.SimpleDateFormat("yyyyMMdd").format(date)
+                    Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$day-$ts10-dev"
+                    if (params.IsHotfix.toBoolean()){
+                        Image = "hub.pingcap.net/qa/$Product:$Version-$BUILD_NUMBER"
+                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
+                        BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
+                        BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
+                        PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
+                        PluginBinPathDict["arm64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"
+                    }
                 }
                 echo "repo hash: $GitHash"
                 echo "binary amd64 path: $FileserverDownloadURL/${BinPathDict['amd64']}"
@@ -125,7 +139,7 @@ spec:
                                     string(name: "OS", value: "linux"),
                                     string(name: "OS", value: "linux"),
                                     string(name: "EDITION", value: Edition),
-                                    string(name: "OUTPUT_BINARY", value: BinPathDict[arch]),
+                                    string(name: "OUTPUT_BINARY", value: BinBuildPathDict[arch]),
                                     string(name: "REPO", value: RepoForBuild),
                                     string(name: "PRODUCT", value: ProductForBuild),
                                     string(name: "GIT_HASH", value: GitHash),
@@ -169,10 +183,28 @@ spec:
                             }
                         }
                     }
+                    stage("package tiup"){
+                        agent{
+                            kubernetes{
+                                yaml '''
+spec:
+  containers:
+  - name: package-tiup
+    image: hub.pingcap.net/jenkins/package-tiup:latest
+    imagePullPolicy: Always
+    command: ["sleep", "infinity"]
+'''
+                                defaultContainer "package-tiup"
+                            }
+                        }
+                        steps{
+                           sh "package_tiup.py $Product ${BinPathDict[arch]} ${BinBuildPathDict[arch]}" 
+                        }
+                    }
                     stage("docker"){
                         steps{
                             script{
-                                def inputBin = BinPathDict[arch]
+                                def inputBin = BinBuildPathDict[arch]
                                 if (NeedEnterprisePlugin){
                                     inputBin = "$inputBin,${PluginBinPathDict[arch]}"
                                 }
@@ -211,6 +243,49 @@ spec:
                 }
             }
         }
+        stage("print version"){
+            when {
+                beforeAgent true
+                equals expected:true, actual:params.IsHotfix.toBoolean()
+            }
+            agent{
+                kubernetes{
+                    yaml '''
+spec:
+  containers:
+  - name: print-version
+    image: hub.pingcap.net/jenkins/print-version:latest
+    imagePullPolicy: Always
+    command: ["sleep", "infinity"]
+    env:
+    - name: DOCKER_HOST
+      value: tcp://localhost:2375
+  - name: dind
+    image: docker:dind
+    args: ["--registry-mirror=https://registry-mirror.pingcap.net"]
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
+    - name: DOCKER_HOST
+      value: tcp://localhost:2375
+    securityContext:
+      privileged: true
+    readinessProbe:
+      exec:
+        command: ["docker", "info"]
+      initialDelaySeconds: 10
+      failureThreshold: 6
+'''
+                    defaultContainer "print-version"
+                }
+            }
+            steps{
+                script{
+                    PrintedVersion = sh(returnStdout: true, script: "print_version.py $Product $Image || true").trim()
+                }
+                echo PrintedVersion
+            }
+        }
         stage("push gcr"){
             when {equals expected:true, actual:params.IsPushGCR.toBoolean()}
             steps{
@@ -224,7 +299,6 @@ spec:
                             parameters: default_params,
                             wait: true)
                 }
-                
             }
         }
     }
@@ -239,16 +313,18 @@ spec:
                             "gitHash":GitHash,
                             "images":[["platform":"multi-arch", "url":Image]],
                             "binaries":[
-                                ["platform":"linux/amd64", "url": "$FileserverDownloadURL/${BinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['amd64']}.sha256"],
-                                ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${BinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['arm64']}.sha256"],
-                            ]
+                                ["component":"${params.Product}", "platform":"linux/amd64", "url": "$FileserverDownloadURL/${BinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['amd64']}.sha256"],
+                                ["component":"${params.Product}", "platform":"linux/arm64", "url": "$FileserverDownloadURL/${BinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${BinPathDict['arm64']}.sha256"],
+                            ],
+                            "printedVersion": PrintedVersion
                         ]]]
                     if (NeedEnterprisePlugin){
                         def plugin_bins =[
-                                ["platform":"linux/amd64", "url": "$FileserverDownloadURL/${PluginBinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['amd64']}.sha256"],
-                                ["platform":"linux/arm64", "url": "$FileserverDownloadURL/${PluginBinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['arm64']}.sha256"],
+                                ["component":"enterprise-plugin", "platform":"linux/amd64", "url": "$FileserverDownloadURL/${PluginBinPathDict['amd64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['amd64']}.sha256"],
+                                ["component":"enterprise-plugin", "platform":"linux/arm64", "url": "$FileserverDownloadURL/${PluginBinPathDict['arm64']}", "sha256URL":"$FileserverDownloadURL/${PluginBinPathDict['arm64']}.sha256"],
                             ]
                         dev_build["status"]["buildReport"]["binaries"].addAll(plugin_bins)
+                        dev_build["status"]["buildReport"]["pluginGitHash"] = EnterprisePluginHash
                     }
                     if (params.IsPushGCR.toBoolean()){
                         dev_build["status"]["buildReport"]["images"].add(["platform":"multi-arch", "url":ImageForGcr])
@@ -257,7 +333,7 @@ spec:
                         writeJSON file:"status.json", json: dev_build
                         sh "curl -X PUT 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID' -d @status.json"
                     }
-                 }
+                }
             }
         }
         unsuccessful{
