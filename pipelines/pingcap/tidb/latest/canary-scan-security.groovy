@@ -49,10 +49,10 @@ pipeline {
                     --save_report_to report.md
                     """
                 }
-            }       
+            }
             post {
                 always {
-                    archiveArtifacts(artifacts: 'report.md', allowEmptyArchive: true)
+                    archiveArtifacts(artifacts: 'report.md,report.md.html', allowEmptyArchive: true)
                 }
             }                 
         }       

@@ -88,7 +88,9 @@ async function main({
 
   save_task_id_to && await Deno.writeTextFile(save_task_id_to, taskId);
   save_report_to &&
-    await Deno.writeTextFile(save_report_to, taskInfo.report);
+    await Deno.writeTextFile(save_report_to, atob(taskInfo.report));
+  save_report_to && taskInfo.html_report &&
+    await Deno.writeTextFile(save_report_to + ".html", taskInfo.html_report);
 
   // 1: blocked, 2: pass, 3: watched, 4: not enabled.
   if (taskInfo.audit_status === 1) {
