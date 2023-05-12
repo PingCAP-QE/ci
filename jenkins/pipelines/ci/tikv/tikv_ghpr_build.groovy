@@ -62,6 +62,7 @@ def run_build_with_pod(Closure body) {
                     )
             ],
             volumes: [
+                    // TODO use s3 cache instead of nfs
                     nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/tikv/rust/registry/cache', readOnly: false),
                     nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',

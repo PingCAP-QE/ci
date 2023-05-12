@@ -4,7 +4,7 @@ def commit = params.get("ghprbActualCommit")
 def run_with_x86_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ng"
-    def namespace = "jenkins-org-tikv"
+    def namespace = "jenkins-tikv"
     def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
     podTemplate(label: label,
             cloud: cloud,
@@ -19,6 +19,7 @@ def run_with_x86_pod(Closure body) {
                     )
             ],
             volumes: [
+                    // TODO use s3 cache instead of nfs
                     nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
                             serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/cache', readOnly: false),
                     nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',
