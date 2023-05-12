@@ -149,7 +149,7 @@ def run_tls_source_it_test(String case_name) {
     def label = 'dm-integration-test'
     podTemplate(label: label,
             namespace: 'jenkins-dm',
-            cloud: "kubernetes-ng",
+            cloud: "kuberenetes-ksyun",
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -253,7 +253,7 @@ def run_single_it_test(String case_name) {
     def label = 'dm-integration-test'
     podTemplate(label: label,
             namespace: 'jenkins-dm',
-            cloud: "kubernetes-ng",
+            cloud: "kuberenetes-ksyun",
             idleMinutes: 0,
             containers: [
                     containerTemplate(

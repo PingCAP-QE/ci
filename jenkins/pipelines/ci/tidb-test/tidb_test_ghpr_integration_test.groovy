@@ -47,7 +47,7 @@ POD_NAMESPACE = "jenkins-tidb-test"
 
 def run_test_with_java_pod(Closure body) {
     def label = "tidb-ghpr-integration-test-java-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -74,7 +74,7 @@ def run_test_with_java_pod(Closure body) {
 
 def run_test_with_ruby_pod(Closure body) {
     def label = "tidb-ghpr-integration-test-ruby-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -113,7 +113,7 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "${JOB_NAME}-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
@@ -142,7 +142,7 @@ def run_test_with_pod(Closure body) {
 
 def run_with_toolkit_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tidb-test"
     podTemplate(label: label,
             cloud: cloud,

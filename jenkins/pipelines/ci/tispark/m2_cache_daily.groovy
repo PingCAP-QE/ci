@@ -1,7 +1,7 @@
 
 def label = "${JOB_NAME}-${BUILD_NUMBER}"
 podTemplate(label: label,
-    cloud: "kubernetes-ng",
+    cloud: "kuberenetes-ksyun",
     namespace: "jenkins-tispark",
     idleMinutes: 0,
     containers: [

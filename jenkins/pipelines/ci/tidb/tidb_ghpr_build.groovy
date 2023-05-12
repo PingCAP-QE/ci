@@ -102,7 +102,7 @@ ciErrorCode = 0
 
 def run_with_pod(Closure body) {
     def label = "tidb-ghpr-build-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tidb"
     podTemplate(label: label,
             cloud: cloud,

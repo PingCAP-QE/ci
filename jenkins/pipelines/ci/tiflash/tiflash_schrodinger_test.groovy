@@ -6,7 +6,7 @@ currentBuild.description = "${desc} branch=${branch} version=${version} testcase
 
 
 def label = "tiflash-schrodinger-test-v11"
-def cloud = "kubernetes-ng"
+def cloud = "kuberenetes-ksyun"
 
 if ( idleMinutes != "5") {
     println "pod idleMinutes is not default 5 minutes\n use unique pod label to debug"
@@ -17,7 +17,7 @@ if ( idleMinutes != "5") {
 
 
 def run_with_pod(Closure body) {
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-tiflash-schrodinger"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'

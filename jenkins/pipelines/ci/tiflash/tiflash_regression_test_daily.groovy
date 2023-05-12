@@ -37,7 +37,7 @@ if (checkout_name in ["planner_refactory"]) {
 
 def label = "test-tiflash-regression"
 
-podTemplate(name: label, label: label, instanceCap: 5, cloud: "kubernetes-ng", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 5, containers: [
+podTemplate(name: label, label: label, instanceCap: 5, cloud: "kuberenetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 5, containers: [
         containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                 resourceRequestCpu: '2000m', resourceRequestMemory: '8Gi'),
         containerTemplate(name: 'tiflash-docker', image: 'hub.pingcap.net/tiflash/docker:build-essential-java',
@@ -94,7 +94,7 @@ podTemplate(name: label, label: label, instanceCap: 5, cloud: "kubernetes-ng", n
                 dailyTest = load 'regression_test/daily.groovy'
                 if (dailyTest.hasProperty('config')) {
                     println("set cloud to idc-5-70")
-                    dailyTest.config.cloud = 'kubernetes-ng'
+                    dailyTest.config.cloud = 'kuberenetes-ksyun'
                     dailyTest.config.label = "test-tiflash-regression-v11-cloud-5-70_${BUILD_NUMBER}"
                 }
                 if (branch in ["planner_refactory"]) {

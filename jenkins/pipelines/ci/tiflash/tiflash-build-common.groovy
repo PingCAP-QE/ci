@@ -230,7 +230,7 @@ def checkoutTiFlash(target, full) {
 }
 
 def runBuilderClosure(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0,
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kuberenetes-ksyun", namespace: "jenkins-tiflash", idleMinutes: 0,
         containers: [
             containerTemplate(name: 'builder', image: image,
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
@@ -896,7 +896,7 @@ def postBuildStage(repo_path, build_dir, install_dir) {
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-build"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tiflash"
     podTemplate(label: label,
             cloud: cloud,

@@ -53,7 +53,7 @@ def parameters = [
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tiflash"
     podTemplate(label: label,
         cloud: cloud,

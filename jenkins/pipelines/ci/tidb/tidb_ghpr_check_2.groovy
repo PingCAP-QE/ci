@@ -87,7 +87,7 @@ ciErrorCode = 0
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
