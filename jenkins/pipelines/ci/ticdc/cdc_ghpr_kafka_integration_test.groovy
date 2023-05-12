@@ -170,7 +170,7 @@ def run_with_pod(Closure body) {
                         name: 'golang', alwaysPullImage: true,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                        command: '/bin/sh -c', args: 'cat',
+                        args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
@@ -345,7 +345,7 @@ catchError {
                     containers: [
                             containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_IMAGE}",
                                     resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                    ttyEnabled: true, command: '/bin/sh -c', args: 'cat'),
+                                    ttyEnabled: true, args: 'cat'),
                             containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                                     resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
                                     ttyEnabled: true),
