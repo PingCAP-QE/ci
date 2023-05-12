@@ -3,6 +3,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.1/pod-ghpr_check.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -41,9 +42,10 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
+                        script {
+                            git.setSshKey(GIT_CREDENTIALS_ID)
+                            retry(2) {
+                                prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             }
                         }
                     }
