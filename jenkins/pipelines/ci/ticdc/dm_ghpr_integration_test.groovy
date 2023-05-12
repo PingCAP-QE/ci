@@ -130,7 +130,7 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(
             label: label,
@@ -185,7 +185,7 @@ def run_build_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-build-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             idleMinutes: 0,

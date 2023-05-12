@@ -55,8 +55,8 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-ticdc"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-tiflow"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
