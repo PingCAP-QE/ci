@@ -636,8 +636,8 @@ try {
                             sh """
                             rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                             rm -rf /home/jenkins/agent/code-archive/tidb
-                            wget -O /home/jenkins/agent/code-archive/tidb.tar.gz  ${FILE_SERVER_URL}/download/source/tidb.tar.gz -q
-                            tar -xzf /home/jenkins/agent/code-archive/tidb.tar.gz -C ./ --strip-components=1
+                            wget -O /home/jenkins/agent/code-archive/src-tidb.tar.gz  ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz -q
+                            tar -xzf /home/jenkins/agent/code-archive/src-tidb.tar.gz  -C ./ --strip-components=1
                             """
                         }
                     }
