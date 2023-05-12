@@ -24,6 +24,7 @@ def runTest(label, name, path, tidb_branch) {
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
                     alwaysPullImage: true, envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')], ttyEnabled: true, command: 'cat')],
         volumes: [
+            // TODO use s3 cache instead of nfs
             nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',

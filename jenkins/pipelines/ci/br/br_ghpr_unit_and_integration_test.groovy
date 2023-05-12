@@ -240,8 +240,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
@@ -633,19 +631,8 @@ try {
                         git_repo_url = "git@github.com:pingcap/tidb.git"
                         build_br_cmd = "make build_for_br_integration_test && make server"
 
-                        // copy code from nfs cache
-                        if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
-                            println "copy src-tidb from nfs cache"
-                            timeout(5) {
-                            sh """
-                            cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ${ws}/
-                            tar -xzf ${ws}/src-tidb.tar.gz -C ./ --strip-components=1
-                            ls -l ./
-                            """
-                            }
-                        }
                         if(!fileExists("${ws}/go/src/github.com/pingcap/br/Makefile")) {
-                            println "copy src-tidb from nfs failed, try download it from file-server"
+                            println " download it from file-server"
                             sh """
                             rm -rf /home/jenkins/agent/code-archive/tidb.tar.gz
                             rm -rf /home/jenkins/agent/code-archive/tidb

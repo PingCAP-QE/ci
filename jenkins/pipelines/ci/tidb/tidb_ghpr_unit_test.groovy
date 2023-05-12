@@ -37,6 +37,7 @@ POD_LABEL_MAP = [
     "master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
 ]
 VOLUMES = [
+    // TODO use s3 cache instead of nfs
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                 serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
     emptyDirVolume(mountPath: '/tmp', memory: false),

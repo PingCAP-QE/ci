@@ -78,6 +78,7 @@ def runBuilderClosure(label, Closure body) {
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
     ],
     volumes: [
+            // TODO use s3 cache instead of nfs
             nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
                     serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
             nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
