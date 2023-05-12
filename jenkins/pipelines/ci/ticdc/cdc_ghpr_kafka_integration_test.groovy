@@ -20,11 +20,11 @@ if (ghprbPullId == null || ghprbPullId == "") {
 GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
+    "go1.13": "hub.pingcap.net/wulifu/golang-tini:1.13",
+    "go1.16": "hub.pingcap.net/wulifu/golang-tini:1.16",
+    "go1.18": "hub.pingcap.net/wulifu/golang-tini:1.18",
+    "go1.19": "hub.pingcap.net/wulifu/golang-tini:1.19",
+    "go1.20": "hub.pingcap.net/wulifu/golang-tini:1.20",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
@@ -158,8 +158,8 @@ println "go image: ${POD_GO_IMAGE}"
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-ticdc"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-tiflow"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
@@ -339,9 +339,9 @@ catchError {
 
             def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(label: label,
-                    cloud: "kubernetes-ng",
+                    cloud: "kubernetes-ksyun",
                     idleMinutes: 0,
-                    namespace: "jenkins-ticdc",
+                    namespace: "jenkins-tiflow",
                     containers: [
                             containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_IMAGE}",
                                     resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
