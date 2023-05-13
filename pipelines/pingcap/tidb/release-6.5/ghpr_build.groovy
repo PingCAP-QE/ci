@@ -77,7 +77,12 @@ pipeline {
                     stages {
                         stage("Build"){
                             steps {
-                                dir("tidb") {                                     
+                                dir("tidb") {
+                                    sh """
+                                    git status
+                                    git log -5
+                                    ls -alh ./extension
+                                    """                                   
                                     sh "make bazel_build"
                                 }
                             }
