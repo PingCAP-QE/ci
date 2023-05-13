@@ -49,6 +49,17 @@ pipeline {
                             }
                         }
                     }
+                    sh label: "check git workspace clean", script: """
+                        git status
+                        git clean -d -f -f
+                        if [[ -z \$(git status -s) ]]
+                        then
+                            echo "tree is clean"
+                        else
+                            echo "tree is dirty, please contact ee team to clean up"
+                            exit
+                        fi
+                    """
                 }
             }
         }
