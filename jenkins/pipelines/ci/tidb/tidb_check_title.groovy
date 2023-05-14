@@ -50,7 +50,7 @@ println "TEST_NODE_NAME=${GO_TEST_SLAVE}"
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kuberenetes-ksyun"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb"
     podTemplate(label: label,
             cloud: cloud,

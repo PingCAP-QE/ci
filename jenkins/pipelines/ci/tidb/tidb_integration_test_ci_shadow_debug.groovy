@@ -47,7 +47,7 @@ def taskStartTimeInMillis = System.currentTimeMillis()
 
 label = "${JOB_NAME}-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
-    def cloud = "kuberenetes-ksyun"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"

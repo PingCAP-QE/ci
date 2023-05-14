@@ -85,7 +85,7 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kuberenetes-ksyun"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-binlog"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -203,7 +203,7 @@ try {
         }
         tests["Integration Test"] = {
             podTemplate(label: label,
-            cloud: "kuberenetes-ksyun",
+            cloud: "kubernetes-ksyun",
             namespace: "jenkins-tidb-binlog",
             idleMinutes: 0,
             containers: [

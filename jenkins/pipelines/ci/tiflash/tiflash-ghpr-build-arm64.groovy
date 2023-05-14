@@ -88,7 +88,7 @@ def release_one_arm64(repo,hash) {
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kuberenetes-ksyun"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tiflash"
     podTemplate(label: label,
             cloud: cloud,
