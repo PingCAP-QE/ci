@@ -13,7 +13,7 @@ def runTest(label, name, path, tidb_branch) {
     podTemplate(
         name: label,
         label: label,
-        cloud: "kubernetes-ng",
+        cloud: "kuberenetes-ksyun",
         namespace: "jenkins-tiflash",
         idleMinutes: 0,
         instanceCap: 15,
@@ -122,7 +122,7 @@ def checkoutTiFlash() {
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-for-it"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tiflash"
     podTemplate(label: label,
             cloud: cloud,

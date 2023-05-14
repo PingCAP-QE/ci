@@ -45,7 +45,7 @@ metadata:
 
 def run(label, Closure body) {
     podTemplate(name: label, label: label, 
-        cloud: "kubernetes-ng", 
+        cloud: "kuberenetes-ksyun", 
         yaml: podYAML,
         yamlMergeStrategy: merge(),
         namespace: "jenkins-tidb-mergeci", instanceCap: 20,

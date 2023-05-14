@@ -66,7 +66,7 @@ def checkout() {
 }
 
 def runBuilderClosure(label, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kuberenetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,
         containers: [
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
                     alwaysPullImage: true, envVars: [
@@ -233,7 +233,7 @@ UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/test
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     def namespace = "jenkins-tiflash-schrodinger"
     podTemplate(label: label,
             cloud: cloud,

@@ -125,7 +125,7 @@ def upload_test_result(reportDir) {
 
 def run_test_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
+    def cloud = "kuberenetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
             namespace: POD_NAMESPACE,
