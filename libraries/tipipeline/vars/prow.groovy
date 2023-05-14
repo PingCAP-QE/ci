@@ -22,7 +22,7 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 
         # reset & clean
         git reset --hard
-        git clean -fdx
+        git clean -ffdx
 
         # fetch pull requests and target branch.
         timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -50,6 +50,7 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
             echo "✅ Pre merged 🎉"
         fi
 
+        git clean -ffdx
         if [ "${withSubmodule}" == "true" ]; then
             echo "📁 update submodules ..."
             GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
@@ -96,7 +97,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
 
             # reset & clean
             git reset --hard
-            git clean -fdx
+            git clean -ffdx
 
             # fetch pull requests and target branch.
             timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -124,6 +125,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
                 echo "✅ Pre merged 🎉"
             fi
 
+            git clean -ffdx
             if [ "${withSubmodule}" == "true" ]; then
                 echo "📁 update submodules ..."
                 GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
