@@ -18,7 +18,7 @@ POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kuberenetes-ksyun"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,namespace: POD_NAMESPACE,idleMinutes: 0,
             containers: [

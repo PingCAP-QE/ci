@@ -44,7 +44,7 @@ resultDownloadPath = ""
 
 def run_build_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kuberenetes-ksyun"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
     podTemplate(label: label,
