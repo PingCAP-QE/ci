@@ -135,7 +135,7 @@ pipeline {
                                                 export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=1
+                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
                                             else
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export CACHE_ENABLED=${CACHE_ENABLED}
