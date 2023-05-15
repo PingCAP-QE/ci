@@ -158,7 +158,7 @@ println "go image: ${POD_GO_IMAGE}"
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     def namespace = "jenkins-tiflow"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
@@ -337,12 +337,12 @@ catchError {
 
             def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(label: label,
-                    cloud: "kubernetes-ksyun",
+                    cloud: "kubernetes-ng",
                     idleMinutes: 0,
                     namespace: "jenkins-tiflow",
                     containers: [
                             containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_IMAGE}",
-                                    resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
+                                    resourceRequestCpu: '4000m', resourceRequestMemory: '12Gi',
                                     ttyEnabled: true, args: 'cat'),
                             containerTemplate(name: 'zookeeper', alwaysPullImage: false, image: 'wurstmeister/zookeeper',
                                     resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
@@ -350,7 +350,7 @@ catchError {
                             containerTemplate(
                                     name: 'kafka',
                                     image: "wurstmeister/kafka:${KAFKA_TAG}",
-                                    resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
+                                    resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                                     ttyEnabled: true,
                                     alwaysPullImage: false,
                                     envVars: [
@@ -374,7 +374,7 @@ catchError {
                             containerTemplate(
                                     name: 'canal-adapter',
                                     image: "rustinliu/ticdc-canal-json-adapter:latest",
-                                    resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                                    resourceRequestCpu: '2000m', resourceRequestMemory: '1Gi',
                                     ttyEnabled: true,
                                     alwaysPullImage: false,
                                     envVars: [

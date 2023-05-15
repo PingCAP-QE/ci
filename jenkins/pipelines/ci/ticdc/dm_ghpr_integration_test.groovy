@@ -90,11 +90,11 @@ if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_b
 GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
+    "go1.13": "hub.pingcap.net/wulifu/golang-tini:1.13",
+    "go1.16": "hub.pingcap.net/wulifu/golang-tini:1.16",
+    "go1.18": "hub.pingcap.net/wulifu/golang-tini:1.18",
+    "go1.19": "hub.pingcap.net/wulifu/golang-tini:1.19",
+    "go1.20": "hub.pingcap.net/wulifu/golang-tini:1.20",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
@@ -130,7 +130,7 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(
             label: label,
@@ -185,7 +185,7 @@ def run_build_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-build-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     podTemplate(label: label,
             cloud: cloud,
             idleMinutes: 0,
