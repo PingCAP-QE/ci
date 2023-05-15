@@ -385,7 +385,7 @@ catchError {
                             containerTemplate(
                                     name: 'golang', alwaysPullImage: true,
                                     image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                                    resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
+                                    resourceRequestCpu: '4000m', resourceRequestMemory: '12Gi',
                                     args: 'cat',
                                     envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                             ),
