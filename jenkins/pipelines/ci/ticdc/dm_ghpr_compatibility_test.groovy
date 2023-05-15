@@ -157,7 +157,7 @@ def run_with_pod(Closure body) {
                         name: 'golang', alwaysPullImage: true,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                        command: '/bin/sh -c', args: 'cat',
+                        args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
