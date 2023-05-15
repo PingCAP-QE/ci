@@ -80,7 +80,7 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch) {
     def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}.Dockerfile"
     def inputBin = binary
     if (RELEASE_TAG < "v7.1.0") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}-enterprise-v4.Dockerfile"
+        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}-enterprise.Dockerfile"
         inputBin = "${binary},${plugin_binary}"
     }
     def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG)
