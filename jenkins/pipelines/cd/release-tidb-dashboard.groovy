@@ -303,7 +303,7 @@ pipeline {
                 }
             }
             when {expression{params.PushPublic.toBoolean()}}
-            environment {TIUP_MIRRORS = 'http://172.16.5.134:8987'; TIUPKEY_JSON = credentials('tiup-prod-key') }
+            environment {TIUP_MIRRORS = 'http://tiup.pingcap.net:8987'; TIUPKEY_JSON = credentials('tiup-prod-key') }
             steps{
                 sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
                 sh """
