@@ -24,9 +24,10 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
+      run_before_merge: true
       context: pull-cdc-integration-storage-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-storage-test"
       branches:
         - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
