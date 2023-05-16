@@ -10,7 +10,7 @@ def getBinDownloadURL={
 }
 
 def getPluginPath={
-    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/tidb-plugin-${OS}-${ARCH}.tar.gz"
+    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/enterprise-plugin-${OS}-${ARCH}.tar.gz"
 }
 def getPluginDownloadURL={
     return "${FILE_SERVER_URL}/download/${getPluginPath()}"
@@ -103,11 +103,11 @@ def buildEnterprisePlugin = {
         cp whitelist/whitelist-1.so output
         cp audit/audit-1.so.md5 output
         cp audit/audit-1.so output
-        tar -czvf enterpise-plugin.tar.gz -C output/ . 
-        sha256sum  enterpise-plugin.tar.gz | cut -d ' ' -f 1 > enterpise-plugin.tar.gz.sha256
+        tar -czvf enterprise-plugin.tar.gz -C output/ . 
+        sha256sum  enterprise-plugin.tar.gz | cut -d ' ' -f 1 > enterprise-plugin.tar.gz.sha256
         """
-        sh "curl -F $PluginBinPath=@enterprise-plugin.tar.gz ${FILE_SERVER_URL}/upload"
-        sh "curl -F ${PluginBinPath}.sha256=@enterprise-plugin.tar.gz.sha256 ${FILE_SERVER_URL}/upload"
+        sh "curl -F ${getPluginPath()}=@enterprise-plugin.tar.gz ${FILE_SERVER_URL}/upload"
+        sh "curl -F ${getPluginPath()}.sha256=@enterprise-plugin.tar.gz.sha256 ${FILE_SERVER_URL}/upload"
     }
 }
 
@@ -192,6 +192,9 @@ pipeline{
                         BUILD_CMD = params.BuildCmd
                     }
                     echo "tidb will build with $BUILD_CMD"
+                    if (params.Edition == "enterprise" && PluginGitHash == "") {
+                        error("enterprise edition plugin git hash is empty")
+                    }
                 }
             }
         }
@@ -205,6 +208,7 @@ pipeline{
                 }
                 steps{
                     script{ container('golang'){
+                        buildBin()
                     }}
                 }
             }
@@ -235,9 +239,7 @@ spec:
                 }
                 steps{
                     script{ 
-                        dir('tidb'){
-                            buildBin()
-                        }
+                        buildBin()
                     }
                 }
             }
