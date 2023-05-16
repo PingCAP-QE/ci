@@ -1,7 +1,27 @@
 final specRef = "+refs/heads/*:refs/remotes/origin/*"
 String BUILD_CMD
 
-def build ={
+def getBinPath={
+    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/tidb-${OS}-${ARCH}.tar.gz"
+}
+
+def getBinDownloadURL={
+    return "${FILE_SERVER_URL}/download/${getBinPath()}"
+}
+
+
+def build = {
+        def skip = false
+        stage("check"){
+            result = sh(script: "curl -I ${getBinDownloadURL()}|grep \"200 OK\"", returnStatus: true)
+            if (result == 0) {
+                skip = true
+            }
+        }
+        if (skip) {
+            echo "Binary exists, skip build"
+            return
+        }
         stage("checkout"){
             sh """
             if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz; then
@@ -47,11 +67,23 @@ def build ={
             """
         }
         stage("upload"){
-            //def BinPath = sprintf(BinPathPattern, Version, OS, ARCH, GitHash)
-            def BinPath = "builds/tidb/${Version}/${OS}/${ARCH}/${GitHash}/tidb.tar.gz"
-            sh "echo curl -F $BinPath=@tidb.tar.gz ${FILE_SERVER_URL}/upload"
-            sh "echo curl -F ${BinPath}.sha256=@tidb.tar.gz.sha256 ${FILE_SERVER_URL}/upload"
+            def BinPath = getBinPath()
+            sh "curl -F $BinPath=@tidb.tar.gz ${FILE_SERVER_URL}/upload"
+            sh "curl -F ${BinPath}.sha256=@tidb.tar.gz.sha256 ${FILE_SERVER_URL}/upload"
         }
+}
+
+
+def buildDocker={
+    sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
+    sh """
+        curl --fail --retry 3 -o Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb.Dockerfile
+        curl --fail --retry 3 -o tidb.tar.gz ${getBinDownloadURL()}
+        tar -xzvf tidb.tar.gz
+        rm -f tidb.tar.gz
+        docker build -t ${DockerImage}-$ARCH .
+        docker push ${DockerImage}-$ARCH
+    """ 
 }
 
 
@@ -61,7 +93,6 @@ pipeline{
         string(name: 'Version', description: 'important, the Version for cli --Version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
         string(name: 'BuildCmd', description: 'the build command', defaultValue: '')
-        string(name: 'BinPathPattern', description: 'the fileserver binary path', defaultValue: '')
         string(name: 'DockerImage', description: 'the fileserver binary path', defaultValue: '')
     }
     agent none
@@ -70,7 +101,7 @@ pipeline{
             steps{
                 script{
                     if (params.Edition == "enterprise") {
-                        BUILD_CMD = "make enterprise"
+                        BUILD_CMD = "make enterprise-prepare enterprise-server-build"
                     }else{
                         BUILD_CMD = "make"
                     }
@@ -131,7 +162,7 @@ spec:
                 environment {
                     OS = "darwin"
                     ARCH = "amd64"
-                    PATH = "/usr/local/go1.20.3/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/opt/binutils/bin/"
+                    PATH = "/usr/local/go1.20.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
                 }
                 steps{
                     script{
@@ -144,7 +175,7 @@ spec:
                 environment {
                     OS = "darwin"
                     ARCH = "arm64"
-                    PATH = "/usr/local/go1.20.3/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/opt/binutils/bin/"
+                    PATH = "/usr/local/go1.20.3/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
                 }
                 steps{
                     script{
@@ -153,6 +184,38 @@ spec:
                 }
             }
         }
+        }
+        stage("multi-arch docker"){
+            parallel{
+                stage("amd64"){
+                    agent { node { label 'delivery' } }
+                    environment {
+                        ARCH = "amd64"
+                        OS = "linux"
+                        HUB = credentials('harbor-pingcap') 
+                        DOCKER_HOST = "tcp://localhost:2375"
+                    }
+                    steps {container('delivery'){script{
+                        buildDocker()
+                    }}}
+                }
+                stage("arm64"){
+                    agent { node { label 'arm' } }
+                    environment {
+                        ARCH = "arm64"
+                        OS = "linux"
+                        HUB = credentials('harbor-pingcap') 
+                    }
+                    steps {script{
+                        buildDocker()
+                    }}
+                }
+            }
+        }
+        stage("manifest docker image"){
+            steps{
+                echo "manifest docker image"
+            }
         }
     }
 }
