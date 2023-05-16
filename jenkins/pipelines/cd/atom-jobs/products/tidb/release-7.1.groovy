@@ -183,6 +183,12 @@ spec:
                     }
                 }
             }
+            stage("enterprise-plugin"){
+                when { equals expected: "enterprise", actual: params.Edition }
+                steps{
+                    echo "enterprise plugin build"
+                }
+            }
         }
         }
         stage("multi-arch docker"){
@@ -213,8 +219,15 @@ spec:
             }
         }
         stage("manifest docker image"){
-            steps{
-                echo "manifest docker image"
+            agent { node { label 'arm' } }
+            environment {
+                HUB = credentials('harbor-pingcap') 
+            }
+            steps {
+                sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
+                sh """docker manifest create ${DockerImage} -a ${DockerImage}-amd64 -a ${DockerImage}-arm64
+                      docker manifest push ${DockerImage}
+                """
             }
         }
     }
