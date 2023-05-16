@@ -467,7 +467,17 @@ stage('Test') {
                             export CI=1
                             export LOG_FILE=\$HOME/tikv-src/target/my_test.log
                             for i in `cat test-binaries`; do
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                # 判断字符串是否以 / 开头
+                                if [ "\${i}" = "/" ]; then
+                                    # 如果以 / 开头，去掉第一个字符（即 /）
+                                    new_string="\${i:1}"
+                                else
+                                    new_string="\$i"
+                                fi
+
+                                echo "Original string: \$i"
+                                echo "New string: \$new_string"
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$new_string --create-dirs;
                                 chmod +x \$i;
                             done
                             if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} ${EXTRA_NEXTEST_ARGS}; then
