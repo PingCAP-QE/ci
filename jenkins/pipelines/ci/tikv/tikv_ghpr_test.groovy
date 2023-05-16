@@ -468,7 +468,7 @@ stage('Test') {
                             export LOG_FILE=\$HOME/tikv-src/target/my_test.log
                             for i in `cat test-binaries`; do
                                 # 判断字符串是否以 / 开头
-                                if [ "\${i}" = "/" ]; then
+                                if [ "\${i:0:1}" = "/" ]; then
                                     # 如果以 / 开头，去掉第一个字符（即 /）
                                     new_string="\${i:1}"
                                 else
