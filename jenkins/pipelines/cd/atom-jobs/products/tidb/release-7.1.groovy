@@ -113,6 +113,7 @@ def buildEnterprisePlugin = {
 
 
 def buildBin={
+    def skip = false
     stage("check"){
         def binExist = sh(script: "curl -I ${getBinDownloadURL()}|grep \"200 OK\"", returnStatus: true)
         if (params.Edition == "enterprise") {
