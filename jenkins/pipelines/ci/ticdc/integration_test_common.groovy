@@ -72,7 +72,7 @@ def prepare_binaries() {
                     sh """
                     cd go/src/github.com/pingcap/tiflow
                     ls -alh
-                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+                    wget -q --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=120 -t 3 -O ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
                     tar -xvf ticdc_bin.tar.gz
                     chmod +x bin/cdc
                     ./bin/cdc version
@@ -389,23 +389,23 @@ def download_binaries() {
         tiflash_url="${tiflash_url}"
         minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \${tidb_url}
+        wget --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 \${tidb_url}
         tar -xz -C ./tmp \${tidb_archive_path} -f tidb-server.tar.gz && mv tmp/bin/tidb-server third_bin/
 
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O pd-server.tar.gz  \${pd_url}
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O tikv-server.tar.gz \${tikv_url}
+        wget --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O pd-server.tar.gz  \${pd_url}
+        wget --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O tikv-server.tar.gz \${tikv_url}
         tar -xz -C ./tmp 'bin/*' -f tikv-server.tar.gz && mv tmp/bin/* third_bin/
         tar -xz -C ./tmp 'bin/*' -f pd-server.tar.gz && mv tmp/bin/* third_bin/
 
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O minio.tar.gz \${minio_url}
+        wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O minio.tar.gz \${minio_url}
         tar -xz -C third_bin -f ./minio.tar.gz
 
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O  tiflash.tar.gz \${tiflash_url}
+        wget --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O  tiflash.tar.gz \${tiflash_url}
         tar -xz -C third_bin -f tiflash.tar.gz
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin
 
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O third_bin/go-ycsb ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O third_bin/go-ycsb ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb
         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O third_bin/jq ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64
 
         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O etcd.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz 
@@ -418,7 +418,7 @@ def download_binaries() {
         chmod a+x third_bin/*
         rm -rf tmp
 
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
+        wget --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O ticdc_bin.tar.gz ${FILE_SERVER_URL}/download/${cacheBinaryPath}
         tar -xvz -C ./ -f ticdc_bin.tar.gz
 
         mv ./third_bin/* ./bin && ls -lh ./bin
