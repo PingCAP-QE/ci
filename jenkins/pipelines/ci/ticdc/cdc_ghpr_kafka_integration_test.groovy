@@ -164,7 +164,7 @@ def run_with_pod(Closure body) {
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
-            idleMinutes: 0,
+            idleMinutes: 120,
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -334,6 +334,7 @@ catchError {
             env.KAFKA_VERSION = "${KAFKA_VERSION}"
 
             common.prepare_binaries()
+            common.download_binaries()
 
             def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(label: label,
