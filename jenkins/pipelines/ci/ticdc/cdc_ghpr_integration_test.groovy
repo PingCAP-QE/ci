@@ -375,6 +375,7 @@ catchError {
         def common = load script_path
         catchError {
             common.prepare_binaries()
+            common.download_binaries()
             def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(
                     label: label,
