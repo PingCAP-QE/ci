@@ -25,7 +25,9 @@ More will be added.
   FROM centos:7.6.1810
 
   RUN yum makecache -y && \
-      yum install -y epel-release centos-release-scl devtoolset-8 perl cmake3 make unzip git which && \
+      yum install -y epel-release centos-release-scl && \
+      yum makecache -y && \
+      yum install -y devtoolset-8 perl cmake3 make unzip git which && \
       yum clean all && \
       ln -s /usr/bin/cmake3 /usr/bin/cmake
 
