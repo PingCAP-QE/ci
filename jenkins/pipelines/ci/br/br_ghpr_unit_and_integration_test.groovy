@@ -355,11 +355,15 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                 def br_not_in_tidb = !isBRMergedIntoTiDB()
 
                 timeout(30) {
-                    scripts_builder = new StringBuilder()
+                    sh label: "create tmp", script: """
+                    mkdir -p ${ws}/go/src/github.com/pingcap/br/bin
+                    cd ${ws}/go/src/github.com/pingcap/br
 
-                    scripts_builder.append("mkdir -p ${ws}/go/src/github.com/pingcap/br/bin\n")
-                    scripts_builder.append("cd ${ws}/go/src/github.com/pingcap/br\n")
-
+                    rm -rf third_bin
+                    rm -rf tmp
+                    mkdir third_bin
+                    mkdir tmp
+                    """
                     // br_integration_test
                     def from = params.getOrDefault("triggered_by_upstream_pr_ci", "Origin")
                     def get_tidb_from_local = false
@@ -388,85 +392,86 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                             break;
 
                     }
-                    scripts_builder.append("(curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz | tar xz;) &\n")
+                    sh label: "download build for it", script:  """
+                    pwd && ls -alh
+                    cd ${ws}/go/src/github.com/pingcap/br
+                    wget -q ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz
+                    tar xzf br_integration_test.tar.gz && rm -rf br_integration_test.tar.gz
+
+                    
+                    """
 
                     // cdc
                     if (cdc != "") {
-                        scripts_builder.append("(cdc_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/ticdc/${cdc}/sha1); ")
-                                    .append("curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/\${cdc_sha1}/centos7/ticdc-linux-amd64.tar.gz | tar xz ticdc-linux-amd64/bin/cdc; ")
-                                    .append("mv ticdc-linux-amd64/bin/* bin/; ")
-                                    .append("rm -rf ticdc-linux-amd64/;) &\n")
+                        sh label: "download cdc", script:  """
+                        cd ${ws}/go/src/github.com/pingcap/br
+                        cdc_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/ticdc/${cdc}/sha1)
+                        wget -q -O tmp/ticdc-linux-amd64.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/\${cdc_sha1}/centos7/ticdc-linux-amd64.tar.gz
+                        tar -xz -C third_bin -f tmp/ticdc-linux-amd64.tar.gz && mv third_bin/ticdc-linux-amd64/bin/* third_bin/ && rm -rf third_bin/ticdc-linux-amd64
+                        """
                     }
 
-                    // tikv
-                    scripts_builder.append("(tikv_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${tikv}/sha1); ")
-                    def tikv_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-                    if (params.containsKey("upstream_pr_ci_override_tikv_download_link")) {
-                        tikv_download_url = params.getOrDefault("upstream_pr_ci_override_tikv_download_link", tikv_download_url)
-                    }
+                    sh label: "download tikv pd", script:  """
+                    cd ${ws}/go/src/github.com/pingcap/br
 
-                    scripts_builder.append("curl ${tikv_download_url} | tar xz bin/tikv-server bin/tikv-ctl;) &\n")
+                    tikv_importer_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/importer/${importer}/sha1)
+                    wget -O tmp/importer.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/importer/\${tikv_importer_sha1}/centos7/importer.tar.gz
+                    pwd && ls -alh
+                    tar -xz -C third_bin bin/tikv-importer  -f tmp/importer.tar.gz && mv third_bin/bin/tikv-importer third_bin/
 
-                    // tikv-importer
-                    scripts_builder.append("(tikv_importer_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/importer/${importer}/sha1); ")
-                                .append("curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/importer/\${tikv_importer_sha1}/centos7/importer.tar.gz | tar xz bin/tikv-importer;) &\n")
+                    tikv_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${tikv}/sha1)
+                    wget -q -O tmp/tikv-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz
+                    tar -xz -C third_bin 'bin/*' -f tmp/tikv-server.tar.gz && mv third_bin/bin/* third_bin/
+                    
+                    pd_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${pd}/sha1)
+                    wget -q -O tmp/pd-server.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd}/\${pd_sha1}/centos7/pd-server.tar.gz
+                    tar -xz -C third_bin 'bin/*' -f tmp/pd-server.tar.gz && mv third_bin/bin/* third_bin/
 
-                    // pd & pd-ctl
-                    scripts_builder.append("(pd_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${pd}/sha1); ")
-                                .append("mkdir pd-source; ")
-                    def pd_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd}/\${pd_sha1}/centos7/pd-server.tar.gz"
-                    if (params.containsKey("upstream_pr_ci_override_pd_download_link")) {
-                        pd_download_url = params.getOrDefault("upstream_pr_ci_override_pd_download_link", pd_download_url)
-                    }
+                    tiflashCommit=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1)
+                    wget -q -O tmp/tiflash.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz
+                    tar -xz -C third_bin -f tmp/tiflash.tar.gz
+                    mv third_bin/tiflash third_bin/_tiflash
+                    mv third_bin/_tiflash/* third_bin && rm -rf third_bin/_tiflash
 
-                    scripts_builder.append("curl ${pd_download_url} | tar -xz -C pd-source; ")
-                                .append("cp pd-source/bin/* bin/; rm -rf pd-source;) &\n")
+                    wget -q -O third_bin/go-ycsb ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb
+                    wget -q -O third_bin/minio ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio
+                    wget -q -O third_bin/mc ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc
+                    wget -q -O third_bin/kes ${FILE_SERVER_URL}/download/kes
+                    wget -q -O third_bin/fake-gcs-server ${FILE_SERVER_URL}/download/builds/fake-gcs-server
+                    wget -q -O third_bin/brv4.0.8 ${FILE_SERVER_URL}/download/builds/brv4.0.8
+
+                    
+                    """
 
                     // tidb
                     // we build tidb-server from local, then put it into br_integration_test.tar.gz
                     // so we can get it from br_integration_test.tar.gz
                     if (br_not_in_tidb) {
                         echo "br not in tidb"
-                        scripts_builder.append("(tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1); ")
-                                .append("mkdir tidb-source; ")
-                        def tidb_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz"
                         if (params.containsKey("upstream_pr_ci_override_tidb_download_link")) {
-                            tidb_download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", tidb_download_url)
+                            tidb_download_url = params.getOrDefault("upstream_pr_ci_override_tidb_download_link", "")
                         }
-
-                        scripts_builder.append("curl ${tidb_download_url} | tar -xz -C tidb-source; ")
-                                .append("cp tidb-source/bin/tidb-server bin/; rm -rf tidb-source;) &\n")
+                        sh label: "download tidb", script:  """
+                        
+                        tidb_download_url=${tidb_download_url}
+                        if [[ \${tidb_download_url} == "" ]]; then
+                            echo "tidb_download_url is empty, get tidb from fileserver"
+                            tidb_sha1=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${tidb}/sha1)
+                            tidb_download_url=${FILE_SERVER_URL}/download/builds/pingcap/tidb/\${tidb_sha1}/centos7/tidb-server.tar.gz
+                        fi
+                        wget -q \${tidb_download_url}
+                        tar xzf tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                        """
                     }
-                    scripts_builder.append("\n")
-
-                    // tiflash
-                    if (tiflashCommit == "") {
-                        scripts_builder.append("(tiflashCommit=\$(curl ${FILE_SERVER_URL}/download/refs/pingcap/tiflash/${tiflashBranch}/sha1); ")
-                    } else {
-                        scripts_builder.append("(tiflashCommit=${tiflashCommit}; ")
-                    }
-
-                    scripts_builder.append("curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/${tiflashBranch}/\${tiflashCommit}/centos7/tiflash.tar.gz | tar xz tiflash; ")
-                                .append("mv tiflash/* bin/; rmdir tiflash;) &\n")
-
-                    // Testing S3 ans GCS.
-                    // go-ycsb are manual uploaded for test br
-                    // minio and s3cmd for testing s3
-                    // download kes server
-                    // fake-gcs-server for testing gcs
-                    // br v4.0.8 for testing gcs incompatible test
-                    scripts_builder.append("curl ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb -o bin/go-ycsb && chmod 777 bin/go-ycsb\n")
-                                .append("curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio -o bin/minio && chmod 777 bin/minio\n")
-                                .append("curl ${FILE_SERVER_URL}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc -o bin/mc && chmod 777 bin/mc\n")
-                                .append("curl ${FILE_SERVER_URL}/download/kes -o bin/kes && chmod 777 bin/kes\n")
-                                .append("curl ${FILE_SERVER_URL}/download/builds/fake-gcs-server -o bin/fake-gcs-server && chmod 777 bin/fake-gcs-server\n")
-                                .append("curl ${FILE_SERVER_URL}/download/builds/brv4.0.8 -o bin/brv4.0.8 && chmod 777 bin/brv4.0.8\n")
-                                .append("wait\n")
-                                .append("go version")
-
-                    def scripts = scripts_builder.toString()
-                    echo scripts
-                    sh label: "Download and Go Version", script: scripts
+                    sh label: "move binary", script: """
+                    cd ${ws}/go/src/github.com/pingcap/br
+                    ls -alh third_bin
+                    chmod +x third_bin/*
+                    mv third_bin/* bin/
+                    ls -alh bin/
+                    rm -rf tmp
+                    """
+ 
                 }
 
                 dir("${ws}/go/src/github.com/pingcap/br") {
@@ -474,6 +479,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     if (isBRMergedIntoTiDB()) {
                         // move tests outside for compatibility
                         sh label: "Move test outside", script: """
+                        pwd && ls -alh bin/
                         mv br/tests/* tests/
                         """
                         // lightning_examples test need mv file from examples pkg.
@@ -546,6 +552,18 @@ def make_parallel_jobs(case_names, batch_size, tidb, tikv, pd, cdc, importer, ti
         }]
     }
     return batches
+}
+
+
+def test_file_existed(file_url) {
+    cacheExisted = sh(returnStatus: true, script: """
+    if curl --output /dev/null --silent --head --fail ${file_url}; then exit 0; else exit 1; fi
+    """)
+    if (cacheExisted == 0) {
+        return true
+    } else {
+        return false
+    }
 }
 
 try {
@@ -632,7 +650,7 @@ try {
                         println "fast checkout tidb repo"
                         git_repo_url = "git@github.com:pingcap/tidb.git"
                         build_br_cmd = "make build_for_br_integration_test && make server"
-// copy code from nfs cache
+                        // copy code from nfs cache
                         if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                             println "copy src-tidb from nfs cache"
                             timeout(5) {
@@ -663,14 +681,20 @@ try {
                     sh label: "Build and Compress testing binaries", script: """
                     git checkout -f ${ghprbActualCommit}
                     git rev-parse HEAD
-
-                    go version
-
-                    ${build_br_cmd}
-
-                    tar czf br_integration_test.tar.gz * .[!.]*
-                    curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
                     """
+                    if (test_file_existed("${FILE_SERVER_URL}/download/${filepath}")) {
+                        println "find ${filepath} in file-server, skip build..."
+                    } else {
+                        println "not find ${filepath} in file-server, build it"
+                        sh label: "Build and Compress testing binaries", script: """
+                            go version
+
+                            ${build_br_cmd}
+
+                            tar czf br_integration_test.tar.gz * .[!.]*
+                            curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                    }
 
                     // Collect test case names.
                     switch (from) {
