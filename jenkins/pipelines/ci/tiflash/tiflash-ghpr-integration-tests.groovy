@@ -25,10 +25,10 @@ def runTest(label, name, path, tidb_branch) {
                     alwaysPullImage: true, envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')], ttyEnabled: true, command: 'cat')],
         volumes: [
             // TODO use s3 cache instead of nfs
-            nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
-            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true)])
+            nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: "${NFS_SERVER_ADDRESS}",
+                    serverPath: '/data/nvme1n1/nfs/tiflash/dependency', readOnly: true),
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                    serverPath: '/data/nvme1n1/nfs/git', readOnly: true)])
     {
         node(label) {
             stage('Unstash') {
@@ -140,8 +140,8 @@ def run_with_pod(Closure body) {
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false),
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                        serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true)
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                        serverPath: '/data/nvme1n1/nfs/git', readOnly: true)
             ],
     ) {
         node(label) {

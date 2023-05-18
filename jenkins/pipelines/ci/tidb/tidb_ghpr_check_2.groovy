@@ -110,8 +110,8 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     // TODO use s3 cache instead of nfs
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/git', readOnly: false),
             ],
     ) {
         node(label) {
