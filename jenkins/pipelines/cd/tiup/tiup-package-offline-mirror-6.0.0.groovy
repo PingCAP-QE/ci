@@ -82,8 +82,8 @@ def package_community = { arch ->
     sh """
     tar -czf ${dst}.tar.gz $dst
     sha256sum ${dst}.tar.gz | cut -d ' ' -f 1 > ${dst}.tar.gz.sha256
-    curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-    curl --fail -F release/${dst}.tar.gz.sha256=@${dst}.tar.gz.sha256 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+    curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
+    curl --fail -F release/${dst}.tar.gz.sha256=@${dst}.tar.gz.sha256 ${FILE_SERVER_URL}/upload | egrep 'success'
 
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
     upload.py ${dst}.tar.gz ${dst}.tar.gz
@@ -157,8 +157,8 @@ def package_enterprise = { arch ->
     echo '\$bin_dir/tiup telemetry disable &> /dev/null' >> $dst/local_install.sh
     tar -czf ${dst}.tar.gz $dst
     sha256sum ${dst}.tar.gz | cut -d ' ' -f 1 > ${dst}.tar.gz.sha256
-    curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-    curl --fail -F release/${dst}.tar.gz.sha256=@${dst}.tar.gz.sha256 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+    curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
+    curl --fail -F release/${dst}.tar.gz.sha256=@${dst}.tar.gz.sha256 ${FILE_SERVER_URL}/upload | egrep 'success'
     echo "upload $dst successed!"
     """
 
@@ -232,8 +232,8 @@ def package_tools = { plat, arch ->
         
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         sha256sum ${toolkit_dir}.tar.gz | cut -d ' ' -f 1 > ${toolkit_dir}.tar.gz.sha256
-        curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
-        curl --fail -F release/${toolkit_dir}.tar.gz.sha256=@${toolkit_dir}.tar.gz.sha256 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+        curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
+        curl --fail -F release/${toolkit_dir}.tar.gz.sha256=@${toolkit_dir}.tar.gz.sha256 ${FILE_SERVER_URL}/upload | egrep 'success'
     """
 
     if (plat == "community") {
