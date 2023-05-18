@@ -44,7 +44,7 @@ resultDownloadPath = ""
 
 def run_build_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
     podTemplate(label: label,
@@ -63,14 +63,14 @@ def run_build_with_pod(Closure body) {
             ],
             volumes: [
                     // TODO use s3 cache instead of nfs
-                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/tikv/rust/registry/cache', readOnly: false),
-                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/tikv/rust/registry/index', readOnly: false),
-                    nfsVolume(mountPath: '/rust/git/db', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/tikv/rust/git/db', readOnly: false),
-                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/tikv/rust/git/checkouts', readOnly: false),
+                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: 'ctikv/rust/registry/cache', readOnly: false),
+                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/tikv/rust/registry/index', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/db', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/tikv/rust/git/db', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/tikv/rust/git/checkouts', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: true),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: true),
                     ],
