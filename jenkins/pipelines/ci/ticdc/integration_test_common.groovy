@@ -80,7 +80,7 @@ def prepare_binaries() {
                     """
                 } else {
                     println "start to build binary"
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                    println "debug command:\nkubectl -n jenkins-tiflow exec -ti ${NODE_NAME} -c golang bash"
                     def ws = pwd()
                     deleteDir()
                     unstash 'ticdc'
@@ -159,7 +159,7 @@ def tests(sink_type, node_label) {
                     container("golang") {
                         def ws = pwd()
                         deleteDir()
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+                        println "debug command:\nkubectl -n jenkins-tiflow exec -ti ${NODE_NAME} -c golang bash"
                         println "work space path:\n${ws}"
                         println "this step will run tests: ${case_names}"
                         unstash 'ticdc'
@@ -331,7 +331,7 @@ def download_binaries() {
         }
         m4 = null
         println "TIFLASH_BRANCH=${TIFLASH_BRANCH}"
-        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
+        println "debug command:\nkubectl -n jenkins-tiflow exec -ti ${NODE_NAME} -c golang bash"
         def tidb_sha1 = TIDB_BRANCH
         if (!(TIDB_BRANCH =~ COMMIT_SHA1_REG)) {
             tidb_sha1 = sh(returnStdout: true, script: "curl -f ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()

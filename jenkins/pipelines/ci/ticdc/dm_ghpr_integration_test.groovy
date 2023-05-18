@@ -116,6 +116,20 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run_test_with_pod(Closure body) {
     def label = "dm-integration-test-${BUILD_NUMBER}"
     if (GO_VERSION == "go1.13") {
@@ -130,11 +144,13 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(
             label: label,
             cloud: cloud,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
             namespace: "jenkins-dm",
             containers: [
@@ -185,9 +201,11 @@ def run_build_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-build-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
             namespace: "jenkins-dm",
             containers: [
@@ -256,7 +274,7 @@ def build_dm_bin() {
             unstash 'ticdc'
             ws = pwd()
             dir('go/src/github.com/pingcap/tiflow') {
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-dm exec -ti ${env.NODE_NAME} bash"
 
                 // build it test bin
                 sh 'make dm_integration_test_build'
