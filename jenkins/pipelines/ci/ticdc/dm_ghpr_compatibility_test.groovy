@@ -142,15 +142,30 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-dm"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -265,7 +280,9 @@ catchError {
     stage('Compatibility Tests') {
         def label = POD_LABEL_MAP[GO_VERSION]
         podTemplate(label: label,
-                cloud: "kubernetes-ng",
+                cloud: "kubernetes-ksyun",
+                yaml: podYAML,
+                yamlMergeStrategy: merge(),
                 idleMinutes: 0,
                 namespace: "jenkins-dm",
                 containers: [
