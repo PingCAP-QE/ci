@@ -43,13 +43,29 @@ def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run_test_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -75,11 +91,13 @@ def run_test_with_pod(Closure body) {
 
 def run_test_with_pod_legacy(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
             containers: [
                     containerTemplate(
@@ -109,7 +127,8 @@ stage("PreCheck") {
     if (!params.force) {
         def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
         podTemplate(name: label, label: label, 
-            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                 containerTemplate(name: "2c", image: rust_image,
@@ -139,7 +158,8 @@ stage("Prepare") {
     def clippy = {
         def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
         podTemplate(name: label, label: label, 
-            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                 containerTemplate(name: "4c", image: rust_image,
@@ -209,7 +229,8 @@ stage("Prepare") {
     def build = {
         def label="tikv_cached_${ghprbTargetBranch}_build_${BUILD_NUMBER}"
         podTemplate(name: label, label: label,
-            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
+            yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                 containerTemplate(name: "4c",
@@ -575,7 +596,8 @@ currentBuild.result = "SUCCESS"
 stage('Post-test') {
     def label="${JOB_NAME}_post_test_${BUILD_NUMBER}"
     podTemplate(name: label, label: label, 
-        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+        cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+        yaml: podYAML, yamlMergeStrategy: merge(),
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: "2c", image: rust_image,
