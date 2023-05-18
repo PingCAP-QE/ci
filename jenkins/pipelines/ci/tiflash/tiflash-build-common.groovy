@@ -239,16 +239,16 @@ def runBuilderClosure(label, image, Closure body) {
     ],
     volumes: [
             // TODO use s3 cache instead of nfs
-            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
-                    serverPath: '/data/nvme1n1/nfs/git', readOnly: true),
-            nfsVolume(mountPath: '/home/jenkins/agent/proxy-cache', serverAddress: "${NFS_SERVER_ADDRESS}",
-                    serverPath: '/data/nvme1n1/nfs/tiflash/proxy-cache', readOnly: !params.UPDATE_PROXY_CACHE),
-            nfsVolume(mountPath: '/home/jenkins/agent/ccache', serverAddress: "${NFS_SERVER_ADDRESS}",
-                    serverPath: '/data/nvme1n1/nfs/tiflash/ccache', readOnly: !params.UPDATE_CCACHE),
-            nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: "${NFS_SERVER_ADDRESS}",
-                    serverPath: '/data/nvme1n1/nfs/tiflash/dependency', readOnly: true),
-            nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: "${NFS_SERVER_ADDRESS}",
-                    serverPath: '/data/nvme1n1/nfs/tiflash/rust', readOnly: false),
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
+            nfsVolume(mountPath: '/home/jenkins/agent/proxy-cache', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/proxy-cache', readOnly: !params.UPDATE_PROXY_CACHE),
+            nfsVolume(mountPath: '/home/jenkins/agent/ccache', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/ccache', readOnly: !params.UPDATE_CCACHE),
+            nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
+            nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
+                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/rust', readOnly: false),
     ],
     hostNetwork: true
     ) {
