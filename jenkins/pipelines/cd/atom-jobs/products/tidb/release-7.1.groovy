@@ -10,7 +10,7 @@ def getBinDownloadURL={
 }
 
 def getPluginPath={
-    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/enterprise-plugin-${OS}-${ARCH}.tar.gz"
+    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/${params.PluginGitHash}/enterprise-plugin-${OS}-${ARCH}.tar.gz"
 }
 def getPluginDownloadURL={
     return "${FILE_SERVER_URL}/download/${getPluginPath()}"
@@ -81,7 +81,7 @@ def buildEnterprisePlugin = {
                                                 refspec      : specRef,
                                                 url          : "git@github.com:pingcap/enterprise-plugin.git"]]]
         sh """
-        go version
+        go env
         cd ../tidb/cmd/pluginpkg
         go build 
         cd ../../../enterprise-plugin
