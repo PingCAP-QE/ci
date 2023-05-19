@@ -77,17 +77,12 @@ def get_image_str_for_enterprise(product, arch, tag) {
 def build_tidb_enterprise_image(product, sha1, plugin_hash, arch) {
     def binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/centos7/${product}-linux-${arch}-enterprise.tar.gz"
     def plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}.Dockerfile"
-    def inputBin = binary
-    if (RELEASE_TAG < "v7.1.0") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}-enterprise.Dockerfile"
-        inputBin = "${binary},${plugin_binary}"
-    }
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}-enterprise.Dockerfile"
     def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG)
     def paramsDocker = [
             string(name: "ARCH", value: arch),
             string(name: "OS", value: "linux"),
-            string(name: "INPUT_BINARYS", value: inputBin),
+            string(name: "INPUT_BINARYS", value: "${binary},${plugin_binary}"),
             string(name: "REPO", value: product),
             string(name: "PRODUCT", value: product),
             string(name: "RELEASE_TAG", value: RELEASE_TAG),
