@@ -388,6 +388,11 @@ mkdir -p ${TARGET}/bin
 cp binarys/${PRODUCT} ${TARGET}/bin/            
 """
 
+def BuildCmd = "make"
+if (params.PRODUCT == 'tidb' && params.EDITION == 'enterprise' && params.RELEASE_TAG >= "v7.1.0") {
+    BuildCmd = "make enterprise-prepare enterprise-server-build"
+}
+
 buildsh["tidb"] = """
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
@@ -426,7 +431,7 @@ fi;
 if [ ${failpoint} == 'true' ]; then
     make failpoint-enable
 fi;
-make 
+${BuildCmd}
 rm -rf ${TARGET}
 mkdir -p ${TARGET}/bin    
 cp binarys/tidb-ctl ${TARGET}/bin/ || true
