@@ -288,7 +288,7 @@ catchError {
                 containers: [
                         containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_IMAGE}", ttyEnabled: true,
                                 resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                                args: 'cat',),
+                                args: 'cat'),
                         containerTemplate(
                                 name: 'mysql',
                                 image: 'hub.pingcap.net/jenkins/mysql:5.7',
