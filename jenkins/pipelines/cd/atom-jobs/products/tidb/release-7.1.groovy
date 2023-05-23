@@ -2,7 +2,7 @@ final specRef = "+refs/heads/*:refs/remotes/origin/*"
 String BUILD_CMD
 
 def getBinPath={
-    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/tidb-${OS}-${ARCH}.tar.gz"
+    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/tidb-${params.Edition}-${OS}-${ARCH}.tar.gz"
 }
 
 def getBinDownloadURL={
