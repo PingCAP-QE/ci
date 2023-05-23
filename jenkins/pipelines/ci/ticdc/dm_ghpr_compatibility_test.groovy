@@ -287,8 +287,8 @@ catchError {
                 namespace: "jenkins-dm",
                 containers: [
                         containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                                resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
-                                command: 'cat'),
+                                resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                                args: 'cat'),
                         containerTemplate(
                                 name: 'mysql',
                                 image: 'hub.pingcap.net/jenkins/mysql:5.7',

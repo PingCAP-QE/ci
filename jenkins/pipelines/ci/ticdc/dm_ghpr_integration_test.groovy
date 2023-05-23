@@ -157,9 +157,9 @@ def run_test_with_pod(Closure body) {
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '3000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '3000m', resourceRequestMemory: '8Gi',
                             resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
-                            command: 'cat'),
+                            args: 'cat'),
                     containerTemplate(
                             name: 'mysql1', alwaysPullImage: true,
                             image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
