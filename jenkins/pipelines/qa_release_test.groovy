@@ -29,7 +29,7 @@ catchError {
             containers: [
                     containerTemplate(
                         name: 'toolkit', alwaysPullImage: true,
-                        image: "hub.pingcap.net/qa/ci-toolkit:latest", ttyEnabled: true,
+                        image: "hub.pingcap.net/qa/ci-toolkit:0.9.0", ttyEnabled: true,
                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
