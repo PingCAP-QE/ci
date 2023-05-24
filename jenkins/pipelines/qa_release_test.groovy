@@ -83,6 +83,7 @@ catchError {
 
                     if (release_info.containsKey("tiflash_commit") && release_info.tiflash_commit != "") {
                         sh "inv upload --dst refs/pingcap/tiflash/${release_info.tiflash_commit}/sha1 --content ${release_info.tiflash_commit}"
+                        sh "inv upload --dst refs/pingcap/ticdc/${release_info.release_branch}/sha1 --content ${release_info.ticdc_commit}"
                     }
                     if (release_info.containsKey("br_commit") && release_info.br_commit != "") {
                         sh "inv upload --dst refs/pingcap/br/${release_info.br_commit}/sha1 --content ${release_info.br_commit}"
