@@ -97,7 +97,10 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                            cd ../tiflow
+                            chmod +x ../scripts/pingcap/tiflow/release-6.1/ticdc_download_integration_test_binaries.sh
+                            ${WORKSPACE}/scripts/pingcap/tiflow/release-6.1/ticdc_download_integration_test_binaries.sh
+                            ls -alh ./bin/
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
