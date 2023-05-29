@@ -1,12 +1,8 @@
 final specRef = "+refs/heads/*:refs/remotes/origin/*"
 String BUILD_CMD
 
-def getBinPath={
-    return "builds/devbuild/tidb/optimization/${params.Version}/${params.GitHash}/tidb-${params.Edition}-${OS}-${ARCH}.tar.gz"
-}
-
 def getBinDownloadURL={
-    return "${FILE_SERVER_URL}/download/${getBinPath()}"
+    return "${FILE_SERVER_URL}/download/${BinPath}"
 }
 
 def getPluginPath={
@@ -62,7 +58,6 @@ def buildTidb = {
             """
         }
         stage("upload"){
-            def BinPath = getBinPath()
             sh "curl -F $BinPath=@tidb.tar.gz ${FILE_SERVER_URL}/upload"
             sh "curl -F ${BinPath}.sha256=@tidb.tar.gz.sha256 ${FILE_SERVER_URL}/upload"
         }
@@ -175,10 +170,10 @@ pipeline{
         string(name: 'PluginGitHash', description: 'plugin git hash')
         string(name: 'Version', description: 'important, the Version for cli --Version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
-        booleanParam(name: 'PlatformLinuxAmd64', defaultValue: '', description: 'build path linux amd64')
-        booleanParam(name: 'PlatformLinuxArm64', defaultValue: '', description: 'build path linux arm64')
-        booleanParam(name: 'PlatformDarwinAmd64', defaultValue: '', description: 'build path darwin amd64')
-        booleanParam(name: 'PlatformDarwinArm64', defaultValue: '', description: 'build path darwin arm64')
+        string(name: 'PlatformLinuxAmd64', defaultValue: '', description: 'build path linux amd64')
+        string(name: 'PlatformLinuxArm64', defaultValue: '', description: 'build path linux arm64')
+        string(name: 'PlatformDarwinAmd64', defaultValue: '', description: 'build path darwin amd64')
+        string(name: 'PlatformDarwinArm64', defaultValue: '', description: 'build path darwin arm64')
         string(name: 'BuildCmd', description: 'the build command', defaultValue: '')
         string(name: 'DockerImage', description: 'docker image path', defaultValue: '')
     }
@@ -206,13 +201,14 @@ pipeline{
         parallel{
             stage("linux/amd64"){
                 when {
-                    equals expected: true, actual: params.PlatformLinuxAmd64.toBoolean()
+                    not {equals expected: "", actual: params.PlatformLinuxAmd64}
                     beforeAgent true
                 }
                 agent { node { label 'build_go1200' } }
                 environment {
                     OS = "linux"
                     ARCH = "amd64"
+                    BinPath = "${params.PlatformLinuxAmd64}"
                 }
                 steps{
                     script{ container('golang'){
@@ -222,7 +218,7 @@ pipeline{
             }
             stage("linux/arm64"){
                 when {
-                    equals expected: true, actual: params.PlatformDarwinArm64.toBoolean()
+                    not {equals expected: "", actual: params.PlatformLinuxArm64}
                     beforeAgent true
                 }
                 agent { kubernetes {
@@ -248,6 +244,7 @@ spec:
                 environment {
                     OS = "linux"
                     ARCH = "arm64"
+                    BinPath = "${params.PlatformLinuxArm64}"
                 }
                 steps{
                     script{ 
@@ -260,13 +257,14 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
-                        equals expected: true, actual: params.PlatformDarwinAmd64.toBoolean()
+                        not {equals expected: "", actual: params.PlatformDarwinAmd64}
                     }
                 }
                 agent { node { label 'darwin && amd64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "amd64"
+                    BinPath = "${params.PlatformDarwinAmd64}"
                     PATH = "/usr/local/go1.20.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
                 }
                 steps{
@@ -280,14 +278,14 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
-                        equals expected: true, actual: params.PlatformDarwinArm64.toBoolean()
+                        not {equals expected: "", actual: params.PlatformDarwinArm64}
                     }
                 }
                 agent { node { label 'darwin && arm64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "arm64"
-                    BinPath = ""
+                    BinPath = "${params.PlatformDarwinArm64}"
                     PATH = "/usr/local/go1.20.3/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
                 }
                 steps{
