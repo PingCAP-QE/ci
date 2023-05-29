@@ -175,8 +175,12 @@ pipeline{
         string(name: 'PluginGitHash', description: 'plugin git hash')
         string(name: 'Version', description: 'important, the Version for cli --Version and profile choosing, eg. v6.5.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
+        booleanParam(name: 'PlatformLinuxAmd64', defaultValue: '', description: 'build path linux amd64')
+        booleanParam(name: 'PlatformLinuxArm64', defaultValue: '', description: 'build path linux arm64')
+        booleanParam(name: 'PlatformDarwinAmd64', defaultValue: '', description: 'build path darwin amd64')
+        booleanParam(name: 'PlatformDarwinArm64', defaultValue: '', description: 'build path darwin arm64')
         string(name: 'BuildCmd', description: 'the build command', defaultValue: '')
-        string(name: 'DockerImage', description: 'the fileserver binary path', defaultValue: '')
+        string(name: 'DockerImage', description: 'docker image path', defaultValue: '')
     }
     agent none
     stages{
@@ -201,6 +205,10 @@ pipeline{
         stage("multi-platform bin"){
         parallel{
             stage("linux/amd64"){
+                when {
+                    equals expected: true, actual: params.PlatformLinuxAmd64.toBoolean()
+                    beforeAgent true
+                }
                 agent { node { label 'build_go1200' } }
                 environment {
                     OS = "linux"
@@ -213,6 +221,10 @@ pipeline{
                 }
             }
             stage("linux/arm64"){
+                when {
+                    equals expected: true, actual: params.PlatformDarwinArm64.toBoolean()
+                    beforeAgent true
+                }
                 agent { kubernetes {
             yaml '''
 apiVersion: v1
@@ -244,7 +256,13 @@ spec:
                 }
             }
             stage("darwin/amd64"){
-                when { beforeAgent true; equals expected: "community", actual: params.Edition }
+                when {
+                    beforeAgent true
+                    allOf{
+                        equals expected: "community", actual: params.Edition 
+                        equals expected: true, actual: params.PlatformDarwinAmd64.toBoolean()
+                    }
+                }
                 agent { node { label 'darwin && amd64' } }
                 environment {
                     OS = "darwin"
@@ -258,11 +276,18 @@ spec:
                 }
             }
             stage("darwin/arm64"){
-                when { beforeAgent true; equals expected: "community", actual: params.Edition }
+                when {
+                    beforeAgent true
+                    allOf{
+                        equals expected: "community", actual: params.Edition 
+                        equals expected: true, actual: params.PlatformDarwinArm64.toBoolean()
+                    }
+                }
                 agent { node { label 'darwin && arm64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "arm64"
+                    BinPath = ""
                     PATH = "/usr/local/go1.20.3/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
                 }
                 steps{
@@ -274,6 +299,10 @@ spec:
         }
         }
         stage("multi-arch docker"){
+            when {
+                not{equals expected: "", actual: params.DockerImage}
+                beforeAgent true
+            }
             parallel{
                 stage("amd64"){
                     agent { node { label 'delivery' } }
@@ -301,15 +330,31 @@ spec:
             }
         }
         stage("manifest docker image"){
+            when {
+                not{equals expected: "", actual: params.DockerImage}
+                beforeAgent true
+            }
             agent { node { label 'arm' } }
             environment {
                 HUB = credentials('harbor-pingcap') 
             }
             steps {
-                sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
-                sh """docker manifest create ${DockerImage} -a ${DockerImage}-amd64 -a ${DockerImage}-arm64
-                      docker manifest push ${DockerImage}
-                """
+                script{
+                    def ammend = ""
+                    if (params.PlatformLinuxAmd64.toBoolean()){
+                        ammend += " -a ${DockerImage}-amd64"
+                    }
+                    if (params.PlatformLinuxArm64.toBoolean()){
+                        ammend += " -a ${DockerImage}-arm64"
+                    }
+                    if (ammend == ""){
+                        return
+                    }
+                    sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
+                    sh """docker manifest create ${DockerImage} ${ammend}
+                          docker manifest push ${DockerImage}
+                    """
+                }
             }
         }
     }
