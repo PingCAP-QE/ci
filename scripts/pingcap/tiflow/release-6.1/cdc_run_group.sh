@@ -54,7 +54,6 @@ for ((i=0; i<${#grouped_directories[@]}; i++)); do
 done
 
 
-
 CUR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 sink_type=$1
