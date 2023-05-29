@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# This script split the integration tests into 10 groups to support parallel group tests execution.
+# This script split the integration tests into 16 groups to support parallel group tests execution.
 # all the integration tests are located in tests/integration_tests directory. only the directories
 # containing run.sh will be considered as integration tests. the script will print the total # # # number
 
 # usage: ./cdc_run_group.sh G0  to run the integration tests in group 0
-# current supported groups are G0, G1, G2, G3, G4, G5, G6, G7, G8, G9
+# current supported groups are G0, G1, G2, G3, G4, G5, G6, G7, G8, G9, 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
 
 
 set -eo pipefail
@@ -24,14 +24,14 @@ IFS=$'\n' directories=($(sort <<<"${directories[*]}"))
 unset IFS
 
 # Print the total number of directories
-echo "Total number of directories: ${#directories[@]}"
+echo "Total number of valid directories: ${#directories[@]}"
 
 # Step 2 & 3
-split_length=$((${#directories[@]}/10))
-remainder=$((${#directories[@]}%10))
+split_length=$((${#directories[@]}/16))
+remainder=$((${#directories[@]}%16))
 
 grouped_directories=()
-for ((i=0; i<10; i++)); do
+for ((i=0; i<16; i++)); do
     start_index=$((i*split_length))
     if [[ $i -lt $remainder ]]; then
         start_index=$((start_index+i))
@@ -62,7 +62,7 @@ group_index="${test_group:1}"
 test_names=${grouped_directories[${group_index}]}
 if [[ -n $test_names ]]; then
     echo ""
-    echo "Running tests: $test_names"
+    echo "Running tests in group${group_index}: $test_names"
     echo "Sink type: $sink_type"
 	"${CUR}"/run.sh "${sink_type}" "${test_names}"
 fi
