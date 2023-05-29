@@ -142,7 +142,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09'
                     }
                 }
                 agent{
@@ -176,9 +176,9 @@ pipeline {
                                     }
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
                                         chmod +x ../scripts/pingcap/tiflow/release-6.1/cdc_run_group.sh
-                                        ${WORKSPACE}/scripts/pingcap/tiflow/release-6.1/cdc_run_group.sh ${TEST_GROUP}
+                                        cp ../scripts/pingcap/tiflow/release-6.1/cdc_run_group.sh tests/integration_tests/
+                                        ./tests/integration_tests/cdc_run_group.sh kafka ${TEST_GROUP}
                                     """
                                 }
                             }

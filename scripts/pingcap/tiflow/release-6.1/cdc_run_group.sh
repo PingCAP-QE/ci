@@ -8,6 +8,7 @@
 # current supported groups are G0, G1, G2, G3, G4, G5, G6, G7, G8, G9
 
 
+set -eo pipefail
 
 # Step 1
 directories=()
@@ -48,7 +49,7 @@ for ((i=0; i<${#grouped_directories[@]}; i++)); do
     group=${grouped_directories[i]}
     # Convert the group string back to an array to get the count
     IFS=' ' read -r -a array <<< "$group"
-    echo "Number of directories in group$(($i+1)): ${#array[@]}"
+    echo "Number of directories in group$(($i)): ${#array[@]}"
     echo "$group"
 done
 
@@ -58,11 +59,11 @@ CUR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 sink_type=$1
 test_group=$2
-group_index=${test_group:G}
+group_index="${test_group:1}"
 test_names=${grouped_directories[${group_index}]}
 if [[ -n $test_names ]]; then
+    echo ""
     echo "Running tests: $test_names"
     echo "Sink type: $sink_type"
 	"${CUR}"/run.sh "${sink_type}" "${test_names}"
-    
 fi
