@@ -17,8 +17,8 @@ presubmits:
       always_run: false
       context: wip/pull-cdc-integration-kafka-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-kafka-test"
+      trigger: "(?m)^/debug (?:.*? )?(cdc-integration-kafka-test)(?: .*?)?$"
+      rerun_command: "/debug cdc-integration-kafka-test"
       branches:
         - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-6.1/pull_cdc_integration_test
@@ -27,7 +27,7 @@ presubmits:
       always_run: false
       context: wip/pull-cdc-integration-mysql-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-mysql-test"
+      trigger: "(?m)^/debug (?:.*? )?(cdc-integration-mysql-test)(?: .*?)?$"
+      rerun_command: "/debug cdc-integration-mysql-test"
       branches:
         - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
