@@ -20,7 +20,7 @@ spec:
       name: volume-0
   - args:
     - cat
-    image: hub.pingcap.net/wulifu/golang-tini:1.20.2
+    image: hub.pingcap.net/jenkins/golang-tini:1.20
     imagePullPolicy: Always
     name: golang
     resources:
