@@ -79,5 +79,6 @@ rm -rf tmp
 rm -rf bin/bin
 mv third_bin/* ./bin
 rm -rf third_bin
+rm -rf bin/bin
 
 color-green "Download SUCCESS"
