@@ -64,9 +64,9 @@ pipeline {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
                         mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
+                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${REFS.base_ref} -C ${REFS.base_sha}
+                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${REFS.base_ref} -C ${REFS.base_sha}
                         """
                     }
                 }
