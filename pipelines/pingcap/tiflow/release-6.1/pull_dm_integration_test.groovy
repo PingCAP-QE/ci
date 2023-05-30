@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow//release-6.1/pod-pull_dm_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-6.1/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
