@@ -42,9 +42,9 @@ pd_sha1=$(curl "${file_server_url}/download/refs/pingcap/pd/${branch}/sha1")
 tidb_tools_sha1=$(curl "${file_server_url}/download/refs/pingcap/tidb-tools/master/sha1")
 
 # All download links.
-tidb_download_url="${file_server_url}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
-tikv_download_url="${file_server_url}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
-pd_download_url="${file_server_url}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+tidb_download_url="${file_server_url}/download/builds/pingcap/tidb/${branch}/${tidb_sha1}/centos7/tidb-server.tar.gz"
+tikv_download_url="${file_server_url}/download/builds/pingcap/tikv/${branch}/${tikv_sha1}/centos7/tikv-server.tar.gz"
+pd_download_url="${file_server_url}/download/builds/pingcap/pd/${branch}/${pd_sha1}/centos7/pd-server.tar.gz"
 tidb_tools_download_url="${file_server_url}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz"
 
 gh_os_download_url="https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz"
