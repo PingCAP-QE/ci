@@ -14,6 +14,7 @@ def skipRemainingStages = false
 pipeline {
     agent {
         kubernetes {
+            label "dm-it-${UUID.randomUUID().toString()}"
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'golang'
