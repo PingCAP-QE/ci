@@ -28,7 +28,7 @@ spec:
           mountPath: /data/
           readOnly: true
         - name: containerinfo
-          mountPath: /etc/containerinfo          
+          mountPath: /etc/containerinfo
       lifecycle:
         postStart:
           exec:
@@ -64,3 +64,12 @@ spec:
             resourceFieldRef:
               containerName: golang
               resource: requests.memory
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
