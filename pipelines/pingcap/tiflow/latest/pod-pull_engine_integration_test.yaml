@@ -12,10 +12,10 @@ spec:
           memory: 8Gi
           cpu: "4"
       volumeMounts:
-      - name: volume-tmp
-        mountPath: /tmp
-      - name: volume-docker
-        mountPath: /var/lib/docker
+        - name: volume-tmp
+          mountPath: /tmp
+        - name: volume-docker
+          mountPath: /var/lib/docker
     - name: dockerd
       image: "docker:20.10.17-dind"
       securityContext:
@@ -33,10 +33,10 @@ spec:
           memory: 16Gi
           cpu: "6"
       volumeMounts:
-      - name: volume-docker
-        mountPath: /var/lib/docker
-      - name: volume-tmp
-        mountPath: /tmp
+        - name: volume-docker
+          mountPath: /var/lib/docker
+        - name: volume-tmp
+          mountPath: /tmp
     - name: docker
       image: 'hub.pingcap.net/tiflow/dind:alpine-docker-go1.20'
       tty: true
@@ -53,10 +53,10 @@ spec:
           memory: 16Gi
           cpu: "6"
       volumeMounts:
-      - name: volume-docker
-        mountPath: /var/lib/docker
-      - name: volume-tmp
-        mountPath: /tmp
+        - name: volume-docker
+          mountPath: /var/lib/docker
+        - name: volume-tmp
+          mountPath: /tmp
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -76,3 +76,12 @@ spec:
       emptyDir: {}
     - name: "volume-tmp"
       emptyDir: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64

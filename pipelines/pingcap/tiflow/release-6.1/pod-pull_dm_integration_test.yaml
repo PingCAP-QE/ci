@@ -8,7 +8,7 @@ spec:
       image: hub.pingcap.net/jenkins/golang-tini:1.19
       tty: true
       args:
-      - cat
+        - cat
       resources:
         requests:
           memory: 12Gi
@@ -68,3 +68,12 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
