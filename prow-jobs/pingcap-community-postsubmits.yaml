@@ -1,0 +1,25 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+postsubmits:
+  pingcap/community:
+    - name: create-updating-owners-pr
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: teams/.*/membership\.json
+      branches:
+        - master
+      spec:
+        init-containers:
+
+        containers:
+        - name: main
+          image: denoland/deno:1.34.1
+          command: [bash, -c]
+          args:
+            - |            
+              echo xxx
+          env:
+            - name: GITHUB_API_TOKEN
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 200m
