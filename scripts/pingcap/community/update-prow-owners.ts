@@ -1,6 +1,6 @@
 import * as yaml from "https://deno.land/std@0.190.0/yaml/mod.ts";
 import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
-import { Octokit } from "https://cdn.skypack.dev/octokit?dts";
+import { Octokit } from "https://esm.sh/octokit@2.0.19";
 
 interface CommunityTeamConfig {
   _comment?: string;
