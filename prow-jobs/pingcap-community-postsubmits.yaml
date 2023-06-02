@@ -22,7 +22,6 @@ postsubmits:
           - name: main
             image: denoland/deno:1.32.2
             command: [bash, -c]
-            workingDir: /ws
             args:
               - |
                 cat /pr-changed/files | xargs -I {} deno run --allow-all \
