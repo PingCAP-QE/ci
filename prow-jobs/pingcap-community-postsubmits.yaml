@@ -1,0 +1,51 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+postsubmits:
+  pingcap/community:
+    - name: create-updating-owners-pr
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: teams/.*/membership\.json
+      branches:
+        - master
+      spec:
+        init-containers:
+          - name: git
+            image: alpine/git
+            command: [sh, -c]
+            args: 
+              - |
+                git diff --name-only HEAD~1 HEAD | grep membership.json > /pr-changed/files
+            volumeMounts:
+              - mountPath: /pr-changed
+                name: pr-changed
+        containers:
+          - name: main
+            image: denoland/deno:1.32.2
+            command: [bash, -c]
+            workingDir: /ws
+            args:
+              - |
+                cat /pr-changed/files | xargs -I {} deno run --allow-all \
+                  https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts \
+                  --input {} --owner pingcap --github_private_token $(GITHUB_API_TOKEN)
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            volumeMounts:
+              - mountPath: /ws
+                name: git-source
+              - mountPath: /pr-changed
+                name: pr-changed 
+            resources:
+              limits:
+                cpu: "1"
+                memory: 1Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi
+        volumes:
+          - name: pr-changed
+            emptyDir: {}
