@@ -35,8 +35,6 @@ postsubmits:
                     key: token
                     name: github-token
             volumeMounts:
-              - mountPath: /ws
-                name: git-source
               - mountPath: /pr-changed
                 name: pr-changed 
             resources:
