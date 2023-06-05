@@ -60,6 +60,14 @@ presubmits:
       rerun_command: "/test canary-scan-security"
       branches:
         - ^master$
+    - name: pingcap/tidb/canary_ghpr_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: canary-unit-test
+      branches:
+        - ^master$
+        - ^feature[_/].+
     - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
