@@ -12,6 +12,17 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb-test/ghpr_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      run_if_changed: "(jdbc8_test|jdbc_test)/.*"
+      context: ci/common-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?common-test(?: .*?)?$"
+      rerun_command: "/test common-test"
+      branches:
+        - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb-test/ghpr_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
