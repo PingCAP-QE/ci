@@ -98,7 +98,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('bin', REFS, 'cdc-integration-test')) { 
+                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) { 
                         // build cdc, kafka_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
