@@ -97,7 +97,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: "git/pingcap/tiflow/dm-integration-test-binarys-${REFS.pulls[0].sha}") { 
+                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('bin', REFS, 'dm-integration-test')) { 
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
