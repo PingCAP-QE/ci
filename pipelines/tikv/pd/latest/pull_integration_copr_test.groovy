@@ -42,7 +42,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("pd") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/pd/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/pd/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -51,27 +51,10 @@ pipeline {
                     }
                 }
                 dir("tidb") {
-                    retry(2) {
-                        cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                            retry(2) {
-                                checkout(
-                                    changelog: false,
-                                    poll: false,
-                                    scm: [
-                                        $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
-                                        doGenerateSubmoduleConfigurations: false,
-                                        extensions: [
-                                            [$class: 'PruneStaleBranch'],
-                                            [$class: 'CleanBeforeCheckout'],
-                                            [$class: 'CloneOption', timeout: 15],
-                                        ],
-                                        submoduleCfg: [],
-                                        userRemoteConfigs: [[
-                                            refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                            url: 'https://github.com/pingcap/tidb.git',
-                                        ]],
-                                    ]
-                                )
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, '')
                             }
                         }
                     }
@@ -79,24 +62,9 @@ pipeline {
                 dir("tikv-copr-test") {
                     cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.base_sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: 'https://github.com/tikv/copr-test.git',
-                                    ]],
-                                ]
-                            )
+                            script {
+                                component.checkout('https://github.com/tikv/copr-test.git', 'tikv-copr-test', REFS.base_ref, REFS.pulls[0].title, '')
+                            }
                         }
                     }
                 }
@@ -115,7 +83,7 @@ pipeline {
                         bin/tikv-server -V
                         """
                     }
-                }      
+                }
             }
         }
         stage('Tests') {
@@ -131,7 +99,7 @@ pipeline {
                         make push-down-test
                     """
                 }
-            }               
+            }
         }
     }
 }
