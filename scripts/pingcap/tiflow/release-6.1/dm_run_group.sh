@@ -18,14 +18,14 @@ groups=(
 	["G02"]="handle_error handle_error_2 handle_error_3"
 	["G03"]="dmctl_advance dmctl_basic dmctl_command"
 	["G04"]="import_goroutine_leak incremental_mode initial_unit"
-	["G05"]="load_interrupt many_tables online_ddl"
+	["G05"]="online_ddl load_interrupt many_tables"
 	["G06"]="relay_interrupt safe_mode sequence_safe_mode"
 	["G07"]="shardddl1 shardddl1_1 shardddl2 shardddl2_1"
 	["G08"]="shardddl3 shardddl3_1 shardddl4 shardddl4_1 sharding sequence_sharding"
 	["G09"]="import_v10x sharding2 ha"
 	["G10"]="start_task print_status http_apis new_relay all_mode"
 	# `others others_2 others_3` tests of old pipeline
-	["G11"]="adjust_gtid async_checkpoint_flush case_sensitive checkpoint_transaction check_task downstream_diff_index downstream_more_column drop_column_with_index duplicate_event expression_filter extend_column fake_rotate_event full_mode gbk gtid ha_cases http_proxies lightning_mode metrics load_task new_collation_off only_dml openapi s3_dumpling_lighting sequence_sharding_optimistic sequence_sharding_removemeta shardddl_optimistic slow_relay_writer sql_mode sync_collation tracker_ignored_ddl validator_basic validator_checkpoint"
+	["G11"]="full_mode adjust_gtid async_checkpoint_flush case_sensitive checkpoint_transaction check_task downstream_diff_index downstream_more_column drop_column_with_index duplicate_event expression_filter extend_column fake_rotate_event gbk gtid ha_cases http_proxies lightning_mode metrics load_task new_collation_off only_dml openapi s3_dumpling_lighting sequence_sharding_optimistic sequence_sharding_removemeta shardddl_optimistic slow_relay_writer sql_mode sync_collation tracker_ignored_ddl validator_basic validator_checkpoint"
 	["TLS_GROUP"]="tls"
 )
 
