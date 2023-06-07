@@ -32,32 +32,6 @@ postsubmits:
           - name: github-token
             secret:
               secretName: github-token
-    - name: post-configs-deploy-prow
-      run_if_changed: "prow/cluster"
-      decorate: true
-      branches:
-        - ^main$
-      max_concurrency: 1
-      spec:
-        containers:
-          - image: google/cloud-sdk:319.0.0
-            command:
-              - scripts/deploy.sh
-            args:
-              - --confirm
-              - --config=trusted
-            env:
-              - name: GOOGLE_APPLICATION_CREDENTIALS
-                value: /creds/service-account.json
-            volumeMounts:
-              - name: creds
-                mountPath: /creds
-        volumes:
-          - name: creds
-            secret:
-              secretName: deployer-credentials
-      annotations:
-        description: deploys the configured version of prow by running scripts/deploy.sh
     - name: post-configs-label-sync
       decorate: true
       run_if_changed: "prow/config/labels.yaml"
