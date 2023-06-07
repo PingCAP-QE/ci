@@ -1,22 +1,8 @@
-filters:
-  ".*":
-    labels:
-      - area/jenkins-pipelines
-  "\\.groovy$":
-    labels:
-      - area/jenkins-pipelines/groovy
-    reviewers:
-      - purelind
-      - lijie0123
-    approvers:
-      - wuhuizuo
-      - purelind
-  "pod-.*\\.(yaml|yml)$":
-    labels:
-      - area/jenkins-pipelines/pod-template
-    reviewers:
-      - purelind
-      - lijie0123
-    approvers:
-      - wuhuizuo
-      - purelind
+labels:
+  - area/jenkins-pipelines
+reviewers:
+  - purelind
+  - lijie0123
+approvers:
+  - wuhuizuo
+  - purelind
