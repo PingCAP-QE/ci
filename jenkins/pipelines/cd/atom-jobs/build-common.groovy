@@ -175,7 +175,7 @@ def String needUpgradeGoVersion(String tag,String branch) {
         return "go1.18"
     }
     if (branch.startsWith("release-") && branch >= "release-6.3" && branch < "release-6.7"){
-        return "go1.18"
+        return "go1.19"
     }
     if (branch.startsWith("hz-poc") || branch.startsWith("arm-dup") ) {
         return "go1.16"
