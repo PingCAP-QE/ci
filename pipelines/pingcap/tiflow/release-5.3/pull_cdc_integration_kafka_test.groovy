@@ -89,6 +89,7 @@ pipeline {
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
+                            export LD_LIBRARY_PATH=\$(pwd)/bin:\$LD_LIBRARY_PATH
                             ./bin/tidb-server -V
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
