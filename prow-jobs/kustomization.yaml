@@ -26,6 +26,7 @@ configMapGenerator:
       - pingcap-tidb-test-release-6.2-presubmits.yaml
       - pingcap-tiflow-latest-presubmits.yaml
       - pingcap-tiflow-release-5.3-presubmits.yaml
+      - pingcap-tiflow-release-5.4-presubmits.yaml
       - pingcap-tiflow-release-6.0-presubmits.yaml
       - pingcap-tiflow-release-6.1-presubmits.yaml
       - pingcap-tiflow-release-6.2-presubmits.yaml

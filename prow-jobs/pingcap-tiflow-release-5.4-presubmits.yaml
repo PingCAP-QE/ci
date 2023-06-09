@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tiflow:
-    - name: pingcap/tiflow/release-5.3/ghpr_verify
+    - name: pingcap/tiflow/release-5.4/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -10,8 +10,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
       rerun_command: "/test verify"
       branches:
-        - ^release-5\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tiflow/release-5.3/pull_cdc_integration_kafka_test
+        - ^release-5\.4(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-5.4/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -20,8 +20,8 @@ presubmits:
       trigger: "(?m)^/debug (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/debug cdc-integration-kafka-test"
       branches:
-        - ^release-5\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tiflow/release-5.3/pull_cdc_integration_test
+        - ^release-5\.4(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-5.4/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -30,8 +30,8 @@ presubmits:
       trigger: "(?m)^/debug (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/debug cdc-integration-mysql-test"
       branches:
-        - ^release-5\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tiflow/release-5.3/pull_dm_compatibility_test
+        - ^release-5\.4(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-5.4/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -40,8 +40,8 @@ presubmits:
       trigger: "(?m)^/debug (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/debug dm-compatibility-test"
       branches:
-        - ^release-5\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tiflow/release-5.3/pull_dm_integration_test
+        - ^release-5\.4(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflow/release-5.4/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -50,4 +50,4 @@ presubmits:
       trigger: "(?m)^/debug (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/debug dm-integration-test"
       branches:
-        - ^release-5\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-5\.4(\.\d+)?(-\d+)?(-v[\.\d]+)?$
