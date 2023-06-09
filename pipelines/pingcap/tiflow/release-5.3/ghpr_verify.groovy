@@ -57,7 +57,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CMD'
-                        values 'check', "build", "dm_unit_test", "unit_test"
+                        values 'check leak_test', "build", "dm_unit_test", "unit_test"
                     }
                 }
                 agent{
