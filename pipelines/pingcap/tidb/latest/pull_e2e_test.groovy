@@ -3,7 +3,7 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final K8S_NAMESPACE = "jenkins-tidb-mergeci"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
