@@ -18,6 +18,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
+        - mountPath: "/home/jenkins"
+          name: volume-1
     - args:
         - cat
       image: hub.pingcap.net/jenkins/golang-tini:1.19
@@ -34,6 +36,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
+        - mountPath: "/home/jenkins"
+          name: volume-1
     - env:
         - name: KAFKA_CREATE_TOPICS
           value: big-message-test:1:1
@@ -77,6 +81,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
+        - mountPath: "/home/jenkins"
+          name: volume-1
     - env:
         - name: KAFKA_SERVER
           value: 127.0.0.1:9092
@@ -104,6 +110,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
+        - mountPath: "/home/jenkins"
+          name: volume-1
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -119,8 +127,12 @@ spec:
           memory: 256Mi
           cpu: 100m
   volumes:
-    - emptyDir: {}
+    - emptyDir:
+        medium: "Memory"
       name: volume-0
+    - emptyDir:
+        medium: "Memory"
+      name: volume-1
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
