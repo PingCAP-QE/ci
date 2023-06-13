@@ -527,14 +527,20 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
   await Promise.all(
     Array.from(pullRequests).map(async (pullRequest, index) => {
       // Introduce a delay between API requests to avoid rate limit errors
-      const delay = 5 * index; // Adjust the delay time according to your needs
+      const delay = 5000 * index; // Adjust the delay time according to your needs
       await new Promise((resolve) => setTimeout(resolve, delay));
-      console.info(`🫧 Post deal for pull request: ${pullRequest}`);
+      const { owner, repo, num } = pullRequest;
+      console.info(
+        `🫧 Post dealing for pull request: ${owner}/${repo}/${num} ...`,
+      );
       await postDealPR(
         octokit,
         pullRequest.owner,
         pullRequest.repo,
         pullRequest.num,
+      );
+      console.info(
+        `✅ Post done for pull request: ${owner}/${repo}/${num} ...`,
       );
     }),
   );
