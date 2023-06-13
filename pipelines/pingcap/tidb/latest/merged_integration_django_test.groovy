@@ -106,7 +106,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {0
+                            dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_django_test/rev-${BUILD_TAG}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
                                     sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
