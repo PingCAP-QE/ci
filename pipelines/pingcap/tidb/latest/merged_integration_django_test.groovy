@@ -92,7 +92,7 @@ pipeline {
                     }
                     axis {
                         name 'TEST_STORE'
-                        values "tikv"
+                        values "unistore"
                     }
                 }
                 agent{
@@ -120,7 +120,7 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("java") {
+                                    container("python") {
                                         sh label: "test_params=${TEST_PARAMS} ", script: """
                                             #!/usr/bin/env bash
                                             params_array=(\${TEST_PARAMS})
