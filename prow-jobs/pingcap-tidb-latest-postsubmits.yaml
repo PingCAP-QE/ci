@@ -89,4 +89,11 @@ postsubmits:
       skip_report: false
       branches:
         - ^master$
-
+    - name: pingcap/tidb/merged_integration_django_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/integration-django-test
+      max_concurrency: 2
+      skip_report: true
+      branches:
+        - ^master$
