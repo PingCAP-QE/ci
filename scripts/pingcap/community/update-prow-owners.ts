@@ -4,7 +4,7 @@ import { dirname } from "https://deno.land/std@0.190.0/path/mod.ts";
 import { Octokit } from "https://esm.sh/octokit@2.0.19";
 
 const headRef = `bot/update-owners-${Date.now()}`;
-const commitMessage = "Update OWNERS file";
+const commitMessage = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
 const prTitle = "OWNERS: Auto Sync OWNERS files from community membership";
 
 type CommunityMember = string | {
