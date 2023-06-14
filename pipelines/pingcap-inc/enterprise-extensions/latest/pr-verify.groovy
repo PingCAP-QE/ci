@@ -45,6 +45,7 @@ pipeline {
             steps {
                 container('golang') {
                     sh '''
+                        git config --global --add safe.directory $(pwd)
                         git config --global --add safe.directory $(pwd)/tidb
                         git config --global --add safe.directory $(pwd)/tidb/extension/enterprise
                     '''

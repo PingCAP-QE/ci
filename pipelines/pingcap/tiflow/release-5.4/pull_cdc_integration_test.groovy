@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-5.4/pod-pull_cdc_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
@@ -24,7 +24,7 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -82,10 +82,14 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                            cd ../tiflow
+                            chmod +x ../scripts/pingcap/tiflow/release-5.4/ticdc_download_integration_test_binaries.sh
+                            ${WORKSPACE}/scripts/pingcap/tiflow/release-5.4/ticdc_download_integration_test_binaries.sh
+                            ls -alh ./bin/
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
+                            export LD_LIBRARY_PATH=\$(pwd)/bin:\$LD_LIBRARY_PATH
                             ./bin/tidb-server -V
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
@@ -95,14 +99,13 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) { 
+                        // build cdc, kafka_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
                             [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
@@ -124,8 +127,8 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
-                            'G14', 'G15', 'G16', 'G17', 'G18', 'G19', 'G20', 'G21'
+                        values 'G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6',  'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 
+                            'G14', 'G15'
                     }
                 }
                 agent{
@@ -147,8 +150,10 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
+                                        ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
+                                        chmod +x ../scripts/pingcap/tiflow/release-5.4/cdc_run_group.sh
+                                        cp ../scripts/pingcap/tiflow/release-5.4/cdc_run_group.sh tests/integration_tests/
+                                        ./tests/integration_tests/cdc_run_group.sh mysql ${TEST_GROUP}
                                     """
                                 }
                             }

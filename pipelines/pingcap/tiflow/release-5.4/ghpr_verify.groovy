@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-5.3/pod-ghpr_verify.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-5.4/pod-ghpr_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -57,7 +57,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CMD'
-                        values 'check leak_test', "build", "dm_unit_test", "unit_test"
+                        values 'check', "build", "dm_unit_test", "unit_test"
                     }
                 }
                 agent{

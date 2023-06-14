@@ -56,6 +56,8 @@ metadata:
     ci-engine: ci.pingcap.net
 '''
 
+POD_NAMESPACE = "jenkins-tidb-mergeci"
+
 def run_with_pod(Closure body) {
     def label = "tidb-e2e-tests-${BUILD_NUMBER}"
     podTemplate(label: label,

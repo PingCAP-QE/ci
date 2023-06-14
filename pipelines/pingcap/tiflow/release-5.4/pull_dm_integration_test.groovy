@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_dm_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-5.4/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
@@ -24,7 +24,7 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -84,7 +84,10 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-7.1 && ls -alh ./bin
+                            chmod +x ../scripts/pingcap/tiflow/release-5.4/dm_download_integration_test_binaries.sh
+                            cp ../scripts/pingcap/tiflow/release-5.4/dm_download_integration_test_binaries.sh ../tiflow/dm/tests/
+
+                            cd ../tiflow && ./dm/tests/dm_download_integration_test_binaries.sh && ls -alh ./bin
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
                             ./bin/tidb-server -V
@@ -94,7 +97,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
+                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) { 
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
@@ -134,7 +137,7 @@ pipeline {
                     axis {
                         name 'TEST_GROUP'
                         values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08',
-                            'G09', 'G10', 'G11', 'TLS_GROUP'                      
+                            'G09', 'G10', 'G11', 'G12', 'G13', 'TLS_GROUP'                      
                     }
                 }
                 agent{
@@ -172,6 +175,9 @@ pipeline {
                                         """
                                     }
                                     sh label: "${TEST_GROUP}", script: """
+                                        chmod +x ../scripts/pingcap/tiflow/release-5.4/dm_run_group.sh
+                                        cp ../scripts/pingcap/tiflow/release-5.4/dm_run_group.sh dm/tests/
+
                                         if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
                                             echo "run tls test"
                                             echo "copy mysql certs"
@@ -186,7 +192,11 @@ pipeline {
                                         fi
                                         export PATH=/usr/local/go/bin:\$PATH
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
-                                        make dm_integration_test_in_group GROUP="${TEST_GROUP}"
+                                        echo "install python requirments for test"
+	                                    pip install --user -q -r ./dm/tests/requirements.txt
+                                        cd dm && ln -sf ../bin . && cd ..
+                                        export PATH=${WORKSPACE}/tiflow/dm/bin:\$PATH
+                                        cd dm && ./tests/dm_run_group.sh "${TEST_GROUP}"
                                     """
                                 } 
                             }
