@@ -22,6 +22,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        CI = "1"
     }
     stages {
         stage('Debug info') {
