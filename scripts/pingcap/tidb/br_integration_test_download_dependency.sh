@@ -117,6 +117,8 @@ function main() {
     download "$brv_url" "brv4.0.8" "third_bin/brv4.0.8"
 
     chmod +x third_bin/*
+    rm -rf tmp
+    rm -rf third_bin/bin
     ls -alh third_bin/
 }
 

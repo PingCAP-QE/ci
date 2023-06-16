@@ -112,14 +112,14 @@ pipeline {
                         steps {
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
-                                    sh label: "Case ${CASES}", script: """
+                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash
                                         chmod +x ../scripts/pingcap/tidb/br-lightning_run_group.sh
                                         cp ../scripts/pingcap/tidb/br-lightning_run_group.sh br/tests/
 
-                                        mv br/tests/*  tests/
+                                        cp -r br/tests/*  tests/
                                         ls -alh bin/
-                                        tests/run_test_group.sh ${TEST_GROUP}
+                                        tests/br-lightning_run_group.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
