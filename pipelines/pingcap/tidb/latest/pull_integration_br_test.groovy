@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_br_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -61,7 +62,6 @@ pipeline {
                             ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master --ticdc=master
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
-                            ./bin/tidb-server -V
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
                             ./bin/tiflash --version
@@ -73,11 +73,10 @@ pipeline {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
-                            ls -alh ./bin
                             [ -f ./bin/tidb-server ] || make
                             [ -f ./bin/br.test ] || make build_for_br_integration_test
                             ls -alh ./bin
-                            ./bin/tidb-server version
+                            ./bin/tidb-server -V
                         """
                     }
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 

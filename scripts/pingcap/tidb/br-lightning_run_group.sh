@@ -65,5 +65,5 @@ if [[ -n $test_names ]]; then
     # lightning_examples test need mv file from examples pkg.
     # so we should overwrite the path.
     export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
-    TEST_NAME=${test_names} ${CUR}"/run.sh
+    TEST_NAME=${test_names} ${CUR}/run.sh
 fi
