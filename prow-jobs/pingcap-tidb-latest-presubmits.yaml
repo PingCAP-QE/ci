@@ -77,3 +77,12 @@ presubmits:
       rerun_command: "/test pull-integration-mysql-test"
       branches:
         - ^master$
+    - name: pingcap/tidb/pull_integration_br_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-integration-br-test
+      trigger: "(?m)^/test (?:.*? )?pull-integration-br-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-br-test"
+      branches:
+        - ^master$
