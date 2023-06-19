@@ -109,7 +109,6 @@ pipeline {
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
-                                sh 'cat `bazel --output_user_root=/home/jenkins/.tidb/tmp info output_path`/_coverage/_coverage_report.dat || true'
                             }
                         }
                         post {
@@ -120,13 +119,9 @@ pipeline {
                             }
                              success {
                                 dir("tidb") {
-                                    sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
-                                        if [ -f `bazel --output_user_root=/home/jenkins/.tidb/tmp info output_path`/_coverage/_coverage_report.dat ]; then
-                                            wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
-                                            chmod +x codecov
-                                            ./codecov --flags integration --file `bazel --output_user_root=/home/jenkins/.tidb/tmp info output_path`/_coverage/_coverage_report.dat --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
-                                        fi
-                                        """
+                                    script {
+                                        prow.uploadCoverageToCodecov(REFS, 'integration', '', true,  '--output_user_root=/home/jenkins/.tidb/tmp')
+                                    }
                                 }
                             }
                         }

@@ -68,7 +68,7 @@ pipeline {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         // FIXME: https://github.com/pingcap/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -cover -race -o bin/tidb-server ./tidb-server'
                     }
                 }
                 dir('tidb-test') {
@@ -96,7 +96,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                        options { timeout(time: 25, unit: 'MINUTES') }                        
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
@@ -107,7 +107,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh 'ls mysql_test' // if cache missed, fail it(should not miss).
                                     dir('mysql_test') {
-                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}'
+                                        sh label: "part ${PART}", script: 'GOCOVERDIR=${WORKSPACE}/tidb/coverage TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}'
                                     }
                                 }
                             }
@@ -115,6 +115,16 @@ pipeline {
                         post{
                             always {
                                 junit(testResults: "**/result.xml")
+                            }
+                            success {
+                                sh '''
+                                    go tool covdata merge -i=${WORKSPACE}/tidb/coverage -o=${WORKSPACE}/tidb/coverage_merged
+                                    # convert raw data to coverage txt format:
+                                    go tool covdata textfmt -i=${WORKSPACE}/tidb/coverage_merged -o coverage.txt
+                                '''
+                                script {
+                                    prow.uploadCoverageToCodecov(REFS, 'integration', 'coverage.txt')
+                                }
                             }
                             failure {
                                 archiveArtifacts(artifacts: 'mysql-test.out*', allowEmptyArchive: true)
