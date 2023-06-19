@@ -4,7 +4,6 @@ postsubmits:
     - name: pingcap/tidb/merged_e2e_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/e2e-test
       max_concurrency: 1
@@ -14,7 +13,6 @@ postsubmits:
     - name: pingcap/tidb/merged_common_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/common-test
       max_concurrency: 1
@@ -24,7 +22,6 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_common_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-common-test
       max_concurrency: 1
@@ -34,7 +31,6 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-ddl-test
       max_concurrency: 1
@@ -45,7 +41,6 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-jdbc-test
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       max_concurrency: 1
       skip_report: false
@@ -54,7 +49,6 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-mysql-test
       max_concurrency: 1
@@ -64,7 +58,6 @@ postsubmits:
     - name: pingcap/tidb/merged_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/sqllogic-test
       max_concurrency: 1
@@ -74,7 +67,6 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-copr-test
       max_concurrency: 1
@@ -84,7 +76,6 @@ postsubmits:
     - name: pingcap/tidb/merged_tiflash_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/tiflash-test
       max_concurrency: 1
@@ -94,7 +85,6 @@ postsubmits:
     - name: pingcap/tidb/merged_build
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/build
       max_concurrency: 1
@@ -104,7 +94,6 @@ postsubmits:
     - name: pingcap/tidb/merged_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/unit-test
       max_concurrency: 1

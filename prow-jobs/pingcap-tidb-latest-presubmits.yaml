@@ -71,7 +71,6 @@ presubmits:
     - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      run_before_merge: true
       always_run: false
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-integration-mysql-test
