@@ -12,8 +12,8 @@ set -eo pipefail
 
 # Step 1
 directories=()
-git_repo_dir=$(git rev-parse --show-toplevel)
-for d in $(find ${git_repo_dir}/br/tests/* -maxdepth 0 -type d); do
+CUR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+for d in $(find ${CUR}/* -maxdepth 0 -type d); do
     if [ -e "$d/run.sh" ]; then
         directories+=("$(basename $d)")
     fi
@@ -53,8 +53,6 @@ for ((i=0; i<${#grouped_directories[@]}; i++)); do
     echo "$group"
 done
 
-
-CUR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 test_group=$1
 group_index="${test_group:1}"
