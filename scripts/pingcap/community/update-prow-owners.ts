@@ -334,6 +334,7 @@ async function createUpdateFilePR(
   baseRef: string,
   ownersMap: Map<string, ProwOwners>,
   draft = false,
+  force = false,
 ) {
   if (ownersMap.size === 0) {
     console.debug("no need to create PR");
@@ -355,19 +356,21 @@ async function createUpdateFilePR(
     repository,
     baseRef,
   );
-  // If none OWNERS were not existed, then skip the repo.
-  if (baseOwnersMap.size === 0) {
-    console.debug(
-      `🏃 no need to create PR for repo ${owner}/${repository}:none OWNERS file existed.`,
-    );
-    return undefined;
-  }
+  if (!force) {
+    // If none OWNERS were not existed, then skip the repo.
+    if (baseOwnersMap.size === 0) {
+      console.debug(
+        `🏃 no need to create PR for repo ${owner}/${repository}:none OWNERS file existed.`,
+      );
+      return undefined;
+    }
 
-  if (!baseOwnersMap.has("/")) {
-    console.debug(
-      `🏃 no need to create PR for repo ${owner}/${repository}: no root OWNERS file`,
-    );
-    return undefined;
+    if (!baseOwnersMap.has("/")) {
+      console.debug(
+        `🏃 no need to create PR for repo ${owner}/${repository}: no root OWNERS file`,
+      );
+      return undefined;
+    }
   }
 
   // if no diff, then skip the repo.
@@ -463,9 +466,16 @@ interface cliArgs {
   owner: string;
   github_private_token: string;
   draft: boolean;
+  force: boolean; // force create owners if not existed.
+  only_repo?: {
+    repo: string;
+    branch?: string;
+  };
 }
 
-async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
+async function main(
+  { inputs, owner, github_private_token, draft, force, only_repo }: cliArgs,
+) {
   // Read the input JSON file
   const inputDatas = await Promise.all(
     Array.from(inputs).map((input) =>
@@ -494,13 +504,26 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
         return;
       }
 
+      // skip if not same with the only repo name.
+      if (only_repo && only_repo.repo !== repository) {
+        return;
+      }
+
       console.debug(`🫧 prepare update for repo: ${owner}/${repository}`);
-      // Get the default branch of the repository
-      const { data: repo } = await octokit.rest.repos.get({
-        owner,
-        repo: repository,
-      });
-      const baseRef = repo?.default_branch || "main";
+      // get the base ref for create PR.
+      const baseRef = await (async () => {
+        if (only_repo && only_repo.repo && only_repo.branch) {
+          return only_repo.branch;
+        }
+
+        // Get the default branch of the repository
+        const { data: repo } = await octokit.rest.repos.get({
+          owner,
+          repo: repository,
+        });
+        return repo?.default_branch || "main";
+      })();
+
       const pr = await createUpdateFilePR(
         octokit,
         owner,
@@ -508,6 +531,7 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
         baseRef,
         ownersMap,
         draft,
+        force,
       );
 
       if (pr) {
@@ -553,9 +577,13 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
  * --input <team membership.json path>
  * --owner <github ORG>
  * --github_private_token <github private token>
+ * --only_repo.repo  optional only repo name
+ * --only_repo.branch  optional only repo branch
+ * --force optional.
  */
 const args = flags.parse<cliArgs>(Deno.args, {
   collect: ["inputs"] as never[],
 });
+// console.debug(args);
 await main(args);
 Deno.exit(0);
