@@ -3,9 +3,9 @@ import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
 import { dirname } from "https://deno.land/std@0.190.0/path/mod.ts";
 import { Octokit } from "https://esm.sh/octokit@2.0.19";
 
-const headRef = `bot/update-owners-${Date.now()}`;
-const commitMessage = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
-const prTitle = "OWNERS: Auto Sync OWNERS files from community membership";
+const HEAD_REF = `bot/update-owners-${Date.now()}`;
+const COMMIT_MESSAGE = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
+const PR_TITLE = "OWNERS: Auto Sync OWNERS files from community membership";
 
 type CommunityMember = string | {
   name: string;
@@ -334,6 +334,7 @@ async function createUpdateFilePR(
   baseRef: string,
   ownersMap: Map<string, ProwOwners>,
   draft = false,
+  force = false,
 ) {
   if (ownersMap.size === 0) {
     console.debug("no need to create PR");
@@ -356,14 +357,7 @@ async function createUpdateFilePR(
     baseRef,
   );
   // If none OWNERS were not existed, then skip the repo.
-  if (baseOwnersMap.size === 0) {
-    console.debug(
-      `🏃 no need to create PR for repo ${owner}/${repository}:none OWNERS file existed.`,
-    );
-    return undefined;
-  }
-
-  if (!baseOwnersMap.has("/")) {
+  if (!force && !baseOwnersMap.has("/")) {
     console.debug(
       `🏃 no need to create PR for repo ${owner}/${repository}: no root OWNERS file`,
     );
@@ -382,11 +376,11 @@ async function createUpdateFilePR(
   await octokit.rest.git.createRef({
     owner,
     repo: repository,
-    ref: `refs/heads/${headRef}`,
+    ref: `refs/heads/${HEAD_REF}`,
     sha: baseSha,
   });
 
-  console.debug(`created branch in ${owner}/${repository}: ${headRef}`);
+  console.debug(`created branch in ${owner}/${repository}: ${HEAD_REF}`);
 
   await Promise.all(
     Array.from(ownersMap).map(async ([scope, owners]) => {
@@ -400,19 +394,19 @@ async function createUpdateFilePR(
         : `${scope}/OWNERS`;
 
       console.info(
-        `🫧 updating file ${filePath} for repo: ${owner}/${repository}@${headRef}`,
+        `🫧 updating file ${filePath} for repo: ${owner}/${repository}@${HEAD_REF}`,
       );
       await createOrUpdateFileContent(
         octokit,
         owner,
         repository,
         filePath,
-        commitMessage,
+        COMMIT_MESSAGE,
         yamlContent,
-        headRef,
+        HEAD_REF,
       );
       console.debug(
-        `📃 updated file ${filePath} for repo: ${owner}/${repository}@${headRef}`,
+        `📃 updated file ${filePath} for repo: ${owner}/${repository}@${HEAD_REF}`,
       );
     }),
   );
@@ -421,8 +415,8 @@ async function createUpdateFilePR(
   const { data: pr } = await octokit.rest.pulls.create({
     owner,
     repo: repository,
-    title: prTitle,
-    head: headRef,
+    title: PR_TITLE,
+    head: HEAD_REF,
     base: baseRef,
     draft,
   });
@@ -463,9 +457,16 @@ interface cliArgs {
   owner: string;
   github_private_token: string;
   draft: boolean;
+  force: boolean; // force create owners if not existed.
+  only_repo?: {
+    repo: string;
+    branch?: string;
+  };
 }
 
-async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
+async function main(
+  { inputs, owner, github_private_token, draft, force, only_repo }: cliArgs,
+) {
   // Read the input JSON file
   const inputDatas = await Promise.all(
     Array.from(inputs).map((input) =>
@@ -494,13 +495,26 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
         return;
       }
 
+      // skip if not same with the only repo name.
+      if (only_repo && only_repo.repo !== repository) {
+        return;
+      }
+
       console.debug(`🫧 prepare update for repo: ${owner}/${repository}`);
-      // Get the default branch of the repository
-      const { data: repo } = await octokit.rest.repos.get({
-        owner,
-        repo: repository,
-      });
-      const baseRef = repo?.default_branch || "main";
+      // get the base ref for create PR.
+      const baseRef = await (async () => {
+        if (only_repo && only_repo.repo && only_repo.branch) {
+          return only_repo.branch;
+        }
+
+        // Get the default branch of the repository
+        const { data: repo } = await octokit.rest.repos.get({
+          owner,
+          repo: repository,
+        });
+        return repo?.default_branch || "main";
+      })();
+
       const pr = await createUpdateFilePR(
         octokit,
         owner,
@@ -508,6 +522,7 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
         baseRef,
         ownersMap,
         draft,
+        force,
       );
 
       if (pr) {
@@ -553,9 +568,13 @@ async function main({ inputs, owner, github_private_token, draft }: cliArgs) {
  * --input <team membership.json path>
  * --owner <github ORG>
  * --github_private_token <github private token>
+ * --only_repo.repo  optional only repo name
+ * --only_repo.branch  optional only repo branch
+ * --force optional.
  */
 const args = flags.parse<cliArgs>(Deno.args, {
   collect: ["inputs"] as never[],
 });
+// console.debug(args);
 await main(args);
 Deno.exit(0);
