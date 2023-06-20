@@ -488,11 +488,3 @@ if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_
         ]
     }
 }
-
-
-
-
-
-
-
-
