@@ -75,7 +75,7 @@ if (getTargetBranch(ghprbTargetBranch)!=""){
 
 
 def TIKV_BRANCH = ghprbTargetBranch
-def TIKV_IMPORTER_BRANCH = ghprbTargetBranch
+def TIKV_IMPORTER_BRANCH = "release-5.0"
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_BRANCH = ghprbTargetBranch
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
