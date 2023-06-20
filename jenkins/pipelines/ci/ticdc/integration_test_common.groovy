@@ -405,6 +405,11 @@ def download_binaries() {
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O minio.tar.gz \${minio_url}
                 tar -xz -C third_bin -f ./minio.tar.gz
 
+                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O schema-registry.tar.gz \${schema_registry_url}
+                tar -xz -C third_bin -f schema-registry.tar.gz
+                mv third_bin/schema-registry third_bin/_schema_registry
+	            mv third_bin/_schema_registry/* third_bin && rm -rf third_bin/_schema_registry
+
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O  tiflash.tar.gz \${tiflash_url}
                 tar -xz -C third_bin -f tiflash.tar.gz
                 mv third_bin/tiflash third_bin/_tiflash
@@ -419,11 +424,6 @@ def download_binaries() {
 
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O sync_diff_inspector.tar.gz ${sync_diff_download_url}
                 tar -xz -C third_bin -f sync_diff_inspector.tar.gz
-
-                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O schema-registry.tar.gz ${schema_registry_url}
-                tar -xz -C third_bin -f schema-registry.tar.gz
-                mv third_bin/schema-registry third_bin/_schema_registry
-	            mv third_bin/_schema_registry/* third_bin && rm -rf third_bin/_schema_registry
                 
                 chmod a+x third_bin/*
                 rm -rf tmp
