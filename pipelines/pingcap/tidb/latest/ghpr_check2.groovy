@@ -112,15 +112,21 @@ pipeline {
                             }
                         }
                         post {
+                            always {
+                                dir('tidb') {
+                                    // archive test report to Jenkins.
+                                    junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                                }
+                            }
                             failure {
                                 dir("checks-collation-enabled") {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
                                 }
                             }
-                             success {
+                            success {
                                 dir("tidb") {
                                     script {
-                                        prow.uploadCoverageToCodecov(REFS, 'integration', '', true,  '--output_user_root=/home/jenkins/.tidb/tmp')
+                                        prow.uploadCoverageToCodecov(REFS, 'integration', 'test_coverage/coverage.dat')
                                     }
                                 }
                             }
