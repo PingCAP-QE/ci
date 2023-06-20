@@ -421,7 +421,7 @@ def download_binaries() {
                 tar -xz -C third_bin -f sync_diff_inspector.tar.gz
 
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O schema-registry.tar.gz ${schema_registry_url}
-                tar -xz -C third_bin -f sync_diff_inspector.tar.gz
+                tar -xz -C third_bin -f schema-registry.tar.gz
                 mv third_bin/schema-registry third_bin/_schema_registry
 	            mv third_bin/_schema_registry/* third_bin && rm -rf third_bin/_schema_registry
                 
