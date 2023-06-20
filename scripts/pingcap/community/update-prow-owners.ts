@@ -3,9 +3,9 @@ import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
 import { dirname } from "https://deno.land/std@0.190.0/path/mod.ts";
 import { Octokit } from "https://esm.sh/octokit@2.0.19";
 
-const headRef = `bot/update-owners-${Date.now()}`;
-const commitMessage = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
-const prTitle = "OWNERS: Auto Sync OWNERS files from community membership";
+const HEAD_REF = `bot/update-owners-${Date.now()}`;
+const COMMIT_MESSAGE = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
+const PR_TITLE = "OWNERS: Auto Sync OWNERS files from community membership";
 
 type CommunityMember = string | {
   name: string;
@@ -356,21 +356,12 @@ async function createUpdateFilePR(
     repository,
     baseRef,
   );
-  if (!force) {
-    // If none OWNERS were not existed, then skip the repo.
-    if (baseOwnersMap.size === 0) {
-      console.debug(
-        `🏃 no need to create PR for repo ${owner}/${repository}:none OWNERS file existed.`,
-      );
-      return undefined;
-    }
-
-    if (!baseOwnersMap.has("/")) {
-      console.debug(
-        `🏃 no need to create PR for repo ${owner}/${repository}: no root OWNERS file`,
-      );
-      return undefined;
-    }
+  // If none OWNERS were not existed, then skip the repo.
+  if (!force && !baseOwnersMap.has("/")) {
+    console.debug(
+      `🏃 no need to create PR for repo ${owner}/${repository}: no root OWNERS file`,
+    );
+    return undefined;
   }
 
   // if no diff, then skip the repo.
@@ -385,11 +376,11 @@ async function createUpdateFilePR(
   await octokit.rest.git.createRef({
     owner,
     repo: repository,
-    ref: `refs/heads/${headRef}`,
+    ref: `refs/heads/${HEAD_REF}`,
     sha: baseSha,
   });
 
-  console.debug(`created branch in ${owner}/${repository}: ${headRef}`);
+  console.debug(`created branch in ${owner}/${repository}: ${HEAD_REF}`);
 
   await Promise.all(
     Array.from(ownersMap).map(async ([scope, owners]) => {
@@ -403,19 +394,19 @@ async function createUpdateFilePR(
         : `${scope}/OWNERS`;
 
       console.info(
-        `🫧 updating file ${filePath} for repo: ${owner}/${repository}@${headRef}`,
+        `🫧 updating file ${filePath} for repo: ${owner}/${repository}@${HEAD_REF}`,
       );
       await createOrUpdateFileContent(
         octokit,
         owner,
         repository,
         filePath,
-        commitMessage,
+        COMMIT_MESSAGE,
         yamlContent,
-        headRef,
+        HEAD_REF,
       );
       console.debug(
-        `📃 updated file ${filePath} for repo: ${owner}/${repository}@${headRef}`,
+        `📃 updated file ${filePath} for repo: ${owner}/${repository}@${HEAD_REF}`,
       );
     }),
   );
@@ -424,8 +415,8 @@ async function createUpdateFilePR(
   const { data: pr } = await octokit.rest.pulls.create({
     owner,
     repo: repository,
-    title: prTitle,
-    head: headRef,
+    title: PR_TITLE,
+    head: HEAD_REF,
     base: baseRef,
     draft,
   });
