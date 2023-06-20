@@ -392,6 +392,7 @@ def download_binaries() {
                 pd_url="${pd_url}"
                 tiflash_url="${tiflash_url}"
                 minio_url="${FILE_SERVER_URL}/download/minio.tar.gz"
+                schema_registry_url="${FILE_SERVER_URL}/download/builds/pingcap/cdc/schema-registry.tar.gz"
 
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 \${tidb_url}
                 tar -xz -C ./tmp \${tidb_archive_path} -f tidb-server.tar.gz && mv tmp/bin/tidb-server third_bin/
@@ -418,6 +419,11 @@ def download_binaries() {
 
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O sync_diff_inspector.tar.gz ${sync_diff_download_url}
                 tar -xz -C third_bin -f sync_diff_inspector.tar.gz
+
+                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O schema-registry.tar.gz ${schema_registry_url}
+                tar -xz -C third_bin -f sync_diff_inspector.tar.gz
+                mv third_bin/schema-registry third_bin/_schema_registry
+	            mv third_bin/_schema_registry/* third_bin && rm -rf third_bin/_schema_registry
                 
                 chmod a+x third_bin/*
                 rm -rf tmp
