@@ -158,3 +158,36 @@ def getRestoreKeys(prefixFolder, refs, part = '') {
     }
 }
 
+def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, bazelOptions = "") {
+    // Skip for batch build.
+    if (refs.pulls && refs.pulls.size() > 1) {
+        return
+    }
+
+    final codecovGitOptions = (refs.pulls ?
+         "--branch origin/pr/${refs.pulls[0].number} --sha ${refs.pulls[0].sha} --pr ${refs.pulls[0].number}" : 
+         "--branch origin/${refs.base_ref} --sha ${refs.base_sha}"
+    )
+
+    sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
+        coverageFile=${file}
+        if [ "${bazelLCov}" == "true" ]; then
+            coverageFile="bazel_coverage.xml"
+            bazelCoverageData=`bazel ${bazelOptions} info output_path`/_coverage/_coverage_report.dat
+            if [ -f \$bazelCoverageData ]; then
+                echo "Convert bazel LCOV data to cobertura XML..."
+                wget https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+                python3 lcov_cobertura.py \$bazelCoverageData --output=\${coverageFile}
+                echo "✅ Converted bazel LCOV data to cobertura XML."
+            else
+                echo "🏃 Not found bazel LCOV data."
+            fi
+        fi
+
+        if [ -f \$coverageFile ]; then
+            wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+            chmod +x codecov
+            ./codecov --rootDir . --flags ${flags} --file \${coverageFile} ${codecovGitOptions}
+        fi
+    """
+}
