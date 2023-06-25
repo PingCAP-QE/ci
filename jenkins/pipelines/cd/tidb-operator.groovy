@@ -63,6 +63,8 @@ spec:
   - effect: NoSchedule
     key: tidb-operator
     operator: Exists
+  nodeSelector:
+    kubernetes.io/arch: amd64
 '''
 final dockerSyncYaml = '''
 apiVersion: v1

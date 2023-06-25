@@ -944,12 +944,14 @@ def run_with_arm_go_pod(Closure body) {
             break
     }
     def cloud = "kubernetes-arm64"
+    def nodeSelector = "kubernetes.io/arch=arm64"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
     def jnlp_docker_image = "jenkins/inbound-agent:4.10-3"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            nodeSelector: nodeSelector,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
