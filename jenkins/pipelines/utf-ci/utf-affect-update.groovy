@@ -2,7 +2,7 @@ def main() {
     def tag = params.TAG
     if (tag == "") {
         tag = params.BRANCH.replaceAll("/", "-")
-        if (params.FORK != "pingcap") { tag = "${params.FORK}__${tag}".toLowerCase() }
+        if (params.FORK != "PingCAP-QE") { tag = "${params.FORK}__${tag}".toLowerCase() }
     }
 
     stage("Checkout") {
