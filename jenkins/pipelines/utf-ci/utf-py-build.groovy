@@ -2,7 +2,7 @@ def main() {
     def tag = params.TAG
     if (tag == "") {
         tag = params.BRANCH.replaceAll("/", "-")
-        if (params.FORK != "pingcap") { tag = "${params.FORK}__${tag}".toLowerCase() }
+        if (params.FORK != "PingCAP-QE") { tag = "${params.FORK}__${tag}".toLowerCase() }
     }
 
     stage("Checkout") {
@@ -31,7 +31,7 @@ def main() {
             def projectDir = pwd()
             sh("""
             cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-py-base:20210225
+            FROM hub.pingcap.net/qa/utf-py-base:20210225
             WORKDIR /automated-tests
             COPY requirements.txt ./
             RUN pip install -r requirements.txt
@@ -49,13 +49,15 @@ def main() {
     stage("Image") {
         build(job: "image-build", parameters: [
             string(name: "CONTEXT_ARTIFACT", value: "$JOB_NAME:$BUILD_NUMBER:utf-python.tar.gz"),
-            string(name: "DESTINATION", value: "hub-new.pingcap.net/qa/utf-python:${tag}"),
+            string(name: "DESTINATION", value: "hub.pingcap.net/qa/utf-python:${tag}"),
         ])
     }
 }
 
 def run(label, image, Closure main) {
-    podTemplate(name: label, label: label, cloud: 'kubernetes-utf', serviceAccount: 'tidb', instanceCap: 5, idleMinutes: 60, containers: [
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, 
+    instanceCap: 5, idleMinutes: 60, nodeSelector: "kubernetes.io/arch=amd64",
+    containers: [
         containerTemplate(name: 'python', image: image, alwaysPullImage: false, ttyEnabled: true, command: 'cat'),
     ]) { node(label) { dir("automated-tests") { main() } } }
 }

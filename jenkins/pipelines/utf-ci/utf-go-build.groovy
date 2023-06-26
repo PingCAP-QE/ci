@@ -3,7 +3,7 @@ def main() {
     def tag = params.TAG
     if (tag == "") {
         tag = params.BRANCH.replaceAll("/", "-")
-        if (params.FORK != "pingcap") { tag = "${params.FORK}__${tag}".toLowerCase() }
+        if (params.FORK != "PingCAP-QE") { tag = "${params.FORK}__${tag}".toLowerCase() }
     }
 
     stage("Checkout") {
@@ -28,16 +28,43 @@ def main() {
             cd ticases/${params.SUITE}
             ${siteScript}
             go build -o ${targetName}
-            if ! `grep -q 'std\\.extVar' suite.jsonnet`; then
-                UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
-            fi
-            cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            #if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
+            #    UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
+            #fi
+            
+            if [ ${targetName} = "mysqltest" ]; then
+                cat <<EOF > Dockerfile
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
+            COPY ${targetName} /
+            COPY t /t
+            COPY r /r
+            ENTRYPOINT ["/${targetName}"]
+            EOF
+                tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile t r
+            elif [ ${targetName} = "planner_oncall_test" ]; then
+                cat <<EOF > Dockerfile
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
+            COPY ${targetName} /
+            COPY cases /cases
+            ENTRYPOINT ["/${targetName}"]
+            EOF
+                tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile cases
+            elif [ -f suite.jsonnet ]; then
+                cat <<EOF > Dockerfile
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
             COPY *.jsonnet *.libsonnet /
             COPY ${targetName} /
             ENTRYPOINT ["/${targetName}"]
             EOF
-            tar -zcf ${targetName}.tar.gz ${targetName} *.jsonnet \$(find -maxdepth 1 -name '*.libsonnet') Dockerfile
+                tar -zcf ${targetName}.tar.gz ${targetName} *.jsonnet \$(find -maxdepth 1 -name '*.libsonnet') Dockerfile
+            else
+                cat <<EOF > Dockerfile
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
+            COPY ${targetName} /
+            ENTRYPOINT ["/${targetName}"]
+            EOF
+                tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile
+            fi
             """.stripIndent())
 
             archiveArtifacts(artifacts: "ticases/${params.SUITE}/${targetName}.tar.gz")
@@ -47,17 +74,19 @@ def main() {
     stage("Image") {
         build(job: "image-build", parameters: [
             string(name: "CONTEXT_ARTIFACT", value: "$JOB_NAME:$BUILD_NUMBER:ticases/${params.SUITE}/${targetName}.tar.gz"),
-            string(name: "DESTINATION", value: "hub-new.pingcap.net/qa/utf-go-${targetName}:${tag}"),
+            string(name: "DESTINATION", value: "hub.pingcap.net/qa/utf-go-${targetName}:${tag}"),
         ])
     }
 }
 
 def run(label, image, Closure main) {
-    podTemplate(name: label, label: label, cloud: 'kubernetes-utf', serviceAccount: 'tidb', instanceCap: 5, idleMinutes: 60, containers: [
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 5, 
+    idleMinutes: 60, nodeSelector: "kubernetes.io/arch=amd64",
+    containers: [
         containerTemplate(name: 'golang', image: image, alwaysPullImage: false, ttyEnabled: true, command: 'cat'),
     ]) { node(label) { dir("automated-tests") { main() } } }
 }
 
 catchError {
-    run('utf-go-build', 'registry-mirror.pingcap.net/library/golang:1.14') { main() }
+    run('utf-go-build', 'hub.pingcap.net/chenpeng/golang:1.18') { main() }
 }
