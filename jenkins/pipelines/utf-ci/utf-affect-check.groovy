@@ -17,7 +17,7 @@ def main() {
                                     [$class: 'UserIdentity', email: 'sre-bot@pingcap.com', name: 'sre-bot']],
                 userRemoteConfigs: [[credentialsId: 'github-sre-bot',
                                     refspec: "+refs/heads/master:refs/remotes/origin/master",
-                                    url: 'https://github.com/pingcap/automated-tests.git']],
+                                    url: 'https://github.com/PingCAP-QE/automated-tests.git']],
             ]
         )
     }
@@ -35,7 +35,7 @@ def main() {
                                     [$class: 'UserIdentity', email: 'sre-bot@pingcap.com', name: 'sre-bot']],
                 userRemoteConfigs: [[credentialsId: 'github-sre-bot',
                                     refspec: "+refs/heads/main:refs/remotes/origin/main",
-                                    url: 'https://github.com/pingcap/test-plan.git']],
+                                    url: 'https://github.com/PingCAP-QE/test-plan.git']],
             ]
         )
     }

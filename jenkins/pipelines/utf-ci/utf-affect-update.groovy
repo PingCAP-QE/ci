@@ -36,5 +36,5 @@ def run(label, image, Closure main) {
 }
 
 catchError {
-    run('utf-affect-update', 'hub-new.pingcap.net/chenpeng/sync-version:latest') { main() }
+    run('utf-affect-update', 'hub.pingcap.net/chenpeng/sync-version:latest') { main() }
 }

@@ -49,7 +49,7 @@ def main() {
     stage("Image") {
         build(job: "image-build", parameters: [
             string(name: "CONTEXT_ARTIFACT", value: "$JOB_NAME:$BUILD_NUMBER:utf-python.tar.gz"),
-            string(name: "DESTINATION", value: "hub-new.pingcap.net/qa/utf-python:${tag}"),
+            string(name: "DESTINATION", value: "hub.pingcap.net/qa/utf-python:${tag}"),
         ])
     }
 }
