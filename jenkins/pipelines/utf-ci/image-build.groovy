@@ -28,12 +28,12 @@ catchError {
                 stage("Build") {
                     def dst = params.DESTINATION
                     if (!dst) {
-                        dst = sh(script: "tail -n 1 ${params.DOCKERFILE_PATH} | grep -o -e 'hub-new.pingcap.net.\\+\$'", returnStdout: true).trim()
+                        dst = sh(script: "tail -n 1 ${params.DOCKERFILE_PATH} | grep -o -e 'hub.pingcap.net.\\+\$'", returnStdout: true).trim()
                     }
                     if (!dst) {
                         error("DESTINATION is missing!")
                     }
-                    docker.withRegistry("https://hub-new.pingcap.net", "harbor-qa") {
+                    docker.withRegistry("https://hub.pingcap.net", "harbor-qa") {
                         sh("docker build -f ${params.DOCKERFILE_PATH} -t ${dst} .")
                         sh("docker push ${dst}")
                     }

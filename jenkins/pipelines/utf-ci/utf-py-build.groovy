@@ -31,7 +31,7 @@ def main() {
             def projectDir = pwd()
             sh("""
             cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-py-base:20210225
+            FROM hub.pingcap.net/qa/utf-py-base:20210225
             WORKDIR /automated-tests
             COPY requirements.txt ./
             RUN pip install -r requirements.txt

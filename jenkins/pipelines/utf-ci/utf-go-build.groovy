@@ -34,7 +34,7 @@ def main() {
             
             if [ ${targetName} = "mysqltest" ]; then
                 cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
             COPY ${targetName} /
             COPY t /t
             COPY r /r
@@ -43,7 +43,7 @@ def main() {
                 tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile t r
             elif [ ${targetName} = "planner_oncall_test" ]; then
                 cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
             COPY ${targetName} /
             COPY cases /cases
             ENTRYPOINT ["/${targetName}"]
@@ -51,7 +51,7 @@ def main() {
                 tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile cases
             elif [ -f suite.jsonnet ]; then
                 cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
             COPY *.jsonnet *.libsonnet /
             COPY ${targetName} /
             ENTRYPOINT ["/${targetName}"]
@@ -59,7 +59,7 @@ def main() {
                 tar -zcf ${targetName}.tar.gz ${targetName} *.jsonnet \$(find -maxdepth 1 -name '*.libsonnet') Dockerfile
             else
                 cat <<EOF > Dockerfile
-            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            FROM hub.pingcap.net/qa/utf-go-base:20210413
             COPY ${targetName} /
             ENTRYPOINT ["/${targetName}"]
             EOF
