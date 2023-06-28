@@ -37,7 +37,7 @@ if (checkout_name in ["planner_refactory"]) {
 
 def label = "test-tiflash-regression"
 
-podTemplate(name: label, label: label, instanceCap: 5, cloud: "kubernetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 5, containers: [
+podTemplate(name: label, label: label, instanceCap: 5, cloud: "kubernetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 5, nodeSelector: "kubernetes.io/arch=amd64", containers: [
         containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                 resourceRequestCpu: '2000m', resourceRequestMemory: '8Gi'),
         containerTemplate(name: 'tiflash-docker', image: 'hub.pingcap.net/tiflash/docker:build-essential-java',

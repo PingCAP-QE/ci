@@ -2,7 +2,7 @@
 access_token = ""
 cloud_tier = "aws"
 catchError {
-     podTemplate(name: "build_go1160-${BUILD_NUMBER}", label: "build_go1160-${BUILD_NUMBER}", instanceCap: 10, containers: [
+     podTemplate(name: "build_go1160-${BUILD_NUMBER}", label: "build_go1160-${BUILD_NUMBER}", instanceCap: 10, nodeSelector: "kubernetes.io/arch=amd64", containers: [
         containerTemplate(name: 'golang', image: 'registry-mirror.pingcap.net/library/golang:1.16', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
         containerTemplate(name: 'selenium', image: 'elgalu/selenium', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) {

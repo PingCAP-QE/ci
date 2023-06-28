@@ -66,6 +66,7 @@ def run_with_pod(Closure body) {
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

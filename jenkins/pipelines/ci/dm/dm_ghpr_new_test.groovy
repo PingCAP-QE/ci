@@ -151,6 +151,7 @@ def run_tls_source_it_test(String case_name) {
             namespace: 'jenkins-dm',
             cloud: "kubernetes-ksyun",
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -254,6 +255,7 @@ def run_single_it_test(String case_name) {
     podTemplate(label: label,
             namespace: 'jenkins-dm',
             cloud: "kubernetes-ksyun",
+            nodeSelector: "kubernetes.io/arch=amd64",
             idleMinutes: 0,
             containers: [
                     containerTemplate(

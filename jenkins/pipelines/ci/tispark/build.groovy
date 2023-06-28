@@ -11,6 +11,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
             cloud: "kubernetes-ksyun",
             namespace: "jenkins-tispark",
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'java', alwaysPullImage: true,

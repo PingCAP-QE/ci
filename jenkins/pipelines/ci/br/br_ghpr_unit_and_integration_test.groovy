@@ -245,6 +245,7 @@ def run_with_pod(Closure body) {
             yamlMergeStrategy: merge(),
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

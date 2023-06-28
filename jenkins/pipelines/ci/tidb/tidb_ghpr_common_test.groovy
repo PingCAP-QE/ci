@@ -70,6 +70,7 @@ def run_test_with_pod(Closure body) {
             cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             containers: [
@@ -100,6 +101,7 @@ def run_with_lightweight_pod(Closure body) {
             cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             containers: [
@@ -125,6 +127,7 @@ def run_test_with_java_pod(Closure body) {
             cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             containers: [
