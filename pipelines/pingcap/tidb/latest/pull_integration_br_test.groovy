@@ -58,8 +58,8 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            chmod +x ../scripts/pingcap/tidb/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master --ticdc=master
+                            chomod +x ../tidb/br/tests/*.sh
+                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
@@ -93,8 +93,9 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6',  'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 
-                            'G14', 'G15'
+                        // values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
+                        //     'G14', 'G15'
+                        values "G00", 'G01'
                     }
                 }
                 agent{
@@ -112,12 +113,8 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash
-                                        chmod +x ../scripts/pingcap/tidb/br-lightning_run_group.sh
-                                        cp ../scripts/pingcap/tidb/br-lightning_run_group.sh br/tests/
-
-                                        cp -r br/tests/*  tests/
-                                        ls -alh bin/
-                                        tests/br-lightning_run_group.sh ${TEST_GROUP}
+                                        chmod +x br/tests/*.sh
+                                        ./br/tests/run_group.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
