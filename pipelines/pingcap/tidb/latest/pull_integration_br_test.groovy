@@ -58,7 +58,7 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            chomod +x ../tidb/br/tests/*.sh
+                            chmod +x ../tidb/br/tests/*.sh
                             ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
@@ -95,7 +95,7 @@ pipeline {
                         name 'TEST_GROUP'
                         // values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
                         //     'G14', 'G15'
-                        values "G00", 'G01'
+                        values "G00", 'G10'
                     }
                 }
                 agent{
