@@ -130,6 +130,7 @@ def run_test_with_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,

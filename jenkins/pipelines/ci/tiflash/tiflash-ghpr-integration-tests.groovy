@@ -16,6 +16,7 @@ def runTest(label, name, path, tidb_branch) {
         cloud: "kubernetes-ksyun",
         namespace: "jenkins-tiflash",
         idleMinutes: 0,
+        nodeSelector: "kubernetes.io/arch=amd64",
         instanceCap: 15,
         containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
@@ -128,6 +129,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

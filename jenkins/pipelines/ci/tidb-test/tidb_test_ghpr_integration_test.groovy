@@ -52,6 +52,7 @@ def run_test_with_java_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'java', alwaysPullImage: false,
@@ -79,6 +80,7 @@ def run_test_with_ruby_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'ruby', alwaysPullImage: false,
@@ -118,6 +120,7 @@ def run_test_with_pod(Closure body) {
             cloud: cloud,
             namespace: POD_NAMESPACE,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: false,
@@ -148,6 +151,7 @@ def run_with_toolkit_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'toolkit', alwaysPullImage: true,

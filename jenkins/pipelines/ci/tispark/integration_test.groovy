@@ -114,7 +114,8 @@ groovy.lang.Closure get_mvn_str = { total_chunks ->
 
 def label = "regression-test-tispark-${BUILD_NUMBER}"
 
-podTemplate(name: label, label: label, cloud: "kubernetes-ksyun", instanceCap: 12, namespace: 'jenkins-tispark' , containers: [
+podTemplate(name: label, label: label, cloud: "kubernetes-ksyun", instanceCap: 12, namespace: 'jenkins-tispark', nodeSelector: "kubernetes.io/arch=amd64",
+    containers: [
         containerTemplate(name: 'golang', image: 'hub.pingcap.net/jenkins/centos7_golang-1.12:cached',
                 envVars: [
                         envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),

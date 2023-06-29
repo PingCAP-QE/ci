@@ -21,6 +21,7 @@ def run_with_pod(Closure body) {
     def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,namespace: POD_NAMESPACE,idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                 containerTemplate(
                     name: 'golang', alwaysPullImage: false,image: "${POD_GO_IMAGE}", ttyEnabled: true,

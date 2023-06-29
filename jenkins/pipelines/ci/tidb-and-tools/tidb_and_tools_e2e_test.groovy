@@ -9,7 +9,7 @@ def get_commit_hash = { prj, branch_or_hash ->
 
 catchError {
     def label = "${env.JOB_NAME}-${BUILD_NUMBER}"
-    podTemplate(name: label , label: label, instanceCap: 5, idleMinutes: 0, containers: [
+    podTemplate(name: label , label: label, instanceCap: 5, idleMinutes: 0, nodeSelector: "kubernetes.io/arch=amd64", containers: [
         containerTemplate(name: 'golang', image: 'hub.pingcap.net/jenkins/centos7_tpcc:test', privileged: true,
             ttyEnabled: true, command: 'cat', resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi'),
     ]) {

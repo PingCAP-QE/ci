@@ -66,7 +66,7 @@ def checkout() {
 }
 
 def runBuilderClosure(label, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,nodeSelector: "kubernetes.io/arch=amd64",
         containers: [
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
                     alwaysPullImage: true, envVars: [
@@ -239,6 +239,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

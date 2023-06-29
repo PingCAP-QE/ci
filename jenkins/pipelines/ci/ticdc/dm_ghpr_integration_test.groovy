@@ -152,6 +152,7 @@ def run_test_with_pod(Closure body) {
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             namespace: "jenkins-dm",
             containers: [
                     containerTemplate(
@@ -207,6 +208,7 @@ def run_build_with_pod(Closure body) {
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             namespace: "jenkins-dm",
             containers: [
                     containerTemplate(

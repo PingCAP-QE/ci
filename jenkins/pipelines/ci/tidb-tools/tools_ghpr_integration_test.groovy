@@ -81,6 +81,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -166,7 +167,7 @@ catchError {
         def label = "tools-integration-${BUILD_NUMBER}"
 
         tests["Integration Test"] = {
-            podTemplate(label: label, nodeSelector: "role_type=slave", containers: [
+            podTemplate(label: label, nodeSelector: "kubernetes.io/arch=amd64", containers: [
             containerTemplate(name: 'golang',alwaysPullImage: true,image: "${POD_GO_IMAGE}", ttyEnabled: true, command: 'cat'),
             containerTemplate(
                 name: 'mysql',

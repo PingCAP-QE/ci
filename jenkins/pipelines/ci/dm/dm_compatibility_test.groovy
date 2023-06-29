@@ -158,7 +158,7 @@ catchError {
     stage('Compatibility Tests') {
         def label = "test-${UUID.randomUUID().toString()}"
         podTemplate(label: label,
-                nodeSelector: 'role_type=slave',
+                nodeSelector: "kubernetes.io/arch=amd64",
                 containers: [
                         containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_DOCKER_IMAGE}", ttyEnabled: true,
                                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',

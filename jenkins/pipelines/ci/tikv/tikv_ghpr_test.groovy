@@ -67,6 +67,7 @@ def run_test_with_pod(Closure body) {
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: "rust", image: rust_image,
@@ -99,6 +100,7 @@ def run_test_with_pod_legacy(Closure body) {
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: "rust", image: rust_image,
@@ -128,6 +130,7 @@ stage("PreCheck") {
         def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
         podTemplate(name: label, label: label, 
             cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
@@ -159,6 +162,7 @@ stage("Prepare") {
         def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
         podTemplate(name: label, label: label, 
             cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
@@ -230,6 +234,7 @@ stage("Prepare") {
         def label="tikv_cached_${ghprbTargetBranch}_build_${BUILD_NUMBER}"
         podTemplate(name: label, label: label,
             cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
+            nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
@@ -607,6 +612,7 @@ stage('Post-test') {
     def label="${JOB_NAME}_post_test_${BUILD_NUMBER}"
     podTemplate(name: label, label: label, 
         cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+        nodeSelector: "kubernetes.io/arch=amd64",
         yaml: podYAML, yamlMergeStrategy: merge(),
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
