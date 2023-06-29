@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_br_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_br_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -70,7 +70,12 @@ pipeline {
                 }
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                        sh label: "check all test added to group", script: """
+                            #!/usr/bin/env bash
+                            chmod +x br/tests/*.sh
+                            ./br/tests/run_group.sh others
+                        """
+                        // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             [ -f ./bin/tidb-server ] || make
