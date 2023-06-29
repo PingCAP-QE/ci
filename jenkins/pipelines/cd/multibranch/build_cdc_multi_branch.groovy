@@ -187,11 +187,6 @@ def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_
 def os = "linux"
 def arch = "amd64"
 
-def isHotfix = false
-if ( env.BRANCH_NAME.startsWith("v") &&  env.BRANCH_NAME =~ ".*-202.*") {
-    isHotfix = true
-}
-
 def release_one(repo,hash) {
     def binary = "builds/pingcap/test/${env.BRANCH_NAME}/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
     echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
