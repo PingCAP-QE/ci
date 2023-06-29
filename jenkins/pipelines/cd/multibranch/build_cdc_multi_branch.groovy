@@ -187,11 +187,6 @@ def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_
 def os = "linux"
 def arch = "amd64"
 
-def isHotfix = false
-if ( env.BRANCH_NAME.startsWith("v") &&  env.BRANCH_NAME =~ ".*-202.*") {
-    isHotfix = true
-}
-
 def release_one(repo,hash) {
     def binary = "builds/pingcap/test/${env.BRANCH_NAME}/${repo}/${hash}/centos7/${repo}-linux-arm64.tar.gz"
     echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
@@ -274,6 +269,8 @@ try {
             dir(build_path) {
                 def target = "tiflow-${os}-${arch}"
                 def refspath = "refs/pingcap/tiflow/${env.BRANCH_NAME}/sha1"
+                def refspath_cdc = "refs/pingcap/ticdc/${env.BRANCH_NAME}/sha1"
+                def filepath_cdc = "builds/pingcap/ticdc/${githash}/centos7/ticdc-linux-amd64.tar.gz"
                 def filepath = "builds/pingcap/tiflow/${env.BRANCH_NAME}/${githash}/centos7/${target}.tar.gz"
                 def filepath2 = "builds/pingcap/tiflow/${githash}/centos7/${target}.tar.gz"
                 def patch_path = "builds/pingcap/tiflow/patch/${env.BRANCH_NAME}/${githash}/centos7/${target}.tar.gz"
@@ -281,23 +278,20 @@ try {
                     timeout(10) {
                         sh """
                         echo "${githash}" > sha1
-                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
                         mkdir -p ${target}/bin
-                        #mv bin/cdc ${target}/bin/
-                        #tar -czvf ${target}.tar.gz ${target}
                         tar -czvf ${target}.tar.gz bin
                         curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
+
+                        # old br integration test ci pipelines need this
+                        mkdir -p ticdc-linux-amd64/bin && cp bin/cdc ticdc-linux-amd64/bin/
+                        tar -czvf ticdc-linux-amd64.tar.gz ticdc-linux-amd64
+                        curl -F ${filepath_cdc}=@ticdc-linux-amd64.tar.gz ${FILE_SERVER_URL}/upload
+                        curl -F ${refspath_cdc}=@sha1 ${FILE_SERVER_URL}/upload
                         """
                     }
                     release_one("tiflow","${githash}")
-                    if (isHotfix) {
-                        release_tiup_patch(filepath, "cdc", patch_path)
-                        def arm_path = "builds/pingcap/test/${env.BRANCH_NAME}/tiflow/${githash}/centos7/tiflow-linux-arm64.tar.gz"
-                        def arm_patch_path = "builds/pingcap/tiflow/patch/${env.BRANCH_NAME}/${githash}/centos7/tiflow-linux-arm64.tar.gz"
-                        release_tiup_patch(arm_path, "cdc", arm_patch_path)
-                        release_docker_image("ticdc", filepath,env.BRANCH_NAME)
-                    }
                 }
             }
         }
