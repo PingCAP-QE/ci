@@ -70,7 +70,7 @@ pipeline {
                 }
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all test added to group", script: """
+                        sh label: "check all tests added to group", script: """
                             #!/usr/bin/env bash
                             chmod +x br/tests/*.sh
                             ./br/tests/run_group.sh others
