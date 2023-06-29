@@ -34,6 +34,8 @@ presubmits:
         containers:
           - name: main
             image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
+            securityContext:
+              runAsUser: 0 # the default user or the image is not root.
             command: [flux, -n, apps]
             args:
               - build
