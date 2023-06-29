@@ -84,13 +84,13 @@ presubmits:
             image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
-            command: [flux, -n, apps]
+            command: [flux, -n, flux-system]
             args:
               - build
               - kustomization 
               - prow-configs
               - --path=prow
-              - --kustomization-file=../ee-ops/apps/gcp/prow/pre/prow-configs.yaml
+              - --kustomization-file=../../PingCAP-QE/ee-ops/apps/gcp/prow/pre/prow-configs.yaml
               - --dry-run
             resources:
               limits:
@@ -112,13 +112,13 @@ presubmits:
             image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
-            command: [flux, -n, apps]
+            command: [flux, -n, flux-system]
             args:
               - build
               - kustomization 
               - prow-post-cronjobs-community
               - --path=prow/cronjobs
-              - --kustomization-file=../ee-ops/apps/gcp/prow/post/cronjobs-community.yaml
+              - --kustomization-file=../../PingCAP-QE/ee-ops/apps/gcp/prow/post/cronjobs-community.yaml
               - --dry-run
             resources:
               limits:
