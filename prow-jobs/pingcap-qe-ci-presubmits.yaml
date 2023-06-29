@@ -48,14 +48,3 @@ presubmits:
               limits:
                 memory: 256Mi
                 cpu: 200m
-          - name: xxx
-            image: debian
-            command: [bash, -c]
-            args:
-              - |
-                ls /home/prow/go
-                pwd
-                ls -l
-                ls -l /home/prow/go/src/github.com/
-                ls -l /home/prow/go/src/github.com/PingCAP-QE
-                ls -l /home/prow/go/src/github.com/PingCAP-QE/ee-ops
