@@ -70,7 +70,7 @@ presubmits:
     - name: pingcap/tidb-test/ghpr_integration_prisma_test
       agent: jenkins
       decorate: false # need add this.
-      run_if_changed: "(prisma_test)/.*"
+      always_run: false
       context: wip/integration-prisma-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-prisma-test(?: .*?)?$"
