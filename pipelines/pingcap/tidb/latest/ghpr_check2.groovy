@@ -17,7 +17,7 @@ pipeline {
         }
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 30, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
@@ -72,41 +72,6 @@ pipeline {
                 }
             }
         }
-        stage('importintotest') {
-            stages {
-                stage('Test')  {
-                    environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                    options { timeout(time: 30, unit: 'MINUTES') }
-                    steps {
-                        dir('tidb') {
-                            sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                            sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
-                            sh "${WORKSPACE}/scripts/pingcap/tidb/run_real_tikv_tests.sh bazel_importintotest"
-                        }
-                    }
-                    post {
-                        always {
-                            dir('tidb') {
-                                // archive test report to Jenkins.
-                                junit(testResults: "**/bazel.xml", allowEmptyResults: true)
-                            }
-                        }
-                        failure {
-                            dir("checks-collation-enabled") {
-                                archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
-                            }
-                        }
-                        success {
-                            dir("tidb") {
-                                script {
-                                    prow.uploadCoverageToCodecov(REFS, 'integration', 'test_coverage/coverage.dat')
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         stage('Checks') {
             matrix {
                 axes {
@@ -121,6 +86,7 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_statisticstest',
                             'run_real_tikv_tests.sh bazel_txntest',
                             'run_real_tikv_tests.sh bazel_addindextest',
+                            'run_real_tikv_tests.sh bazel_importintotest',
                         )
                     }
                 }
