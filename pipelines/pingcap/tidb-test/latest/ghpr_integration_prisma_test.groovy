@@ -88,7 +88,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'prisma_test ./test.sh',
+                        values 'prisma_test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
