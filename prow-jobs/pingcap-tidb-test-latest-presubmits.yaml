@@ -67,3 +67,13 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb-test/ghpr_integration_prisma_test
+      agent: jenkins
+      decorate: false # need add this.
+      run_if_changed: "(prisma_test)/.*"
+      context: wip/integration-prisma-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?integration-prisma-test(?: .*?)?$"
+      rerun_command: "/test integration-prisma-test"
+      branches:
+        - ^master$
