@@ -41,6 +41,7 @@ def run_with_pod(Closure body) {
                         name: 'golang', alwaysPullImage: true,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        resourceLimitCpu: '12000m', resourceLimitMemory: "16Gi",
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
@@ -69,8 +70,6 @@ run_with_pod {
     dir("${ws}/go/src/github.com/pingcap/tidb-binlog") {
         stage("Prepare"){
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
-
                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                     deleteDir()
                 }
@@ -105,19 +104,5 @@ run_with_pod {
         }
 
         currentBuild.result = "SUCCESS"
-    }
-
-    stage('Summary') {
-        def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
-        def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
-                "${ghprbPullLink}" + "\n" +
-                "${ghprbPullDescription}" + "\n" +
-                "Build Result: `${currentBuild.result}`" + "\n" +
-                "Elapsed Time: `${duration} mins` " + "\n" +
-                "${env.RUN_DISPLAY_URL}"
-
-        if (currentBuild.result != "SUCCESS") {
-            slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
-        }
     }
 }
