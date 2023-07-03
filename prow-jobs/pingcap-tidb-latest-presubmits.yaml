@@ -82,7 +82,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-br-integration-test
+      context: pull-br-integration-test
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
       branches:
