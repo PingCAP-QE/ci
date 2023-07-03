@@ -1,0 +1,105 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: wip-pull-verify
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: wip/pull-verify
+      branches:
+        - ^master$
+        - ^feature[_/].+
+      spec:
+        containers:
+          - name: check
+            image: &image hub.pingcap.net/ee/ci/base:v20230629-go1.20.5
+            command: &command [bash, -ce]
+            args:
+              - |
+                make check
+            env: &env
+              - name: GO_PROXY
+                value: http://goproxy.pingcap.net,direct
+              - name: GOMODCACHE
+                value: /share/go/pkg/mod
+              - name: GOCACHE
+                value: /share/.cache/go-build
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-token
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
+              - name: TICDC_CODECOV_TOKEN 
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-token
+                    key: pingcap-tiflow # format <ORG>-<REPO>              
+            volumeMounts: &volumeMounts
+              - name: go-cache
+                mountPath: /share/.cache/go-build
+              - name: gomod-cache
+                mountPath: /share/go/pkg/mod
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "4"
+              limits:
+                memory: 16Gi
+                cpu: "6"
+          - name:  build
+            image: *image
+            command: *command
+            args:
+              - |
+                make build
+            env: *env
+            volumeMounts: *volumeMounts
+            resources: *resources
+          - name:  dm-unit-test
+            image: *image
+            command: *command
+            args:
+              - |
+                make dm_unit_test_in_verify_ci
+                codecov -Z --flags unit -f /tmp/dm_test/cov.unit.out \
+                  --pr ${PULL_NUMBER} \
+                  --sha ${PULL_PULL_SHA} \
+                  --branch ${PULL_HEAD_REF}
+            env: *env
+            volumeMounts: *volumeMounts
+            resources: *resources
+          - name: cdc-unit-test
+            image: *image
+            command: *command
+            args:
+              - |
+                make unit_test_in_verify_ci
+                codecov -Z --flags unit -f /tmp/tidb_cdc_test/cov.unit.out \
+                  --pr ${PULL_NUMBER} \
+                  --sha ${PULL_PULL_SHA} \
+                  --branch ${PULL_HEAD_REF}
+            env: *env
+            volumeMounts: *volumeMounts
+            resources: *resources
+          - name:  engine-unit-test
+            image: *image
+            command: *command
+            args:
+              - |
+                make engine_unit_test_in_verify_ci
+                codecov -Z --flags unit -f /tmp/engine_test/cov.unit.out \
+                  --pr ${PULL_NUMBER} \
+                  --sha ${PULL_PULL_SHA} \
+                  --branch ${PULL_HEAD_REF}
+            env: *env
+            volumeMounts: *volumeMounts
+            resources: *resources
+        volumes:
+          - name: go-cache
+            persistentVolumeClaim:
+              claimName: go-cache
+          - name: gomod-cache
+            persistentVolumeClaim:
+              claimName: gomod-cache
