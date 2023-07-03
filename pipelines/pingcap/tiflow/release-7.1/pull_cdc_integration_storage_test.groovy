@@ -157,8 +157,8 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log") || true
+                                    ls -alh  log-${TEST_GROUP}.tar.gz || true
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
