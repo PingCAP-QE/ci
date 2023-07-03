@@ -123,6 +123,9 @@ pipeline {
                                         sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """
                                             #!/usr/bin/env bash
                                             cd sqllogic_test/
+                                            env
+                                            ulimit -n
+                                            sed -i '3i\\set -x' test.sh
                                             path_array=(${TEST_PATH_STRING})
                                             for path in \${path_array[@]}; do
                                                 echo "test path: \${path}"
@@ -167,7 +170,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_sqllogic_test/rev-${BUILD_TAG}") {
+                                cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'   
                                 }
                             }
