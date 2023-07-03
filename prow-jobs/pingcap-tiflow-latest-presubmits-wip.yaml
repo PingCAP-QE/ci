@@ -17,6 +17,7 @@ presubmits:
             command: &command [bash, -ce]
             args:
               - |
+                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make check
             env: &env
               - name: GO_PROXY
@@ -53,6 +54,7 @@ presubmits:
             command: *command
             args:
               - |
+                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make build
             env: *env
             volumeMounts: *volumeMounts
@@ -62,6 +64,7 @@ presubmits:
             command: *command
             args:
               - |
+                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make dm_unit_test_in_verify_ci
                 codecov -Z --flags unit -f /tmp/dm_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
@@ -75,6 +78,7 @@ presubmits:
             command: *command
             args:
               - |
+                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make unit_test_in_verify_ci
                 codecov -Z --flags unit -f /tmp/tidb_cdc_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
@@ -88,6 +92,7 @@ presubmits:
             command: *command
             args:
               - |
+                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make engine_unit_test_in_verify_ci
                 codecov -Z --flags unit -f /tmp/engine_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
