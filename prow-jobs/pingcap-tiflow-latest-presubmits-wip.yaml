@@ -1,12 +1,11 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tiflow:
-    - name: wip-pull-verify
+    - name: wip-pull-check
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: wip/pull-verify
       branches:
         - ^master$
         - ^feature[_/].+
@@ -17,7 +16,6 @@ presubmits:
             command: &command [bash, -ce]
             args:
               - |
-                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make check
             env: &env
               - name: GO_PROXY
@@ -49,22 +47,48 @@ presubmits:
               limits:
                 memory: 16Gi
                 cpu: "6"
-          - name:  build
+        volumes: &volumes
+          - name: go-cache
+            persistentVolumeClaim:
+              claimName: go-cache
+          - name: gomod-cache
+            persistentVolumeClaim:
+              claimName: gomod-cache                
+    - name: wip-pull-build
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+        - ^feature[_/].+
+      spec:
+        containers:                
+          - name: build
             image: *image
             command: *command
             args:
               - |
-                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make build
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
-          - name:  dm-unit-test
+        volumes: *volumes
+    - name: wip-pull-unit-test-dm
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+        - ^feature[_/].+
+      spec:
+        containers:
+          - name: dm-unit-test
             image: *image
             command: *command
             args:
               - |
-                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make dm_unit_test_in_verify_ci
                 codecov -Z --flags unit -f /tmp/dm_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
@@ -73,12 +97,22 @@ presubmits:
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
+        volumes: *volumes
+    - name: wip-pull-unit-test-cdc
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+        - ^feature[_/].+
+      spec:
+        containers:
           - name: cdc-unit-test
             image: *image
             command: *command
             args:
               - |
-                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make unit_test_in_verify_ci
                 codecov -Z --flags unit -f /tmp/tidb_cdc_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
@@ -87,12 +121,22 @@ presubmits:
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
-          - name:  engine-unit-test
+        volumes: *volumes
+    - name: wip-pull-unit-test-engine
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+        - ^feature[_/].+
+      spec:
+        containers:
+          - name: engine-unit-test
             image: *image
             command: *command
             args:
               - |
-                cp -Ra . ../$(hostname) && cd ../$(hostname)
                 make engine_unit_test_in_verify_ci
                 codecov -Z --flags unit -f /tmp/engine_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
@@ -101,10 +145,4 @@ presubmits:
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
-        volumes:
-          - name: go-cache
-            persistentVolumeClaim:
-              claimName: go-cache
-          - name: gomod-cache
-            persistentVolumeClaim:
-              claimName: gomod-cache
+        volumes: *volumes
