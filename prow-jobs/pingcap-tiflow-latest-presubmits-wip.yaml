@@ -90,10 +90,10 @@ presubmits:
             args:
               - |
                 make dm_unit_test_in_verify_ci
-                codecov -Z --flags unit -f /tmp/dm_test/cov.unit.out \
+                codecov -Z --flags unit,dm -f /tmp/dm_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
                   --sha ${PULL_PULL_SHA} \
-                  --branch ${PULL_HEAD_REF}
+                  --branch origin/pr/{PULL_NUMBER}
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
@@ -114,10 +114,10 @@ presubmits:
             args:
               - |
                 make unit_test_in_verify_ci
-                codecov -Z --flags unit -f /tmp/tidb_cdc_test/cov.unit.out \
+                codecov -Z --flags unit,cdc -f /tmp/tidb_cdc_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
                   --sha ${PULL_PULL_SHA} \
-                  --branch ${PULL_HEAD_REF}
+                  --branch origin/pr/{PULL_NUMBER}
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
@@ -138,10 +138,10 @@ presubmits:
             args:
               - |
                 make engine_unit_test_in_verify_ci
-                codecov -Z --flags unit -f /tmp/engine_test/cov.unit.out \
+                codecov -Z --flags unit,engine -f /tmp/engine_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
                   --sha ${PULL_PULL_SHA} \
-                  --branch ${PULL_HEAD_REF}
+                  --branch origin/pr/{PULL_NUMBER}
             env: *env
             volumeMounts: *volumeMounts
             resources: *resources
