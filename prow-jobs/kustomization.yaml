@@ -11,6 +11,7 @@ configMapGenerator:
       - pingcap-inc-enterprise-extensions-presubmits.yaml
       - pingcap-qe-ci-presubmits.yaml
       - pingcap-tidb-latest-postsubmits.yaml
+      - pingcap-tidb-latest-presubmits-canary.yaml
       - pingcap-tidb-latest-presubmits.yaml
       - pingcap-tidb-release-6.1-presubmits.yaml
       - pingcap-tidb-release-6.2-presubmits.yaml
