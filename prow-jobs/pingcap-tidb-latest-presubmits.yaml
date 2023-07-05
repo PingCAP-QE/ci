@@ -83,6 +83,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: pull-integration-copr-test
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
       branches:
@@ -92,6 +93,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: pull-integration-jdbc-test
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
       branches:
@@ -101,8 +103,9 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: pull-e2e-test
+      skip_report: true
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-mysql-test"
+      rerun_command: "/test pull-e2e-test"
     - name: pingcap/tidb/pull_br_integration_test
       agent: jenkins
       decorate: false # need add this.
