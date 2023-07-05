@@ -108,3 +108,11 @@ postsubmits:
       skip_report: false
       branches:
         - ^master$
+    - name: pingcap/tidb/merged_integration_prisma_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/integration-prisma-test
+      max_concurrency: 1
+      skip_report: true
+      branches:
+        - ^master$
