@@ -3,7 +3,7 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb-mergeci"
+final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_copr_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -72,6 +72,10 @@ pipeline {
                             ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
+                            chmod +x bin/*
+                            ./bin/tidb-server -V
+                            ./bin/tikv-server -V
+                            ./bin/pd-server -V
                             """
                         }
                     }
@@ -82,17 +86,19 @@ pipeline {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
+                    sh label: 'check version', script: """
+                    ./bin/tidb-server -V
+                    ./bin/tikv-server -V
+                    ./bin/pd-server -V
+                    """
                 }
                 dir('tikv-copr-test') {
                     sh label: "Push Down Test", script: """
-                        #!/usr/bin/env bash
-                        pd_bin=${WORKSPACE}/tidb/bin/pd-server \
-                        tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
-                        tidb_src_dir=${WORKSPACE}/tidb \
-                        make push-down-test
+                    #!/usr/bin/env bash
+                    pd_bin=${WORKSPACE}/tidb/bin/pd-server \
+                    tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
+                    tidb_src_dir=${WORKSPACE}/tidb \
+                    make push-down-test
                     """
                 }
             }               
