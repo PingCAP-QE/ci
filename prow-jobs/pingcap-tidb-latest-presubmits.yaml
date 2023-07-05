@@ -84,6 +84,7 @@ presubmits:
       always_run: false
       context: pull-br-integration-test
       run_if_changed: "^br/.*$"
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"      
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
       branches:
