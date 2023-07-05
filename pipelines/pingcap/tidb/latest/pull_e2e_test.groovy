@@ -66,9 +66,11 @@ pipeline {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
+                    sh label: "check version", script: """
+                    ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
+                    ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                    ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
+                    """
                     sh label: 'test graceshutdown', script: """
                     cd tests/graceshutdown && make
                     ./run-tests.sh
