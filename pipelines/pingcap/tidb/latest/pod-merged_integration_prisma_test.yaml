@@ -4,7 +4,7 @@ spec:
   securityContext:
     fsGroup: 1000
   containers:
-    - name: python
+    - name: nodejs
       image: "hub.pingcap.net/jenkins/centos7_golang-1.16_nodejs-16.x:latest"
       tty: true
       resources:
