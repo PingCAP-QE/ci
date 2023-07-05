@@ -77,3 +77,13 @@ presubmits:
       rerun_command: "/test integration-prisma-test"
       branches:
         - ^master$
+    - name: pingcap/tidb-test/ghpr_integration_sequelize_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/integration-sequelize-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?integration-sequelize-test(?: .*?)?$"
+      rerun_command: "/test integration-sequelize-test"
+      branches:
+        - ^master$
