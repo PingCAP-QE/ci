@@ -167,6 +167,7 @@ def run_with_pod(Closure body) {
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -284,6 +285,7 @@ catchError {
                 yaml: podYAML,
                 yamlMergeStrategy: merge(),
                 idleMinutes: 0,
+                nodeSelector: "kubernetes.io/arch=amd64",
                 namespace: "jenkins-dm",
                 containers: [
                         containerTemplate(name: 'golang',alwaysPullImage: true, image: "${POD_GO_IMAGE}", ttyEnabled: true,

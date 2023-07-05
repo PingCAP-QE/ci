@@ -19,6 +19,7 @@ pipeline {
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
+        CI = "1"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')

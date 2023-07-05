@@ -22,6 +22,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        CI = "1"
     }
     stages {
         stage('Debug info') {
@@ -85,7 +86,7 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_statisticstest',
                             'run_real_tikv_tests.sh bazel_txntest',
                             'run_real_tikv_tests.sh bazel_addindextest',
-                            'run_real_tikv_tests.sh bazel_loaddatatest',
+                            'run_real_tikv_tests.sh bazel_importintotest',
                         )
                     }
                 }
@@ -98,6 +99,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
@@ -110,9 +112,22 @@ pipeline {
                             }
                         }
                         post {
+                            always {
+                                dir('tidb') {
+                                    // archive test report to Jenkins.
+                                    junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                                }
+                            }
                             failure {
                                 dir("checks-collation-enabled") {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
+                                }
+                            }
+                            success {
+                                dir("tidb") {
+                                    script {
+                                        prow.uploadCoverageToCodecov(REFS, 'integration', 'test_coverage/coverage.dat')
+                                    }
                                 }
                             }
                         }

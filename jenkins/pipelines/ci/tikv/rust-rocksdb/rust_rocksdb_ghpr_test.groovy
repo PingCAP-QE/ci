@@ -15,6 +15,7 @@ def run_with_x86_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'rust', alwaysPullImage: true,

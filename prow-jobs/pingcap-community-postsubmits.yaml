@@ -8,34 +8,28 @@ postsubmits:
       branches:
         - master
       spec:
-        init-containers:
-          - name: git
-            image: alpine/git
-            command: [sh, -c]
-            args: 
-              - |
-                git diff --name-only HEAD~1 HEAD | grep membership.json > /pr-changed/files
-            volumeMounts:
-              - mountPath: /pr-changed
-                name: pr-changed
         containers:
           - name: main
             image: denoland/deno:1.32.2
-            command: [bash, -c]
+            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts]
             args:
-              - |
-                cat /pr-changed/files | xargs -I {} deno run --allow-all \
-                  https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts \
-                  --input {} --owner pingcap --github_private_token $(GITHUB_API_TOKEN)
+              - --owner=pingcap
+              - --github_private_token=$(GITHUB_API_TOKEN)
+              - --inputs=teams/diagnostic/membership.json
+              - --inputs=teams/docs/membership.json
+              - --inputs=teams/tiunimanager/membership.json
+              - --inputs=teams/tidb/membership.json
+              - --inputs=teams/tiflash/membership.json
+              - --inputs=teams/tiup/membership.json
+              - --inputs=teams/kubernetes/membership.json
+              - --inputs=teams/migration/membership.json
+              - --inputs=teams/bigdata/membership.json
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
                   secretKeyRef:
                     key: token
                     name: github-token
-            volumeMounts:
-              - mountPath: /pr-changed
-                name: pr-changed 
             resources:
               limits:
                 cpu: "1"
@@ -43,6 +37,3 @@ postsubmits:
               requests:
                 cpu: "1"
                 memory: 1Gi
-        volumes:
-          - name: pr-changed
-            emptyDir: {}

@@ -77,8 +77,13 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
         fi
         
         artifactUrl="${serverUrl}/download/builds/pingcap/${keyInComment}/\${sha1}/${artifactPath}"
-        echo "📦 artifact url: \${artifactUrl}"
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O - "\${artifactUrl}" | tar xz ${pathInArchive}
+        echo "⬇️📦 artifact url: \${artifactUrl}"
+        saveFile=\$(basename \${artifactUrl})
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -c -O \${saveFile} \${artifactUrl}
+        echo "📂 extract ${pathInArchive} from \${saveFile} ..."
+        tar -xzf \${saveFile} ${pathInArchive}
+        rm \${saveFile}
+        echo "✅ extracted ${pathInArchive} from \${saveFile} ."
     """)
 }
 

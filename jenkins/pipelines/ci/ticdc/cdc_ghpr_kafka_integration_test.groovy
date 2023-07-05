@@ -20,11 +20,11 @@ if (ghprbPullId == null || ghprbPullId == "") {
 GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/wulifu/golang-tini:1.13",
-    "go1.16": "hub.pingcap.net/wulifu/golang-tini:1.16",
-    "go1.18": "hub.pingcap.net/wulifu/golang-tini:1.18",
-    "go1.19": "hub.pingcap.net/wulifu/golang-tini:1.19",
-    "go1.20": "hub.pingcap.net/wulifu/golang-tini:1.20",
+    "go1.13": "hub.pingcap.net/jenkins/golang-tini:1.13",
+    "go1.16": "hub.pingcap.net/jenkins/golang-tini:1.16",
+    "go1.18": "hub.pingcap.net/jenkins/golang-tini:1.18",
+    "go1.19": "hub.pingcap.net/jenkins/golang-tini:1.19",
+    "go1.20": "hub.pingcap.net/jenkins/golang-tini:1.20",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
@@ -181,6 +181,7 @@ def run_with_pod(Closure body) {
             yaml: podYAML,
             yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -358,6 +359,7 @@ catchError {
                     yaml: podYAML,
                     yamlMergeStrategy: merge(),
                     idleMinutes: 0,
+                    nodeSelector: "kubernetes.io/arch=amd64",
                     namespace: "jenkins-tiflow",
                     containers: [
                             containerTemplate(name: 'golang', alwaysPullImage: true, image: "${POD_GO_IMAGE}",
@@ -488,11 +490,3 @@ if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_
         ]
     }
 }
-
-
-
-
-
-
-
-

@@ -294,6 +294,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -337,8 +338,8 @@ node("build_go1130") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
                 if (RELEASE_TAG == "nightly") {
-                    tag = "v7.2.0-alpha"
-                    RELEASE_TAG = "v7.2.0-alpha"
+                    tag = "v7.3.0-alpha"
+                    RELEASE_TAG = "v7.3.0-alpha"
                 } else {
                     tag = RELEASE_TAG
                 }
@@ -388,7 +389,7 @@ node("build_go1130") {
                 println "tiflash_sha1: ${tiflash_sha1}"
             }
 
-            if (RELEASE_TAG == "v7.2.0-alpha") {
+            if (RELEASE_TAG == "v7.3.0-alpha") {
                 stage("Get version info when nightly") {
                     dir("tidb") {
                         // sh"""
@@ -396,7 +397,7 @@ node("build_go1130") {
                         // tar xf tidb-server.tar.gz
                         // """
                         // tidb_version = sh(returnStdout: true, script: "./bin/tidb-server -V | awk 'NR==1{print \$NF}' | sed -r 's/(^[^-]*).*/\\1/'").trim()
-                        tidb_version = "v7.2.0-alpha"
+                        tidb_version = "v7.3.0-alpha"
                         time = sh(returnStdout: true, script: "date '+%Y%m%d'").trim()
                         tidb_version = "${tidb_version}-nightly-${time}"
                         RELEASE_BRANCH = "master"

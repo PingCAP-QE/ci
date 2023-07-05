@@ -24,7 +24,7 @@ pipelineJob('cdc_ghpr_leak_test') {
                     orgslist("pingcap")
                     whiteListTargetBranches {
                         ghprbBranch { branch('^(release-)?4\\.\\d+(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?[5]\\.[0-3](\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[5]\\.[0-2](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
