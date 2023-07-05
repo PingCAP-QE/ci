@@ -3,7 +3,7 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb-mergeci"
+final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_jdbc_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -21,7 +21,7 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -72,6 +72,10 @@ pipeline {
                                 ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                                 mv third_bin/* bin/
                                 ls -alh bin/
+                                chmod +x bin/*
+                                ./bin/tidb-server -V
+                                ./bin/tikv-server -V
+                                ./bin/pd-server -V
                             """
                         }
                     }

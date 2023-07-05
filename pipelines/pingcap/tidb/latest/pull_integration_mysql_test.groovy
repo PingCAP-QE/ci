@@ -23,7 +23,7 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -74,6 +74,10 @@ pipeline {
                             ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
+                            chmod +x bin/*
+                            ./bin/tidb-server -V
+                            ./bin/tikv-server -V
+                            ./bin/pd-server -V
                             """
                         }
                     }
@@ -114,9 +118,11 @@ pipeline {
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_mysql_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
+                                    sh label: 'print version', script: """
+                                        ./bin/tidb-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/pd-server -V
+                                    """
                                 }
                             }
                             dir('tidb-test') {
