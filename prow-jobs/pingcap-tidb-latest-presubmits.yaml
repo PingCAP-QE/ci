@@ -83,6 +83,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: pull-br-integration-test
+      run_if_changed: "^br/.*$"
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
       branches:
