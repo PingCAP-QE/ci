@@ -13,7 +13,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'nodejs'
+            defaultContainer 'golang'
         }
     }
     environment {
@@ -64,7 +64,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_prisma_test/rev-${BUILD_TAG}") {
-                        container("nodejs") {
+                        container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
@@ -91,7 +91,7 @@ pipeline {
                     }
                     axis {
                         name 'TEST_STORE'
-                        values "unistore"
+                        values "tikv"
                     }
                 }
                 agent{
