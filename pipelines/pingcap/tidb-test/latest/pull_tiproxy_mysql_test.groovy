@@ -121,7 +121,7 @@ pipeline {
                                             MAKE_ARGS+=" -c"
                                         fi
                                         MAKE_ARGS+=" -p ${PART}"
-                                        make deploy-mysqltest ARGS="${MAKE_ARGS}"
+                                        make deploy-mysqltest ARGS="\${MAKE_ARGS}"
                                     """
                                 }
                             }
