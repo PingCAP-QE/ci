@@ -4,7 +4,6 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       skip_report: false
@@ -15,7 +14,6 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       skip_report: false
@@ -26,7 +24,6 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       skip_report: false
@@ -37,7 +34,6 @@ presubmits:
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-compatibility-test
       skip_report: false
@@ -48,7 +44,6 @@ presubmits:
     - name: pingcap/tiflow/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-integration-test
       skip_report: false
@@ -59,7 +54,6 @@ presubmits:
     - name: pingcap/tiflow/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-engine-integration-test
       skip_report: false
@@ -70,7 +64,7 @@ presubmits:
     - name: pingcap/tiflow/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      always_run: true
       context: jenkins-ticdc/verify 
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
