@@ -114,11 +114,11 @@ pipeline {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED},TEST_STORE ${TEST_STORE}", script: """
                                         #!/usr/bin/env bash
                                         MAKE_ARGS="-b -x "
-                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                            MAKE_ARGS+="-s tikv"
-                                        fi
                                         if [[ "${CACHE_ENABLED}" == "1" ]]; then
                                             MAKE_ARGS+=" -c"
+                                        fi
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            MAKE_ARGS+=" -s tikv"
                                         fi
                                         MAKE_ARGS+=" -p ${PART}"
                                         make deploy-mysqltest ARGS="\${MAKE_ARGS}"
