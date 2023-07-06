@@ -87,7 +87,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'django_test/django-orm-test ./test.sh'
+                        values 'django_test/django-orm-test ./test.sh', 'sqlalchemy_test/sqlalchemy-test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
