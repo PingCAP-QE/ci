@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_jdbc_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -18,11 +18,9 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        GITHUB_TOKEN = credentials('github-bot-token')
-        CI = "1"
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -41,7 +39,7 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
+            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -53,10 +51,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -66,18 +64,18 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_mysql_test/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_jdbc_test/rev-${BUILD_TAG}") {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                            chmod +x bin/*
-                            ./bin/tidb-server -V
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
+                                chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                                ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                mv third_bin/* bin/
+                                ls -alh bin/
+                                chmod +x bin/*
+                                ./bin/tidb-server -V
+                                ./bin/tikv-server -V
+                                ./bin/pd-server -V
                             """
                         }
                     }
@@ -93,23 +91,22 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name 'CACHE_ENABLED'
-                        values '0', "1"
-                    }
-                    axis {
-                        name 'TEST_PART'
-                        values '1', "2", "3", "4"
+                        name 'TEST_PARAMS'
+                        values 'jdbc8_test ./test_fast.sh', 'jdbc8_test ./test_slow.sh', 'mybatis_test ./test.sh',
+                            'jooq_test ./test.sh', 'tidb_jdbc_test/tidb_jdbc_unique_test ./test.sh',
+                            'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh', 
+                            'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_slow.sh', 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_tls.sh'
                     }
                     axis {
                         name 'TEST_STORE'
-                        values 'unistore', "tikv"
+                        values "tikv"
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'golang'
+                        defaultContainer 'java'
                     }
                 } 
                 stages {
@@ -117,11 +114,11 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_mysql_test/rev-${BUILD_TAG}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_jdbc_test/rev-${BUILD_TAG}") {
                                     sh label: 'print version', script: """
-                                        ./bin/tidb-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/pd-server -V
+                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
+                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
                                     """
                                 }
                             }
@@ -132,25 +129,36 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("golang") {
-                                        sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """
+                                    container("java") {
+                                        sh label: "test_params=${TEST_PARAMS} ", script: """
                                             #!/usr/bin/env bash
+                                            params_array=(\${TEST_PARAMS})
+                                            TEST_DIR=\${params_array[0]}
+                                            TEST_SCRIPT=\${params_array[1]}
+                                            echo "TEST_DIR=\${TEST_DIR}"
+                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                                 bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
+                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                             else
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIDB_TEST_STORE_NAME="unistore"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
+                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                             fi
                                         """
                                     }
+                                }
+                            }
+                        }
+                        post{
+                            failure {
+                                script {
+                                    println "Test failed, archive the log"
                                 }
                             }
                         }
