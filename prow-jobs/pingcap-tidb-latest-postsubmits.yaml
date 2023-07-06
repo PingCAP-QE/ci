@@ -103,7 +103,6 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_django_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-django-test
       max_concurrency: 1
       skip_report: false
