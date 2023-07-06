@@ -92,7 +92,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: wip/pull-tiproxy-mysql-test
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-mysql-test"
       branches:

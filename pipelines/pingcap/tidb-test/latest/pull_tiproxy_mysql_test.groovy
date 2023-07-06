@@ -45,7 +45,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/TiProxy.git', 'tiproxy', REFS.base_ref, REFS.pulls[0].title, "")
+                                component.checkout('https://github.com/pingcap/TiProxy.git', 'tiproxy', "main", "", "")
                             }
                         }
                     }
@@ -64,7 +64,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tiproxy') {
-                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make build'
+                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
@@ -77,6 +77,7 @@ pipeline {
                         ./bin/tidb-server -V
                         ./bin/pd-server -V
                         ./bin/tikv-server -V
+                        ./bin/tiproxy --version
                         """
                     }
                 }
@@ -112,15 +113,15 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED},TEST_STORE ${TEST_STORE}", script: """
                                         #!/usr/bin/env bash
-                                        MAKE_ARGS=""
-                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                            MAKE_ARGS+="-s tikv"
-                                        fi
+                                        MAKE_ARGS="-b -x "
                                         if [[ "${CACHE_ENABLED}" == "1" ]]; then
                                             MAKE_ARGS+=" -c"
                                         fi
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            MAKE_ARGS+=" -s tikv"
+                                        fi
                                         MAKE_ARGS+=" -p ${PART}"
-                                        make deploy-mysqltest ARGS="${MAKE_ARGS}"
+                                        make deploy-mysqltest ARGS="\${MAKE_ARGS}"
                                     """
                                 }
                             }
