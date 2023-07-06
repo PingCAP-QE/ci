@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_django_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_python_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
