@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_django_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_python_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -63,7 +63,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_django_test/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_python_orm_test/rev-${BUILD_TAG}") {
                         container("python") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
@@ -87,7 +87,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'django_test/django-orm-test ./test.sh'
+                        values 'django_test/django-orm-test ./test.sh', 'sqlalchemy_test/sqlalchemy-test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
@@ -106,7 +106,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_django_test/rev-${BUILD_TAG}") {
+                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_python_orm_test/rev-${BUILD_TAG}") {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
                                     sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
                                     sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  

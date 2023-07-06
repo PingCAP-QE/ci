@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/merged_integration_django_test') {
+pipelineJob('pingcap/tidb/merged_integration_python_orm_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/merged_integration_django_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/latest/merged_integration_django_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/latest/merged_integration_python_orm_test.groovy')
             scm {
                 git{
                     remote {
