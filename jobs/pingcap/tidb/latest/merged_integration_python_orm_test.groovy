@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/merged_integration_python_orm_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/latest/merged_integration_django_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/latest/merged_integration_python_orm_test.groovy')
             scm {
                 git{
                     remote {
