@@ -87,3 +87,13 @@ presubmits:
       rerun_command: "/test integration-sequelize-test"
       branches:
         - ^master$
+    - name: pingcap/tidb-test/pull_tiproxy_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-mysql-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-mysql-test"
+      branches:
+        - ^master$
