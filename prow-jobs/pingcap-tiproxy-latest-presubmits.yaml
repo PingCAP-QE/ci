@@ -1,0 +1,13 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tiproxy:
+    - name: pingcap/tiproxy/pull_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-mysql-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-test"
+      branches:
+        - ^master$
