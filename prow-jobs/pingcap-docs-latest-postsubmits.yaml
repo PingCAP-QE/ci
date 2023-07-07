@@ -1,0 +1,17 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+postsubmits:
+  pingcap/tidb:
+    - name: pingcap/docs/merged_build
+      agent: jenkins
+      decorate: false # need add this.
+      context: build
+      max_concurrency: 3
+      skip_report: true # change to false after verify.
+      branches:
+        - ^master$
+        - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-3\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-4\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-5\.[0-4](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-6\.(1|5|6)(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-7\.[0-2](\.\d+)?(-\d+)?(-v[\.\d]+)?$
