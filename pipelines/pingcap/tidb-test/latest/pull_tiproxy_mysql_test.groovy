@@ -92,7 +92,7 @@ pipeline {
                     }
                     axis {
                         name 'CACHE_ENABLED'
-                        values '0', "1"
+                        values 'y', "n"
                     }
                     axis {
                         name 'TEST_STORE'
@@ -113,15 +113,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED},TEST_STORE ${TEST_STORE}", script: """
                                         #!/usr/bin/env bash
-                                        MAKE_ARGS="-b -x "
-                                        if [[ "${CACHE_ENABLED}" == "1" ]]; then
-                                            MAKE_ARGS+=" -c"
-                                        fi
-                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                            MAKE_ARGS+=" -s tikv"
-                                        fi
-                                        MAKE_ARGS+=" -p ${PART}"
-                                        make deploy-mysqltest ARGS="\${MAKE_ARGS}"
+                                        make deploy-mysqltest ARGS="-b -x -c ${CACHE_ENABLED} -s ${TEST_STORE}"
                                     """
                                 }
                             }
