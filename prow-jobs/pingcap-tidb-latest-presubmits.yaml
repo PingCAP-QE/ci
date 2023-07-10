@@ -113,7 +113,7 @@ presubmits:
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
       branches:
