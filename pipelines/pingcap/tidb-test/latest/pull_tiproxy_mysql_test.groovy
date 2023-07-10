@@ -113,7 +113,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED},TEST_STORE ${TEST_STORE}", script: """
                                         #!/usr/bin/env bash
-                                        make deploy-mysqltest ARGS="-b -x -c ${CACHE_ENABLED} -s ${TEST_STORE}"
+                                        make deploy-mysqltest ARGS="-b -x -c ${CACHE_ENABLED} -s ${TEST_STORE} -p ${PART}"
                                     """
                                 }
                             }
