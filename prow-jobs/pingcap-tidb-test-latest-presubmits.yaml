@@ -82,7 +82,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: wip/integration-sequelize-test
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-sequelize-test(?: .*?)?$"
       rerun_command: "/test integration-sequelize-test"
       branches:
