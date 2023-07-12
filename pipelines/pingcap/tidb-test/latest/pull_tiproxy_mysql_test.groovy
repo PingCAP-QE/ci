@@ -90,14 +90,6 @@ pipeline {
                         name 'PART'
                         values '1', '2', '3', '4'
                     }
-                    axis {
-                        name 'CACHE_ENABLED'
-                        values 'y', "n"
-                    }
-                    axis {
-                        name 'TEST_STORE'
-                        values "tikv"
-                    }
                 }
                 agent{
                     kubernetes {
@@ -111,9 +103,9 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
-                                    sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED},TEST_STORE ${TEST_STORE}", script: """
+                                    sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
-                                        make deploy-mysqltest ARGS="-b -x -c ${CACHE_ENABLED} -s ${TEST_STORE} -p ${PART}"
+                                        make deploy-mysqltest ARGS="-b -x -c y -s tikv -p ${PART}"
                                     """
                                 }
                             }
