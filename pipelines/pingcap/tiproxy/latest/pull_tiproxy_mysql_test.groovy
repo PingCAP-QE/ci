@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-pull_tiproxy_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -42,19 +42,19 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tiproxy") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/TiProxy.git', 'tiproxy', "main", "", "")
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', "master", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
