@@ -10,4 +10,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-mysql-test"
       branches:
-        - ^master$
+        - ^main$
