@@ -61,6 +61,41 @@ def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId=
     )
 }
 
+def checkoutV2(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="", trunkBranch="master", timeout=5) {
+    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
+    def pluginSpec = "+refs/heads/$prTargetBranch:refs/remotes/origin/$prTargetBranch"
+    // transfer plugin branch from pr/28 to origin/pr/28/head
+    if (componentBranch.startsWith("pr/")) {
+        def prId = componentBranch.substring(3)
+        pluginSpec += " +refs/pull/$prId/head:refs/remotes/origin/pr/$prId/head"
+        componentBranch = "origin/${componentBranch}/head"
+    }
+    println(componentBranch)
+    println(gitUrl)
+    println(pluginSpec)
+
+    checkout(
+        changelog: false,
+        poll: true,
+        scm: [
+            $class: 'GitSCM',
+            branches: [[name: componentBranch]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+                [$class: 'PruneStaleBranch'],
+                [$class: 'CleanBeforeCheckout'],
+                [$class: 'CloneOption', timeout: timeout],
+            ], 
+            submoduleCfg: [],
+            userRemoteConfigs: [[
+                credentialsId: credentialsId,
+                refspec: pluginSpec,
+                url: gitUrl,
+            ]]
+        ]
+    )
+}
+
 // fetch component artifact from artifactory(current http server)
 def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBody, artifactPath, pathInArchive="", trunkBranch="master") {
     def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
