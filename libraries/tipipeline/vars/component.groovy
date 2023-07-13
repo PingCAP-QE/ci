@@ -70,7 +70,6 @@ def checkoutV2(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsI
         pluginSpec += " +refs/pull/$prId/head:refs/remotes/origin/pr/$prId/head"
         componentBranch = "origin/${componentBranch}/head"
     }
-    println(componentBranch)
     println(gitUrl)
     println(pluginSpec)
 
