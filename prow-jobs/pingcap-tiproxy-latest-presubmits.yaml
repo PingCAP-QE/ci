@@ -4,8 +4,8 @@ presubmits:
     - name: pingcap/tiproxy/pull_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      context: wip/pull-mysql-test
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-mysql-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-mysql-test"
