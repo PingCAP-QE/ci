@@ -33,18 +33,20 @@ spec:
             }
         }
 
-        if (TIDB_VERSION == "nightly" || TIDB_VERSION >= "v6.4.0") {
-            stage("TiUP build tiproxy on linux/amd64") {
-                update "tiproxy", params.TIDB_VERSION, "linux", "amd64", "amd64v3", params.VERSION
-            }
-            stage("TiUP build tiproxy on linux/arm64") {
-                update "tiproxy", params.TIDB_VERSION, "linux", "arm64", "arm64", params.VERSION
-            }
-            stage("TiUP build tiproxy on darwin/amd64") {
-                update "tiproxy", params.TIDB_VERSION, "darwin", "amd64", "amd64v3", params.VERSION
-            }
-            stage("TiUP build tiproxy on darwin/arm64") {
-                update "tiproxy", params.TIDB_VERSION, "darwin", "arm64", "arm64", params.VERSION
+        stage ("publish") {
+            parallel{
+                stage("TiUP build tiproxy on linux/amd64") {
+                  update "tiproxy", params.TIDB_VERSION, "linux", "amd64", "amd64v3", params.VERSION
+                }
+                stage("TiUP build tiproxy on linux/arm64") {
+                  update "tiproxy", params.TIDB_VERSION, "linux", "arm64", "arm64", params.VERSION
+                }
+                stage("TiUP build tiproxy on darwin/amd64") {
+                  update "tiproxy", params.TIDB_VERSION, "darwin", "amd64", "amd64v3", params.VERSION
+                }
+                stage("TiUP build tiproxy on darwin/arm64") {
+                  update "tiproxy", params.TIDB_VERSION, "darwin", "arm64", "arm64", params.VERSION
+                }
             }
         }
     }
