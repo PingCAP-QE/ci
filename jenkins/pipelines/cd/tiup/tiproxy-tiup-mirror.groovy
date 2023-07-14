@@ -3,14 +3,15 @@ def proxy_desc = "TiProxy is a database proxy that is based on TiDB."
 def update = { name, version, os, arch, garch, gversion ->
     sh """
     wget https://github.com/pingcap/TiProxy/releases/download/v${gversion}/TiProxy_${gversion}_${os}_${garch}.tar.gz
-    tiup mirror publish tiproxy ${version} TiProxy-${gversion}-${os}-${garch}.tar.gz tiproxy --arch ${arch} --os ${os} --desc="${proxy_desc}"
+    tiup mirror publish tiproxy ${version} TiProxy_${gversion}_${os}_${garch}.tar.gz tiproxy --arch ${arch} --os ${os} --desc="${proxy_desc}"
     """
 }
 
 pipeline{
     parameters{
         string(name: 'VERSION', defaultValue: '0.1.1', description: 'tiproxy version')
-        string(name: 'TIDB_VERSION', defaultValue: '', description: 'tiup package verion')
+        string(name: 'TIDB_VERSION', defaultValue: 'nightly', description: 'tiup package verion')
+        string(name: 'TIUP_MIRRORS', defaultValue: 'https://tiup.pingcap.net:8987', description: 'tiup mirror')
     }
     agent {
         kubernetes {
@@ -33,6 +34,9 @@ spec:
         }
 
         stage ("publish") {
+            environment {
+                TIUP_MIRRORS = "${params.TIUP_MIRRORS}"
+            }
             parallel{
                 stage("TiUP build tiproxy on linux/amd64") { steps { script {
                   update "tiproxy", params.TIDB_VERSION, "linux", "amd64", "amd64v3", params.VERSION
