@@ -10,7 +10,8 @@ def update = { name, version, os, arch, garch, gversion ->
 pipeline{
     parameters{
         string(name: 'VERSION', defaultValue: '0.1.1', description: 'tiproxy version')
-        string(name: 'TIDB_VERSION', defaultValue: '', description: 'tiup package verion')
+        string(name: 'TIDB_VERSION', defaultValue: 'nightly', description: 'tiup package verion')
+        string(name: 'TIUP_MIRRORS', defaultValue: 'http://172.16.5.134:8987', description: 'tiup mirror')
     }
     agent {
         kubernetes {
@@ -33,6 +34,9 @@ spec:
         }
 
         stage ("publish") {
+            environment {
+                TIUP_MIRRORS = "${params.TIUP_MIRRORS}"
+            }
             parallel{
                 stage("TiUP build tiproxy on linux/amd64") { steps { script {
                   update "tiproxy", params.TIDB_VERSION, "linux", "amd64", "amd64v3", params.VERSION
