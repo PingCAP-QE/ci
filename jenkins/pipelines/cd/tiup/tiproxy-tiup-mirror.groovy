@@ -11,7 +11,7 @@ pipeline{
     parameters{
         string(name: 'VERSION', defaultValue: '0.1.1', description: 'tiproxy version')
         string(name: 'TIDB_VERSION', defaultValue: 'nightly', description: 'tiup package verion')
-        string(name: 'TIUP_MIRRORS', defaultValue: 'http://172.16.5.134:8987', description: 'tiup mirror')
+        string(name: 'TIUP_MIRRORS', defaultValue: 'https://tiup.pingcap.net:8987', description: 'tiup mirror')
     }
     agent {
         kubernetes {
