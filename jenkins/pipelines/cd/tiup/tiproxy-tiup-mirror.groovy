@@ -26,7 +26,6 @@ spec:
     }
     stages {
         stage("prepare tiup"){
-            when {expression {!fallback}}
             environment { TIUPKEY_JSON = credentials('tiup-prod-key')}
             steps{
                 sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON /root/.tiup/keys/private.json'
