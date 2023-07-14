@@ -35,18 +35,18 @@ spec:
 
         stage ("publish") {
             parallel{
-                stage("TiUP build tiproxy on linux/amd64") {
+                stage("TiUP build tiproxy on linux/amd64") { steps { script {
                   update "tiproxy", params.TIDB_VERSION, "linux", "amd64", "amd64v3", params.VERSION
-                }
-                stage("TiUP build tiproxy on linux/arm64") {
+                }}}
+                stage("TiUP build tiproxy on linux/arm64") { steps { script {
                   update "tiproxy", params.TIDB_VERSION, "linux", "arm64", "arm64", params.VERSION
-                }
-                stage("TiUP build tiproxy on darwin/amd64") {
+                }}}
+                stage("TiUP build tiproxy on darwin/amd64") { steps { script {
                   update "tiproxy", params.TIDB_VERSION, "darwin", "amd64", "amd64v3", params.VERSION
-                }
-                stage("TiUP build tiproxy on darwin/arm64") {
+                }}}
+                stage("TiUP build tiproxy on darwin/arm64") { steps { script {
                   update "tiproxy", params.TIDB_VERSION, "darwin", "arm64", "arm64", params.VERSION
-                }
+                }}}
             }
         }
     }
