@@ -59,6 +59,16 @@ pipeline {
                         }
                     }
                 }
+                dir("mysql-server") {
+                    cache(path: "./", filter: '**/*', key: "git/xhebox/mysql-server/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/xhebox/mysql-server/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('git@github.com:xhebox/mysql-server.git', 'mysql-server', "8.0", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                            }
+                        }
+                    }
+                }
+            }
             }
         }
         stage('Prepare') {
@@ -83,41 +93,58 @@ pipeline {
                 }
             }
         }
-        stage('MySQL Tests') {
-            matrix {
-                axes {
-                    axis {
-                        name 'PART'
-                        values '1', '2', '3', '4'
-                    }
-                }
-                agent{
-                    kubernetes {
-                        namespace K8S_NAMESPACE
-                        defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
-                    }
-                }
-                stages {
-                    stage("Test") {
-                        steps {
-                            dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
-                                    sh label: "PART ${PART}", script: """
-                                        #!/usr/bin/env bash
-                                        make deploy-mysqltest ARGS="-b -x -c y -s tikv -p ${PART}"
-                                    """
-                                }
-                            }
-                        }
-                        post{
-                            always {
-                                junit(testResults: "**/result.xml")
-                            }
-                        }
-                    }
-                }
-            }        
-        }
+        stage('Tests') { steps { parallel {
+          stage('MySQL Tests') {
+              matrix {
+                  axes {
+                      axis {
+                          name 'PART'
+                          values '1', '2', '3', '4'
+                      }
+                  }
+                  agent{
+                      kubernetes {
+                          namespace K8S_NAMESPACE
+                          defaultContainer 'golang'
+                          yamlFile POD_TEMPLATE_FILE
+                      }
+                  }
+                  stages {
+                      stage("Test") {
+                          steps {
+                              dir('tidb-test') {
+                                  cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                                      sh label: "PART ${PART}", script: """
+                                          #!/usr/bin/env bash
+                                          make deploy-mysqltest ARGS="-b -x -c y -s tikv -p ${PART}"
+                                      """
+                                  }
+                              }
+                          }
+                          post{
+                              always {
+                                  junit(testResults: "**/result.xml")
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          stage('MySQL Connector Tests') {
+              steps {
+                  dir('tidb-test') {
+                      cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-connector-test") {
+                          sh label: "PART ${PART}", script: """
+                              #!/usr/bin/env bash
+															./bin/tidb-server &
+															TIDB_PID=$!
+                              ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t $PWD/../tiproxy -m $PWD/../mysql-server -u root
+															kill $TIDB_PID || true
+                          """
+                      }
+                  }
+              }
+          }
+        }}}
     }
 }
