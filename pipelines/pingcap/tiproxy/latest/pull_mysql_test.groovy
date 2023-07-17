@@ -69,7 +69,6 @@ pipeline {
                     }
                 }
             }
-            }
         }
         stage('Prepare') {
             steps {
