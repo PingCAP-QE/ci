@@ -133,7 +133,7 @@ pipeline {
               steps {
                   dir('tidb-test') {
                       cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-connector-test") {
-                          sh label: "PART ${PART}", script: """
+													sh """
                               #!/usr/bin/env bash
                               ./bin/tidb-server &
                               TIDB_PID=\$!
