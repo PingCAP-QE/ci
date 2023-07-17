@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiproxy/pull_mysql_ connector_test') {
+pipelineJob('pingcap/tiproxy/pull_mysql_connector_test') {
     logRotator {
         daysToKeep(30)
     }

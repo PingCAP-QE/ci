@@ -89,19 +89,17 @@ pipeline {
             }
         }
         stage('MySQL Connector Tests') {
-            stage("Test") {
-                steps {
-                    dir('tidb-test') {
-                        sh label: "run test", script: """
-                            #!/usr/bin/env bash
-                            ./bin/tidb-server &
-                            TIDB_PID=\$!
-                            ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -m \$PWD/../mysql-server -u root
-                            kill \$TIDB_PID || true
-                        """
-                    }
+            steps {
+                dir('tidb-test') {
+                    sh label: "run test", script: """
+                        #!/usr/bin/env bash
+                        ./bin/tidb-server &
+                        TIDB_PID=\$!
+                        ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -m \$PWD/../mysql-server -u root
+                        kill \$TIDB_PID || true
+                    """
                 }
-            }  
+            }
         }
     }
 }
