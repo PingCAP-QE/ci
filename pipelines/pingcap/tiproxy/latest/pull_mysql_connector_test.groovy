@@ -62,9 +62,26 @@ pipeline {
                 dir("mysql-server") {
                     cache(path: "./", filter: '**/*', key: "git/xhebox/mysql-server/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/xhebox/mysql-server/rev-']) {
                         retry(2) {
-                            script {
-                                component.checkout('https://github.com/xhebox/mysql-server.git', 'mysql-server', "8.0", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
-                            }
+                            checkout(
+                                changelog: false,
+                                poll: true,
+                                scm: [
+                                    $class: 'GitSCM',
+                                    branches: [[name: "8.0"]],
+                                    doGenerateSubmoduleConfigurations: false,
+                                    extensions: [
+                                        [$class: 'PruneStaleBranch'],
+                                        [$class: 'CleanBeforeCheckout'],
+                                        [$class: 'CloneOption', timeout: 5, depth: 1, shallow: true],
+                                    ], 
+                                    submoduleCfg: [],
+                                    userRemoteConfigs: [[
+                                        credentialsId: GIT_CREDENTIALS_ID,
+                                        refspec: "+refs/heads/8.0:refs/remotes/origin/8.0",
+                                        url: "https://github.com/xhebox/mysql-server.git",
+                                    ]]
+                                ]
+                            )
                         }
                     }
                 }
