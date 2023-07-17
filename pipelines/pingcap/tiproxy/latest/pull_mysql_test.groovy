@@ -63,7 +63,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/xhebox/mysql-server/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/xhebox/mysql-server/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:xhebox/mysql-server.git', 'mysql-server', "8.0", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkout('https://github.com/xhebox/mysql-server.git', 'mysql-server', "8.0", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
