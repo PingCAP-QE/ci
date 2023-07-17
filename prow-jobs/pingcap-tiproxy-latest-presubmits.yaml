@@ -11,3 +11,14 @@ presubmits:
       rerun_command: "/test pull-mysql-test"
       branches:
         - ^main$
+    - name: pingcap/tiproxy/pull_mysql_connector_test
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      always_run: false  # need remove this after the debug is done.
+      context: wip/pull-mysql-connector-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-connector-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-connector-test"
+      branches:
+        - ^main$
