@@ -92,7 +92,8 @@ pipeline {
                 }
             }
         }
-        stage('Tests') { steps { parallel {
+        stage('Tests') {
+        parallel {
           stage('MySQL Tests') {
               matrix {
                   axes {
@@ -133,7 +134,7 @@ pipeline {
               steps {
                   dir('tidb-test') {
                       cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-connector-test") {
-													sh """
+                          sh """
                               #!/usr/bin/env bash
                               ./bin/tidb-server &
                               TIDB_PID=\$!
@@ -144,6 +145,7 @@ pipeline {
                   }
               }
           }
-        }}}
+        }
+        }
     }
 }
