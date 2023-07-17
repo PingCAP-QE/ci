@@ -72,18 +72,13 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tiproxy') {
-                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
-                }
                 dir('tidb-test') {
                         sh "touch ws-${BUILD_TAG}"
                         sh label: 'prepare thirdparty binary', script: """
                         chmod +x download_binary.sh
                         ./download_binary.sh --tidb=master
-                        cp ../tiproxy/bin/tiproxy ./bin/
                         ls -alh bin/
                         ./bin/tidb-server -V
-                        ./bin/tiproxy --version
                         """
                 }
             }
