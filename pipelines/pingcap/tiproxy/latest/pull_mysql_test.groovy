@@ -139,7 +139,7 @@ pipeline {
                               ./bin/tidb-server &
                               TIDB_PID=\$!
                               ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t $PWD/../tiproxy -m $PWD/../mysql-server -u root
-                              kill $TIDB_PID || true
+                              kill \$TIDB_PID || true
                           """
                       }
                   }
