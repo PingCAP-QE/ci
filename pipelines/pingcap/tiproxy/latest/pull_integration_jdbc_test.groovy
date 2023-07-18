@@ -108,7 +108,7 @@ pipeline {
                                     container("java") {
                                         sh label: "test_cmds=${TEST_CMDS} ", script: """
                                             #!/usr/bin/env bash
-                                            \${TEST_CMDS}
+                                            ${TEST_CMDS}
                                         """
                                     }
                                 }
