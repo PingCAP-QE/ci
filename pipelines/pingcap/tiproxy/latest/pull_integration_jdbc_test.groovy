@@ -115,8 +115,10 @@ pipeline {
                             }
                         }
                         post{
-                            always {
-                                junit(testResults: "**/result.xml")
+                            failure {
+                                script {
+                                    println "Test failed, archive the log"
+                                }
                             }
                         }
                     }

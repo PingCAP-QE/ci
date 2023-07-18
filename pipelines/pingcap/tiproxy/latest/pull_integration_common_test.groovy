@@ -67,7 +67,7 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
                         sh label: 'prepare thirdparty binary', script: """
                         chmod +x download_binary.sh
@@ -105,7 +105,7 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-common-test") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "test_cmds=${TEST_CMDS} ", script: """
                                         #!/usr/bin/env bash
                                         ${TEST_CMDS}
@@ -114,8 +114,10 @@ pipeline {
                             }
                         }
                         post{
-                            always {
-                                junit(testResults: "**/result.xml")
+                            failure {
+                                script {
+                                    println "Test failed, archive the log"
+                                }
                             }
                         }
                     }
