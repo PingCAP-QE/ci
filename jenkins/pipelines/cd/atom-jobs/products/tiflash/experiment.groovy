@@ -34,34 +34,6 @@ def getBinDownloadURL={
     return "${FILE_SERVER_URL}/download/${BinPath}"
 }
 
-def fetchTiFlashProxy(target_dir) {
-    if (!params.ENABLE_PROXY_CACHE) {
-        return false
-    }
-    def proxy_suffix = getProxySuffix(repo_path)
-    def proxy_commit_hash = null
-    def status = true;
-    dir("contrib/tiflash-proxy") {
-        proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-    }
-    def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-    def suffix = getFileSuffix()
-    if (fileExists(cache_source)) {
-        echo "proxy cache found"
-        dir(target_dir) {
-            sh """
-            cp ${cache_source} libtiflash_proxy.${suffix}
-            chmod +x libtiflash_proxy.${suffix}
-            """
-        }
-    } else {
-        echo "proxy cache not found"
-        status = false
-    }
-
-    return status
-}
-
 def doBuild = {
         stage("checkout"){
             sh """
