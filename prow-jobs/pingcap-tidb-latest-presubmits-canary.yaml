@@ -1,0 +1,63 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tidb:
+    - name: pingcap/tidb/canary-scan-security
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: canary-scan-security
+      trigger: "(?m)^/test (?:.*? )?canary-scan-security(?: .*?)?$"
+      rerun_command: "/test canary-scan-security"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/canary_ghpr_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: canary-unit-test
+      branches:
+        - ^master$
+        - ^feature[_/].+
+    - name: pull-notify-when-compatibility-sections-changed
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      decoration_config:
+        skip_cloning: true
+      skip_report: true
+      optional: true
+      run_if_changed: "^(session/bootstrap\\.go|sessionctx/variable/(sysvar|session|tidb_vars)\\.go|config/(config\\.go|config\\.toml\\.example)|br/tidb-lightning\\.toml|parser/parser\\.y)$"
+      branches:
+        - ^master$
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          workdir: true
+      spec:
+        containers:
+          - name: check
+            image: denoland/deno:1.35.1
+            command: [deno, run, --allow-all, scripts/plugins/notify-by-lark.ts]
+            args:
+              - --title="TiDB pull request configuration change notify"
+              - --message="Configuration or variable section file changes are detected, please review and check it."
+              - --to_emails=wuhui.zuo@pingcap.com
+              - --to_emails=lifu.wu@pingcap.com
+              - --links="https://github.com/$(REPO_OWNER)/$(REPO_NAME)/pull/$(PULL_NUMBER)
+            env:
+              - name: LARK_APP_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: chatops-lark
+                    key: app-id
+              - name: LARK_APP_SECRET 
+                valueFrom:
+                  secretKeyRef:
+                    name: chatops-lark
+                    key: app-secret  
+
+            resources:
+              limits:
+                memory: 1Gi
+                cpu: "500m"              
+    
