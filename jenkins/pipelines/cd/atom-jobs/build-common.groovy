@@ -175,7 +175,7 @@ def String needUpgradeGoVersion(String tag,String branch) {
         return "go1.18"
     }
     if (branch.startsWith("release-") && branch >= "release-6.3" && branch < "release-6.7"){
-        return "go1.18"
+        return "go1.19"
     }
     if (branch.startsWith("hz-poc") || branch.startsWith("arm-dup") ) {
         return "go1.16"
@@ -187,7 +187,7 @@ def String needUpgradeGoVersion(String tag,String branch) {
 }
 
 def goBuildPod = "build_go1200"
-def GO_BIN_PATH = "/usr/local/go1.20.3/bin"
+def GO_BIN_PATH = "/usr/local/go1.20.5/bin"
 goVersion = needUpgradeGoVersion(params.RELEASE_TAG,params.TARGET_BRANCH)
 // tidb-tools only use branch master and use newest go version
 // only for version >= v5.3.0
@@ -207,11 +207,11 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
             break
         case "go1.19":
             goBuildPod = "build_go1190"
-            GO_BIN_PATH = "/usr/local/go1.19.8/bin"
+            GO_BIN_PATH = "/usr/local/go1.19.10/bin"
             break
         case "go1.20":
             goBuildPod = "build_go1200"
-            GO_BIN_PATH = "/usr/local/go1.20.3/bin"
+            GO_BIN_PATH = "/usr/local/go1.20.5/bin"
             break
         default:
             throw new Exception("go version ${goVersion} not supported")
@@ -220,11 +220,11 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
 if (REPO != "tidb-tools") {
     if (goVersion == "go1.20") {
         goBuildPod = "build_go1200"
-        GO_BIN_PATH = "/usr/local/go1.20.3/bin"
+        GO_BIN_PATH = "/usr/local/go1.20.5/bin"
     }
     if (goVersion == "go1.19") {
         goBuildPod = "build_go1190"
-        GO_BIN_PATH = "/usr/local/go1.19.8/bin"
+        GO_BIN_PATH = "/usr/local/go1.19.10/bin"
     }
     if (goVersion == "go1.18") {
         goBuildPod = "build_go1180"
@@ -388,24 +388,7 @@ mkdir -p ${TARGET}/bin
 cp binarys/${PRODUCT} ${TARGET}/bin/            
 """
 
-def BuildCmd = "make"
-if (params.PRODUCT == 'tidb' && params.EDITION == 'enterprise' && params.RELEASE_TAG >= "v7.1.0") {
-    BuildCmd = "make enterprise-prepare enterprise-server-build"
-}
-
-buildsh["tidb"] = """
-if [ ${RELEASE_TAG}x != ''x ];then
-    for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
-    git tag -f ${RELEASE_TAG} ${GIT_HASH}
-    git branch -D refs/tags/${RELEASE_TAG} || true
-    git checkout -b refs/tags/${RELEASE_TAG}
-fi;
-if [ "${EDITION}" = 'enterprise' ]; then
-    export TIDB_EDITION=Enterprise
-fi;
-go version
-make clean
-git checkout .
+def BuildCmd = """
 if [ ${failpoint} == 'true' ]; then
     make failpoint-enable
 fi;
@@ -431,6 +414,25 @@ fi;
 if [ ${failpoint} == 'true' ]; then
     make failpoint-enable
 fi;
+make
+"""
+if (params.PRODUCT == 'tidb' && params.EDITION == 'enterprise' && params.RELEASE_TAG >= "v7.1.0") {
+    BuildCmd = "make enterprise-prepare enterprise-server-build"
+}
+
+buildsh["tidb"] = """
+if [ ${RELEASE_TAG}x != ''x ];then
+    for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
+    git tag -f ${RELEASE_TAG} ${GIT_HASH}
+    git branch -D refs/tags/${RELEASE_TAG} || true
+    git checkout -b refs/tags/${RELEASE_TAG}
+fi;
+if [ "${EDITION}" = 'enterprise' ]; then
+    export TIDB_EDITION=Enterprise
+fi;
+go version
+make clean
+git checkout .
 ${BuildCmd}
 rm -rf ${TARGET}
 mkdir -p ${TARGET}/bin    
@@ -942,12 +944,14 @@ def run_with_arm_go_pod(Closure body) {
             break
     }
     def cloud = "kubernetes-arm64"
+    def nodeSelector = "kubernetes.io/arch=arm64"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
     def jnlp_docker_image = "jenkins/inbound-agent:4.10-3"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            nodeSelector: nodeSelector,
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
