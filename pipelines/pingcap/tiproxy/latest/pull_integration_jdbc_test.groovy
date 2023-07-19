@@ -89,8 +89,8 @@ pipeline {
                     axis {
                         name 'TEST_CMDS'
                         values 'make deploy-jdbc8test ARGS="-x -m fast"', 'make deploy-jdbc8test ARGS="-x -m slow"',
-                            'make deploy-hibernatetest ARGS="-x"', 'make deploy-mybatistest ARGS="-x"',
-                            'make deploy-jooqtest ARGS="-x"', 'make deploy-tidbjdbctest ARGS="-x -m tls"'
+                            'make deploy-mybatistest ARGS="-x"', 'make deploy-jooqtest ARGS="-x"',
+                            'make deploy-tidbjdbctest ARGS="-x -m tls"', 'make deploy-tidbjdbctest ARGS="-x -m unique"'
                     }
                 }
                 agent{
