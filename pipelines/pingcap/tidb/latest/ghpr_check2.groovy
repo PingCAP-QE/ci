@@ -125,9 +125,8 @@ pipeline {
                             }
                             success {
                                 dir("tidb") {
-                                    sh 'ls -alh test_coverage/ || true'
                                     script {
-                                        prow.uploadCoverageToCodecov(REFS, 'integration', 'test_coverage/coverage.dat')
+                                        prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                                     }
                                 }
                             }
