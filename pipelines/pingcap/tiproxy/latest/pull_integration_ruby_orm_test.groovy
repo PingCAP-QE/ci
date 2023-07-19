@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_integration_common_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_integration_ruby_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -83,21 +83,18 @@ pipeline {
                 }
             }
         }
-        stage('Tests') {
+        stage('ORM Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_CMDS'
-                        values 'make deploy-analyzetest ARGS="-x"', 'make deploy-randgentest ARGS="-x -c y"',
-                            'make deploy-gosqltest ARGS="-x"', 'make deploy-gormtest ARGS="-x"',
-                            'make deploy-beegoormtest ARGS="-x"', 'make deploy-upperdbormtest ARGS="-x"',
-                            'make deploy-xormtest ARGS="-x"', 'make deploy-connectorctest ARGS="-x"'
+                        values 'make deploy-activerecordtest ARGS="-x"'
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        defaultContainer 'golang'
+                        defaultContainer 'ruby'
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
@@ -106,10 +103,12 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                        #!/usr/bin/env bash
-                                        ${TEST_CMDS}
-                                    """
+                                    container("ruby") {
+                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                            #!/usr/bin/env bash
+                                            ${TEST_CMDS}
+                                        """
+                                    }
                                 }
                             }
                         }
