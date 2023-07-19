@@ -16,7 +16,7 @@
 
 def task = "release-check"
 def check_image = { comps, edition, registry ->
-    podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, containers: [
+    podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, nodeSelector: "kubernetes.io/arch=amd64", containers: [
             containerTemplate(name: 'dockerd', image: 'docker:20-dind', privileged: true, command:'dockerd --host=tcp://localhost:2375'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master', alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
@@ -49,7 +49,8 @@ def check_pingcap = { arch, edition ->
     } else {
         def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         def label = task + "-tiflash"
-        podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
+        podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, nodeSelector: "kubernetes.io/arch=amd64",
+            containers: [
                 containerTemplate(name: 'main', image: imageName, alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {
@@ -90,7 +91,8 @@ def check_tiup = { comps, label ->
     } else {
         def imageName = "hub.pingcap.net/jenkins/release-checker:tiflash"
         label = task + "-tiflash"
-        podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
+        podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, nodeSelector: "kubernetes.io/arch=amd64",
+            containers: [
                 containerTemplate(name: 'main', image: imageName, alwaysPullImage: true,
                         ttyEnabled: true, command: 'cat'),
         ]) {

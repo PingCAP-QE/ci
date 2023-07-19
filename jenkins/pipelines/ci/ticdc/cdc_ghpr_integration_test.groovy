@@ -45,11 +45,11 @@ if (ghprbPullId == null || ghprbPullId == "") {
 GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
+    "go1.13": "hub.pingcap.net/wulifu/golang-tini:1.13",
+    "go1.16": "hub.pingcap.net/wulifu/golang-tini:1.16",
+    "go1.18": "hub.pingcap.net/wulifu/golang-tini:1.18",
+    "go1.19": "hub.pingcap.net/wulifu/golang-tini:1.19",
+    "go1.20": "hub.pingcap.net/wulifu/golang-tini:1.20",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
@@ -180,35 +180,49 @@ POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
 println "go version: ${GO_VERSION}"
 println "go image: ${POD_GO_IMAGE}"
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
 
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-ticdc"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-tiflow"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                        command: '/bin/sh -c', args: 'cat',
+                        args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} -c golang bash"
             body()
         }
     }
@@ -377,24 +391,26 @@ catchError {
         def common = load script_path
         catchError {
             common.prepare_binaries()
+            common.download_binaries()
             def label = TEST_POD_LABEL_MAP[GO_VERSION]
             podTemplate(
                     label: label,
-                    cloud: "kubernetes-ng",
+                    cloud: "kubernetes-ksyun",
+                    yaml: podYAML,
+                    yamlMergeStrategy: merge(),
                     idleMinutes: 0,
-                    namespace: "jenkins-ticdc",
+                    nodeSelector: "kubernetes.io/arch=amd64",
+                    namespace: "jenkins-tiflow",
                     containers: [
                             containerTemplate(
                                     name: 'golang', alwaysPullImage: true,
                                     image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                                    resourceRequestCpu: '2000m', resourceRequestMemory: '12Gi',
-                                    command: '/bin/sh -c', args: 'cat',
+                                    resourceRequestCpu: '4000m', resourceRequestMemory: '12Gi',
+                                    args: 'cat',
                                     envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                             ),
                     ],
                     volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                             emptyDirVolume(mountPath: '/tmp', memory: true),
                             emptyDirVolume(mountPath: '/home/jenkins', memory: true)
                     ],
@@ -479,8 +495,3 @@ if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_
         ]
     }
 }
-
-
-
-
-

@@ -88,13 +88,14 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -105,8 +106,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],

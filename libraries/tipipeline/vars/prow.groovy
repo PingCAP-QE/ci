@@ -1,4 +1,4 @@
-def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com') {
+def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
     final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
@@ -22,7 +22,7 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 
         # reset & clean
         git reset --hard
-        git clean -fdx
+        git clean -ffdx
 
         # fetch pull requests and target branch.
         timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -50,6 +50,13 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
             echo "✅ Pre merged 🎉"
         fi
 
+        git clean -ffdx
+        if [ "${withSubmodule}" == "true" ]; then
+            echo "📁 update submodules ..."
+            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
+            echo "✅ update submodules done"
+        fi
+
         echo "✅ ~~~~~All done.~~~~~~"
     """
 }
@@ -60,7 +67,7 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 * depended on plugins:
 *  - ssh-agent 
 */
-def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com') {
+def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
     final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
@@ -90,7 +97,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
 
             # reset & clean
             git reset --hard
-            git clean -fdx
+            git clean -ffdx
 
             # fetch pull requests and target branch.
             timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -116,6 +123,13 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
                 git log -n 3 --oneline
 
                 echo "✅ Pre merged 🎉"
+            fi
+
+            git clean -ffdx
+            if [ "${withSubmodule}" == "true" ]; then
+                echo "📁 update submodules ..."
+                GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
+                echo "✅ update submodules done"
             fi
 
             echo "✅ ~~~~~All done.~~~~~~"
@@ -144,3 +158,36 @@ def getRestoreKeys(prefixFolder, refs, part = '') {
     }
 }
 
+def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, bazelOptions = "") {
+    // Skip for batch build.
+    if (refs.pulls && refs.pulls.size() > 1) {
+        return
+    }
+
+    final codecovGitOptions = (refs.pulls ?
+         "--branch origin/pr/${refs.pulls[0].number} --sha ${refs.pulls[0].sha} --pr ${refs.pulls[0].number}" : 
+         "--branch origin/${refs.base_ref} --sha ${refs.base_sha}"
+    )
+
+    sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
+        coverageFile=${file}
+        if [ "${bazelLCov}" == "true" ]; then
+            coverageFile="bazel_coverage.xml"
+            bazelCoverageData=`bazel ${bazelOptions} info output_path`/_coverage/_coverage_report.dat
+            if [ -f \$bazelCoverageData ]; then
+                echo "Convert bazel LCOV data to cobertura XML..."
+                wget https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+                python3 lcov_cobertura.py \$bazelCoverageData --output=\${coverageFile}
+                echo "✅ Converted bazel LCOV data to cobertura XML."
+            else
+                echo "🏃 Not found bazel LCOV data."
+            fi
+        fi
+
+        if [ -f \$coverageFile ]; then
+            wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+            chmod +x codecov
+            ./codecov --rootDir . --flags ${flags} --file \${coverageFile} ${codecovGitOptions}
+        fi
+    """
+}

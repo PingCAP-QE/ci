@@ -28,7 +28,8 @@ def fallback() {
 
     catchError {
 
-        podTemplate(name: label, label: label, instanceCap: 3, idleMinutes: 30, containers: [
+        podTemplate(name: label, label: label, instanceCap: 3, idleMinutes: 30, nodeSelector: "kubernetes.io/arch=amd64",
+            containers: [
             containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
                     resourceRequestCpu: '2000m', resourceRequestMemory: '8Gi'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/tiflash/docker:build-essential-java',

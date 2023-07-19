@@ -43,14 +43,31 @@ def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run_test_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: "rust", image: rust_image,
@@ -75,12 +92,15 @@ def run_test_with_pod(Closure body) {
 
 def run_test_with_pod_legacy(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: "rust", image: rust_image,
@@ -109,7 +129,9 @@ stage("PreCheck") {
     if (!params.force) {
         def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
         podTemplate(name: label, label: label, 
-            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            nodeSelector: "kubernetes.io/arch=amd64",
+            yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                 containerTemplate(name: "2c", image: rust_image,
@@ -139,7 +161,9 @@ stage("Prepare") {
     def clippy = {
         def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
         podTemplate(name: label, label: label, 
-            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            nodeSelector: "kubernetes.io/arch=amd64",
+            yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                 containerTemplate(name: "4c", image: rust_image,
@@ -209,7 +233,9 @@ stage("Prepare") {
     def build = {
         def label="tikv_cached_${ghprbTargetBranch}_build_${BUILD_NUMBER}"
         podTemplate(name: label, label: label,
-            cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv", instanceCap: 4,
+            nodeSelector: "kubernetes.io/arch=amd64",
+            yaml: podYAML, yamlMergeStrategy: merge(),
             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
             containers: [
                 containerTemplate(name: "4c",
@@ -467,7 +493,17 @@ stage('Test') {
                             export CI=1
                             export LOG_FILE=\$HOME/tikv-src/target/my_test.log
                             for i in `cat test-binaries`; do
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                # 判断字符串是否以 / 开头
+                                if [ "\${i:0:1}" = "/" ]; then
+                                    # 如果以 / 开头，去掉第一个字符（即 /）
+                                    new_string="\${i:1}"
+                                else
+                                    new_string="\$i"
+                                fi
+
+                                echo "Original string: \$i"
+                                echo "New string: \$new_string"
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$new_string --create-dirs;
                                 chmod +x \$i;
                             done
                             if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} ${EXTRA_NEXTEST_ARGS}; then
@@ -518,7 +554,17 @@ stage('Test') {
                                 fi
                             fi
                             for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$i --create-dirs;
+                                # 判断字符串是否以 / 开头
+                                if [ "\${i:0:1}" = "/" ]; then
+                                    # 如果以 / 开头，去掉第一个字符（即 /）
+                                    new_string="\${i:1}"
+                                else
+                                    new_string="\$i"
+                                fi
+
+                                echo "Original string: \$i"
+                                echo "New string: \$new_string"
+                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$new_string --create-dirs;
                                 chmod +x \$i;
                             done
                             CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
@@ -565,7 +611,9 @@ currentBuild.result = "SUCCESS"
 stage('Post-test') {
     def label="${JOB_NAME}_post_test_${BUILD_NUMBER}"
     podTemplate(name: label, label: label, 
-        cloud: "kubernetes-ng",  idleMinutes: 0, namespace: "jenkins-tikv",
+        cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+        nodeSelector: "kubernetes.io/arch=amd64",
+        yaml: podYAML, yamlMergeStrategy: merge(),
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: "2c", image: rust_image,

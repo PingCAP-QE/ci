@@ -17,6 +17,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        CI = "1"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -39,7 +40,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)

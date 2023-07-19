@@ -90,11 +90,11 @@ if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_b
 GO_VERSION = "go1.20"
 POD_GO_IMAGE = ""
 GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
+    "go1.13": "hub.pingcap.net/wulifu/golang-tini:1.13",
+    "go1.16": "hub.pingcap.net/wulifu/golang-tini:1.16",
+    "go1.18": "hub.pingcap.net/wulifu/golang-tini:1.18",
+    "go1.19": "hub.pingcap.net/wulifu/golang-tini:1.19",
+    "go1.20": "hub.pingcap.net/wulifu/golang-tini:1.20",
 ]
 POD_LABEL_MAP = [
     "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
@@ -116,6 +116,20 @@ node("master") {
     println "go image: ${POD_GO_IMAGE}"
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run_test_with_pod(Closure body) {
     def label = "dm-integration-test-${BUILD_NUMBER}"
     if (GO_VERSION == "go1.13") {
@@ -130,20 +144,23 @@ def run_test_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(
             label: label,
             cloud: cloud,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             namespace: "jenkins-dm",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
-                            resourceRequestCpu: '3000m', resourceRequestMemory: '4Gi',
+                            resourceRequestCpu: '3000m', resourceRequestMemory: '8Gi',
                             resourceLimitCpu: '12000m', resourceLimitMemory: "12Gi",
-                            command: 'cat'),
+                            args: 'cat'),
                     containerTemplate(
                             name: 'mysql1', alwaysPullImage: true,
                             image: 'hub.pingcap.net/jenkins/mysql:5.7',ttyEnabled: true,
@@ -185,10 +202,13 @@ def run_build_with_pod(Closure body) {
     if (GO_VERSION == "go1.19") {
         label = "dm-integration-test-build-go1190-${BUILD_NUMBER}"
     }
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             namespace: "jenkins-dm",
             containers: [
                     containerTemplate(
@@ -201,10 +221,8 @@ def run_build_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-                            emptyDirVolume(mountPath: '/tmp', memory: false),
-                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                        emptyDirVolume(mountPath: '/tmp', memory: false),
+                        emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
     ) {
         node(label) {
@@ -258,7 +276,7 @@ def build_dm_bin() {
             unstash 'ticdc'
             ws = pwd()
             dir('go/src/github.com/pingcap/tiflow') {
-                println "debug command:\nkubectl -n jenkins-tidb exec -ti ${env.NODE_NAME} bash"
+                println "debug command:\nkubectl -n jenkins-dm exec -ti ${env.NODE_NAME} bash"
 
                 // build it test bin
                 sh 'make dm_integration_test_build'

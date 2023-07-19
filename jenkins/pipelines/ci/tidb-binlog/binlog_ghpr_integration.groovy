@@ -85,13 +85,14 @@ node("master") {
 
 def run_with_pod(Closure body) {
     def label = POD_LABEL_MAP[GO_VERSION]
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-binlog"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -102,8 +103,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
@@ -205,19 +204,20 @@ try {
         }
         tests["Integration Test"] = {
             podTemplate(label: label,
-            cloud: "kubernetes-ng",
+            cloud: "kubernetes-ksyun",
             namespace: "jenkins-tidb-binlog",
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                 containerTemplate(name: 'golang',alwaysPullImage: false, image: "${POD_GO_IMAGE}",
                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                 ttyEnabled: true, command: 'cat'),
-                containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'wurstmeister/zookeeper',
+                containerTemplate(name: 'zookeeper',alwaysPullImage: false, image: 'hub.pingcap.net/jenkins/zookeeper',
                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                 ttyEnabled: true),
                 containerTemplate(
                     name: 'kafka',
-                    image: 'wurstmeister/kafka',
+                    image: 'hub.pingcap.net/jenkins/kafka',
                     resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                     ttyEnabled: true,
                     alwaysPullImage: false,

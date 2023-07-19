@@ -41,7 +41,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -64,9 +64,9 @@ pipeline {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
                         mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
+                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${REFS.base_ref} -C ${REFS.base_sha}
+                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${REFS.base_ref} -C ${REFS.base_sha}
                         """
                     }
                 }

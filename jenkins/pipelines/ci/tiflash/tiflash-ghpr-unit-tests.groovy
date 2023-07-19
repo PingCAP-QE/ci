@@ -54,7 +54,7 @@ def parameters = [
 
 
 def runBuilderClosure(label, image, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash", idleMinutes: 0,
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ksyun", namespace: "jenkins-tiflash", idleMinutes: 0,nodeSelector: "kubernetes.io/arch=amd64",
         containers: [
             containerTemplate(name: 'runner', image: image,
                 alwaysPullImage: true, ttyEnabled: true, command: 'cat',
@@ -62,10 +62,11 @@ def runBuilderClosure(label, image, Closure body) {
                 resourceLimitCpu: '12000m', resourceLimitMemory: '32Gi'),
         ],
         volumes: [
-            nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: '172.16.5.22',
-                serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/dependency', readOnly: true),
-            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
+            // TODO use s3 cache instead of nfs
+            nfsVolume(mountPath: '/home/jenkins/agent/dependency', serverAddress: "${NFS_SERVER_ADDRESS}",
+                serverPath: '/data/nvme1n1/nfs/tiflash/dependency', readOnly: true),
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                serverPath: '/data/nvme1n1/nfs/git', readOnly: true),
             emptyDirVolume(mountPath: '/tmp-memfs', memory: true),
         ],
         hostNetwork: false
@@ -124,12 +125,13 @@ def prepareArtifacts(built, get_toolchain) {
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-for-ut"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tiflash"
     podTemplate(label: label,
         cloud: cloud,
         namespace: namespace,
         idleMinutes: 0,
+        nodeSelector: "kubernetes.io/arch=amd64",
         containers: [
             containerTemplate(
                 name: 'golang', alwaysPullImage: true,
@@ -140,10 +142,11 @@ def run_with_pod(Closure body) {
             )
         ],
         volumes: [
+            // TODO use s3 cache instead of nfs
             emptyDirVolume(mountPath: '/tmp', memory: false),
             emptyDirVolume(mountPath: '/home/jenkins', memory: false),
-            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: true),
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                serverPath: '/data/nvme1n1/nfs/git', readOnly: true),
         ],
     ) {
         node(label) {

@@ -4,6 +4,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       skip_report: false
@@ -14,6 +15,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       skip_report: false
@@ -24,15 +26,18 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
       context: pull-cdc-integration-storage-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-storage-test"
       branches:
         - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.1/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-compatibility-test
       skip_report: false
@@ -43,6 +48,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-integration-test
       skip_report: false
@@ -53,6 +59,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-engine-integration-test
       skip_report: false
@@ -63,7 +70,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.1/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: jenkins-ticdc/verify 
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"

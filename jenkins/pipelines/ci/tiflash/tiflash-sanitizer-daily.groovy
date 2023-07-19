@@ -66,7 +66,7 @@ def checkout() {
 }
 
 def runBuilderClosure(label, Closure body) {
-    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ng", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,
+    podTemplate(name: label, label: label, instanceCap: 15, cloud: "kubernetes-ksyun", namespace: "jenkins-tiflash-schrodinger", idleMinutes: 0,nodeSelector: "kubernetes.io/arch=amd64",
         containers: [
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
                     alwaysPullImage: true, envVars: [
@@ -78,10 +78,11 @@ def runBuilderClosure(label, Closure body) {
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
     ],
     volumes: [
-            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
-            nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: '172.16.5.22',
-                    serverPath: '/mnt/ci.pingcap.net-nfs/tiflash/rust', readOnly: false),
+            // TODO use s3 cache instead of nfs
+            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                    serverPath: '/data/nvme1n1/nfs/git', readOnly: false),
+            nfsVolume(mountPath: '/home/jenkins/agent/rust', serverAddress: "${NFS_SERVER_ADDRESS}",
+                    serverPath: '/data/nvme1n1/nfs/tiflash/rust', readOnly: false),
     ]
     ) {
         node(label) {
@@ -232,12 +233,13 @@ UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 LSAN_OPTIONS=suppressions=/test
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tiflash-schrodinger"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

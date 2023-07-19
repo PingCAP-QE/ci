@@ -27,7 +27,7 @@ try {
 stage("Cover") {
     def label="tikv_cached_${ghprbTargetBranch}_build"
     podTemplate(name: label, label: label,
-        nodeSelector: 'role_type=slave', instanceCap: 7,
+        nodeSelector: "kubernetes.io/arch=amd64", instanceCap: 7,
         workspaceVolume: emptyDirWorkspaceVolume(memory: true),
         containers: [
             containerTemplate(name: 'rust', image: "hub.pingcap.net/jenkins/tikv-cached-${pod_image_param}:latest",

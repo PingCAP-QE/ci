@@ -19,6 +19,7 @@ pipeline {
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
+        CI = "1"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -43,7 +44,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/${REFS.org}/${REFS.repo}/rev-${REFS.base_sha}", restoreKeys: ["git/${REFS.org}/${REFS.repo}/rev-"]) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -135,7 +136,7 @@ pipeline {
                                                 export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=1
+                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
                                             else
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export CACHE_ENABLED=${CACHE_ENABLED}

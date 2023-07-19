@@ -25,7 +25,7 @@ triggered_job_name = "cdc_ghpr_integration_test"
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
@@ -33,6 +33,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,

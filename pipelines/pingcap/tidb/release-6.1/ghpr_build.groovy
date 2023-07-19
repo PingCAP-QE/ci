@@ -40,19 +40,17 @@ pipeline {
             }
         }
         stage('Checkout') {
-            // FIXME(wuhuizuo): catch AbortException and set the job abort status
-            // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             parallel {   
                 stage('tidb') {
                     steps {
                         dir('tidb') {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                                 retry(2) {
                                     script {
                                         prow.checkoutRefs(REFS)
                                     }
                                 }
-                            }
+                            }                            
                         }
                     }
                 }

@@ -22,6 +22,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        CI = "1"
     }
     stages {
         stage('Debug info') {
@@ -39,11 +40,9 @@ pipeline {
             }
         }
         stage('Checkout') {
-            // FIXME(wuhuizuo): catch AbortException and set the job abort status
-            // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -87,7 +86,7 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_statisticstest',
                             'run_real_tikv_tests.sh bazel_txntest',
                             'run_real_tikv_tests.sh bazel_addindextest',
-                            'run_real_tikv_tests.sh bazel_loaddatatest',
+                            'run_real_tikv_tests.sh bazel_importintotest',
                         )
                     }
                 }
@@ -100,6 +99,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
@@ -112,9 +112,23 @@ pipeline {
                             }
                         }
                         post {
+                            always {
+                                dir('tidb') {
+                                    // archive test report to Jenkins.
+                                    junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                                }
+                            }
                             failure {
                                 dir("checks-collation-enabled") {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
+                                }
+                            }
+                            success {
+                                dir("tidb") {
+                                    sh 'ls -alh test_coverage/ || true'
+                                    script {
+                                        prow.uploadCoverageToCodecov(REFS, 'integration', 'test_coverage/coverage.dat')
+                                    }
                                 }
                             }
                         }

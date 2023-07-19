@@ -1,0 +1,57 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/TiProxy:
+    - name: pingcap/tiproxy/pull_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-mysql-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-test"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/pull_mysql_connector_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: pull-mysql-connector-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-mysql-connector-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-mysql-connector-test"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/pull_integration_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      always_run: false  # need remove this after the debug is done.
+      context: wip/pull-integration-jdbc-test # need change this.
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-jdbc-test"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/pull_integration_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      always_run: false  # need remove this after the debug is done.
+      context: wip/pull-integration-common-test # need change this.
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-common-test"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/pull_integration_ruby_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      always_run: false  # need remove this after the debug is done.
+      context: wip/pull-integration-ruby-orm-test # need change this.
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-ruby-orm-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-ruby-orm-test"
+      branches:
+        - ^main$

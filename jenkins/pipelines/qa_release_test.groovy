@@ -29,7 +29,7 @@ catchError {
             containers: [
                     containerTemplate(
                         name: 'toolkit', alwaysPullImage: true,
-                        image: "hub.pingcap.net/qa/ci-toolkit:latest", ttyEnabled: true,
+                        image: "hub.pingcap.net/qa/ci-toolkit:0.9.0", ttyEnabled: true,
                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
@@ -45,6 +45,7 @@ catchError {
                     sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/done --content done"
                     sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
+                    sh "inv upload --force --dst builds/pingcap/pd/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
                     sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${params.VERSION}/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
@@ -83,6 +84,7 @@ catchError {
 
                     if (release_info.containsKey("tiflash_commit") && release_info.tiflash_commit != "") {
                         sh "inv upload --dst refs/pingcap/tiflash/${release_info.tiflash_commit}/sha1 --content ${release_info.tiflash_commit}"
+                        sh "inv upload --dst refs/pingcap/ticdc/${release_info.release_branch}/sha1 --content ${release_info.ticdc_commit}"
                     }
                     if (release_info.containsKey("br_commit") && release_info.br_commit != "") {
                         sh "inv upload --dst refs/pingcap/br/${release_info.br_commit}/sha1 --content ${release_info.br_commit}"

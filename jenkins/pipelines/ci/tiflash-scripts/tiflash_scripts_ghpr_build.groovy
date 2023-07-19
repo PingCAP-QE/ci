@@ -24,7 +24,7 @@ def fallback() {
 
     catchError {
 
-        podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, containers: [
+        podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 120, nodeSelector: "kubernetes.io/arch=amd64",containers: [
             containerTemplate(name: 'java', image: 'hub.pingcap.net/jenkins/centos7_golang-1.12_java', ttyEnabled: true, command: 'cat'),
         ]) {
             node(label) {
@@ -70,7 +70,8 @@ def fallback() {
 
 }
 
-podTemplate(name: "toolkit-build-tiflash", label: "toolkit-build-tiflash", instanceCap: 3, idleMinutes: 30, containers: [
+podTemplate(name: "toolkit-build-tiflash", label: "toolkit-build-tiflash", instanceCap: 3, idleMinutes: 30, nodeSelector: "kubernetes.io/arch=amd64",
+    containers: [
     containerTemplate(name: 'toolkit', image: 'hub.pingcap.net/qa/ci-toolkit', ttyEnabled: true, command: 'cat'),
 ]) {
 

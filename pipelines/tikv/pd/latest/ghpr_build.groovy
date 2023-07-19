@@ -43,7 +43,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("pd") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/pd/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/pd/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)

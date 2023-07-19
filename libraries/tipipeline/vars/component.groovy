@@ -61,6 +61,40 @@ def checkout(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId=
     )
 }
 
+def checkoutV2(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsId="", trunkBranch="master", timeout=5) {
+    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
+    def pluginSpec = "+refs/heads/$prTargetBranch:refs/remotes/origin/$prTargetBranch"
+    // transfer plugin branch from pr/28 to origin/pr/28/head
+    if (componentBranch.startsWith("pr/")) {
+        def prId = componentBranch.substring(3)
+        pluginSpec += " +refs/pull/$prId/head:refs/remotes/origin/pr/$prId/head"
+        componentBranch = "origin/${componentBranch}/head"
+    }
+    println(gitUrl)
+    println(pluginSpec)
+
+    checkout(
+        changelog: false,
+        poll: true,
+        scm: [
+            $class: 'GitSCM',
+            branches: [[name: componentBranch]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+                [$class: 'PruneStaleBranch'],
+                [$class: 'CleanBeforeCheckout'],
+                [$class: 'CloneOption', timeout: timeout],
+            ], 
+            submoduleCfg: [],
+            userRemoteConfigs: [[
+                credentialsId: credentialsId,
+                refspec: pluginSpec,
+                url: gitUrl,
+            ]]
+        ]
+    )
+}
+
 // fetch component artifact from artifactory(current http server)
 def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBody, artifactPath, pathInArchive="", trunkBranch="master") {
     def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
@@ -77,8 +111,13 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
         fi
         
         artifactUrl="${serverUrl}/download/builds/pingcap/${keyInComment}/\${sha1}/${artifactPath}"
-        echo "📦 artifact url: \${artifactUrl}"
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O - "\${artifactUrl}" | tar xz ${pathInArchive}
+        echo "⬇️📦 artifact url: \${artifactUrl}"
+        saveFile=\$(basename \${artifactUrl})
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -c -O \${saveFile} \${artifactUrl}
+        echo "📂 extract ${pathInArchive} from \${saveFile} ..."
+        tar -xzf \${saveFile} ${pathInArchive}
+        rm \${saveFile}
+        echo "✅ extracted ${pathInArchive} from \${saveFile} ."
     """)
 }
 

@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_build
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
@@ -14,7 +14,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_check
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
@@ -24,7 +24,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
@@ -34,7 +34,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
@@ -44,19 +44,110 @@ presubmits:
     - name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
       branches:
         - ^master$
         - ^feature[_/].+
-    - name: pingcap/tidb/canary-scan-security
+    - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: canary-scan-security
-      trigger: "(?m)^/test (?:.*? )?canary-scan-security(?: .*?)?$"
-      rerun_command: "/test canary-scan-security"
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-integration-mysql-test
+      trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-mysql-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_integration_copr_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-integration-copr-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-copr-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_integration_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-integration-jdbc-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-jdbc-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_e2e_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-e2e-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
+      rerun_command: "/test pull-e2e-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_br_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-br-integration-test
+      always_run: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-br-integration-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-common-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
+      rerun_command: "/test pull-common-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_integration_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-integration-common-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-common-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_integration_ddl_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-integration-ddl-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-ddl-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_sqllogic_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-sqllogic-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
+      rerun_command: "/test pull-sqllogic-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_tiflash_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiflash-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
+      rerun_command: "/test pull-tiflash-test"
       branches:
         - ^master$

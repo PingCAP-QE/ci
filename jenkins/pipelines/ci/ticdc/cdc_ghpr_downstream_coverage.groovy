@@ -37,14 +37,15 @@ properties([
 
 def run_with_pod(Closure body) {
     def label = "cdc_ghpr_downstream_coverage-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-ticdc"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-tiflow"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,
@@ -55,10 +56,6 @@ def run_with_pod(Closure body) {
                             
                     )
             ],
-            volumes: [
-                            nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                                    serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false)
-                    ],
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"

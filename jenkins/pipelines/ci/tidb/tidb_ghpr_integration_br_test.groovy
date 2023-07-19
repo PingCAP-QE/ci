@@ -22,7 +22,7 @@ triggered_job_name = "br_ghpr_unit_and_integration_test"
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
+    def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     def go_image = "hub.pingcap.net/jenkins/centos7_golang-1.18:latest"
@@ -30,6 +30,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -105,56 +106,6 @@ run_with_pod {
         println "error: ${e}"
         currentBuild.result = "FAILURE"
     } finally {
-        container("golang") {
-            def triggered_job_result_file_url = "${FILE_SERVER_URL}/download/cicd/ci-pipeline-artifacts/result-${triggered_job_name}_${result.getNumber().toString()}.json"
-            def file_existed = sh(returnStatus: true,
-                                script: """if curl --output /dev/null --silent --head --fail ${triggered_job_result_file_url}; then exit 0; else exit 1; fi""")
-            if (file_existed == 0) {
-                sh "curl -O ${triggered_job_result_file_url}"
-                def jsonObj = readJSON file: "result-${triggered_job_name}_${result.getNumber().toString()}.json"
-                def json = groovy.json.JsonOutput.toJson(jsonObj)
-                println "all_results: ${json}"
-                currentBuild.description = "${json}"
-                writeJSON file: 'ciResult.json', json: json, pretty: 4
-                sh 'cat ciResult.json'
-                archiveArtifacts artifacts: 'ciResult.json', fingerprint: true
-            } else {
-                println "triggered job result file not exist"
-            }
-        }
-        
+        println "currentBuild.result: ${currentBuild.result}"        
     } 
 }
-
-
-if (params.containsKey("triggered_by_upstream_ci") && params.get("triggered_by_upstream_ci") == "tidb_integration_test_ci") {
-    stage("update commit status") {
-        node("master") {
-            if (currentBuild.result == "ABORTED") {
-                PARAM_DESCRIPTION = 'Jenkins job aborted'
-                // Commit state. Possible values are 'pending', 'success', 'error' or 'failure'
-                PARAM_STATUS = 'error'
-            } else if (currentBuild.result == "FAILURE") {
-                PARAM_DESCRIPTION = 'Jenkins job failed'
-                PARAM_STATUS = 'failure'
-            } else if (currentBuild.result == "SUCCESS") {
-                PARAM_DESCRIPTION = 'Jenkins job success'
-                PARAM_STATUS = 'success'
-            } else {
-                PARAM_DESCRIPTION = 'Jenkins job meets something wrong'
-                PARAM_STATUS = 'error'
-            }
-            def default_params = [
-                    booleanParam(name: 'ENABLE_FAIL_FAST', value: false),
-                    string(name: 'TIDB_COMMIT_ID', value: ghprbActualCommit ),
-                    string(name: 'CONTEXT', value: 'idc-jenkins-ci-tidb/integration-br-test'),
-                    string(name: 'DESCRIPTION', value: PARAM_DESCRIPTION ),
-                    string(name: 'BUILD_URL', value: RUN_DISPLAY_URL ),
-                    string(name: 'STATUS', value: PARAM_STATUS ),
-            ]
-            echo("default params: ${default_params}")
-            build(job: "tidb_update_commit_status", parameters: default_params, wait: true)
-        }
-    }
-}
-

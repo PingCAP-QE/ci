@@ -7,9 +7,11 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     files:
+      - pingcap-community-postsubmits.yaml
       - pingcap-inc-enterprise-extensions-presubmits.yaml
       - pingcap-qe-ci-presubmits.yaml
       - pingcap-tidb-latest-postsubmits.yaml
+      - pingcap-tidb-latest-presubmits-canary.yaml
       - pingcap-tidb-latest-presubmits.yaml
       - pingcap-tidb-release-6.1-presubmits.yaml
       - pingcap-tidb-release-6.2-presubmits.yaml
@@ -19,16 +21,22 @@ configMapGenerator:
       - pingcap-tidb-release-6.6-presubmits.yaml
       - pingcap-tidb-release-7.0-presubmits.yaml
       - pingcap-tidb-release-7.1-presubmits.yaml
+      - pingcap-tidb-release-7.2-presubmits.yaml
       - pingcap-tidb-test-latest-presubmits.yaml
       - pingcap-tidb-test-release-6.0-presubmits.yaml
       - pingcap-tidb-test-release-6.1-presubmits.yaml
       - pingcap-tidb-test-release-6.2-presubmits.yaml
+      - pingcap-tiflow-latest-presubmits-wip.yaml
       - pingcap-tiflow-latest-presubmits.yaml
       - pingcap-tiflow-release-5.3-presubmits.yaml
+      - pingcap-tiflow-release-5.4-presubmits.yaml
       - pingcap-tiflow-release-6.0-presubmits.yaml
       - pingcap-tiflow-release-6.1-presubmits.yaml
       - pingcap-tiflow-release-6.2-presubmits.yaml
+      - pingcap-tiflow-release-6.5-presubmits.yaml
       - pingcap-tiflow-release-7.1-presubmits.yaml
+      - pingcap-tiflow-release-7.2-presubmits.yaml
+      - pingcap-tiproxy-latest-presubmits.yaml
       - ti-community-infra-configs-periodics.yaml
       - ti-community-infra-configs-postsubmits.yaml
       - ti-community-infra-configs-presubmits.yaml

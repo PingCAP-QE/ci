@@ -3,6 +3,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -17,6 +18,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        CI = "1"
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
@@ -38,14 +40,13 @@ pipeline {
             }
         }
         stage('Checkout') {
-            // FIXME(wuhuizuo): catch AbortException and set the job abort status
-            // REF: https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java#L1161
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        script {
+                            git.setSshKey(GIT_CREDENTIALS_ID)
+                            retry(2) {
+                                prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             }
                         }
                     }
@@ -68,9 +69,9 @@ pipeline {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
                         mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.3.2
+                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
                         chmod +x codecov
-                        ./codecov --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
+                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
                         """
                     }
                 }

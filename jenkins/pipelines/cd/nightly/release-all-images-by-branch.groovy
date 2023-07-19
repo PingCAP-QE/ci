@@ -37,6 +37,7 @@ properties([
                 H 18 * * * % GIT_BRANCH=release-6.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 18 * * * % GIT_BRANCH=release-6.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 18 * * * % GIT_BRANCH=release-7.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
+                H 18 * * * % GIT_BRANCH=release-7.2;FORCE_REBUILD=false;NEED_MULTIARCH=true
                 H 19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
             ''')
         ])
@@ -83,7 +84,7 @@ HARBOR_PROJECT_PREFIX = "hub.pingcap.net/qa"
 
 
 // for master branch: use default local tag: v6.1.0-nightly
-RELEASE_TAG = "v7.2.0-alpha"
+RELEASE_TAG = "v7.3.0-alpha"
 if (GIT_BRANCH.startsWith("release-")) {
     RELEASE_TAG = "v" + trimPrefix(GIT_BRANCH) + ".0-nightly"
 }
@@ -662,6 +663,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                             name: 'golang', alwaysPullImage: true,

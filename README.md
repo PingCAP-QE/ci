@@ -23,7 +23,9 @@
 
 ## New top level directories
 
-- `/jobs` store Jenkins CI job DSL files.
+- `/docs` documents about CI/CD jobs, tools, etc.
+- `/prow-jobs` store the top level prow jobs.
+- `/jobs` store Jenkins CI job DSL files. some jobs will be called by prow jobs defined in `/prow-jobs`.
 - `/pipelines` store Jenkins CI pipeline scripts.
 - `/libraries` store Jenkins CI shared libraries.
 - `/staging` store staging jobs and pipelines before deploying to production.

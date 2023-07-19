@@ -33,7 +33,7 @@ String PRODUCED_VERSION
 retry(2) {
     try {
         timeout(600) {
-            RELEASE_TAG = "v7.2.0-alpha"
+            RELEASE_TAG = "v7.3.0-alpha"
             node("build_go1130") {
                 container("golang") {
                     def ws = pwd()
@@ -62,40 +62,40 @@ retry(2) {
 
                         sh """
                 echo ${tidb_sha1} > sha1
-                curl --fail -F refs/pingcap/tidb/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tidb/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tikv_sha1} > sha1
-                curl --fail -F refs/pingcap/tikv/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tikv/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${pd_sha1} > sha1
-                curl --fail -F refs/pingcap/pd/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/pd/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tidb_binlog_sha1} > sha1
-                curl --fail -F refs/pingcap/tidb-binlog/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tidb-binlog/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tidb_tools_sha1} > sha1
-                curl --fail -F refs/pingcap/tidb-tools/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tidb-tools/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tidb_sha1} > sha1
-                curl --fail -F refs/pingcap/br/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/br/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tidb_sha1} > sha1
-                curl --fail -F refs/pingcap/dumpling/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/dumpling/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tiflash_sha1} > sha1
-                curl --fail -F refs/pingcap/tics/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tics/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${cdc_sha1} > sha1
-                curl --fail -F refs/pingcap/tiflow/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tiflow/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${tidb_ctl_githash} > sha1
-                curl --fail -F refs/pingcap/tidb-ctl/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/tidb-ctl/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
                 
                 echo ${cdc_sha1} > sha1
-                curl --fail -F refs/pingcap/dm/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/dm/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
                 echo ${ng_monitoring_sha1} > sha1
-                curl --fail -F refs/pingcap/ng-monitoring/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                curl --fail -F refs/pingcap/ng-monitoring/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
                 """
                     }
                 }

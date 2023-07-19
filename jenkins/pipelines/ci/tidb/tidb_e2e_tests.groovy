@@ -56,6 +56,8 @@ metadata:
     ci-engine: ci.pingcap.net
 '''
 
+POD_NAMESPACE = "jenkins-tidb-mergeci"
+
 def run_with_pod(Closure body) {
     def label = "tidb-e2e-tests-${BUILD_NUMBER}"
     podTemplate(label: label,
@@ -64,6 +66,7 @@ def run_with_pod(Closure body) {
             idleMinutes: 0,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -74,8 +77,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
@@ -100,20 +101,6 @@ try {
         stage("Checkout") {
             container("golang") {
                 sh "whoami && go version"
-                dir("/home/jenkins/agent/code-archive") {
-                    // delete to clean workspace in case of agent pod reused lead to conflict.
-                    deleteDir()
-                    // copy code from nfs cache
-                    if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
-                        timeout(5) {
-                            sh """
-                            cp -R /home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz*  ./
-                            mkdir -p ${ws}/go/src/github.com/pingcap/tidb
-                            tar -xzf src-tidb.tar.gz -C ${ws}/go/src/github.com/pingcap/tidb --strip-components=1
-                        """
-                        }
-                    }
-                }
                 dir("${ws}/go/src/github.com/pingcap/tidb") {
                     try {
                         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 10]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: specStr, url: 'git@github.com:pingcap/tidb.git']]]

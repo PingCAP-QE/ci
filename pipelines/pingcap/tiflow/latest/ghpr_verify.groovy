@@ -43,7 +43,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${BUILD_TAG}") {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -76,12 +76,8 @@ pipeline {
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
                         }
                         steps {
-                            sh """
-                            rm -rf .git .gitignore
-                            ls -alh
-                            """
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/tiflow/rev-${BUILD_TAG}") {
+                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh label: "${TEST_CMD}", script: """
                                         make ${TEST_CMD}
                                     """

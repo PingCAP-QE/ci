@@ -20,13 +20,14 @@ if (branch == "tikv-3.x" ||
 
 def run_with_x86_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
-    def cloud = "kubernetes-ng"
-    def namespace = "jenkins-org-tikv"
+    def cloud = "kubernetes-ksyun"
+    def namespace = "jenkins-tikv"
     def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'rust', alwaysPullImage: true,
@@ -36,14 +37,15 @@ def run_with_x86_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/cache', readOnly: false),
-                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/registry/index', readOnly: false),
-                    nfsVolume(mountPath: '/rust/git/db', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/db', readOnly: false),
-                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/rust/git/checkouts', readOnly: false),
+                    // TODO use s3 cache instead of nfs
+                    nfsVolume(mountPath: '/rust/registry/cache', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/rust/registry/cache', readOnly: false),
+                    nfsVolume(mountPath: '/rust/registry/index', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/rust/registry/index', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/db', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/rust/git/db', readOnly: false),
+                    nfsVolume(mountPath: '/rust/git/checkouts', serverAddress: "${NFS_SERVER_ADDRESS}",
+                            serverPath: '/data/nvme1n1/nfs/rust/git/checkouts', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false),
                     ],

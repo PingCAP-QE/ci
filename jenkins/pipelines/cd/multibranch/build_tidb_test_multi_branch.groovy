@@ -158,9 +158,9 @@ try {
                     timeout(10) {
                         sh """
                         tar --exclude=tidb-test.tar.gz -czvf tidb-test.tar.gz ./*
-                        curl --fail -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
                         echo "${githash}" > sha1
-                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep '"status":\\s*true\\b'
+                        curl --fail -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
                         """
                     }
                 }

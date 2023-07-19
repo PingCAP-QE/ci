@@ -37,6 +37,7 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
@@ -47,8 +48,6 @@ def run_with_pod(Closure body) {
                     )
             ],
             volumes: [
-                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: '172.16.5.22',
-                            serverPath: '/mnt/ci.pingcap.net-nfs/git', readOnly: false),
                     emptyDirVolume(mountPath: '/tmp', memory: false),
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
                     ],
@@ -104,7 +103,8 @@ catchError {
 
         tests["Unit Test"] = {
             def label = "test-${UUID.randomUUID().toString()}"
-            podTemplate(label: label, containers: [
+            podTemplate(label: label, nodeSelector: "kubernetes.io/arch=amd64",
+                containers: [
                     containerTemplate(name: 'golang',alwaysPullImage: false,
                             image: "${POD_GO_IMAGE}",
                             ttyEnabled: true, command: 'cat'),

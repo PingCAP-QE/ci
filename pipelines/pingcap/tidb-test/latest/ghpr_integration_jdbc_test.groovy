@@ -47,13 +47,13 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
+                                component.checkoutV2('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
                             }
                         }
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
@@ -74,11 +74,6 @@ pipeline {
                             mv third_bin/* bin/
                             ls -alh bin/
                         """
-                    }
-                }
-                dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/tidb-test/rev-${REFS.pulls[0].sha}") {
-                        sh "touch ws-${BUILD_TAG}"
                     }
                 }
             }
@@ -120,7 +115,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/rev-${REFS.pulls[0].sha}") {
+                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*

@@ -87,8 +87,15 @@ async function main({
   console.info("%cTask info:", "color: yellow", taskInfo);
 
   save_task_id_to && await Deno.writeTextFile(save_task_id_to, taskId);
-  save_report_to &&
-    await Deno.writeTextFile(save_report_to, taskInfo.report);
+  if (save_report_to) {
+    taskInfo.report &&
+      await Deno.writeTextFile(save_report_to, atob(taskInfo.report));
+    taskInfo.html_report &&
+      await Deno.writeTextFile(
+        save_report_to + ".html",
+        atob(taskInfo.html_report),
+      );
+  }
 
   // 1: blocked, 2: pass, 3: watched, 4: not enabled.
   if (taskInfo.audit_status === 1) {

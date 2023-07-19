@@ -12,6 +12,17 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb-test/ghpr_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      run_if_changed: "(jdbc8_test|jdbc_test)/.*"
+      context: ci/common-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?common-test(?: .*?)?$"
+      rerun_command: "/test common-test"
+      branches:
+        - ^master$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb-test/ghpr_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
@@ -56,3 +67,33 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb-test/ghpr_integration_prisma_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/integration-prisma-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?integration-prisma-test(?: .*?)?$"
+      rerun_command: "/test integration-prisma-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/ghpr_integration_sequelize_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/integration-sequelize-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?integration-sequelize-test(?: .*?)?$"
+      rerun_command: "/test integration-sequelize-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/pull_tiproxy_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-mysql-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-mysql-test"
+      branches:
+        - ^master$

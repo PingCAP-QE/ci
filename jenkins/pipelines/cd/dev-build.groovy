@@ -1,5 +1,5 @@
 final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog", "tidb-tools":"tidb-tools"]
-final FileserverDownloadURL = "http://fileserver.pingcap.net/download"
+final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
 def GitHash = ''
 def GitPR = ''
