@@ -91,8 +91,7 @@ pipeline {
                         values 'make deploy-analyzetest ARGS="-x"', 'make deploy-randgentest ARGS="-x -c y"',
                             'make deploy-gosqltest ARGS="-x"', 'make deploy-gormtest ARGS="-x"',
                             'make deploy-beegoormtest ARGS="-x"', 'make deploy-upperdbormtest ARGS="-x"',
-                            'make deploy-xormtest ARGS="-x"'
-                    }
+                            'make deploy-xormtest ARGS="-x"', 'make deploy-connectorctest ARGS="-x"'
                 }
                 agent{
                     kubernetes {
