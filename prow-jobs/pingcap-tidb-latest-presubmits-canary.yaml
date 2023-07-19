@@ -28,22 +28,17 @@ presubmits:
       run_if_changed: "^(session/bootstrap\\.go|sessionctx/variable/(sysvar|session|tidb_vars)\\.go|config/(config\\.go|config\\.toml\\.example)|br/tidb-lightning\\.toml|parser/parser\\.y)$"
       branches:
         - ^master$
-      extra_refs:
-        - org: PingCAP-QE
-          repo: ci
-          base_ref: main
-          workdir: true
       spec:
         containers:
           - name: check
             image: denoland/deno:1.35.1
-            command: [deno, run, --allow-all, scripts/plugins/notify-by-lark.ts]
+            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/notify-by-lark.ts]
             args:
               - --title="TiDB pull request configuration change notify"
               - --message="Configuration or variable section file changes are detected, please review and check it."
               - --to_emails=wuhui.zuo@pingcap.com
               - --to_emails=lifu.wu@pingcap.com
-              - --links="https://github.com/$(REPO_OWNER)/$(REPO_NAME)/pull/$(PULL_NUMBER)
+              - --links="https://github.com/$(REPO_OWNER)/$(REPO_NAME)/pull/$(PULL_NUMBER)"
             env:
               - name: LARK_APP_ID
                 valueFrom:
@@ -54,8 +49,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: chatops-lark
-                    key: app-secret  
-
+                    key: app-secret
             resources:
               limits:
                 memory: 1Gi
