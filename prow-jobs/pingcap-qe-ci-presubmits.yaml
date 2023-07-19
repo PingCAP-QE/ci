@@ -19,6 +19,26 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-prow-jobs
+      decorate: true
+      extra_refs:
+        - org: ti-community-infra
+          repo: configs
+          base_ref: main
+          repo_link: https://github.com/ti-community-infra/configs
+      max_concurrency: 1
+      run_if_changed: "^prow-jobs/.*\\.(yaml|yml)"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - image: ticommunityinfra/checkconfig:v20230621-df5abce
+            command:
+              - /ko-app/checkconfig
+            args:
+              - --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml
+              - --config-path=../../ti-community-infra/configs/prow/config/config.yaml
+              - --job-config-path=prow-jobs/
     - name: pull-verify-gitops-for-prow-jobs
       decorate: true
       extra_refs:
