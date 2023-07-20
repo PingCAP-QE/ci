@@ -1,0 +1,14 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: pingcap/tiflow/release-7.1.0/pull_cdc_integration_storage_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: pull-cdc-integration-storage-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
+      rerun_command: "/test cdc-integration-storage-test"
+      branches:
+        - ^release-7\.1-\d{8}-v7\.1\.0(-\d+)?$  # only v7.1.0
