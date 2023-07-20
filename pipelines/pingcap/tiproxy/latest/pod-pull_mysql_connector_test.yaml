@@ -11,7 +11,19 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
+          memory: 1Gi
+          cpu: "4"
+        limits:
+          memory: 24Gi
+          cpu: "8"
+    - name: mysql_client_test
+      image: "hub.pingcap.net/tiproxy-team/mysql_client_test"
+      securityContext:
+        privileged: true
+      tty: true
+      resources:
+        requests:
+          memory: 1Gi
           cpu: "4"
         limits:
           memory: 16Gi

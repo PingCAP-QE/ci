@@ -59,36 +59,13 @@ pipeline {
                         }
                     }
                 }
-                dir("mysql-server") {
-                    cache(path: "./", filter: '**/*', key: "git/xhebox/mysql-server/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/xhebox/mysql-server/rev-']) {
-                        retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: true,
-                                scm: [
-                                    $class: 'GitSCM',
-                                    branches: [[name: "8.0"]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 5, depth: 1, shallow: true],
-                                    ], 
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        credentialsId: GIT_CREDENTIALS_ID,
-                                        refspec: "+refs/heads/8.0:refs/remotes/origin/8.0",
-                                        url: "https://github.com/xhebox/mysql-server.git",
-                                    ]]
-                                ]
-                            )
-                        }
-                    }
-                }
             }
         }
         stage('Prepare') {
             steps {
+                dir('tiproxy') {
+                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
+                }
                 dir('tidb-test') {
                         sh "touch ws-${BUILD_TAG}"
                         sh label: 'prepare thirdparty binary', script: """
@@ -96,20 +73,23 @@ pipeline {
                         ./download_binary.sh --tidb=master
                         ls -alh bin/
                         ./bin/tidb-server -V
+                        ../tiproxy/bin/tiproxy --version
                         """
                 }
             }
         }
         stage('MySQL Connector Tests') {
             steps {
+                container(name: 'mysql_client_test') {
                 dir('tidb-test') {
                     sh label: "run test", script: """
                         #!/usr/bin/env bash
                         ./bin/tidb-server &
                         TIDB_PID=\$!
-                        ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -m \$PWD/../mysql-server -u root
+                        ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -u root
                         kill \$TIDB_PID || true
                     """
+                }
                 }
             }
         }
