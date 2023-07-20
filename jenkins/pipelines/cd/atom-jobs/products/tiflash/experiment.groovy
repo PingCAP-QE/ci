@@ -5,33 +5,57 @@ mkdir -p build
 cp -r release-centos7-llvm/scripts build/
 ccache -z
 sed -i  '/-GNinja/i  \\ \\ -DUSE_INTERNAL_TIFLASH_PROXY=0 \\\\\\n\\ \\ -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ \\\\' build/scripts/build-tiflash-release.sh
-export PATH=/lib64/ccache:$PATH
+export PATH=/usr/lib64/ccache:$PATH
 build/scripts/build-release.sh
 ccache -s
+mkdir output
+mv release-centos7-llvm/tiflash output
 '''
 
-final cleanBuildCmd = '''release-centos7-llvm/scripts/build-release.sh'''
+final cleanBuildCmd = '''
+release-centos7-llvm/scripts/build-release.sh
+mkdir output
+mv release-centos7-llvm/tiflash output
+'''
 
 final cacheMacBuildCmd = '''
+export PATH=/usr/local/opt/ccache/libexec:$PATH
 mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -DUSE_INTERNAL_TIFLASH_PROXY=0 -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ -Wno-dev -DNO_WERROR=ON -GNinja
-cmake  --build . --target tiflash
-cd .. && mkdir output && cd output
-cmake --install build --component=tiflash-release --prefix="output"
+cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -DUSE_INTERNAL_TIFLASH_PROXY=0 -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ -Wno-dev -DNO_WERROR=ON
+cmake  --build . --target tiflash --parallel $NPROC
+mkdir -p ../output
+cmake --install . --component=tiflash-release --prefix="../output"
 '''
 
 final cleanMacBuildCmd = '''
 mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -Wno-dev -DNO_WERROR=ON -GNinja
-cmake  --build . --target tiflash
-cd .. && mkdir output && cd output
-cmake --install build --component=tiflash-release --prefix="output"
+cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -Wno-dev -DNO_WERROR=ON
+cmake  --build . --target tiflash --parallel $NPROC
+mkdir -p ../output
+cmake --install . --component=tiflash-release --prefix="../output"
 '''
 
 String BUILD_CMD
 
 def getBinDownloadURL={
     return "${FILE_SERVER_URL}/download/${BinPath}"
+}
+
+def getBuildCMD = {disableCache ->
+    if (BUILD_CMD){
+        return BUILD_CMD
+    }
+    if (OS=="linux"){
+        if(disableCache){
+            return cleanBuildCmd
+        }
+        return cacheEnableCmd
+    }else{
+        if(disableCache){
+            return cleanMacBuildCmd
+        }
+        return cacheMacBuildCmd
+    }
 }
 
 def doBuild = {
@@ -64,8 +88,9 @@ def doBuild = {
         }
         def proxy_cache_path = ""
         def need_update_proxy = false
+        def disableCache = params.CleanBuild.toBoolean()
         stage("fetch cache"){
-            if (params.CleanBuild.toBoolean()){
+            if ( disableCache ){
                 echo "skip fetch cache because of argument"
             }else{
                 def proxy_commit_hash = ""
@@ -83,7 +108,7 @@ def doBuild = {
                 }catch (err) {
                     echo "Caught: ${err}"
                     echo "Start clean build"
-                    BUILD_CMD = cleanBuildCmd
+                    disableCache = true
                     need_update_proxy = true
                 }}
         }
@@ -94,10 +119,8 @@ def doBuild = {
                 git branch -D refs/tags/${Version} || true
                 git checkout -b refs/tags/${Version}
             """
-            sh BUILD_CMD
+            sh getBuildCMD(disableCache)
             sh """
-                mkdir output
-                mv release-centos7-llvm/tiflash output
                 cd output
                 tar --exclude=tiflash.tar.gz -czvf tiflash.tar.gz tiflash
                 sha256sum tiflash.tar.gz | cut -d ' ' -f 1 >tiflash.tar.gz.sha256
@@ -112,7 +135,7 @@ def doBuild = {
         stage("upload proxy cache"){
             if(need_update_proxy && proxy_cache_path){
                 sh """
-                tar -czvf tiflash_proxy.tar.gz -C output/tiflash libtiflash_proxy.so
+                tar -czvf tiflash_proxy.tar.gz -C output/tiflash libtiflash_proxy.*
                 curl -F $proxy_cache_path=@tiflash_proxy.tar.gz ${FILE_SERVER_URL}/upload
                 """
             }else{
@@ -172,16 +195,14 @@ pipeline{
         stage('Prepare'){
             steps{
                 script{
-                    if (params.CleanBuild.toBoolean()){
-                        BUILD_CMD = cleanBuildCmd
-                    }else{
-                        BUILD_CMD = cacheEnableCmd
-                    }
                     echo "tiflash will build with $BUILD_CMD"
                 }
             }
         }
         stage("multi-platform bin"){
+        environment {
+            NPROC = "16"
+        }
         parallel{
             stage("linux/amd64"){
                 when {
@@ -223,6 +244,8 @@ spec:
       limits:
         memory: "32Gi"
         cpu: "16"
+  nodeSelector:
+    kubernetes.io/arch: amd64
   volumes:
   - name: ccache
     persistentVolumeClaim:
@@ -239,7 +262,7 @@ spec:
                 environment {
                     OS = "linux"
                     ARCH = "amd64"
-                    BinPath = "tmp/tiflash.tar.gz"
+                    BinPath = "tmp/tiflash-linux-amd64.tar.gz"
                 }
                 steps{
                     script{
@@ -342,15 +365,14 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
-                        expression{false}
                     }
                 }
                 agent { node { label 'darwin && arm64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "arm64"
-                    BinPath = "${params.PlatformDarwinArm64}"
-                    PATH = "/usr/local/go1.20.3/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+                    BinPath = "tmp/tiflash-darwin-arm64.tar.gz"
+                    PATH = "/Users/pingcap/.cargo/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20.3/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
                 steps{
                     script{
