@@ -10,6 +10,7 @@ pipeline{
     agent {
         kubernetes {
             yaml '''
+kind: Pod
 spec:
   containers:
   - name: golang
@@ -18,6 +19,8 @@ spec:
   - name: tiup
     image: hub.pingcap.net/jenkins/tiup
     args: ["sleep", "infinity"]
+  nodeSelector:
+    kubernetes.io/arch: amd64 
 '''
                     defaultContainer 'golang'
         }
