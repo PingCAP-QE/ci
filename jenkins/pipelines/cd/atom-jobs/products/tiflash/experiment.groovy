@@ -3,9 +3,9 @@ final specRef = "+refs/heads/*:refs/remotes/origin/*"
 final cacheLinuxCmd = '''
 mkdir -p build
 cp -r release-centos7-llvm/scripts build/
-ccache -z
 sed -i  '/-GNinja/i  \\ \\ -DUSE_INTERNAL_TIFLASH_PROXY=0 \\\\\\n\\ \\ -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ \\\\' build/scripts/build-tiflash-release.sh
 export PATH=/usr/lib64/ccache:$PATH
+ccache -z
 build/scripts/build-release.sh
 ccache -s
 mkdir output
@@ -20,11 +20,13 @@ mv release-centos7-llvm/tiflash output
 
 final cacheMacCmd = '''
 export PATH=/usr/local/opt/ccache/libexec:$PATH
+ccache -z
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -DUSE_INTERNAL_TIFLASH_PROXY=0 -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ -Wno-dev -DNO_WERROR=ON
 cmake  --build . --target tiflash --parallel $NPROC
 mkdir -p ../output
 cmake --install . --component=tiflash-release --prefix="../output"
+ccache -s
 '''
 
 final cleanMacCmd = '''
@@ -184,11 +186,10 @@ pipeline{
         string(name: 'GitHash', description: 'the git tag or commit', defaultValue:'7bd02a86e08f5077c69299ac048a700fcb68507f')
         string(name: 'Version', description: 'important, the Version for cli --Version and profile choosing, eg. v6.5.0', defaultValue:'v7.3.0')
         choice(name: 'Edition', choices : ["community", "enterprise"])
-        /*string(name: 'PlatformLinuxAmd64', defaultValue: '', description: 'build path linux amd64')
-        string(name: 'PlatformLinuxArm64', defaultValue: '', description: 'build path linux arm64')
-        string(name: 'PlatformDarwinAmd64', defaultValue: '', description: 'build path darwin amd64')
-        string(name: 'PlatformDarwinArm64', defaultValue: '', description: 'build path darwin arm64')
-        */
+        string(name: 'PathForLinuxAmd64', defaultValue: '', description: 'build path linux amd64')
+        string(name: 'PathForLinuxArm64', defaultValue: '', description: 'build path linux arm64')
+        string(name: 'PathForDarwinAmd64', defaultValue: '', description: 'build path darwin amd64')
+        string(name: 'PathForDarwinArm64', defaultValue: '', description: 'build path darwin arm64')
         booleanParam(name: 'CleanBuild', description:"disable all caches")
         string(name: 'DockerImage', description: 'docker image path', defaultValue: '')
     }
@@ -208,7 +209,7 @@ pipeline{
         parallel{
             stage("linux/amd64"){
                 when {
-                    expression{true}
+                    expression{params.PathForLinuxAmd64 != ""}
                     beforeAgent true
                 }
                 agent { kubernetes {
@@ -264,7 +265,7 @@ spec:
                 environment {
                     OS = "linux"
                     ARCH = "amd64"
-                    BinPath = "tmp/tiflash-linux-amd64.tar.gz"
+                    BinPath = params.PathForLinuxAmd64
                 }
                 steps{
                     script{
@@ -353,7 +354,7 @@ spec:
                 environment {
                     OS = "darwin"
                     ARCH = "amd64"
-                    BinPath = "${params.PlatformDarwinAmd64}"
+                    BinPath = params.PlatformDarwinAmd64
                     PATH = "/usr/local/go1.20.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
                 }
                 steps{
@@ -373,8 +374,8 @@ spec:
                 environment {
                     OS = "darwin"
                     ARCH = "arm64"
-                    BinPath = "tmp/tiflash-darwin-arm64.tar.gz"
-                    PATH = "/Users/pingcap/.cargo/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20.3/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
+                    BinPath = params.PathForDarwinArm64
+                    PATH = "/Users/pingcap/.cargo/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
                 steps{
                     script{
