@@ -17,7 +17,7 @@ spec:
           memory: 24Gi
           cpu: "8"
     - name: mysql_client_test
-      image: "hub.pingcap.net/tiproxy-team/mysql_client_test"
+      image: "hub.pingcap.net/tiproxy-team/mysql-client-test"
       securityContext:
         privileged: true
       tty: true
