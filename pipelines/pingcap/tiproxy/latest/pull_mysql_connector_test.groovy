@@ -80,16 +80,16 @@ pipeline {
         }
         stage('MySQL Connector Tests') {
             steps {
-                container(name: 'mysql_client_test') {
-                dir('tidb-test') {
-                    sh label: "run test", script: """
-                        #!/usr/bin/env bash
-                        ./bin/tidb-server &
-                        TIDB_PID=\$!
-                        ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -u root
-                        kill \$TIDB_PID || true
-                    """
-                }
+                container('mysql-client-test') {
+                    dir('tidb-test') {
+                        sh label: "run test", script: """
+                            #!/usr/bin/env bash
+                            ./bin/tidb-server &
+                            TIDB_PID=\$!
+                            ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -u root
+                            kill \$TIDB_PID || true
+                        """
+                    }
                 }
             }
         }
