@@ -1,6 +1,6 @@
 final specRef = "+refs/heads/*:refs/remotes/origin/*"
 
-final cacheEnableCmd = '''
+final cacheLinuxCmd = '''
 mkdir -p build
 cp -r release-centos7-llvm/scripts build/
 ccache -z
@@ -12,13 +12,13 @@ mkdir output
 mv release-centos7-llvm/tiflash output
 '''
 
-final cleanBuildCmd = '''
+final cleanLinuxCmd = '''
 release-centos7-llvm/scripts/build-release.sh
 mkdir output
 mv release-centos7-llvm/tiflash output
 '''
 
-final cacheMacBuildCmd = '''
+final cacheMacCmd = '''
 export PATH=/usr/local/opt/ccache/libexec:$PATH
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -DUSE_INTERNAL_TIFLASH_PROXY=0 -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ -Wno-dev -DNO_WERROR=ON
@@ -27,7 +27,7 @@ mkdir -p ../output
 cmake --install . --component=tiflash-release --prefix="../output"
 '''
 
-final cleanMacBuildCmd = '''
+final cleanMacCmd = '''
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -Wno-dev -DNO_WERROR=ON
 cmake  --build . --target tiflash --parallel $NPROC
@@ -47,14 +47,16 @@ def getBuildCMD = {disableCache ->
     }
     if (OS=="linux"){
         if(disableCache){
-            return cleanBuildCmd
+            return cleanLinuxCmd
         }
-        return cacheEnableCmd
-    }else{
+        return cacheLinuxCmd
+    }else if (OS == "darwin"){
         if(disableCache){
-            return cleanMacBuildCmd
+            return cleanMacCmd
         }
-        return cacheMacBuildCmd
+        return cacheMacCmd
+    }else{
+        throw new Exception("pipeline script error")
     }
 }
 
