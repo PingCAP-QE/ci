@@ -29,23 +29,27 @@ presubmits:
       branches:
         - ^master$
       spec:
+        nodeSelector:
+          kubernetes.io/arch: amd64
         containers:
           - name: check
             image: denoland/deno:1.35.1
-            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/notify-by-lark.ts]
+            command: [bash, -exec]
             args:
-              - --title="TiDB pull request configuration change notify"
-              - --message="Configuration or variable section file changes are detected, please review and check it."
-              - --to_emails=wuhui.zuo@pingcap.com
-              - --to_emails=lifu.wu@pingcap.com
-              - --links="https://github.com/$(REPO_OWNER)/$(REPO_NAME)/pull/$(PULL_NUMBER)"
+              - |
+                deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/notify-by-lark.ts \
+                  --title="TiDB pull request configuration change notify" \
+                  --message="Configuration or variable section file changes are detected, please review and check it." \
+                  --to_emails=wuhui.zuo@pingcap.com \
+                  --to_emails=lifu.wu@pingcap.com \
+                  --links="https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${PULL_NUMBER}"
             env:
               - name: LARK_APP_ID
                 valueFrom:
                   secretKeyRef:
                     name: chatops-lark
                     key: app-id
-              - name: LARK_APP_SECRET 
+              - name: LARK_APP_SECRET
                 valueFrom:
                   secretKeyRef:
                     name: chatops-lark
@@ -53,5 +57,4 @@ presubmits:
             resources:
               limits:
                 memory: 1Gi
-                cpu: "500m"              
-    
+                cpu: "500m"
