@@ -162,7 +162,7 @@ def buildBin={
     def skip = false
     stage("check"){
         def binExist = sh(script: "curl -I ${getBinDownloadURL()}|grep \"200 OK\"", returnStatus: true)
-        if (binExist  == 0) {
+        if (!params.CleanBuild.toBoolean() && binExist  == 0) {
             skip = true
         }
     }
