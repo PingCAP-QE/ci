@@ -207,17 +207,22 @@ pipeline{
             steps{
                 script{
                     echo "tiflash will build with $BUILD_CMD"
+                    TIFLASH_EDITION = "Community"
+                    if (params.Edition == "enterprise"){
+                        TIFLASH_EDITION = "Enterprise"
+                    }
                 }
             }
         }
         stage("multi-platform bin"){
         environment {
             NPROC = "16"
+            TIFLASH_EDITION="$TIFLASH_EDITION"
         }
         parallel{
             stage("linux/amd64"){
                 when {
-                    expression{params.PathForLinuxAmd64 != ""}
+                    expression{params.PathForLinuxAmd64}
                     beforeAgent true
                 }
                 agent { kubernetes {
@@ -342,7 +347,7 @@ spec:
                 environment {
                     OS = "linux"
                     ARCH = "arm64"
-                    BinPath = "${params.PlatformLinuxArm64}"
+                    BinPath = "${params.PathForLinuxArm64}"
                 }
                 steps{
                     script{ 
@@ -355,14 +360,14 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
-                        expression{params.PlatformDarwinAmd64 != ""}
+                        expression{params.PathForDarwinAmd64}
                     }
                 }
                 agent { node { label 'darwin && amd64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "amd64"
-                    BinPath = "${params.PlatformDarwinAmd64}"
+                    BinPath = "${params.PathForDarwinAmd64}"
                     PATH = "/Users/pingcap/.cargo/bin:/bin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
                 steps{
@@ -376,7 +381,7 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
-                        expression{params.PlatformDarwinArm64 != ""}
+                        expression{params.PathForDarwinArm64}
                     }
                 }
                 agent { node { label 'darwin && arm64' } }
@@ -437,10 +442,10 @@ spec:
             steps {
                 script{
                     def ammend = ""
-                    if (params.PlatformLinuxAmd64.toBoolean()){
+                    if (params.PathForLinuxAmd64.toBoolean()){
                         ammend += " -a ${DockerImage}-amd64"
                     }
-                    if (params.PlatformLinuxArm64.toBoolean()){
+                    if (params.PathForLinuxArm64.toBoolean()){
                         ammend += " -a ${DockerImage}-arm64"
                     }
                     if (ammend == ""){
