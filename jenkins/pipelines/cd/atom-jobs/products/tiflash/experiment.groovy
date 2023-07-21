@@ -24,8 +24,7 @@ ccache -z
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -DUSE_INTERNAL_TIFLASH_PROXY=0 -DPREBUILT_LIBS_ROOT=contrib/tiflash-proxy/ -Wno-dev -DNO_WERROR=ON
 cmake  --build . --target tiflash --parallel $NPROC
-mkdir -p ../output
-cmake --install . --component=tiflash-release --prefix="../output"
+cmake --install . --component=tiflash-release --prefix="../output/tiflash"
 ccache -s
 '''
 
@@ -33,8 +32,7 @@ final cleanMacCmd = '''
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE="RELWITHDEBINFO" -DUSE_INTERNAL_SSL_LIBRARY=ON -Wno-dev -DNO_WERROR=ON
 cmake  --build . --target tiflash --parallel $NPROC
-mkdir -p ../output
-cmake --install . --component=tiflash-release --prefix="../output"
+cmake --install . --component=tiflash-release --prefix="../output/tiflash"
 '''
 
 String BUILD_CMD
@@ -57,6 +55,16 @@ def getBuildCMD = {disableCache ->
             return cleanMacCmd
         }
         return cacheMacCmd
+    }else{
+        throw new Exception("pipeline script error")
+    }
+}
+
+def dylib_postfix = {
+    if (OS=="linux"){
+        return "so"
+    }else if (OS == "darwin"){
+        return "dylib"
     }else{
         throw new Exception("pipeline script error")
     }
@@ -139,7 +147,7 @@ def doBuild = {
         stage("upload proxy cache"){
             if(need_update_proxy && proxy_cache_path){
                 sh """
-                tar -czvf tiflash_proxy.tar.gz -C output/tiflash libtiflash_proxy.*
+                tar -czvf tiflash_proxy.tar.gz -C output/tiflash libtiflash_proxy.${dylib_postfix()}
                 curl -F $proxy_cache_path=@tiflash_proxy.tar.gz ${FILE_SERVER_URL}/upload
                 """
             }else{
@@ -265,7 +273,7 @@ spec:
                 environment {
                     OS = "linux"
                     ARCH = "amd64"
-                    BinPath = params.PathForLinuxAmd64
+                    BinPath = "${params.PathForLinuxAmd64}"
                 }
                 steps{
                     script{
@@ -347,15 +355,15 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
-                        expression{false}
+                        expression{params.PlatformDarwinAmd64 != ""}
                     }
                 }
                 agent { node { label 'darwin && amd64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "amd64"
-                    BinPath = params.PlatformDarwinAmd64
-                    PATH = "/usr/local/go1.20.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+                    BinPath = "${params.PlatformDarwinAmd64}"
+                    PATH = "/Users/pingcap/.cargo/bin:/bin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
                 steps{
                     script{
@@ -368,13 +376,14 @@ spec:
                     beforeAgent true
                     allOf{
                         equals expected: "community", actual: params.Edition 
+                        expression{params.PlatformDarwinArm64 != ""}
                     }
                 }
                 agent { node { label 'darwin && arm64' } }
                 environment {
                     OS = "darwin"
                     ARCH = "arm64"
-                    BinPath = params.PathForDarwinArm64
+                    BinPath = "${params.PathForDarwinArm64}"
                     PATH = "/Users/pingcap/.cargo/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
                 steps{
