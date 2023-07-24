@@ -71,9 +71,10 @@ pipeline {
                         sh label: 'prepare thirdparty binary', script: """
                         chmod +x download_binary.sh
                         ./download_binary.sh --tidb=master
+                        cp ../tiproxy/bin/* bin/
                         ls -alh bin/
                         ./bin/tidb-server -V
-                        ../tiproxy/bin/tiproxy --version
+                        ./bin/tiproxy --version
                         """
                 }
             }
@@ -84,10 +85,7 @@ pipeline {
                     dir('tidb-test') {
                         sh label: "run test", script: """
                             #!/usr/bin/env bash
-                            ./bin/tidb-server &
-                            TIDB_PID=\$!
-                            ./mysql_client_test/test.sh -l 127.0.0.1 -p 4000 -t \$PWD/../tiproxy -u root
-                            kill \$TIDB_PID || true
+                            make mysql_client_test WITH_TIPROXY=1
                         """
                     }
                 }
