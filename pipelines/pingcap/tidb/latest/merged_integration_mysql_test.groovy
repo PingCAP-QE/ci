@@ -71,7 +71,7 @@ pipeline {
                         sh label: 'download binary', script: """
                             chmod +x \${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
                             \${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/{pd,tidb,tikv}-server bin/
+                            mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
