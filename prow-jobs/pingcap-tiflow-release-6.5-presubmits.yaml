@@ -14,6 +14,7 @@ presubmits:
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       skip_report: false
@@ -24,6 +25,7 @@ presubmits:
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
@@ -35,6 +37,7 @@ presubmits:
     - name: pingcap/tiflow/release-6.5/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-compatibility-test
@@ -46,6 +49,7 @@ presubmits:
     - name: pingcap/tiflow/release-6.5/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-integration-test
