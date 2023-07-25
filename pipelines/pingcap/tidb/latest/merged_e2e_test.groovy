@@ -53,13 +53,18 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                    sh label: 'download binary', script: """
-                        chmod +x \${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                        \${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                        mv third_bin/* bin/
-                        ls -alh bin/
-                    """
+                    retry(3) {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                        sh label: 'download binary', script: """
+                            chmod +x \${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                            \${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            mv third_bin/{pd,tidb,tikv}-server bin/
+                            ls -alh bin/
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tidb-server -V
+                        """
+                    }
                 }                
             }
         }
@@ -67,9 +72,6 @@ pipeline {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V' 
                     sh label: 'test graceshutdown', script: """
                     cd tests/graceshutdown && make
                     ./run-tests.sh

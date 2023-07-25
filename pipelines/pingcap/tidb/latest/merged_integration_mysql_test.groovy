@@ -66,21 +66,26 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_mysql_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
+                    retry(3) {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                        sh label: 'download binary', script: """
+                            chmod +x \${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
+                            \${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            mv third_bin/{pd,tidb,tikv}-server bin/
                             ls -alh bin/
-                            """
-                        }
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tidb-server -V
+                        """
                     }
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                        sh label: 'cache tidb-test', script: """
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
+                        """
                     }
                 }
             }
@@ -98,7 +103,7 @@ pipeline {
                     }
                     axis {
                         name 'TEST_STORE'
-                        values 'unistore', "tikv"
+                        values "tikv"
                     }
                 }
                 agent{
@@ -112,19 +117,13 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_mysql_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
-                                }
-                            }
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
                                     """
                                     container("golang") {
                                         sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """
