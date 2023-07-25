@@ -70,7 +70,7 @@ pipeline {
                         sh label: 'download binary', script: """
                         chmod +x \${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
                         \${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                        mv third_bin/* bin/
+                        mv third_bin/{pd,tidb,tikv}-server bin/
                         ls -alh bin/
                         ./bin/pd-server -V
                         ./bin/tikv-server -V
@@ -83,7 +83,7 @@ pipeline {
                         sh label: 'cache tidb-test', script: """
                         touch ws-${BUILD_TAG}
                         mkdir -p bin
-                        cp ../tidb/bin/* bin/ && chmod +x bin/*
+                        cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
                         """
                     }
                 }
