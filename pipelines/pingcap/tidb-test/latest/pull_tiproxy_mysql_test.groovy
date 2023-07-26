@@ -68,17 +68,19 @@ pipeline {
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                        sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master --pd=master --tikv=master
-                        cp ../tiproxy/bin/tiproxy ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tiproxy --version
-                        """
+                        retry(2) {
+                            sh "touch ws-${BUILD_TAG}"
+                            sh label: 'prepare thirdparty binary', script: """
+                            chmod +x download_binary.sh
+                            ./download_binary.sh --tidb=master --pd=master --tikv=master
+                            cp ../tiproxy/bin/tiproxy ./bin/
+                            ls -alh bin/
+                            ./bin/tidb-server -V
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tiproxy --version
+                            """
+                        }
                     }
                 }
             }
