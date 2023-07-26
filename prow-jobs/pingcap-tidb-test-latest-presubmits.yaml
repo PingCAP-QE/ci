@@ -107,3 +107,43 @@ presubmits:
       rerun_command: "/test pull-tiproxy-mysql-test"
       branches:
         - ^master$
+    - name: pingcap/tidb-test/pull_tiproxy_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-common-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-common-test(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-common-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/pull_tiproxy_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-jdbc-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-jdbc-test(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-jdbc-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/pull_tiproxy_ruby_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-ruby-orm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-ruby-orm-test(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-ruby-orm-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb-test/pull_tiproxy_mysql_connector_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-mysql-connector-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-connector-test(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-mysql-connector-test"
+      branches:
+        - ^master$
