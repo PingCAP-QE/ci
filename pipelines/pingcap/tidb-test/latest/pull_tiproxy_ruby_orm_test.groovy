@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-pull_tiproxy_jdbc_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-pull_tiproxy_ruby_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -64,21 +64,23 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tiproxy') {
-                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
+                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch ws-${BUILD_TAG}"
-                        sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master --pd=master --tikv=master
-                        cp ../tiproxy/bin/tiproxy ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tiproxy --version
-                        """
+                        retry(2) {
+                            sh "touch ws-${BUILD_TAG}"
+                            sh label: 'prepare thirdparty binary', script: """
+                            chmod +x download_binary.sh
+                            ./download_binary.sh --tidb=master --pd=master --tikv=master
+                            cp ../tiproxy/bin/tiproxy ./bin/
+                            ls -alh bin/
+                            ./bin/tidb-server -V
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tiproxy --version
+                            """
+                        }
                     }
                 }
             }

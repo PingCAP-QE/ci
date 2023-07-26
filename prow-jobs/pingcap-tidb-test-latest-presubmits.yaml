@@ -103,7 +103,7 @@ presubmits:
       always_run: false
       context: wip/pull-tiproxy-mysql-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-mysql-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-mysql-test"
       branches:
         - ^master$
@@ -113,7 +113,7 @@ presubmits:
       always_run: false
       context: wip/pull-tiproxy-common-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-common-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-common-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-common-test"
       branches:
         - ^master$
@@ -123,7 +123,7 @@ presubmits:
       always_run: false
       context: wip/pull-tiproxy-jdbc-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-jdbc-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-jdbc-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-jdbc-test"
       branches:
         - ^master$
@@ -133,7 +133,7 @@ presubmits:
       always_run: false
       context: wip/pull-tiproxy-ruby-orm-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-ruby-orm-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-ruby-orm-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-ruby-orm-test"
       branches:
         - ^master$
@@ -143,7 +143,7 @@ presubmits:
       always_run: false
       context: wip/pull-tiproxy-mysql-connector-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-connector-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-mysql-connector-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-mysql-connector-test"
       branches:
         - ^master$

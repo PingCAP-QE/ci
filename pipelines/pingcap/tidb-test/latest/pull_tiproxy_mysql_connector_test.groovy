@@ -64,7 +64,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tiproxy') {
-                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
+                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
                         sh "touch ws-${BUILD_TAG}"
