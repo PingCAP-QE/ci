@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-pull_tiproxy_jdbc_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-pull_tiproxy_ruby_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -64,7 +64,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tiproxy') {
-                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
+                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
