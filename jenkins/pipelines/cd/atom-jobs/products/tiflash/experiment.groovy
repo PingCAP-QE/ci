@@ -229,8 +229,6 @@ pipeline{
             yaml '''
 apiVersion: v1
 kind: Pod
-metadata:
-  namespace: lijie
 spec:
   restartPolicy: Never
   containers:
@@ -265,13 +263,13 @@ spec:
   volumes:
   - name: ccache
     persistentVolumeClaim:
-      claimName: tiflash-ccache
+      claimName: ccache-dir-linux-amd64
   - name: cargohome
     persistentVolumeClaim:
-      claimName: tiflash-cargo-home
+      claimName: cargo-home-linux-amd64
   - name: rustuphome
     persistentVolumeClaim:
-      claimName: tiflash-rustup-home
+      claimName: rustup-home-linux-amd64
 '''
                 defaultContainer 'builder'
             } }
@@ -288,20 +286,18 @@ spec:
             }
             stage("linux/arm64"){
                 when {
-                    expression {false}
+                    expression{params.PathForLinuxArm64}
                     beforeAgent true
                 }
                 agent { kubernetes {
             yaml '''
 apiVersion: v1
 kind: Pod
-metadata:
-  namespace: lijie
 spec:
   restartPolicy: Never
   containers:
   - name: builder
-    image: hub.pingcap.net/tiflash/tiflash-builder:arm64
+    image: hub.pingcap.net/lijie/tiflash-builder:arm64
     volumeMounts:
     - name: ccache
       mountPath: "/var/cache/ccache"
@@ -314,10 +310,6 @@ spec:
       value: '/var/cache/cargohome'
     - name: RUSTUP_HOME
       value: '/var/cache/rustuphome'
-    - name: CMAKE_CXX_COMPILER_LAUNCHER
-      value: 'ccache'
-    - name: CMAKE_C_COMPILER_LAUNCHER
-      value: 'ccache'
     - name: CCACHE_DIR
       value: "/var/cache/ccache"
     - name: CCACHE_TEMPDIR
@@ -330,19 +322,20 @@ spec:
       limits:
         memory: "32Gi"
         cpu: "16"
+  nodeSelector:
+    kubernetes.io/arch: arm64
   volumes:
   - name: ccache
     persistentVolumeClaim:
-      claimName: tiflash-ccache
+      claimName: ccache-dir-linux-arm64
   - name: cargohome
     persistentVolumeClaim:
-      claimName: tiflash-cargo-home
+      claimName: cargo-home-linux-arm64
   - name: rustuphome
     persistentVolumeClaim:
-      claimName: tiflash-rustup-home
+      claimName: rustup-home-linux-arm64
 '''
                 defaultContainer 'builder'
-                cloud 'kubernetes-arm64'
             } }
                 environment {
                     OS = "linux"
