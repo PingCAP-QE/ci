@@ -151,3 +151,13 @@ presubmits:
       rerun_command: "/test pull-tiflash-test"
       branches:
         - ^master$
+    - name: pingcap/tidb/pull_mysql_connector_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-mysql-connector-test
+      skip_report: true
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-connector-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-connector-test"
+      branches:
+        - ^master$

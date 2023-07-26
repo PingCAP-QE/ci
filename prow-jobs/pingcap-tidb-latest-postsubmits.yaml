@@ -124,3 +124,11 @@ postsubmits:
       skip_report: true
       branches:
         - ^master$
+    - name: pingcap/tidb/merged_mysql_connector_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/mysql-connector-test
+      max_concurrency: 1
+      skip_report: true
+      branches:
+        - ^master$
