@@ -894,6 +894,7 @@ def postBuildStage(repo_path, build_dir, install_dir) {
     }
 }
 
+
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-build"
     def cloud = "kubernetes-ksyun"
@@ -907,7 +908,7 @@ def run_with_pod(Closure body) {
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
-                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
