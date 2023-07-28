@@ -894,6 +894,20 @@ def postBuildStage(repo_path, build_dir, install_dir) {
     }
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+    kubernetes.io/arch: amd64
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-build"
@@ -903,7 +917,8 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
-            nodeSelector: "kubernetes.io/arch=amd64",
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
