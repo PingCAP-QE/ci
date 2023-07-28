@@ -98,6 +98,8 @@ spec:
                     if (Product == "tidb-lightning"){
                         ProductForBuild = "br"
                     }
+                    def date = new Date()
+                    PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                     Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
