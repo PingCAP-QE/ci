@@ -71,7 +71,7 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
+                    cache(path: "./mysql_test", filter: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                         sh "touch ws-${BUILD_TAG}"
                     }
                 }
@@ -105,7 +105,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test/mysql_test') {
-                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                                     sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export CACHE_ENABLED=${CACHE_ENABLED}

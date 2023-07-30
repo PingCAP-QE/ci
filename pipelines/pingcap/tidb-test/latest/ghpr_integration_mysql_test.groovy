@@ -75,7 +75,7 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
+                    cache(path: "./mysql_test", filter: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                         sh "touch ws-${BUILD_TAG}"
                     }
                 }
@@ -119,7 +119,7 @@ pipeline {
                                     mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                     ls -alh bin/
                                 """
-                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh 
