@@ -76,11 +76,6 @@ pipeline {
                         """
                     }
                 }
-                dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/tidb-test/rev-${REFS.pulls[0].sha}") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
-                }
             }
         }
         stage('Prisma Tests') {
@@ -116,7 +111,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/tidb-test/rev-${REFS.pulls[0].sha}") {
+                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
