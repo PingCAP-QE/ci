@@ -52,7 +52,7 @@ presubmits:
       context: pull-br-integration-test
       always_run: false
       run_if_changed: "^br/.*$"
-      run_before_merge: true
+      optional: true
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
