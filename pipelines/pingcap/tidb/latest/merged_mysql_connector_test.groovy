@@ -85,7 +85,7 @@ pipeline {
                     dir('tidb-test') {
                         sh label: "run test", script: """
                             #!/usr/bin/env bash
-                            make mysql_client_test WITH_TIPROXY=0
+                            make mysql_client_test
                         """
                     }
                 }
