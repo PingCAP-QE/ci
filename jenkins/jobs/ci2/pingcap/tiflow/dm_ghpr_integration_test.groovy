@@ -28,6 +28,7 @@ pipelineJob('dm_ghpr_integration_test') {
                     }
                     blackListTargetBranches {
                         ghprbBranch { branch('^(release-)?6\\.[1|5]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?5\\.[3|4]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
