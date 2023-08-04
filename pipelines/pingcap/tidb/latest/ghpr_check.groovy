@@ -17,9 +17,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        CI = "1"
-    }
     options {
         timeout(time: 30, unit: 'MINUTES')
         parallelsAlwaysFailFast()
