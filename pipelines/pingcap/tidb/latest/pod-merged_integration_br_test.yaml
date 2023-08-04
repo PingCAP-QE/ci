@@ -21,20 +21,6 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
-    - name: status-updater
-      image: hub.pingcap.net/pingcap/github-status-updater:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -44,3 +30,7 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
