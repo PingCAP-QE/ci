@@ -72,7 +72,7 @@ pipeline {
                         }
                     }
                 }
-                failure {
+                always {
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
                     container('deno') {
                         sh label: "Report flaky test case results", script: """
@@ -83,8 +83,6 @@ pipeline {
                         """
                     }
                     archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                }
-                always {
                     dir('tidb') {
                         // archive test report to Jenkins.
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
