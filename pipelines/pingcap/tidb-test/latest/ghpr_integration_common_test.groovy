@@ -111,7 +111,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}") {
+                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh label: "print git version", script: """
                                         pwd && ls -alh
                                         git status && git rev-parse HEAD
