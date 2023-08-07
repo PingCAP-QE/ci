@@ -22,6 +22,8 @@ presubmits:
                 deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/notify-by-lark.ts \
                   --title="TiDB pull request configuration change notify" \
                   --message="Configuration or variable section file changes are detected, please review and check it." \
+                  --to_emails=yu.dong@pingcap.com \
+                  --to_emails=eason.n@pingcap.com \
                   --to_emails=wuhui.zuo@pingcap.com \
                   --to_emails=lifu.wu@pingcap.com \
                   --links="https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${PULL_NUMBER}"
