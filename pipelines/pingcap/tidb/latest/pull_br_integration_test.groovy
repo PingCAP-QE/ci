@@ -120,14 +120,6 @@ pipeline {
                                         #!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
                                         ./br/tests/run_group.sh ${TEST_GROUP}
-
-                                        # upload coverage data
-                                        ls -alh /tmp/group_cover
-                                        go install github.com/wadey/gocovmerge@latest
-                                        gocovmerge /tmp/group_cover/cov.* > coverage.txt
-                                        wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
-                                        chmod +x codecov
-                                        ./codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number}
                                     """  
                                 }
                             }
@@ -140,6 +132,15 @@ pipeline {
                                     ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                            }
+                            success {
+                                dir(tidb){
+                                    sh label: "upload coverage", script: """
+                                        ls -alh /tmp/group_cover
+                                        gocovmerge /tmp/group_cover/cov.* > coverage.txt
+                                        ./codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
+                                    """
+                                }
                             }
                         }
                     }
