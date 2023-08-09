@@ -50,8 +50,7 @@ POD_LABEL_MAP = [
 
 def user_bazel(branch) {
     if (branch in ["master"] || 
-        branch.matches("^feature[/_].*") /* feature branches */ || 
-        (branch.startsWith("release-") && branch >= "release-6.2")) {
+        branch.matches("^feature[/_].*")) {
         return GO_IMAGE_MAP["master"]
     }
     return ""
