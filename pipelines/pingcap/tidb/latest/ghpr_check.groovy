@@ -63,7 +63,7 @@ pipeline {
                 success {
                     dir("tidb") {
                         script {
-                            prow.uploadCoverageToCodecov(REFS, 'explaintest', './coverage.dat')
+                            prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                         }
                     }
                 }
