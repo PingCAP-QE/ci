@@ -145,7 +145,7 @@ def ifFileCacheExists() {
 // choose which go version to use. 
 def String needUpgradeGoVersion(String tag,String branch) {
     goVersion="go1.21"
-    if (tag.startsWith("v") && tag >= "v7.0" < "v7.4") {
+    if (tag.startsWith("v") && tag >= "v7.0" && tag < "v7.4") {
         return "go1.20"
     }
     if (tag.startsWith("v") && tag >= "v6.3" && tag < "v6.7") {
