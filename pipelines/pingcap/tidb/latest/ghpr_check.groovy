@@ -52,10 +52,20 @@ pipeline {
             }
         }
         stage("Checks") {
+            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir('tidb') {
                     sh script: 'make gogenerate check explaintest'
+                }
+            }
+            post {
+                success {
+                    dir("tidb") {
+                        script {
+                            prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
+                        }
+                    }
                 }
             }
         }
