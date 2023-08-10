@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.20:latest"
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
       tty: true
       resources:
         limits:
@@ -38,7 +38,7 @@ spec:
         - name: volume-tmp
           mountPath: /tmp
     - name: docker
-      image: 'hub.pingcap.net/tiflow/dind:alpine-docker-go1.20'
+      image: 'hub.pingcap.net/tiflow/dind:alpine-docker-go1.21'
       tty: true
       env:
         - name: DOCKER_HOST
