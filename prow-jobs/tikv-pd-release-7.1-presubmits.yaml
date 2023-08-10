@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: tikv/pd/ghpr_build
+    - name: tikv/pd/release-7.1/ghpr_build
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -9,10 +9,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
-        - ^master$
-        - ^feature[_/].+
-        - ^release-7.[4-9](\.\d+(-\d+)?)?$
-    - name: tikv/pd/pull_integration_copr_test
+        - ^release-7.[0-3](\.\d+(-\d+)?)?$
+    - name: tikv/pd/release-7.1/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -20,6 +18,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-copr-test(?: .*?)?$"
       rerun_command: "/test integration-copr-test"
       branches:
-        - ^master$
-        - ^feature[_/].+
-        - ^release-7.[4-9](\.\d+(-\d+)?)?$
+        - ^release-7.[0-3](\.\d+(-\d+)?)?$
