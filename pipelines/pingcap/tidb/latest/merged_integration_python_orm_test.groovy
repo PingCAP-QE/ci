@@ -13,16 +13,14 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'python'
+            defaultContainer 'golang'
         }
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        CI = "1"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -64,7 +62,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_python_orm_test/rev-${BUILD_TAG}") {
-                        container("python") {
+                        container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
