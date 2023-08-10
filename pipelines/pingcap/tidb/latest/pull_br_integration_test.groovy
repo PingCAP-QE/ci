@@ -138,7 +138,7 @@ pipeline {
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt
-                                        ./codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
+                                        codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
                                     """
                                 }
                             }
