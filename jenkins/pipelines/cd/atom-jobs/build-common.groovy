@@ -144,7 +144,10 @@ def ifFileCacheExists() {
 
 // choose which go version to use. 
 def String needUpgradeGoVersion(String tag,String branch) {
-    goVersion="go1.20"
+    goVersion="go1.21"
+    if (tag.startsWith("v") && tag >= "v7.0" && tag < "v7.4") {
+        return "go1.20"
+    }
     if (tag.startsWith("v") && tag >= "v6.3" && tag < "v6.7") {
         return "go1.19"
     }
@@ -177,17 +180,20 @@ def String needUpgradeGoVersion(String tag,String branch) {
     if (branch.startsWith("release-") && branch >= "release-6.3" && branch < "release-6.7"){
         return "go1.19"
     }
+    if (branch.startsWith("release-") && branch >= "release-7.0" && branch < "release-7.4"){
+        return "go1.20"
+    }
     if (branch.startsWith("hz-poc") || branch.startsWith("arm-dup") ) {
         return "go1.16"
     }
     if (REPO == "tiem") {
         return "go1.16"
     }
-    return "go1.20"
+    return "go1.21"
 }
 
-def goBuildPod = "build_go1200"
-def GO_BIN_PATH = "/usr/local/go1.20.7/bin"
+def goBuildPod = "build_go1210"
+def GO_BIN_PATH = "/usr/local/go1.21/bin"
 goVersion = needUpgradeGoVersion(params.RELEASE_TAG,params.TARGET_BRANCH)
 // tidb-tools only use branch master and use newest go version
 // only for version >= v5.3.0
@@ -207,24 +213,32 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
             break
         case "go1.19":
             goBuildPod = "build_go1190"
-            GO_BIN_PATH = "/usr/local/go1.19.12/bin"
+            GO_BIN_PATH = "/usr/local/go1.19/bin"
             break
         case "go1.20":
             goBuildPod = "build_go1200"
-            GO_BIN_PATH = "/usr/local/go1.20.7/bin"
+            GO_BIN_PATH = "/usr/local/go1.20/bin"
+            break
+        case "go1.21":
+            goBuildPod = "build_go1210"
+            GO_BIN_PATH = "/usr/local/go1.21/bin"
             break
         default:
             throw new Exception("go version ${goVersion} not supported")
     }
 } 
 if (REPO != "tidb-tools") {
+    if (goVersion == "go1.21") {
+        goBuildPod = "build_go1210"
+        GO_BIN_PATH = "/usr/local/go1.21/bin"
+    }
     if (goVersion == "go1.20") {
         goBuildPod = "build_go1200"
-        GO_BIN_PATH = "/usr/local/go1.20.7/bin"
+        GO_BIN_PATH = "/usr/local/go1.20/bin"
     }
     if (goVersion == "go1.19") {
         goBuildPod = "build_go1190"
-        GO_BIN_PATH = "/usr/local/go1.19.12/bin"
+        GO_BIN_PATH = "/usr/local/go1.19/bin"
     }
     if (goVersion == "go1.18") {
         goBuildPod = "build_go1180"
