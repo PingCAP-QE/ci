@@ -130,15 +130,6 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
-                            success {
-                                dir('tidb'){
-                                    sh label: "upload coverage", script: """
-                                        ls -alh /tmp/group_cover
-                                        gocovmerge /tmp/group_cover/cov.* > coverage.txt
-                                        codecov --rootDir . --flags integration --file coverage.txt --branch origin/${REFS.base_ref} --sha ${REFS.base_sha}
-                                    """
-                                }
-                            }
                         }
                     }
                 }
