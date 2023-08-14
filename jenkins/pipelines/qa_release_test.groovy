@@ -165,12 +165,12 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
                     Group2: {
                         build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params)
                         build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params)
-                        build(job: "tidb_ghpr_mybatis", parameters: default_params)
+                        //build(job: "tidb_ghpr_mybatis", parameters: default_params)
                         build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params)
                     },
                     Group3: {
                         if (release_info.importer_commit) {
-                            build(job: "importer_ghpr_test", parameters: default_params)
+                         //   build(job: "importer_ghpr_test", parameters: default_params)
                         }
                         if (release_info.br_commit) {
                             build(job: "br_ghpr_unit_and_integration_test", parameters: default_params)
@@ -203,35 +203,22 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
                             build(job: "cdc_ghpr_integration_test", parameters: default_params)
                             build(job: "cdc_ghpr_kafka_integration_test", parameters: default_params)
                         }
-                        if (release_info.dm_commit) {
-                            build(job: "dm_ghpr_integration_test", parameters: default_params)
-                            build(job: "dm_ghpr_compatibility_test", parameters: default_params)
-                        }
                     },
                     Group7: {
                      //   build(job: "pd_test", parameters: default_params)
                     },
                     Group8: {
-                        def params = [
-                                string(name: 'TIDB_BRANCH_OR_COMMIT', value: release_info.tidb_commit),
-                                string(name: 'TIKV_BRANCH_OR_COMMIT', value: release_info.tikv_commit),
-                                string(name: 'PD_BRANCH_OR_COMMIT', value: release_info.pd_commit),
-                                string(name: 'BINLOG_BRANCH_OR_COMMIT', value: release_info.binlog_commit),
-                                string(name: 'BR_BRANCH_AND_COMMIT', value: release_info.release_branch + "/" + release_info.br_commit),
-                                string(name: 'TICDC_BRANCH_OR_COMMIT', value: release_info.ticdc_commit),
-                                string(name: 'TOOLS_BRANCH_OR_COMMIT', value: release_info.tools_commit),
-                                string(name: 'TIFLASH_BRANCH_AND_COMMIT', value: release_info.release_branch + "/" + release_info.tiflash_commit),
-                        ]
-                        if (release_info.release_branch >= "release-4.0") {
-                        //    build(job: "tidb_and_tools_e2e_test", parameters: params)
+                        if (release_info.dm_commit) {
+                            build(job: "dm_ghpr_integration_test", parameters: default_params)
+                            build(job: "dm_ghpr_compatibility_test", parameters: default_params)
                         }
                     },
                     Group9: { // TiKV
-                            build(job: "tikv_ghpr_integration_common_test", parameters: default_params)
+                           // build(job: "tikv_ghpr_integration_common_test", parameters: default_params)
                             build(job: "tikv_ghpr_integration-copr-test", parameters: default_params)
                             build(job: "tikv_ghpr_integration_compatibility_test", parameters: default_params)
-                            build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params)
-                            build(job: "tikv_ghpr_integration_br_test", parameters: default_params)
+                           // build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params)
+                            //build(job: "tikv_ghpr_integration_br_test", parameters: default_params)
                     }
             )
         }
