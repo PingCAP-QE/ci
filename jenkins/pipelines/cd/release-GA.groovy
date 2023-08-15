@@ -111,7 +111,9 @@ try {
                             source = "hub.pingcap.net/ga-debug-enterprise/"
                         }
                         def type = "ga"
+                        // for transition period compatibility, delete it later
                         libs.enterprise_docker_sync_gcr(source, type)
+                        enterprise_docker_sync_gcr(source)
                     }
                 } else {
                     stage('publish tiup prod && publish community image') {
@@ -254,6 +256,27 @@ def getHash() {
             tidb_monitor_initializer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=monitoring -version=master").trim()
         }
     }
+}
+
+def enterprise_docker_sync_gcr(source) {
+    def imageTag = RELEASE_TAG
+    def imageNames = ["br", "ticdc", "tiflash", "tidb", "tikv", "pd", "tidb-monitor-initializer", "tidb-lightning"]
+    def builds = [:]
+    for (imageName in imageNames) {
+        def image = imageName
+        builds[image + "-enterprise sync"] = {
+            source_image = source + "${image}-enterprise:${imageTag}"
+            def dest_image = "gcr.io/pingcap-public/dbaas/${image}:${imageTag}"
+            def default_params = [
+                    string(name: 'SOURCE_IMAGE', value: source_image),
+                    string(name: 'TARGET_IMAGE', value: dest_image),
+            ]
+            build(job: "jenkins-image-syncer",
+                    parameters: default_params,
+                    wait: true)
+        }
+    }
+    parallel builds
 }
 
 def upload_result_to_db() {
