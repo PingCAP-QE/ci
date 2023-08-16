@@ -61,7 +61,7 @@ def selectGoVersion(branchNameOrTag) {
         println "This is a tag"
         if (branchNameOrTag >= "v7.4") {
             println "tag ${branchNameOrTag} use go 1.21"
-            return "go1.20"
+            return "go1.21"
         }
         if (branchNameOrTag >= "v7.0") {
             println "tag ${branchNameOrTag} use go 1.20"
@@ -87,13 +87,13 @@ def selectGoVersion(branchNameOrTag) {
             println "tag ${branchNameOrTag} use go 1.13"
             return "go1.13"
         }
-        println "tag ${branchNameOrTag} use default version go 1.20"
-        return "go1.20"
+        println "tag ${branchNameOrTag} use default version go 1.21"
+        return "go1.21"
     } else { 
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.21")
-            return "go1.20"
+            return "go1.21"
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.4") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.21")
@@ -120,8 +120,8 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
             return "go1.13"
         }
-        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.20"
-        return "go1.20"
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.21"
+        return "go1.21"
     }
 }
 
