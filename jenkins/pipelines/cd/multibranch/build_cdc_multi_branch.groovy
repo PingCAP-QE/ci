@@ -93,6 +93,10 @@ def release_docker_image(product, filepath, tag) {
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        if (branchNameOrTag >= "v7.4") {
+            println "tag ${branchNameOrTag} use go 1.21"
+            return "go1.20"
+        }
         if (branchNameOrTag >= "v7.0") {
             println "tag ${branchNameOrTag} use go 1.20"
             return "go1.20"
@@ -122,7 +126,11 @@ def selectGoVersion(branchNameOrTag) {
     } else { 
         println "this is a branch"
         if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.20")
+            println("branchNameOrTag: master  use go1.21")
+            return "go1.20"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.4") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.21")
             return "go1.20"
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.0") {
@@ -152,9 +160,12 @@ def selectGoVersion(branchNameOrTag) {
 }
 
 
-def GO_BUILD_SLAVE = "build_go1200"
+def GO_BUILD_SLAVE = "build_go1210"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
 switch(goVersion) {
+    case "go1.21":
+        GO_BUILD_SLAVE = "build_go1210"
+        break
     case "go1.20":
         GO_BUILD_SLAVE = "build_go1200"
         break
@@ -171,7 +182,7 @@ switch(goVersion) {
         GO_BUILD_SLAVE = "build_go1130"
         break
     default:
-        GO_BUILD_SLAVE = "build_go1200"        
+        GO_BUILD_SLAVE = "build_go1210"        
         break
 }
 println "This build use ${goVersion}"
