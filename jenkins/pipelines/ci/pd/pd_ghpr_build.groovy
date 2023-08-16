@@ -132,7 +132,7 @@ try {
                     timeout(10) {
                         sh """
                         rm -rf .git
-                        tar czvf pd-server.tar.gz ./*
+                        tar czvf pd-server.tar.gz bin
                         curl -F ${filepath}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
                         echo "pr/${ghprbActualCommit}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
