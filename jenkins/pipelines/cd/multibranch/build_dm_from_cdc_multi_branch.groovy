@@ -253,7 +253,8 @@ try {
                         mv bin/dm* ${target}/bin/
                         """
                         
-                        // DM changed the folder after a PR later than v6.2.0. Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
+                        // DM changed the folder after a PR later than v6.2.0. 
+                        // Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
                         if ((branch.startsWith("release-") && branch < "release-6.3") || (branch.startsWith("v") && branch < "v6.3")) {
                             sh """
                             mv dm/dm/master/task_basic.yaml ${target}/conf/
@@ -344,7 +345,7 @@ try {
                 }
                 stash includes: "go/src/github.com/pingcap/dm/dm/monitoring/**", name: "monitoring"
             }
-        } else {
+        } else if ((branch.startsWith("release-") && branch <"release-6.6") || (branch.startsWith("v") && branch <"v6.6.0")) {
             stage("package dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -361,7 +362,6 @@ try {
                     }
                 }
             }
-
             stage("Upload dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -370,134 +370,43 @@ try {
 
                         writeFile file: 'dm-ansible-sha1', text: "${githash}"
                         sh """
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
                         curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
-
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
                         curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
             }
-        }
-    }
-    
-    node("arm") {
-        stage("ARM - Prepare") {
-            ws = pwd()
-            deleteDir()
-            println "arm node: \n${NODE_NAME}"
-        }
-
-        stage("ARM - Checkout") {
-            dir(build_path) {
-                println branch
-                retry(3) {
-                    if(branch.startsWith("refs/tags")) {
-                        checkout changelog: false,
-                                poll: true,
-                                scm: [$class: 'GitSCM',
-                                        branches: [[name: branch]],
-                                        doGenerateSubmoduleConfigurations: false,
-                                        extensions: [[$class: 'CheckoutOption', timeout: 30],
-                                                    [$class: 'LocalBranch'],
-                                                    [$class: 'CloneOption', noTags: true, timeout: 60]],
-                                        submoduleCfg: [],
-                                        userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh',
-                                                            refspec: "+${branch}:${branch}",
-                                                            url: "${BUILD_URL}"]]
-                                ]
-                    } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
-                            extensions: [[$class: 'LocalBranch']],
-                            userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}"]]]
-                    }
-                }
-
-                githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-            }
-        }
-
-        stage("ARM - Build binary") {
-            dir(build_path) {
-                timeout(30) {
-                    if ((branch.startsWith("release-") && branch <"release-6.0") || (branch.startsWith("v") && branch <"v6.0.0")) {
-                        sh """
-                        export PATH=${GO_BIN_PATH}:/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
-                        go version
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                        GOPATH=\$GOPATH:${ws}/go make dm
-                        """
-                    }else {
-                        cwd = pwd()
-                        sh """
-                        export PATH=${GO_BIN_PATH}:/usr/local/node/bin:/root/go/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
-                        wget http://fileserver.pingcap.net/download/ee-tools/node-v16.14.0-linux-arm64.tar.gz
-                        tar -xvf node-v16.14.0-linux-arm64.tar.gz
-                        export PATH=${cwd}/node-v16.14.0-linux-arm64/bin:\$PATH
-                        node -v
-                        npm install -g yarn
-                        go version
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                        GOPATH=\$GOPATH:${ws}/go make dm-master-with-webui dm-worker dmctl dm-syncer
-                        """
+        } else {
+            // After v6.6.0, the dir 'dm/metrics/grafana' has been moved to 'metrics/grafana'
+            // releated PR: https://github.com/pingcap/tiflow/pull/7881
+            stage("package dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        timeout(10) {
+                            sh """
+                            mkdir -p dm-ansible
+                            mkdir -p dm-ansible/conf
+                            mkdir -p dm-ansible/scripts
+                            cp dm/metrics/alertmanager/dm_worker.rules.yml dm-ansible/conf
+                            cp metrics/grafana/{DM-Monitor-Professional,DM-Monitor-Standard}.json dm-ansible/scripts
+                            tar -czvf dm-ansible.tar.gz dm-ansible
+                            """
+                        }
                     }
                 }
             }
-        }
+            stage("Upload dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/dm-ansible-sha1"
+                        def filepath = "builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz"
 
-        stage("ARM - Upload dm binary") {
-            dir(build_path) {
-                def target = "dm-linux-arm64"
-                def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/sha1"
-                def filepath = "builds/pingcap/dm/${githash}/centos7/${target}.tar.gz"
-                timeout(10) {
-                    sh """
-                    echo "${githash}" > sha1
-                    curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                    mkdir ${target}
-                    mkdir ${target}/bin
-                    mkdir ${target}/conf
-                    mv bin/dm* ${target}/bin/
-                    """
-
-                    // DM changed the folder after a PR later than v6.2.0. Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
-                    if ((branch.startsWith("release-") && branch < "release-6.3") || (branch.startsWith("v") && branch < "v6.3")) {
+                        writeFile file: 'dm-ansible-sha1', text: "${githash}"
                         sh """
-                        mv dm/dm/master/task_basic.yaml ${target}/conf/
-                        mv dm/dm/master/task_advanced.yaml ${target}/conf/
-                        mv dm/dm/master/dm-master.toml ${target}/conf/
-                        mv dm/dm/worker/dm-worker.toml ${target}/conf/
-                        """
-                    } else {
-                        sh """
-                        mv dm/master/task_basic.yaml ${target}/conf/
-                        mv dm/master/task_advanced.yaml ${target}/conf/
-                        mv dm/master/dm-master.toml ${target}/conf/
-                        mv dm/worker/dm-worker.toml ${target}/conf/
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+                        curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
-
-                    sh """
-                    mv LICENSE ${target}/
-                    # curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
-                    # mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
-                    tar -czvf ${target}.tar.gz ${target}
-
-                    # setup upload tools
-                    # curl -O ${FILE_SERVER_URL}/download/script/filemgr-linux64
-                    # curl -O ${FILE_SERVER_URL}/download/script/config.cfg
-                    # chmod +x filemgr-linux64
-
-                    curl -F ${filepath}=@${target}.tar.gz ${FILE_SERVER_URL}/upload
-                    # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/${target}.tar.gz --file ${target}.tar.gz
-                    """
-                    // writeFile file: 'sha1', text: "${githash}"
-                    // sh "./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key refs/pingcap/dm/${env.BRANCH_NAME}/sha1 --file sha1"
-
-                    // cleanup
-                    sh "rm -rf sha1 ${target}.tar.gz"
                 }
             }
         }
