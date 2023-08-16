@@ -334,8 +334,7 @@ try {
                 }
                 stash includes: "go/src/github.com/pingcap/dm/dm/monitoring/**", name: "monitoring"
             }
-        }
-        else if ((branch.startsWith("release-") && branch <"release-6.6") || (branch.startsWith("v") && branch <"v6.6.0")) {
+        } else if ((branch.startsWith("release-") && branch <"release-6.6") || (branch.startsWith("v") && branch <"v6.6.0")) {
             stage("package dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -366,10 +365,9 @@ try {
                     }
                 }
             }
-        }
-        // After v6.6.0, the dir 'dm/metrics/grafana' has been moved to 'metrics/grafana'
-        // releated PR: https://github.com/pingcap/tiflow/pull/7881
-        else {
+        } else {
+            // After v6.6.0, the dir 'dm/metrics/grafana' has been moved to 'metrics/grafana'
+            // releated PR: https://github.com/pingcap/tiflow/pull/7881
             stage("package dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -379,7 +377,7 @@ try {
                             mkdir -p dm-ansible/conf
                             mkdir -p dm-ansible/scripts
                             cp dm/metrics/alertmanager/dm_worker.rules.yml dm-ansible/conf
-                            cp metrics/grafana/* dm-ansible/scripts
+                            cp metrics/grafana/{DM-Monitor-Professional,DM-Monitor-Standard}.json dm-ansible/scripts
                             tar -czvf dm-ansible.tar.gz dm-ansible
                             """
                         }
