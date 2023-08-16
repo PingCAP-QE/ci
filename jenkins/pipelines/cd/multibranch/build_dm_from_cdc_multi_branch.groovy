@@ -242,7 +242,8 @@ try {
                         mv bin/dm* ${target}/bin/
                         """
                         
-                        // DM changed the folder after a PR later than v6.2.0. Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
+                        // DM changed the folder after a PR later than v6.2.0. 
+                        // Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
                         if ((branch.startsWith("release-") && branch < "release-6.3") || (branch.startsWith("v") && branch < "v6.3")) {
                             sh """
                             mv dm/dm/master/task_basic.yaml ${target}/conf/
@@ -333,7 +334,8 @@ try {
                 }
                 stash includes: "go/src/github.com/pingcap/dm/dm/monitoring/**", name: "monitoring"
             }
-        } else {
+        }
+        else if ((branch.startsWith("release-") && branch <"release-6.6") || (branch.startsWith("v") && branch <"v6.6.0")) {
             stage("package dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -350,7 +352,6 @@ try {
                     }
                 }
             }
-
             stage("Upload dm-ansible") {
                 dir(build_path) {
                     container("golang") {
@@ -359,10 +360,41 @@ try {
 
                         writeFile file: 'dm-ansible-sha1', text: "${githash}"
                         sh """
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
                         curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+                        curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
+                        """
+                    }
+                }
+            }
+        }
+        // After v6.6.0, the dir 'dm/metrics/grafana' has been moved to 'metrics/grafana'
+        // releated PR: https://github.com/pingcap/tiflow/pull/7881
+        else {
+            stage("package dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        timeout(10) {
+                            sh """
+                            mkdir -p dm-ansible
+                            mkdir -p dm-ansible/conf
+                            mkdir -p dm-ansible/scripts
+                            cp dm/metrics/alertmanager/dm_worker.rules.yml dm-ansible/conf
+                            cp metrics/grafana/* dm-ansible/scripts
+                            tar -czvf dm-ansible.tar.gz dm-ansible
+                            """
+                        }
+                    }
+                }
+            }
+            stage("Upload dm-ansible") {
+                dir(build_path) {
+                    container("golang") {
+                        def refspath = "refs/pingcap/dm/${env.BRANCH_NAME}/dm-ansible-sha1"
+                        def filepath = "builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz"
 
-                        # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
+                        writeFile file: 'dm-ansible-sha1', text: "${githash}"
+                        sh """
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
                         curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
