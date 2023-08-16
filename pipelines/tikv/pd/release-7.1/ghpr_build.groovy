@@ -71,7 +71,7 @@ pipeline {
                 dir('pd') {
                     sh label: "create pd-server tarball", script: """
                         rm -rf .git
-                        tar czvf pd-server.tar.gz ./*
+                        tar czvf pd-server.tar.gz bin
                         echo "pr/${REFS.pulls[0].sha}" > sha1
                         """
                     // FIXME(wuhuizuo): filepath is wrong, should renew to tikv/pd
