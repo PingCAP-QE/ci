@@ -69,6 +69,7 @@ pipeline {
                         kubernetes {
                             yaml podYaml
                             defaultContainer 'docker'
+                            nodeSelector "kubernetes.io/arch=amd64"
                         }
                     }
                     stages{
