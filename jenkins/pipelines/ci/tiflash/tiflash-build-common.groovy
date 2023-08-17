@@ -764,6 +764,9 @@ def buildStage(repo_path, build_dir, install_dir, proxy_cache_ready) {
     stage('Configure Project') {
         cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready)
     }
+    stage("Format Check") {
+        clangFormat(repo_path)
+    }
     stage('Build TiFlash') {
         parallel(
             "License check": {
@@ -780,9 +783,6 @@ def buildStage(repo_path, build_dir, install_dir, proxy_cache_ready) {
                         fi
                     """
                 }
-            },
-            "Format Check" : {
-                clangFormat(repo_path)
             },
             "Build TiFlash" : {
                 buildTiFlash(repo_path, build_dir, install_dir)
