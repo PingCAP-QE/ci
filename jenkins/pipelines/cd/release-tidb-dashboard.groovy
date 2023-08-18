@@ -46,7 +46,7 @@ RUN pnpm fetch
 # Build.
 WORKDIR /go/src/github.com/pingcap/tidb-dashboard
 COPY . .
-RUN make package PNPM_INSTALL_TAGS=--offline
+RUN make package
 
 FROM hub.pingcap.net/bases/pingcap-base:v1
 
