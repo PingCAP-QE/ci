@@ -132,6 +132,7 @@ pipeline {
                             yaml podYaml
                             defaultContainer 'builder'
                             cloud "kubernetes"
+                            nodeSelector "kubernetes.io/arch=amd64"
                         }
                     }
                     steps {
@@ -147,6 +148,7 @@ pipeline {
                         sh 'docker buildx create --name mybuilder --use || true'
                         writeFile file:'build-tidb-dashboard.Dockerfile',text:dockerfile
                         sh 'cat build-tidb-dashboard.Dockerfile'
+                        sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard-builder:cache-amd64 --cache-from hub.pingcap.net/rc/tidb-dashboard-builder:cache-amd64 --target builder '--platform=linux/amd64' --build-arg 'BUILDKIT_INLINE_CACHE=1' --push"
                         sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64 --cache-from hub.pingcap.net/rc/tidb-dashboard-builder:cache-amd64 --push --platform=linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
                         sh """
                     docker pull hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-amd64
@@ -168,7 +170,8 @@ pipeline {
                         kubernetes {
                             yaml podYaml
                             defaultContainer 'builder'
-                            cloud "kubernetes-arm64"
+                            cloud "kubernetes"
+                            nodeSelector "kubernetes.io/arch=arm64"
                             namespace "jenkins-cd"
                         }
                     }
@@ -185,6 +188,7 @@ pipeline {
                         sh 'docker buildx create --name mybuilder --use || true'
                         writeFile file:'build-tidb-dashboard.Dockerfile',text:dockerfile
                         sh 'cat build-tidb-dashboard.Dockerfile'
+                        sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard-builder:cache-arm64 --cache-from hub.pingcap.net/rc/tidb-dashboard-builder:cache-arm64 --target builder '--platform=linux/arm64' --build-arg 'BUILDKIT_INLINE_CACHE=1' --push"
                         sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64 --cache-from hub.pingcap.net/rc/tidb-dashboard-builder:cache-arm64 --push --platform=linux/arm64 --build-arg BUILDKIT_INLINE_CACHE=1 --progress=plain"
                         sh """
                             docker pull hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}-arm64
