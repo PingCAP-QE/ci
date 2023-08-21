@@ -104,7 +104,7 @@ spec:
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/qa/$Product:$Version-$BUILD_NUMBER"
-                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$ts10"
+                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version"
                         BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
                         BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
                         PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
