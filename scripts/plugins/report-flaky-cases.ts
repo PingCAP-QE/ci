@@ -11,11 +11,12 @@ CREATE TABLE IF NOT EXISTS tiinsight_problem_case_runs (
   report_time timestamp, -- unit timestamp
   flaky BIT, -- true or false
   timecost_ms INT, -- milliseconds.
+  build_url VARCHAR(1024), -- CI build url
   primary key (id)
 );
 `;
 const SQL_TPL_INSERT =
-  `INSERT INTO tiinsight_problem_case_runs(repo, branch, suite_name, case_name, report_time, flaky, timecost_ms) values(?, ?, ?, ?, FROM_UNIXTIME(?), ?, ?);`;
+  `INSERT INTO tiinsight_problem_case_runs(repo, branch, suite_name, case_name, report_time, flaky, timecost_ms, build_url) values(?, ?, ?, ?, FROM_UNIXTIME(?), ?, ?, ?);`;
 
 interface _cliParams {
   hostname: string;
@@ -25,6 +26,7 @@ interface _cliParams {
   caseDataFile: string;
   repo: string;
   branch: string;
+  build_url?: string;
 }
 
 interface _problemCasesFromBazel {
@@ -63,6 +65,7 @@ async function main({
       rest.repo,
       rest.branch,
       ~~(Date.now() / 1000),
+      rest.build_url || "",
     );
   } finally {
     // close the db connection.
@@ -76,6 +79,7 @@ async function insert_problem_case_runs(
   repo: string,
   branch: string,
   timestamp: number,
+  build_url: string,
 ) {
   // insert/update record
   for (const [target, caseResults] of Object.entries(caseData)) {
@@ -88,6 +92,7 @@ async function insert_problem_case_runs(
         timestamp,
         true,
         0,
+        build_url,
       ]);
     }));
 
@@ -100,6 +105,7 @@ async function insert_problem_case_runs(
         timestamp,
         false,
         timecost > 0 ? Math.ceil(timecost * 1000) : timecost,
+        build_url,
       ]);
     }
   }
@@ -115,6 +121,7 @@ async function insert_problem_case_runs(
  * --repo           to report repo full name,such as: pingcap/tidb *
  * --branch         to report repo's branch,such as `master`
  * --caseDataFile   case run data file path.
+ * --build_url      ci build url
  */
 
 const cliArgs = flags.parse<_cliParams>(Deno.args);
