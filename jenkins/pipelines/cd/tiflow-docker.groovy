@@ -137,6 +137,7 @@ pipeline {
             agent {
                 kubernetes {
                     yaml podYaml
+                    nodeSelector "kubernetes.io/arch=amd64"
                     defaultContainer 'docker'
                 }
             }
