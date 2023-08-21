@@ -11,4 +11,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-storage-test"
       branches:
-        - ^release-7\.1-\d{8}-v7\.1\.0(-\d+)?$  # only v7.1.0
+        - ^release-7\.1-\d{8}-v7\.1\.0(-\d+)?$  # only v7.1.0 hotfix branch

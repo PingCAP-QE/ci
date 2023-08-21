@@ -33,7 +33,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-storage-test"
       branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v(?!7\.1\.0)[\.\d]+)?$ # exclude v7.1.0
+        - ^release-7\.1$
+        - ^release-7\.1-(\d{8})-(v7\.1\.[1-9]\d*)(-\d+)?$ # exclude v7.1.0 hotfix branch
     - name: pingcap/tiflow/release-7.1/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
