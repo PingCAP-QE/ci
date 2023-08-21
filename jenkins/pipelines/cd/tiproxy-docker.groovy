@@ -41,6 +41,7 @@ pipeline {
                 kubernetes {
                     yaml podYaml
                     defaultContainer 'docker'
+                    nodeSelector "kubernetes.io/arch=amd64"
                 }
             }
             steps{
@@ -63,6 +64,7 @@ pipeline {
                         kubernetes {
                             yaml podYaml
                             defaultContainer 'docker'
+                            nodeSelector "kubernetes.io/arch=amd64"
                         }
                     }
                     stages{
@@ -129,6 +131,7 @@ pipeline {
             agent {
                 kubernetes {
                     yaml podYaml
+                    nodeSelector "kubernetes.io/arch=amd64"
                     defaultContainer 'docker'
                 }
             }
