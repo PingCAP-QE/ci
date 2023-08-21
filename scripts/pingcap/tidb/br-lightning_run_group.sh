@@ -13,7 +13,8 @@ set -eo pipefail
 # Step 1
 directories=()
 CUR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-for d in $(find ${CUR}/* -maxdepth 0 -type d); do
+# filter br and lightning directories
+for d in $(find ${CUR}/* -maxdepth 0 -type d | grep -Ev "docker_compatible_s3|docker_compatible_gcs"); do
     if [ -e "$d/run.sh" ]; then
         directories+=("$(basename $d)")
     fi
