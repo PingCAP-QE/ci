@@ -81,9 +81,6 @@ def prepare() {
         dir("titan") {
             deleteDir()
         }
-        dir("rocksdb") {
-            deleteDir()
-        }
         unstash "titan"
     }
 }
