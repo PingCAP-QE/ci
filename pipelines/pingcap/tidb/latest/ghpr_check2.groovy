@@ -86,6 +86,9 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_txntest',
                             'run_real_tikv_tests.sh bazel_addindextest',
                             'run_real_tikv_tests.sh bazel_importintotest',
+                            'run_real_tikv_tests.sh bazel_importintotest2',
+                            'run_real_tikv_tests.sh bazel_importintotest3',
+                            'run_real_tikv_tests.sh bazel_importintotest4',
                         )
                     }
                 }
