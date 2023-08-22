@@ -120,7 +120,9 @@ pipeline {
                                         #!/usr/bin/env bash
                                         cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group.sh br/tests/run_group.sh
                                         chmod +x br/tests/*.sh
-                                        ./br/tests/run_group.sh ${TEST_GROUP}
+                                        ln -s ${WORKSPACE}/tidb/bin ${WORKSPACE}/tidb/br/bin
+                                        cd br/
+                                        ./tests/run_group.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
