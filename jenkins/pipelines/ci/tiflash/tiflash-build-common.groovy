@@ -408,6 +408,12 @@ def resolveDependency(dep_name) {
             chmod +x '/usr/local/bin/clang-format'
             """
         }
+        else if (dep_name == 'clang-format-15') {
+            sh """
+            cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
+            chmod +x '/usr/local/bin/clang-format-15'
+            """
+        }
         else if (dep_name == 'gcovr') {
             sh """
             cp '${dependency_dir}/gcovr.tar' '/tmp/'
@@ -468,6 +474,11 @@ def prepareStage(repo_path) {
             "Clang-Format" : {
                 if (params.ENABLE_CCACHE) {
                     resolveDependency('clang-format')
+                }
+            },
+            "Clang-Format-15" : {
+                if (params.ENABLE_CCACHE) {
+                    resolveDependency('clang-format-15')
                 }
             },
             "Coverage" : {
