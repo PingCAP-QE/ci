@@ -1,47 +1,35 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
-presubmits:
+postsubmits:
   pingcap/TiProxy:
     - name: pingcap/tiproxy/merged_integration_prisma_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      always_run: false
       context: merged-integration-prisma-test # need change this.
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?merged-integration-prisma-test(?: .*?)?$"
-      rerun_command: "/test merged-integration-prisma-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/merged_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      always_run: false
       context: merged-integration-python-orm-test # need change this.
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?merged-integration-python-orm-test(?: .*?)?$"
-      rerun_command: "/test merged-integration-python-orm-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/merged_integration_sequelize_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      always_run: false
       context: merged-integration-sequelize-test # need change this.
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?merged-integration-sequelize-test(?: .*?)?$"
-      rerun_command: "/test merged-integration-sequelize-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/merged_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      always_run: false
       context: merged-integration-sqllogic-test # need change this.
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?merged-integration-sqllogic-test(?: .*?)?$"
-      rerun_command: "/test merged-integration-sqllogic-test"
       branches:
         - ^main$
