@@ -1,7 +1,7 @@
 import * as yaml from "https://deno.land/std@0.190.0/yaml/mod.ts";
 import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
 import { dirname } from "https://deno.land/std@0.190.0/path/mod.ts";
-import { Octokit } from "https://esm.sh/octokit@2.0.19";
+import { Octokit } from "npm:/octokit@3.1.0";
 
 const HEAD_REF = `bot/update-owners-${Date.now()}`;
 const COMMIT_MESSAGE = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
@@ -485,20 +485,17 @@ async function main(
   const pullRequests: { owner: string; repo: string; num: number }[] = [];
   // Create or update the `OWNERS` files in each repository.
   await Promise.all(
-    Array.from(owners).map(async ([repository, ownersMap], index) => {
+    Array.from(owners).filter(([repository]) => {
+      return !(
+        // skip for repo in other ORG.
+        repository.includes("/") ||
+        // skip if not same with the only repo name.
+        (only_repo && only_repo.repo !== repository)
+      );
+    }).map(async ([repository, ownersMap], index) => {
       // Introduce a delay between API requests to avoid rate limit errors
       const delay = 5000 * index; // Adjust the delay time according to your needs
       await new Promise((resolve) => setTimeout(resolve, delay));
-
-      // skip for repo in other ORG.
-      if (repository.includes("/")) {
-        return;
-      }
-
-      // skip if not same with the only repo name.
-      if (only_repo && only_repo.repo !== repository) {
-        return;
-      }
 
       console.debug(`🫧 prepare update for repo: ${owner}/${repository}`);
       // get the base ref for create PR.
