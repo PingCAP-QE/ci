@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -34,7 +35,7 @@ type repository struct {
 	StargazersCount int       `json:"stargazers_count"`
 	Github          bool      `json:"github"`
 	Personal        bool      `json:"personal"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	PushedAt        time.Time `json:"pushed_at"`
 }
 
 func getPkgRepo(pkgName string) (*goMouleInfo, error) {
@@ -211,11 +212,50 @@ func getGithubRepoInfo(owner, repo, accessToken string) (*repository, error) {
 	return &ret, nil
 }
 
+func writeCSV(data []*goMouleInfo, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write the header row
+	header := []string{"Module", "Licenses", "Repository", "GitHub", "Personal", "Stars", "Forks", "Pushed At"}
+	if err := writer.Write(header); err != nil {
+		return err
+	}
+
+	// Write each data row
+	for _, info := range data {
+		row := []string{
+			info.Name,
+			info.Licenses,
+			info.Repository.FullName,
+			fmt.Sprintf("%t", info.Repository.Github),
+			fmt.Sprintf("%t", info.Repository.Personal),
+			fmt.Sprintf("%d", info.Repository.StargazersCount),
+			fmt.Sprintf("%d", info.Repository.ForksCount),
+			info.Repository.PushedAt.String(),
+		}
+		if err := writer.Write(row); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	var githubToken string
 	var goModFile string
+	var saveCsvFile string
 	flag.StringVar(&githubToken, "github-token", "", "GitHub personal access token")
-	flag.StringVar(&goModFile, "mod-file", "", "go.mod file path")
+	flag.StringVar(&goModFile, "mod-file", "go.mod", "go.mod file path")
+	flag.StringVar(&saveCsvFile, "save-csv-file", "report.csv", "output csv file path")
+
 	flag.Parse()
 
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -225,22 +265,36 @@ func main() {
 	if err != nil {
 		l.Fatal().Err(err).Send()
 	}
+
+	var errs []error
+	// Retrieve the data
+	var data []*goMouleInfo
 	for _, m := range modules {
 		info, err := getPkgInfo(m, githubToken)
 		if err != nil {
+			errs = append(errs, err)
 			l.Error().Err(err).Send()
-			continue
+		} else {
+			data = append(data, info)
+			l.Info().
+				Str("module", info.Name).
+				Str("licenses", info.Licenses).
+				Str("repo", info.Repository.FullName).
+				Bool("github", info.Repository.Github).
+				Bool("repo.personal", info.Repository.Personal).
+				Int("repo.stars", info.Repository.StargazersCount).
+				Int("repo.forks", info.Repository.ForksCount).
+				Str("repo.pushed_at", info.Repository.PushedAt.String()).
+				Send()
 		}
+	}
 
-		l.Info().
-			Str("module", info.Name).
-			Str("licenses", info.Licenses).
-			Str("repo", info.Repository.FullName).
-			Bool("github", info.Repository.Github).
-			Bool("repo.personal", info.Repository.Personal).
-			Int("repo.stars", info.Repository.StargazersCount).
-			Int("repo.forks", info.Repository.ForksCount).
-			Str("repo.updated_at", info.Repository.UpdatedAt.String()).
-			Send()
+	// Write the data to a CSV file
+	if err := writeCSV(data, saveCsvFile); err != nil {
+		l.Fatal().Err(err).Send()
+	}
+
+	if len(errs) > 0 {
+		l.Fatal().Errs("total errors", errs)
 	}
 }
