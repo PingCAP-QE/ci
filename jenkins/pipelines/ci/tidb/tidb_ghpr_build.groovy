@@ -188,25 +188,11 @@ try {
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
-                                if (user_bazel(ghprbTargetBranch) != "")  {
-                                    sh """
-                                    if make bazel_build; then
-                                        touch importer.done
-                                        touch tidb-server-check.done
-                                    else 
-                                        touch importer.fail
-                                        touch tidb-server-check.fail
-                                        exit 1
-                                    fi
-                                    """
-                                } else {
-                                    sh """
-                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-                                    nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-                                    make
-                                    """
-                                }
-
+                                sh """
+                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+                                make
+                                """
                                 waitUntil{
                                     (fileExists('importer.done') || fileExists('importer.fail')) && (fileExists('tidb-server-check.done') || fileExists('tidb-server-check.fail'))
                                 }

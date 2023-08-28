@@ -169,65 +169,43 @@ try {
             dir("go/src/github.com/pingcap/tidb") {
                 container("golang") {
                     try {
-                        if (user_bazel(ghprbTargetBranch) != "") { 
-                            sh """
-                                ./build/jenkins_unit_test.sh
-                            """
-                        } else {
-                            sh """
-                                ulimit -c unlimited
-                                export GOBACTRACE=crash
-                                export log_level=warn
+                        sh """
+                            ulimit -c unlimited
+                            export GOBACTRACE=crash
+                            export log_level=warn
 
-                                if grep -q "br_unit_test_in_verify_ci" Makefile; then
-                                    make br_unit_test_in_verify_ci
-                                    mv test_coverage/br_cov.unit_test.out br.coverage
-                                elif grep -q "br_unit_test" Makefile; then
-                                    make br_unit_test
-                                else
-                                    echo "not found br_unit_test or br_unit_test_in_verify_ci"
-                                fi
-                                if grep -q "dumpling_unit_test_in_verify_ci" Makefile; then
-                                    make dumpling_unit_test_in_verify_ci
-                                    mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
-                                elif grep -q "dumpling_unit_test" Makefile; then
-                                    make dumpling_unit_test
-                                else
-                                    echo "not found dumpling_unit_test or dumpling_unit_test_in_verify_ci"
-                                fi
-                                if grep -q "gotest_in_verify_ci" Makefile; then
-                                    make gotest_in_verify_ci
-                                    mv test_coverage/tidb_cov.unit_test.out tidb.coverage
-                                else
-                                    make gotest
-                                fi
-                                """
-                            } 
+                            if grep -q "br_unit_test_in_verify_ci" Makefile; then
+                                make br_unit_test_in_verify_ci
+                                mv test_coverage/br_cov.unit_test.out br.coverage
+                            elif grep -q "br_unit_test" Makefile; then
+                                make br_unit_test
+                            else
+                                echo "not found br_unit_test or br_unit_test_in_verify_ci"
+                            fi
+                            if grep -q "dumpling_unit_test_in_verify_ci" Makefile; then
+                                make dumpling_unit_test_in_verify_ci
+                                mv test_coverage/dumpling_cov.unit_test.out dumpling.coverage
+                            elif grep -q "dumpling_unit_test" Makefile; then
+                                make dumpling_unit_test
+                            else
+                                echo "not found dumpling_unit_test or dumpling_unit_test_in_verify_ci"
+                            fi
+                            if grep -q "gotest_in_verify_ci" Makefile; then
+                                make gotest_in_verify_ci
+                                mv test_coverage/tidb_cov.unit_test.out tidb.coverage
+                            else
+                                make gotest
+                            fi
+                            """
                     }catch (Exception e) {
                         archiveArtifacts artifacts: '**/core.*', allowEmptyArchive: true
                         archiveArtifacts artifacts: '**/*.test.bin', allowEmptyArchive: true
                         throw e
                     } finally {
-                        if (user_bazel(ghprbTargetBranch) != "") { 
-                            junit testResults: "**/bazel.xml", allowEmptyResults: true
-                            try {
-                                def id=UUID.randomUUID().toString()
-                                def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
-                                sh """
-                                curl -F ${filepath}=@test_coverage/bazel.xml ${FILE_SERVER_URL}/upload
-                                """
-                                resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
-                            } catch (Exception e) {
-                                // upload test case result to fileserver, do not block ci
-                                print "upload test result to fileserver failed, continue."
-                            }
-                            // upload_test_result("test_coverage/bazel.xml")
-                        } else {
                             junit testResults: "**/*-junit-report.xml", allowEmptyResults: true
                             // upload_test_result("test_coverage/tidb-junit-report.xml")
                             // upload_test_result("test_coverage/br-junit-report.xml")
                             // upload_test_result("test_coverage/dumpling-junit-report.xml")
-                        }
                     }
                 }
             }
