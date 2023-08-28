@@ -17,58 +17,28 @@ if (params.containsKey("release_test")) {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
-GO_VERSION = "go1.18"
 RESOURCE_REQUEST_CPU = '6000m'
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220823",
-    "master": "hub.pingcap.net/wangweizhen/tidb_image:go12120230809",
-]
-POD_LABEL_MAP = [
-    "go1.13": "tidb-ghpr-unit-test-go1130-${BUILD_NUMBER}",
-    "go1.16": "tidb-ghpr-unit-test-go1160-${BUILD_NUMBER}",
-    "go1.18": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
-    "go1.19": "tidb-ghpr-unit-test-go1190-${BUILD_NUMBER}",
-    "release-6.2": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
-    "master": "tidb-ghpr-unit-test-go1180-${BUILD_NUMBER}",
-]
 VOLUMES = [
     // TODO use s3 cache instead of nfs
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
                 serverPath: '/data/nvme1n1/nfs/git', readOnly: false),
     emptyDirVolume(mountPath: '/tmp', memory: false),
 ]
-
-def user_bazel(branch) {
-    if (branch in ["master"] || 
-        branch.matches("^feature[/_].*") /* feature branches */ || 
-        (branch.startsWith("release-") && branch >= "release-6.2")) {
-        return GO_IMAGE_MAP["master"]
-    }
-    return ""
-}
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
-    image = user_bazel(ghprbTargetBranch)
-    if (image != "") {
-        POD_GO_IMAGE = image
-        RESOURCE_REQUEST_CPU = '4000m'
-    } else {
-        deleteDir()
-        def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
-        sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
-        def goversion_lib = load('goversion-select-lib.groovy')
-        GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-        VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
-        POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
-    }
-    
+    deleteDir()
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
 def taskStartTimeInMillis = System.currentTimeMillis()
@@ -79,7 +49,7 @@ ciErrorCode = 0
 
 label = "tidb_ghpr_unit_test-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
