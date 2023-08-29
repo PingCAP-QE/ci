@@ -275,7 +275,7 @@ try {
             }
         }
 
-        stage("Build tools") {
+        stage("Build") {
             def stages = [:]
             stages["build tidb"] ={
                 dir(build_path) {
