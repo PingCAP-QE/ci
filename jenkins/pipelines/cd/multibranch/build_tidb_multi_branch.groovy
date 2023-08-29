@@ -275,38 +275,37 @@ try {
             }
         }
 
-        stage("Build tidb") {
-            dir(build_path) {
-                container("golang") {
-                    timeout(20) {
-                        sh """
-                        mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
-                        GOPATH=${ws}/go WITH_RACE=1 make && mv bin/tidb-server bin/tidb-server-race
-                        git checkout .
-                        GOPATH=${ws}/go WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
-                        git checkout .
-                        GOPATH=${ws}/go make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
-                        git checkout .
-                        GOPATH=${ws}/go make server_coverage || true
-                        git checkout .
-                        GOPATH=${ws}/go make
-                        git checkout .
+        stage("Build tools") {
+            def stages = [:]
+            stages["build tidb"] ={
+                dir(build_path) {
+                    container("golang") {
+                        timeout(20) {
+                            sh """
+                            mkdir -p \$GOPATH/pkg/mod && mkdir -p ${ws}/go/pkg && ln -sf \$GOPATH/pkg/mod ${ws}/go/pkg/mod
+                            GOPATH=${ws}/go WITH_RACE=1 make && mv bin/tidb-server bin/tidb-server-race
+                            git checkout .
+                            GOPATH=${ws}/go WITH_CHECK=1 make && mv bin/tidb-server bin/tidb-server-check
+                            git checkout .
+                            GOPATH=${ws}/go make failpoint-enable && make server && mv bin/tidb-server{,-failpoint} && make failpoint-disable
+                            git checkout .
+                            GOPATH=${ws}/go make server_coverage || true
+                            git checkout .
+                            GOPATH=${ws}/go make
+                            git checkout .
 
-                        if [ \$(grep -E "^ddltest:" Makefile) ]; then
-                            GOPATH=${ws}/go make ddltest
-                        fi
-                        
-                        if [ \$(grep -E "^importer:" Makefile) ]; then
-                            GOPATH=${ws}/go make importer
-                        fi
-                        """
+                            if [ \$(grep -E "^ddltest:" Makefile) ]; then
+                                GOPATH=${ws}/go make ddltest
+                            fi
+                            
+                            if [ \$(grep -E "^importer:" Makefile) ]; then
+                                GOPATH=${ws}/go make importer
+                            fi
+                            """
+                        }
                     }
                 }
             }
-        }
-
-        stage("Build tools") {
-            def stages = [:]
             stages["build br"] = {
                 if (isNeedBuildBr) {
                     def brAmdBinary = "builds/pingcap/br/${env.BRANCH_NAME}/${githash}/centos7/br.tar.gz"
