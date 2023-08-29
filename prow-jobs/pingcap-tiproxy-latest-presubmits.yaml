@@ -5,6 +5,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
       context: pull-mysql-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-mysql-test|all)(?: .*?)?$"
@@ -26,10 +27,10 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false
       context: pull-integration-jdbc-test # need change this.
       skip_report: false
+      optional: true
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
       branches:
@@ -37,7 +38,6 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_common_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false
       context: pull-integration-common-test # need change this.
       skip_report: false
@@ -48,7 +48,6 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_ruby_orm_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false  
       context: pull-integration-ruby-orm-test # need change this.
       skip_report: false
@@ -59,10 +58,10 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_prisma_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false  
       context: pull-integration-prisma-test
       skip_report: false
+      optional: true
       trigger: "(?m)^/test (?:.*? )?pull-integration-prisma-test(?: .*?)?$"
       rerun_command: "/test pull-integration-prisma-test"
       branches:
@@ -70,10 +69,10 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false  
       context: pull-integration-python-orm-test
       skip_report: false
+      optional: true
       trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test pull-integration-python-orm-test"
       branches:
@@ -81,10 +80,10 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_sequelize_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false  
       context: pull-integration-sequelize-test
       skip_report: false
+      optional: true
       trigger: "(?m)^/test (?:.*? )?pull-integration-sequelize-test(?: .*?)?$"
       rerun_command: "/test pull-integration-sequelize-test"
       branches:
@@ -92,10 +91,10 @@ presubmits:
     - name: pingcap/tiproxy/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       always_run: false  
       context: pull-sqllogic-test
       skip_report: false
+      optional: true
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
       branches:
