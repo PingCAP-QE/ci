@@ -48,3 +48,4 @@ configMapGenerator:
       - ti-community-infra-test-infra-presubmits.yaml
       - tikv-pd-latest-presubmits.yaml
       - tikv-pd-release-6.5-presubmits.yaml
+      - tikv-pd-release-7.1-presubmits.yaml
