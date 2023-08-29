@@ -340,7 +340,7 @@ try {
                         tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
                         bin/tidb-server -V
                         curl --fail -F  ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
-                        curl --fail -F  ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/uplood | egrep 'success'
+                        curl --fail -F  ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
 
                         echo "${githash}" > sha1
                         curl --fail -F  ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
