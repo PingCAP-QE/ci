@@ -369,10 +369,8 @@ try {
             }
 
             def filepath_whitelist = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/whitelist-1.so"
-            def filepath_bytidb_whitelist = "builds/pingcap/tidb-plugins/bytidb/${githash}/centos7/whitelist-1.so"
             def md5path_whitelist = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/whitelist-1.so.md5"
             def filepath_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so"
-            def filepath_bytidb_audit = "builds/pingcap/tidb-plugins/bytidb/${githash}/centos7/audit-1.so"
             def md5path_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so.md5"
 
             container("golang") {
@@ -387,7 +385,6 @@ try {
                         md5sum whitelist-1.so > whitelist-1.so.md5
                         curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
                         curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
-                        curl -F ${filepath_bytidb_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
                         """
                 }
                 dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
@@ -397,7 +394,6 @@ try {
                     md5sum audit-1.so > audit-1.so.md5
                     curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
                     curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
-                    curl -F ${filepath_bytidb_audit}=@audit-1.so ${FILE_SERVER_URL}/upload
                     """
                 }
             }
