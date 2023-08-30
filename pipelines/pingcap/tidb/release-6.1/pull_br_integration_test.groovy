@@ -59,6 +59,7 @@ pipeline {
                     retry(2) {
                         sh label: "download third_party", script: """
                             chmod +x ../tidb/br/tests/*.sh
+                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh
                             ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh release-6.1
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
@@ -70,11 +71,6 @@ pipeline {
                 }
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all tests added to group", script: """
-                            #!/usr/bin/env bash
-                            chmod +x br/tests/*.sh
-                            ./br/tests/run_group.sh others
-                        """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
