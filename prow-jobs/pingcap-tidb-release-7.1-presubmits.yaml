@@ -46,3 +46,14 @@ presubmits:
       rerun_command: "/test unit-test"
       branches:
         - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.1/pull_br_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/pull-br-integration-test # need change this to pull-br-integration-test after test pass.
+      always_run: false
+      optional: true
+      skip_report: true # need change to true after test pass.
+      trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-br-integration-test"
+      branches:
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$

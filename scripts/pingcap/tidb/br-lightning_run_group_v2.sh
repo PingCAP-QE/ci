@@ -61,8 +61,14 @@ test_names=${grouped_directories[${group_index}]}
 if [[ -n $test_names ]]; then
     echo ""
     echo "Running tests in group${group_index}: $test_names"
-    # lightning_examples test need mv file from examples pkg.
-    # so we should overwrite the path.
-    export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
-    TEST_NAME=${test_names} ${CUR}/run.sh
+
+    for case_name in $test_names; do
+        echo "==== Run case: ${case_name} ===="
+        rm -rf /tmp/backup_restore_test
+        mkdir -p /tmp/backup_restore_test
+        # lightning_examples test need mv file from examples pkg.
+        # so we should overwrite the path.
+        export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+        TEST_NAME=${case_name} ${CUR}/run.sh
+    done
 fi
