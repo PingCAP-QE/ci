@@ -259,15 +259,15 @@ if (REPO != "tidb-tools") {
 def nodeLabel = goBuildPod
 def containerLabel = "golang"
 def binPath = ""
-def useArmPod = false
+def useArmPodTemplate = false
 
-if (params.ARCH == "arm64" && params.OS == "linux") {
-    useArmPod = true
+if (params.ARCH == "arm64" && params.OS == "linux" && !(params.PRODUCT in ["tics", "tiflash"])) {
+    useArmPodTemplate = true
 }
 if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
     nodeLabel = "build"
     containerLabel = "rust"
-} 
+}
 if (params.PRODUCT == "tics") {
     nodeLabel = "build_tiflash"
     containerLabel = "tiflash"
@@ -275,11 +275,12 @@ if (params.PRODUCT == "tics") {
         nodeLabel = "tiflash_build_arm"
         containerLabel = "tiflash"
     }
-} 
-if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPod) {
+}
+if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPodTemplate && params.PRODUCT != "tics") {
     binPath = "${GO_BIN_PATH}:/usr/local/node/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
     nodeLabel = "arm"
     containerLabel = ""
+    error "should not use physical node"
 }
 if (params.OS == "darwin" && params.ARCH == "amd64") {
     binPath = "${GO_BIN_PATH}:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/opt/binutils/bin/"
@@ -999,7 +1000,7 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if ( params.ARCH == "arm64" &&  params.OS == "linux") {
+            if (useArmPodTemplate) {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()
