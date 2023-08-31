@@ -68,7 +68,7 @@ if [[ -n $test_names ]]; then
         mkdir -p /tmp/backup_restore_test
         # lightning_examples test need mv file from examples pkg.
         # so we should overwrite the path.
-        export EXAMPLES_PATH=br/pkg/lightning/mydump/examples
+        export EXAMPLES_PATH=pkg/lightning/mydump/examples
         TEST_NAME=${case_name} ${CUR}/run.sh
     done
 fi

@@ -94,8 +94,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
-                            'G14', 'G15'
+                        values 'G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
                 agent{
@@ -114,7 +113,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash
-                                        cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group.sh br/tests/run_group.sh
+                                        cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group_v2.sh br/tests/run_group.sh
                                         chmod +x br/tests/*.sh
                                         ln -s ${WORKSPACE}/tidb/bin ${WORKSPACE}/tidb/br/bin
                                         cd br/
