@@ -744,6 +744,7 @@ try {
     def pw = new PrintWriter(sw)
     exc.printStackTrace(pw)
     echo sw.toString()
+    throw exc
 } finally {
     build job: 'send_notify',
             wait: true,
