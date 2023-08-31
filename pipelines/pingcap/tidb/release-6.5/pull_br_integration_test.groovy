@@ -113,7 +113,7 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash
-                                        cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group.sh br/tests/run_group.sh
+                                        cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group_v2.sh br/tests/run_group.sh
                                         chmod +x br/tests/*.sh
                                         ln -s ${WORKSPACE}/tidb/bin ${WORKSPACE}/tidb/br/bin
                                         cd br/
