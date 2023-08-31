@@ -119,8 +119,7 @@ if (params.FAILPOINT) {
 // check if binary already has been built. 
 def ifFileCacheExists() {
     // return false // to re-run force build
-    node("$GO_BUILD_SLAVE") { 
-        container("golang") {
+    node("light_curl") {
             if (params.FORCE_REBUILD){
                 return false
             } 
@@ -131,7 +130,6 @@ def ifFileCacheExists() {
                 return true
             }
             return false
-        }
     }
 }
 
