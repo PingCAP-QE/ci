@@ -326,7 +326,7 @@ spec:
                     if (params.IsPushGCR.toBoolean()){
                         dev_build["status"]["buildReport"]["images"].add(["platform":"multi-arch", "url":ImageForGcr])
                     }
-                    node("mac"){
+                    node("light_curl"){
                         writeJSON file:"status.json", json: dev_build
                         sh "curl -X PUT 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID' -d @status.json"
                     }
@@ -336,7 +336,7 @@ spec:
         unsuccessful{
             script{
                 if (TiBuildID!=""){
-                    node("mac"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
+                    node("light_curl"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
                 }
             }
         }
