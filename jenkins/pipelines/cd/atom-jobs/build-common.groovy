@@ -973,7 +973,7 @@ def run_with_arm_go_pod(Closure body) {
             nodeSelector: nodeSelector,
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
+                            name: 'builder', alwaysPullImage: true,
                             image: "${arm_go_pod_image}", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
@@ -988,7 +988,7 @@ def run_with_arm_go_pod(Closure body) {
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            container("golang") {
+            container("builder") {
                 body()
             }
         }
@@ -1002,7 +1002,7 @@ try {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()
-                        release(PRODUCT, containerLabel)
+                        release(PRODUCT, 'builder')
                     }
                 }
             } else {
