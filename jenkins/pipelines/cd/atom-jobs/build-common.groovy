@@ -261,7 +261,7 @@ def containerLabel = "golang"
 def binPath = ""
 def useArmPod = false
 
-if (params.ARCH == "arm64" && params.PRODUCT in ["tidb", "enterprise-plugin", "tics"]) {
+if (params.ARCH == "arm64" && params.OS == "linux") {
     useArmPod = true
 }
 if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
@@ -960,7 +960,10 @@ def run_with_arm_go_pod(Closure body) {
             println "invalid go version ${goVersion}"
             break
     }
-    def cloud = "kubernetes-arm64"
+    if (PRODUCT == "tikv"){
+        arm_go_pod_image="hub.pingcap.net/jenkins/centos7_golang-1.13_rust-arm64:latest"
+    }
+    def cloud = "kubernetes"
     def nodeSelector = "kubernetes.io/arch=arm64"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
@@ -978,10 +981,6 @@ def run_with_arm_go_pod(Closure body) {
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                             
                     ),
-                    containerTemplate(
-                        name: 'jnlp', image: jnlp_docker_image, alwaysPullImage: false,
-                        resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
-                    )
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
@@ -1000,7 +999,7 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if (params.PRODUCT in ["tidb", "enterprise-plugin"] && params.ARCH == "arm64" &&  params.OS == "linux") {
+            if ( params.ARCH == "arm64" &&  params.OS == "linux") {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()
