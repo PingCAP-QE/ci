@@ -1,9 +1,9 @@
-def proxy_desc = "TiProxy is a database proxy that is based on TiDB."
+def proxy_desc = "tiproxy is a database proxy that is based on TiDB."
 
 def update = { name, version, os, arch, garch, gversion ->
     sh """
-    wget https://github.com/pingcap/TiProxy/releases/download/v${gversion}/TiProxy_${gversion}_${os}_${garch}.tar.gz
-    tiup mirror publish tiproxy ${version} TiProxy_${gversion}_${os}_${garch}.tar.gz tiproxy --arch ${arch} --os ${os} --desc="${proxy_desc}"
+    wget https://github.com/pingcap/tiproxy/releases/download/v${gversion}/tiproxy_${gversion}_${os}_${garch}.tar.gz
+    tiup mirror publish tiproxy ${version} tiproxy_${gversion}_${os}_${garch}.tar.gz tiproxy --arch ${arch} --os ${os} --desc="${proxy_desc}"
     """
 }
 
