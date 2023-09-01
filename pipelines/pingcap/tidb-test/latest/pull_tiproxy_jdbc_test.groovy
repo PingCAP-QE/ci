@@ -45,7 +45,7 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/TiProxy.git', 'tiproxy', "main", "", "")
+                                component.checkout('https://github.com/pingcap/tiproxy.git', 'tiproxy', "main", "", "")
                             }
                         }
                     }
