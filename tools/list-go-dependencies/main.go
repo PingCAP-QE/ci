@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,10 +20,26 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
+var (
+	reImports    = regexp.MustCompile(`Imports:\s*(\d+[,\d]*)`)
+	reImportedBy = regexp.MustCompile(`Imported by:\s*(\d+[,\d]*)`)
+)
+
 type goMouleInfo struct {
 	Name       string      `json:"name"`
 	Licenses   string      `json:"licenses"`
+	Imports    int         `json:"imports"`
+	ImportedBy int         `json:"imported_by"`
 	Repository *repository `json:"repository"`
+}
+
+type languageItemOfRepository struct {
+	Language    string `json:"language,omitempty"`
+	Files       int    `json:"files,omitempty"`
+	Lines       int    `json:"lines,omitempty"`
+	Blanks      int    `json:"blanks,omitempty"`
+	Comments    int    `json:"comments,omitempty"`
+	LinesOfCode int    `json:"linesOfCode,omitempty"`
 }
 
 type repository struct {
@@ -33,12 +51,13 @@ type repository struct {
 	} `json:"owner"`
 	ForksCount      int       `json:"forks_count"`
 	StargazersCount int       `json:"stargazers_count"`
+	LinesOfCode     int       `json:"lines_of_code"`
 	Github          bool      `json:"github"`
 	Personal        bool      `json:"personal"`
 	PushedAt        time.Time `json:"pushed_at"`
 }
 
-func getPkgRepo(pkgName string) (*goMouleInfo, error) {
+func getBasicModuleInfo(pkgName string) (*goMouleInfo, error) {
 	// Construct the URL
 	url := "https://pkg.go.dev/" + pkgName
 
@@ -60,13 +79,27 @@ func getPkgRepo(pkgName string) (*goMouleInfo, error) {
 		return nil, err
 	}
 
-	// Find and extract the source site
+	// Find and extract the source site, license type, imports count and count of imported by.
 	repoLink := document.Find("#main-content div.UnitMeta-repo a").Text()
-	licenses := document.Find("#main-content a[data-test-id='UnitHeader-license']").Text()
+	licenses := document.Find("#main-content span[data-test-id='UnitHeader-licenses'] a").Text()
+	importsText := strings.ReplaceAll(document.Find("#main-content span[data-test-id='UnitHeader-imports'] a").Text(), ",", "")
+	importedByText := strings.ReplaceAll(document.Find("#main-content span[data-test-id='UnitHeader-importedby'] a").Text(), ",", "")
+
+	var imports, importedBy int
+	importsSubM := reImports.FindStringSubmatch(importsText)
+	importedBySubM := reImportedBy.FindStringSubmatch(importedByText)
+	if len(importsSubM) > 1 {
+		imports, _ = strconv.Atoi(reImports.FindStringSubmatch(importsText)[1])
+	}
+	if len(importedBySubM) > 1 {
+		importedBy, _ = strconv.Atoi(reImportedBy.FindStringSubmatch(importedByText)[1])
+	}
 
 	return &goMouleInfo{
 		Name:       pkgName,
 		Licenses:   licenses,
+		Imports:    imports,
+		ImportedBy: importedBy,
 		Repository: &repository{FullName: strings.TrimSpace(repoLink)},
 	}, nil
 }
@@ -138,37 +171,42 @@ func getRepoInfo(fullRepo string, token string) (*repository, error) {
 	}
 
 	// Owner and personal
-	if parsedURL.Host == "github.com" {
-		// Split the path component of the URL into segments
-		pathSegments := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
-		if len(pathSegments) < 2 {
-			return nil, errors.New("not found owner and name for repo")
-		}
-
-		repoOwner := pathSegments[0]
-		repoName := pathSegments[1]
-		ret, err := getGithubRepoInfo(repoOwner, repoName, token)
-		if err != nil {
-			return nil, err
-		}
-
-		personal, err := isPersonalGithubAccount(repoOwner, token)
-		if err != nil {
-			return nil, err
-		}
-
-		ret.Personal = personal
-		ret.Github = true
-
-		return ret, nil
+	if parsedURL.Host != "github.com" {
+		return &repository{FullName: fullRepo}, nil
 	}
 
-	return &repository{FullName: fullRepo}, nil
+	// Split the path component of the URL into segments
+	pathSegments := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
+	if len(pathSegments) < 2 {
+		return nil, errors.New("not found owner and name for repo")
+	}
+
+	repoOwner := pathSegments[0]
+	repoName := pathSegments[1]
+	ret, err := getGithubRepoInfo(repoOwner, repoName, token)
+	if err != nil {
+		return nil, err
+	}
+	ret.Github = true
+
+	personal, err := isPersonalGithubAccount(repoOwner, token)
+	if err != nil {
+		return nil, err
+	}
+	ret.Personal = personal
+
+	if codeLines, err := getCodeLinesForGithubRepo(repoOwner, repoName); err != nil {
+		return nil, err
+	} else {
+		ret.LinesOfCode = codeLines
+	}
+
+	return ret, nil
 }
 
 func getPkgInfo(pkgName string, token string) (*goMouleInfo, error) {
 	// .Repo
-	ret, err := getPkgRepo(pkgName)
+	ret, err := getBasicModuleInfo(pkgName)
 	if err != nil {
 		return nil, err
 	}
@@ -212,6 +250,28 @@ func getGithubRepoInfo(owner, repo, accessToken string) (*repository, error) {
 	return &ret, nil
 }
 
+// getCodeLinesForGithubRepo static go code lines.
+func getCodeLinesForGithubRepo(owner, repo string) (int, error) {
+	apiUrl := fmt.Sprintf("https://api.codetabs.com/v1/loc/?github=%s/%s", owner, repo)
+	resp, err := http.Get(apiUrl)
+	if err != nil {
+		return 0, fmt.Errorf("Error sending request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("API request failed with status code %d", resp.StatusCode)
+	}
+
+	var ret []languageItemOfRepository
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return 0, fmt.Errorf("Error decoding JSON response: %v", err)
+	}
+
+	return ret[0].LinesOfCode, nil
+}
+
 func writeCSV(data []*goMouleInfo, filePath string) error {
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -223,7 +283,7 @@ func writeCSV(data []*goMouleInfo, filePath string) error {
 	defer writer.Flush()
 
 	// Write the header row
-	header := []string{"Module", "Licenses", "Repository", "GitHub", "Personal", "Stars", "Forks", "Pushed At"}
+	header := []string{"Module", "Licenses", "Imports", "ImportedBy", "Repository", "GitHub", "Personal", "Stars", "Forks", "LinesOfCode", "Pushed At"}
 	if err := writer.Write(header); err != nil {
 		return err
 	}
@@ -233,11 +293,14 @@ func writeCSV(data []*goMouleInfo, filePath string) error {
 		row := []string{
 			info.Name,
 			info.Licenses,
+			strconv.Itoa(info.Imports),
+			strconv.Itoa(info.ImportedBy),
 			info.Repository.FullName,
 			fmt.Sprintf("%t", info.Repository.Github),
 			fmt.Sprintf("%t", info.Repository.Personal),
-			fmt.Sprintf("%d", info.Repository.StargazersCount),
-			fmt.Sprintf("%d", info.Repository.ForksCount),
+			strconv.Itoa(info.Repository.StargazersCount),
+			strconv.Itoa(info.Repository.ForksCount),
+			strconv.Itoa(info.Repository.LinesOfCode),
 			info.Repository.PushedAt.String(),
 		}
 		if err := writer.Write(row); err != nil {
@@ -279,11 +342,14 @@ func main() {
 			l.Info().
 				Str("module", info.Name).
 				Str("licenses", info.Licenses).
+				Int("imported_by", info.ImportedBy).
+				Int("imports", info.Imports).
 				Str("repo", info.Repository.FullName).
 				Bool("github", info.Repository.Github).
 				Bool("repo.personal", info.Repository.Personal).
 				Int("repo.stars", info.Repository.StargazersCount).
 				Int("repo.forks", info.Repository.ForksCount).
+				Int("repo.lines_of_code", info.Repository.LinesOfCode).
 				Str("repo.pushed_at", info.Repository.PushedAt.String()).
 				Send()
 		}
