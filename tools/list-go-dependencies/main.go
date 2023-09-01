@@ -250,7 +250,7 @@ func getGithubRepoInfo(owner, repo, accessToken string) (*repository, error) {
 	return &ret, nil
 }
 
-// getCodeLinesForGithubRepo static go code lines.
+// getCodeLinesForGithubRepo statics go code lines.
 func getCodeLinesForGithubRepo(owner, repo string) (int, error) {
 	apiUrl := fmt.Sprintf("https://api.codetabs.com/v1/loc/?github=%s/%s", owner, repo)
 	resp, err := http.Get(apiUrl)
@@ -269,7 +269,13 @@ func getCodeLinesForGithubRepo(owner, repo string) (int, error) {
 		return 0, fmt.Errorf("Error decoding JSON response: %v", err)
 	}
 
-	return ret[0].LinesOfCode, nil
+	for _, it := range ret {
+		if it.Language == "Go" {
+			return it.LinesOfCode, nil
+		}
+	}
+
+	return 0, nil
 }
 
 func writeCSV(data []*goMouleInfo, filePath string) error {
