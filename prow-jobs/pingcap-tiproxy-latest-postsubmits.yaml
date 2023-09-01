@@ -1,6 +1,6 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
 postsubmits:
-  pingcap/TiProxy:
+  pingcap/tiproxy:
     - name: pingcap/tiproxy/merged_integration_prisma_test
       agent: jenkins
       decorate: false # need add this.
