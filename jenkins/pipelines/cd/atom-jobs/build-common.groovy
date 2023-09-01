@@ -119,8 +119,7 @@ if (params.FAILPOINT) {
 // check if binary already has been built. 
 def ifFileCacheExists() {
     // return false // to re-run force build
-    node("$GO_BUILD_SLAVE") { 
-        container("golang") {
+    node("light_curl") {
             if (params.FORCE_REBUILD){
                 return false
             } 
@@ -131,7 +130,6 @@ def ifFileCacheExists() {
                 return true
             }
             return false
-        }
     }
 }
 
@@ -259,15 +257,15 @@ if (REPO != "tidb-tools") {
 def nodeLabel = goBuildPod
 def containerLabel = "golang"
 def binPath = ""
-def useArmPod = false
+def useArmPodTemplate = false
 
-if (params.ARCH == "arm64" && params.PRODUCT in ["tidb", "enterprise-plugin", "tics"]) {
-    useArmPod = true
+if (params.ARCH == "arm64" && params.OS == "linux" && !(params.PRODUCT in ["tics", "tiflash"])) {
+    useArmPodTemplate = true
 }
 if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
     nodeLabel = "build"
     containerLabel = "rust"
-} 
+}
 if (params.PRODUCT == "tics") {
     nodeLabel = "build_tiflash"
     containerLabel = "tiflash"
@@ -275,11 +273,12 @@ if (params.PRODUCT == "tics") {
         nodeLabel = "tiflash_build_arm"
         containerLabel = "tiflash"
     }
-} 
-if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPod) {
+}
+if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPodTemplate && params.PRODUCT != "tics") {
     binPath = "${GO_BIN_PATH}:/usr/local/node/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
     nodeLabel = "arm"
     containerLabel = ""
+    error "should not use physical node"
 }
 if (params.OS == "darwin" && params.ARCH == "amd64") {
     binPath = "${GO_BIN_PATH}:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/opt/binutils/bin/"
@@ -960,28 +959,26 @@ def run_with_arm_go_pod(Closure body) {
             println "invalid go version ${goVersion}"
             break
     }
-    def cloud = "kubernetes-arm64"
+    if (PRODUCT == "tikv"){
+        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
+    }
+    def cloud = "kubernetes"
     def nodeSelector = "kubernetes.io/arch=arm64"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.10-3"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             nodeSelector: nodeSelector,
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
+                            name: 'builder', alwaysPullImage: true,
                             image: "${arm_go_pod_image}", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                             
                     ),
-                    containerTemplate(
-                        name: 'jnlp', image: jnlp_docker_image, alwaysPullImage: false,
-                        resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
-                    )
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
@@ -990,7 +987,7 @@ def run_with_arm_go_pod(Closure body) {
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            container("golang") {
+            container("builder") {
                 body()
             }
         }
@@ -1000,11 +997,11 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if (params.PRODUCT in ["tidb", "enterprise-plugin"] && params.ARCH == "arm64" &&  params.OS == "linux") {
+            if (useArmPodTemplate) {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()
-                        release(PRODUCT, containerLabel)
+                        release(PRODUCT, 'builder')
                     }
                 }
             } else {
