@@ -155,6 +155,7 @@ retry(2) {
                                 sh """
                 cp ../centos7/bin/pd-server ./
                 cp ../centos7/bin/pd-ctl ./
+                cp ../centos7/bin/pd-recover ./
                 curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/pd.Dockerfile"
                 """
                             }
