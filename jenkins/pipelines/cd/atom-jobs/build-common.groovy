@@ -960,7 +960,7 @@ def run_with_arm_go_pod(Closure body) {
             break
     }
     if (PRODUCT == "tikv"){
-        arm_go_pod_image="hub.pingcap.net/jenkins/centos7_golang-1.13_rust-arm64:latest"
+        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
     }
     def cloud = "kubernetes"
     def nodeSelector = "kubernetes.io/arch=arm64"
