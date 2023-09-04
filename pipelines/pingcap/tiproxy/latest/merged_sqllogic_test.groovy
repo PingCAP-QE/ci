@@ -107,7 +107,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "test_path: ${TEST_PATH_STRING}", script: """
                                         #!/usr/bin/env bash
                                         path_array=(${TEST_PATH_STRING})
@@ -146,7 +146,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "test_path: ${TEST_PATH_STRING}", script: """
                                         #!/usr/bin/env bash
                                         path_array=(${TEST_PATH_STRING})
