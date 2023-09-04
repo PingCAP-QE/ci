@@ -51,10 +51,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutV2('git@github.com:pingcap/tidb-test.git', 'tidb-test', "master", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkoutV2('git@github.com:pingcap/tidb-test.git', 'tidb-test', "master", "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -107,14 +107,14 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "test_path: ${TEST_PATH_STRING}", script: """
                                         #!/usr/bin/env bash
                                         path_array=(${TEST_PATH_STRING})
                                         for path in \${path_array[@]}; do
                                             echo "test path: \${path}"
                                             SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p ${SQLLOGIC_TEST_PATH}"
+                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
                                         done
                                     """
                                 }
@@ -146,14 +146,14 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "test_path: ${TEST_PATH_STRING}", script: """
                                         #!/usr/bin/env bash
                                         path_array=(${TEST_PATH_STRING})
                                         for path in \${path_array[@]}; do
                                             echo "test path: \${path}"
                                             SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p ${SQLLOGIC_TEST_PATH}"
+                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
                                         done
                                     """
                                 }
