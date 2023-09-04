@@ -114,7 +114,7 @@ pipeline {
                                         for path in \${path_array[@]}; do
                                             echo "test path: \${path}"
                                             SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p ${SQLLOGIC_TEST_PATH}"
+                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
                                         done
                                     """
                                 }
@@ -153,7 +153,7 @@ pipeline {
                                         for path in \${path_array[@]}; do
                                             echo "test path: \${path}"
                                             SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p ${SQLLOGIC_TEST_PATH}"
+                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
                                         done
                                     """
                                 }
