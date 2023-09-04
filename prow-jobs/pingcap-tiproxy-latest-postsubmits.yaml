@@ -37,3 +37,30 @@ postsubmits:
       skip_report: false
       branches:
         - ^main$
+    - name: pingcap/tiproxy/merged_integration_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: merged-integration-common-test # need change this.
+      max_concurrency: 1
+      skip_report: false
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/merged_integration_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: merged-integration-jdbc-test # need change this.
+      max_concurrency: 1
+      skip_report: false
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/merged_integration_ruby_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: merged-integration-ruby-orm-test # need change this.
+      max_concurrency: 1
+      skip_report: false
+      branches:
+        - ^main$
