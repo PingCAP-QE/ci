@@ -428,7 +428,7 @@ node("build_go1130") {
 
                 ]
 
-                builds["TiUP build cdc"] = {
+                stage("TiUP build cdc") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: paramsCDC)
@@ -448,7 +448,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
 
-                builds["TiUP build br"] = {
+                stage("TiUP build br") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "br-tiup-mirror-update-test", wait: true, parameters: paramsBR)
@@ -467,7 +467,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build dumpling"] = {
+                stage("TiUP build dumpling") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: paramsDUMPLING)
@@ -488,7 +488,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build lightning"] = {
+                stage("TiUP build lightning") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: paramsLIGHTNING)
@@ -508,7 +508,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build tiflash"] = {
+                stage("TiUP build tiflash") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: paramsTIFLASH)
@@ -529,7 +529,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build grafana"] = {
+                stage("TiUP build grafana") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
@@ -549,7 +549,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build prometheus"] = {
+                stage("TiUP build prometheus") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: paramsPROMETHEUS)
@@ -558,7 +558,6 @@ node("build_go1130") {
                         }
                     }
                 }
-                parallel builds
             }
 
             multi_os_update = [:]
@@ -652,7 +651,6 @@ node("build_go1130") {
                     }
                 }
             }
-            parallel multi_os_update
 
         }
     }
