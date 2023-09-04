@@ -559,9 +559,7 @@ node("build_go1130") {
                     }
                 }
             }
-
-            multi_os_update = [:]
-            multi_os_update["TiUP build tidb on linux/amd64"] = {
+            stage("TiUP build tidb on linux/amd64") {
                 run_with_pod {
                     container("golang") { 
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
@@ -583,7 +581,7 @@ node("build_go1130") {
                     }
                 }
             }
-            multi_os_update["TiUP build tidb on linux/arm64"] = {
+            stage("TiUP build tidb on linux/arm64") {
                 run_with_pod {
                     container("golang") { 
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
@@ -605,7 +603,7 @@ node("build_go1130") {
                     }
                 }
             }
-            multi_os_update["TiUP build tidb on darwin/amd64"] = {
+            stage("TiUP build tidb on darwin/amd64") {
                 run_with_pod {
                     container("golang") { 
                         util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
@@ -628,7 +626,7 @@ node("build_go1130") {
                 }
             }
             if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") { 
-                multi_os_update["TiUP build tidb on darwin/arm64"] = {
+                stage("TiUP build tidb on darwin/arm64") {
                     run_with_pod {
                         container("golang") { 
                             util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
