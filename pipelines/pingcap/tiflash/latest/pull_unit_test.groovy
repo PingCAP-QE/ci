@@ -101,39 +101,25 @@ pipeline {
             }
         }
         stage('Tests') {
-            matrix {
-                axes {
-                    axis {
-                        name 'TEST_CMD'
-                        values 'check', "build"
-                }
-                agent{
-                    kubernetes {
-                        namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'runner'
-                    }
-                } 
-                stages {
-                    stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
-                        steps {
-                            dir('tiflash') {
-                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "${TEST_CMD}", script: """
-                                        make ${TEST_CMD}
-                                    """
-                                }
-                            }
-                        }
-                        post {
-                            always {
-                                junit(testResults: "**/tiflash/*-junit-report.xml", allowEmptyResults : true)  
+            stages {
+                stage("Test") {
+                    options { timeout(time: 40, unit: 'MINUTES') }
+                    steps {
+                        dir('tiflash') {
+                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                sh label: "${TEST_CMD}", script: """
+                                    make ${TEST_CMD}
+                                """
                             }
                         }
                     }
+                    post {
+                        always {
+                            junit(testResults: "**/tiflash/*-junit-report.xml", allowEmptyResults : true)  
+                        }
+                    }
                 }
-            }        
+            }     
         }
     }
 }

@@ -14,6 +14,22 @@ spec:
         limits:
           memory: 32Gi
           cpu: "12"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -28,6 +44,32 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
+  volumes:
+    - name: "volume-0"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/rust"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-2"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/dependency"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-1"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/ccache"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-4"
+      nfs:
+        path: "/data/nvme1n1/nfs/git"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-5"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
+        readOnly: true
+        server: "10.2.12.82"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
