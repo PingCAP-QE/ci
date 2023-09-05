@@ -774,6 +774,10 @@ if [ ${OS} == 'linux' ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
 fi;
+# compatibility: arm linux page sizes vary from 4k to 64k
+if [ ${OS}/${ARCH} == 'linux/arm64' ]; then
+    export JEMALLOC_SYS_WITH_LG_PAGE=16
+fi;
 if [ ${failpoint} == 'true' ]; then
     CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make fail_release
 else
