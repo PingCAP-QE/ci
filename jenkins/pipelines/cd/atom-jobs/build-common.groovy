@@ -774,7 +774,7 @@ if [ ${OS} == 'linux' ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
 fi;
-# arm linux page sizes vary from 4k to 64k
+# compatibility: arm linux page sizes vary from 4k to 64k
 if [ ${OS}/${ARCH} == 'linux/arm64' ]; then
     export JEMALLOC_SYS_WITH_LG_PAGE=16
 fi;
