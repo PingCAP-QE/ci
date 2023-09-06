@@ -1,4 +1,3 @@
-// REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('build-tidb-dashboard') {
     definition {
         cpsScm {
