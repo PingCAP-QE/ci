@@ -17,7 +17,7 @@ pipeline {
         }
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
@@ -102,7 +102,7 @@ pipeline {
                 stages {
                     stage('Test')  {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 30, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
