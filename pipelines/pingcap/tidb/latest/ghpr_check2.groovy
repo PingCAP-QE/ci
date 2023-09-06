@@ -79,16 +79,16 @@ pipeline {
                         values(
                             'explaintest.sh y',
                             'explaintest.sh n',
-                            'run_real_tikv_tests.sh bazel_brietest',
-                            'run_real_tikv_tests.sh bazel_pessimistictest',
-                            'run_real_tikv_tests.sh bazel_sessiontest',
-                            'run_real_tikv_tests.sh bazel_statisticstest',
-                            'run_real_tikv_tests.sh bazel_txntest',
-                            'run_real_tikv_tests.sh bazel_addindextest',
-                            'run_real_tikv_tests.sh bazel_importintotest',
-                            'run_real_tikv_tests.sh bazel_importintotest2',
-                            'run_real_tikv_tests.sh bazel_importintotest3',
-                            'run_real_tikv_tests.sh bazel_importintotest4',
+                            'run_real_tikv_tests_with_gotest.sh brietest',
+                            'run_real_tikv_tests_with_gotest.sh pessimistictest',
+                            'run_real_tikv_tests_with_gotest.sh sessiontest',
+                            'run_real_tikv_tests_with_gotest.sh statisticstest',
+                            'run_real_tikv_tests_with_gotest.sh txntest',
+                            'run_real_tikv_tests_with_gotest.sh addindextest',
+                            'run_real_tikv_tests_with_gotest.sh importintotest',
+                            'run_real_tikv_tests_with_gotest.sh importintotest2',
+                            'run_real_tikv_tests_with_gotest.sh importintotest3',
+                            'run_real_tikv_tests_with_gotest.sh importintotest4',
                         )
                     }
                 }
