@@ -25,7 +25,7 @@ EOF
     bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-2/data -f tikv3.log &
 
     sleep 10
-    go test ./tests/realtikvtest/${test_suite} -v -with-real-tikv -timeout 40m
+    go test ./tests/realtikvtest/${test_suite} -v --tags=intest  -with-real-tikv -timeout 40m
 }
 
 function cleanup() {
