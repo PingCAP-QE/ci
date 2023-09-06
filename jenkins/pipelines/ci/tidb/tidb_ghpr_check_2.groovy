@@ -174,7 +174,7 @@ try {
                                 }
                             sh "git checkout -f ${ghprbActualCommit}"
                             sh """
-                            GO111MODULE=on go build -o bin/integrationtest_tidb-server github.com/pingcap/tidb/tidb-server
+                            GO111MODULE=on go build -o bin/integration_test_tidb-server github.com/pingcap/tidb/tidb-server
                             """
                         }
                     }
@@ -346,10 +346,10 @@ try {
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
-                                    # GO111MODULE=on go build -o bin/integrationtest_tidb-server github.com/pingcap/tidb/tidb-server
+                                    # GO111MODULE=on go build -o bin/integration_test_tidb-server github.com/pingcap/tidb/tidb-server
                                     ls -alh ./bin/
 
-                                    export TIDB_SERVER_PATH=${ws}/bin/integrationtest_tidb-server
+                                    export TIDB_SERVER_PATH=${ws}/bin/integration_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
                                     export TIDB_TEST_STORE_NAME="tikv"
                                     chmod +x tests/integrationtest/run-tests.sh
@@ -411,10 +411,10 @@ try {
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
-                                    # GO111MODULE=on go build -o bin/integrationtest_tidb-server github.com/pingcap/tidb/tidb-server
+                                    # GO111MODULE=on go build -o bin/integration_test_tidb-server github.com/pingcap/tidb/tidb-server
                                     ls -alh ./bin/
 
-                                    export TIDB_SERVER_PATH=${ws}/bin/integrationtest_tidb-server
+                                    export TIDB_SERVER_PATH=${ws}/bin/integration_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
                                     export TIDB_TEST_STORE_NAME="tikv"
                                     chmod +x tests/integrationtest/run-tests.sh
