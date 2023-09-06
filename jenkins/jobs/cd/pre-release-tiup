@@ -1,0 +1,16 @@
+pipelineJob('pre-release-tiup') {
+    definition {
+        cpsScm {
+            lightweight(true)
+            scriptPath('jenkins/pipelines/cd/tiup/pre-release-tiup.groovy')
+            scm {
+                git{
+                    remote {
+                        url('https://github.com/pingcap-qe/ci.git')
+                    }
+                    branch('main')
+                }
+            }
+        }
+    }
+}
