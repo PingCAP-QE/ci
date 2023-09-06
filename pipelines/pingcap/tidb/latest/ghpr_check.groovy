@@ -56,7 +56,7 @@ pipeline {
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir('tidb') {
-                    sh script: 'make gogenerate check explaintest'
+                    sh script: 'make gogenerate check integrationtest'
                 }
             }
             post {

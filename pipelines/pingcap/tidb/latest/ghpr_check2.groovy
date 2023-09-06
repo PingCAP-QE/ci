@@ -64,7 +64,7 @@ pipeline {
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
-                            mv bin/tidb-server bin/explain_test_tidb-server
+                            mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
                     }
@@ -122,7 +122,7 @@ pipeline {
                             }
                             failure {
                                 dir("checks-collation-enabled") {
-                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
+                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, integration-test.out', allowEmptyArchive: true)
                                 }
                             }
                             success {
