@@ -708,7 +708,6 @@ try {
                                         exit -1
                                     fi
                                     cp bin/tidb-server tests/integrationtest
-                                    cp bin/importer tests/integrationtest
                                     cd tests/integrationtest
                                     set +e
                                     killall -9 -r tidb-server
@@ -716,7 +715,7 @@ try {
                                     killall -9 -r pd-server
                                     rm -rf /tmp/tidb
                                     set -e
-                                    ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                    ./run-tests.sh -s ./tidb-server -b n
                                     """
                                     }
                                 } catch (err) {
