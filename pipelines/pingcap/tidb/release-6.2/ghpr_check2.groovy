@@ -77,8 +77,8 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'explaintest.sh y', 
-                            'explaintest.sh n', 
+                            'integrationtest.sh y', 
+                            'integrationtest.sh n', 
                         )
                     }
                 }

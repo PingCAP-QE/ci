@@ -681,7 +681,7 @@ try {
                 }
             }
 
-            tests["Integration Explain Test"] = {
+            tests["Integration Test"] = {
                 try {
                     run_with_memory_volume_pod {
                         def ws = pwd()
@@ -703,14 +703,13 @@ try {
 
                                     timeout(20) {
                                         sh """
-                                    if [ ! -d cmd/explaintest ]; then
-                                        echo "no explaintest file found in 'cmd/explaintest'"
+                                    if [ ! -d tests/integrationtest ]; then
+                                        echo "no integrationtest file found in 'tests/integrationtest'"
                                         exit -1
                                     fi
-                                    cp bin/tidb-server cmd/explaintest
-                                    cp bin/importer cmd/explaintest
-                                    cd cmd/explaintest
-                                    GO111MODULE=on go build -o explain_test
+                                    cp bin/tidb-server tests/integrationtest
+                                    cp bin/importer tests/integrationtest
+                                    cd tests/integrationtest
                                     set +e
                                     killall -9 -r tidb-server
                                     killall -9 -r tikv-server
@@ -724,7 +723,7 @@ try {
                                     sh """
                                 cat tidb*.log || true
                                 """
-                                    sh "cat explain-test.out || true"
+                                    sh "cat integration-test.out || true"
                                     throw err
                                 } finally {
                                     sh """
@@ -738,9 +737,9 @@ try {
                             }
                         }
                     }
-                    all_task_result << ["name": "Explain Test", "status": "success", "error": ""]
+                    all_task_result << ["name": "Integration Test", "status": "success", "error": ""]
                 } catch (err) {
-                    all_task_result << ["name": "Explain Test", "status": "failed", "error": err.message]
+                    all_task_result << ["name": "Integration Test", "status": "failed", "error": err.message]
                     throw err
                 }
             }

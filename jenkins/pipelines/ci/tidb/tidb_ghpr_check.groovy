@@ -225,7 +225,7 @@ try {
                 }
             }
         }
-        tests["explaintest"] = {
+        tests["integrationtest"] = {
             run_with_pod {
                 deleteDir()
                 unstash 'tidb'
@@ -234,7 +234,7 @@ try {
                         sh """
                         go version
                         make checklist
-                        make explaintest
+                        make integrationtest
                         """
                     }
                 }

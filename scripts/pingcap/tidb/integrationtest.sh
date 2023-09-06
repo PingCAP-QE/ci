@@ -21,13 +21,23 @@ EOF
     bin/tikv-server --pd=${pd_addr2} -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f tikv2.log &
     bin/tikv-server --pd=${pd_addr3} -s tikv3 --addr=0.0.0.0:20180 --advertise-addr=127.0.0.1:20180 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f tikv3.log &
 
-    chmod +x cmd/explaintest/run-tests.sh
+    if [ -d "cmd/explaintest" ]; then
+        chmod +x cmd/explaintest/run-tests.sh
 
-    export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
-    export TIKV_PATH="${tikv_addr1}"
-    pushd cmd/explaintest &&
-        ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
-    popd
+        export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
+        export TIKV_PATH="${tikv_addr1}"
+        pushd cmd/explaintest &&
+            ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
+        popd
+    else
+        chmod +x tests/integrationtest/run-tests.sh
+
+        export TIDB_SERVER_PATH="$(pwd)/bin/integration_test_tidb-server"
+        export TIKV_PATH="${tikv_addr1}"
+        pushd tests/integrationtest &&
+            ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
+        popd
+    fi
 }
 
 function cleanup() {
@@ -46,4 +56,4 @@ cleanup
 
 if [[ "exit_code" != '0' ]]; then
    exit ${exit_code}
-fi 
+fi
