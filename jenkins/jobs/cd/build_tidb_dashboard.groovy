@@ -1,7 +1,7 @@
 pipelineJob('build-tidb-dashboard') {
     parameters {
-        stringParam(name: 'GitRef', defaultValue: 'master', description: 'branch or commit hash')
-        stringParam(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
+        stringParam('GitRef', 'master', 'branch or commit hash')
+        stringParam('ReleaseTag', 'test', 'empty means the same with GitRef')
     }
     definition {
         cpsScm {

@@ -1,6 +1,6 @@
 pipelineJob('publish-tidb-dashboard') {
     parameters {
-        stringParam(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
+        stringParam('ReleaseTag', 'test', 'empty means the same with GitRef')
     }
     definition {
         cpsScm {
