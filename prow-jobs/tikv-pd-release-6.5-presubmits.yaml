@@ -9,4 +9,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
-        - ^release-6.[5-9](\.\d+(-\d+)?)?$
+        - ^release-6\.[5-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
