@@ -103,6 +103,14 @@ try {
                                             [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: DEBUG_MODE],
                                     ]
                         }
+                        if (RELEASE_TAG >= "v6.5.0"){
+                            publishs["publish tidb-dashboard"] = {
+                                build job: 'publish-tidb-dashboard',
+                                    wait: true,
+                                    parameters: [
+                                        [$class: 'StringParameterValue', name: 'ReleaseTag', value: "${RELEASE_TAG}"],
+                                    ]
+                        }
                         parallel publishs
                     }
                     stage('sync enterprise image to gcr') {
