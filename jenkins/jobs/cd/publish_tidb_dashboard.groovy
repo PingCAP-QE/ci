@@ -1,12 +1,11 @@
-pipelineJob('build-tidb-dashboard') {
+pipelineJob('publish-tidb-dashboard') {
     parameters {
-        string(name: 'GitRef', defaultValue: 'master', description: 'branch or commit hash')
-        string(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
+        stringParam('ReleaseTag', 'test', 'empty means the same with GitRef')
     }
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/cd/build-tidb-dashboard.groovy')
+            scriptPath('jenkins/pipelines/cd/publish-tidb-dashboard.groovy')
             scm {
                 git{
                     remote {
