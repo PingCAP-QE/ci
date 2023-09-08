@@ -104,6 +104,11 @@ pipeline {
                                 }
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
+                                sh """
+                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                                git diff .
+                                git status
+                                """
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
