@@ -11,7 +11,7 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 24Gi
+          memory: 32Gi
           cpu: "8"
       volumeMounts:
         - mountPath: /share/.cache/bazel-repository-cache
