@@ -4,8 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-ghpr_build.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -52,7 +52,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)

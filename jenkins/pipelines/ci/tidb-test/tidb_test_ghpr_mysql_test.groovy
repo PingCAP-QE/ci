@@ -121,7 +121,7 @@ try {
             stage("Checkout") {
                 parallel(
                     'tidb-test': {
-                        dir("go/src/github.com/pingcap/tidb-test") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test") {
                             checkout(changelog: false, poll: false, scm: [
                                 $class: "GitSCM",
                                 branches: [
@@ -129,7 +129,7 @@ try {
                                 ],
                                 userRemoteConfigs: [
                                     [
-                                        url: "git@github.com:pingcap/tidb-test.git",
+                                        url: "git@github.com:PingCAP-QE/tidb-test.git",
                                         refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                         credentialsId: 'github-sre-bot-ssh',
                                     ]
@@ -140,7 +140,7 @@ try {
                                 ],
                             ])
                         }
-                        stash includes: "go/src/github.com/pingcap/tidb-test/**", name: "tidb-test"
+                        stash includes: "go/src/github.com/PingCAP-QE/tidb-test/**", name: "tidb-test"
                     },
                     'tidb': {
                         dir("go/src/github.com/pingcap/tidb") {
@@ -209,7 +209,7 @@ try {
                     run_with_pod {
                         def cur_ws = pwd()
                         unstash "tidb-test"
-                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             container("golang") {
                                 timeout(20) {
                                     retry(3){
@@ -294,7 +294,7 @@ try {
                                 }
                             }
                             unstash "tidb-test"
-                            dir("go/src/github.com/pingcap/tidb-test") {
+                            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                                 timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """
@@ -337,7 +337,7 @@ try {
                                 }
                             }
                             unstash "tidb-test"
-                            dir("go/src/github.com/pingcap/tidb-test") {
+                            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                                 timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """
@@ -380,7 +380,7 @@ try {
                                 }
                             }
                             unstash "tidb-test"
-                            dir("go/src/github.com/pingcap/tidb-test") {
+                            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                                 timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """
@@ -423,7 +423,7 @@ try {
                                 }
                             }
                             unstash "tidb-test"
-                            dir("go/src/github.com/pingcap/tidb-test") {
+                            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                                 timeout(20) {
                                     if (ghprbTargetBranch == "master") {
                                         sh """

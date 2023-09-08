@@ -154,14 +154,14 @@ try {
                     }
                 }
 
-                dir("go/src/github.com/pingcap/tidb-test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test") {
                     timeout(30) {
-                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
                         """
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
@@ -174,7 +174,7 @@ try {
                 }
             }
 
-            stash includes: "go/src/github.com/pingcap/tidb-test/compatible_test/**", name: "compatible_test"
+            stash includes: "go/src/github.com/PingCAP-QE/tidb-test/compatible_test/**", name: "compatible_test"
             deleteDir()
         }
     }
@@ -186,7 +186,7 @@ try {
                 deleteDir()
                 unstash 'compatible_test'
 
-                dir("go/src/github.com/pingcap/tidb-test/compatible_test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test/compatible_test") {
                     container("golang") {
                         def tidb_old_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_OLD_BRANCH}/sha1"
                         def tidb_old_sha1 = sh(returnStdout: true, script: "curl ${tidb_old_refs}").trim()

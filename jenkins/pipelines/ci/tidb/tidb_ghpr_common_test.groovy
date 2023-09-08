@@ -167,14 +167,14 @@ try {
                         }
                     }
 
-                    dir("go/src/github.com/pingcap/tidb-test") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
                         timeout(10) {
-                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                             sh """
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
                         """
                             def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                            def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                            def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                             sh """
                         unset GOPROXY && go env -w GOPROXY=${GOPROXY}  && go env
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
@@ -196,7 +196,7 @@ try {
                             sh """
                             echo "stash tidb-test"
                             cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
-                            curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
+                            curl -F builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
                         }
                     }
@@ -230,13 +230,13 @@ try {
                             retry(3){
                                 sh """
                                     echo "unstash tidb-test"
-                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
                                     tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                                 """
                             }
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             try {
                                 timeout(50) {
                                     sh """
@@ -306,12 +306,12 @@ try {
                         dir("go/src/github.com/pingcap") {
                             sh """
                             echo "unstash tidb-test"
-                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
                             tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                             """
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             try {
                                 timeout(10) {
                                     sh """
@@ -379,12 +379,12 @@ try {
                         dir("go/src/github.com/pingcap") {
                             sh """
                             echo "unstash tidb-test"
-                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
                             tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                             """
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             try {
                                 timeout(50) {
                                     sh """ 
@@ -472,12 +472,12 @@ try {
                         dir("go/src/github.com/pingcap") {
                             sh """
                             echo "unstash tidb-test"
-                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
                             tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                             """
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             try {
                                 timeout(10) {
                                     sh """
@@ -489,7 +489,7 @@ try {
                                 set -e
                                 unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
+                                GOPATH=${ws}/go/src/github.com/PingCAP-QE/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
                                 ./test.sh
                                 
                                 set +e
@@ -539,12 +539,12 @@ try {
                         dir("go/src/github.com/pingcap") {
                             sh """
                             echo "unstash tidb-test"
-                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
                             tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
                             """
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             try {
                                 timeout(10) {
                                     sh """

@@ -4,8 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/release-6.0/pod-ghpr_mysql_test.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/release-6.0/pod-ghpr_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -66,7 +66,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
+                        // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
                     }
                 }

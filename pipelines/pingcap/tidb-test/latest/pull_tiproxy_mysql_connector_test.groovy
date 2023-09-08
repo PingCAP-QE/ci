@@ -4,8 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/latest/pod-pull_tiproxy_mysql_connector_test.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/latest/pod-pull_tiproxy_mysql_connector_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {

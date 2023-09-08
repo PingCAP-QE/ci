@@ -180,14 +180,14 @@ try {
                             }
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test") {
                             timeout(20) {
-                                def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                                def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                 sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
                                 """
                                 def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                                def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                                def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                 sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
@@ -207,11 +207,11 @@ try {
                         }
                     }
 
-                    stash includes: "go/src/github.com/pingcap/tidb-test/_helper.sh", name: "helper"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/tidb_test/**", name: "tidb_test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/randgen-test/**", name: "randgen-test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/go-sql-test/**", name: "go-sql-test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/go.*,go/src/github.com/pingcap/tidb-test/util/**,go/src/github.com/pingcap/tidb-test/bin/**", name: "tidb-test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/_helper.sh", name: "helper"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/tidb_test/**", name: "tidb_test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/randgen-test/**", name: "randgen-test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/go-sql-test/**", name: "go-sql-test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/go.*,go/src/github.com/PingCAP-QE/tidb-test/util/**,go/src/github.com/PingCAP-QE/tidb-test/bin/**", name: "tidb-test"
                     deleteDir()
                 }
             }
@@ -235,15 +235,15 @@ try {
                             }
                         }
 
-                        dir("go/src/github.com/pingcap/tidb-test") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test") {
                             container("golang") {
                                 timeout(20) {
-                                    def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                                    def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                                     sh """
                                     while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
                                     """
                                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                                    def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                                    def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                     sh """
                                     echo ${tidb_test_url} 
                                     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
@@ -259,10 +259,10 @@ try {
                         }
                     }
 
-                    stash includes: "go/src/github.com/pingcap/tidb-test/_vendor/**", name: "tidb-test-vendor"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/mysql_test/**", name: "mysql_test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/analyze_test/**", name: "analyze_test"
-                    stash includes: "go/src/github.com/pingcap/tidb-test/gorm_test/**", name: "gorm_test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/_vendor/**", name: "tidb-test-vendor"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/mysql_test/**", name: "mysql_test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/analyze_test/**", name: "analyze_test"
+                    stash includes: "go/src/github.com/PingCAP-QE/tidb-test/gorm_test/**", name: "gorm_test"
                     deleteDir()
                 }
             }
@@ -283,7 +283,7 @@ try {
                     unstash "helper"
                     unstash "${test_dir}"
 
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         container("golang") {
                             timeout(20) {
                                 retry(3){
@@ -375,7 +375,7 @@ try {
                     unstash "helper"
                     unstash "${test_dir}"
 
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         container("golang") {
 
                             timeout(20) {

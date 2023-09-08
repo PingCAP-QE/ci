@@ -68,10 +68,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', ghprbTargetBranch, ghprbCommentBody, GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', ghprbTargetBranch, ghprbCommentBody, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -82,7 +82,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${ghprbActualCommit}") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
+                        // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
                     }
                 }

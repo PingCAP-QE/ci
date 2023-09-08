@@ -97,22 +97,22 @@ try {
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
                         tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         # use tidb-server with ADMIN_CHECK as default
-                        mkdir -p ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/
-                        mv bin/tidb-server-check ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/tidb-server
+                        mkdir -p ${ws}/go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test/
+                        mv bin/tidb-server-check ${ws}/go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test/tidb-server
                         """
                     }
                 }
             }
 
-            dir("go/src/github.com/pingcap/tidb-test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                 container("golang") {
                     timeout(5) {
-                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
                         """
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                         sh """
                         unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
@@ -124,7 +124,7 @@ try {
                 }
             }
 
-            stash includes: "go/src/github.com/pingcap/tidb-test/sqllogic_test/**", name: "tidb-test"
+            stash includes: "go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test/**", name: "tidb-test"
             deleteDir()
         }
     }
@@ -135,7 +135,7 @@ try {
                 deleteDir()
                 unstash 'tidb-test'
 
-                dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test") {
                     container("golang") {
                         timeout(10) {
                             try {
@@ -176,7 +176,7 @@ try {
                 deleteDir()
                 unstash 'tidb-test'
 
-                dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test") {
                     container("golang") {
                         timeout(10) {
                             try{

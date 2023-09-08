@@ -4,8 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-test/release-6.0/pod-ghpr_integration_mysql_test.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/release-6.0/pod-ghpr_integration_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -67,8 +67,8 @@ pipeline {
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
                         """
@@ -120,7 +120,7 @@ pipeline {
                                         #!/usr/bin/env bash
                                         ls -alh 
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                        bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                         export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"

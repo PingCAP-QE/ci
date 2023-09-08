@@ -4,7 +4,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-merged_integration_prisma_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -51,10 +51,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutV2('git@github.com:pingcap/tidb-test.git', 'tidb-test', "master", "", GIT_CREDENTIALS_ID)
+                                component.checkoutV2('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "master", "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }

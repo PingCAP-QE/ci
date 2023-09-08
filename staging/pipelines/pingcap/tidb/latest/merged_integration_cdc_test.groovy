@@ -105,7 +105,7 @@ pipeline {
                         dir('tidb') {
                             sh "git branch && git status"
                             cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${GIT_MERGE_COMMIT}") {
-                                // FIXME: https://github.com/pingcap/tidb-test/issues/1987
+                                // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
                                 sh label: 'tidb-server', script: """
                                 ls bin/tidb-server || make
                                 ./bin/tidb-server -V
