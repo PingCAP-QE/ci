@@ -14,17 +14,8 @@ spec:
           memory: 32Gi
           cpu: "8"
       volumeMounts:
-        - mountPath: /home/jenkins/.tidb/tmp
-          name: bazel-out-merged
-        - name: bazel-out-lower
-          subPath: tidb/go1.19.2
-          mountPath: /bazel-out-lower
-        - name: bazel-out-overlay
-          mountPath: /bazel-out-overlay
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -51,19 +42,9 @@ spec:
           memory: 256Mi
           cpu: 100m
   volumes:
-    - name: gopathcache
+    - name: bazel-repository-cache
       persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
-    - name: bazel-out-lower
-      persistentVolumeClaim:
-        claimName: bazel-out-data
-    - name: bazel-out-overlay
-      emptyDir: {}
-    - name: bazel-out-merged
-      emptyDir: {}
+        claimName: bazel-repository-cache
     - name: bazel-rc
       secret:
         secretName: bazel
@@ -95,3 +76,7 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
