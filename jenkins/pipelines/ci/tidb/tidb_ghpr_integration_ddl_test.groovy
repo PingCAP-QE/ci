@@ -199,17 +199,17 @@ try {
                 deleteDir()
 
                 container("golang") {
-                    dir("go/src/github.com/pingcap/tidb-test") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
                         timeout(10) {
-                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                             sh """
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 10; done
                             """
                             def dir = pwd()
                             sh """
                             unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                            tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
-                            tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                            tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
+                            tidb_test_url="${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                             tidb_tar_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar.gz"
 
@@ -253,7 +253,7 @@ try {
                         }
                     }
 
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         try {
                             timeout(40) {
                                 sh """
@@ -279,7 +279,7 @@ try {
                                 fi
                                 export log_level=debug
                                 TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
-                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
+                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/PingCAP-QE/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
                                 """
                             }
                         } catch (err) {

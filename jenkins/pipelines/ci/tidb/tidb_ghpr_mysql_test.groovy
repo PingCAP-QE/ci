@@ -161,7 +161,7 @@ try {
                     }
                 }
 
-                dir("go/src/github.com/pingcap/tidb-test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test") {
                     timeout(10) {
                         def TIDB_TEST_BRANCH = ghprbTargetBranch
                         if (ghprbCommentBody =~ commentBodyReg) {
@@ -195,7 +195,7 @@ try {
                             refspecTidbTest = "+refs/pull/${pr}/head:refs/remotes/origin/PR-${pr}"
                             checkout([$class: 'GitSCM', branches: [[name: "FETCH_HEAD"]],
                                 extensions: [[$class: 'LocalBranch']],
-                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecTidbTest, url: 'git@github.com:pingcap/tidb-test.git']]])
+                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecTidbTest, url: 'git@github.com:PingCAP-QE/tidb-test.git']]])
                         } else {
                             checkout(changelog: false, poll: false, scm: [
                                 $class: "GitSCM",
@@ -203,7 +203,7 @@ try {
                                 userRemoteConfigs: [
                                         [
                                                 credentialsId: 'github-sre-bot-ssh',
-                                                url: 'git@github.com:pingcap/tidb-test.git',
+                                                url: 'git@github.com:PingCAP-QE/tidb-test.git',
                                                 refspec: refspecTidbTest,
                                         ]
                                 ],
@@ -223,7 +223,7 @@ try {
                         sh """
                             echo "stash tidb-test"
                             cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
-                            curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
+                            curl -F builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
@@ -254,11 +254,11 @@ try {
                     dir("go/src/github.com/pingcap") {
                         sh """
                             echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar xz
+                            curl ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar xz
                             pwd && ls -alh
                         """
                     }
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         try {
                             timeout(25) {
                             sh """
