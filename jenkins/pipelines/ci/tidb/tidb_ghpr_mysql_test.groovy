@@ -251,7 +251,7 @@ try {
                             }
                         }
                     }
-                    dir("go/src/github.com/pingcap") {
+                    dir("go/src/github.com/PingCAP-QE") {
                         sh """
                             echo "unstash tidb"
                             curl ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar xz
