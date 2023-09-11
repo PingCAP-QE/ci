@@ -6,6 +6,10 @@ spec:
   containers:
     - name: runner
       image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "cat"
       tty: true
       resources:
         requests:
