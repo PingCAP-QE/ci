@@ -316,6 +316,7 @@ pipeline {
                         python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
                         """
                     }
+                }
                 stage("Upload Build Artifacts") {
                     def install_dir = "${WORKSPACE}/install/tiflash"
                     def basename = sh(returnStdout: true, script: "basename '${install_dir}'").trim()
@@ -325,6 +326,24 @@ pipeline {
                         """
                         archiveArtifacts artifacts: "${basename}.tar.gz"
                     }
+                }
+            }
+        }
+
+        stage("Unit Test") {
+            stages("Prepare Cache") {
+                parallel {
+                    stage("CCache") {
+
+                    }
+                    stage("Proxy Cache") {
+
+                    }
+                }
+            }
+            stages("Unit Test") {
+                stage("Unit Test") {
+
                 }
             }
         }
