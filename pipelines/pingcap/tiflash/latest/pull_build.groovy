@@ -327,78 +327,12 @@ pipeline {
                         archiveArtifacts artifacts: "${basename}.tar.gz"
                     }
                 }
-                // only upload build data when ARCHIVE_BUILD_DATA is true
-                // currently ARCHIVE_BUILD_DATA set to true for ut triggered build-common
-                // stage("Upload build data"){
-                //     dir("${WORKSPACE}/build") {
-                //         sh """
-                //         tar -cavf build-data.tar.xz $(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna"
-                //         """
-                //         archiveArtifacts artifacts: "build-data.tar.gz" // 是否要允许为空，需要验证下上一步是否可能没有 find 到文件
-                //     }
-                //     dir("${WORKSPACE}/tiflash") {
-                //         sh """
-                //         tar -cavf source-patch.tar.xz $(find . -name "*.pb.h" -o -name "*.pb.cc")
-                //         """
-                //         archiveArtifacts artifacts: "source-patch.tar.xz" // 是否要允许为空，需要验证下上一步是否可能没有 find 到文件
-                //     }
-                // }
             }
         }
 
-        stage("Unit Test") {
-            stages("Get Artifacts") {
-                stage("get artifacts from build") {
-                    def cwd = pwd() // 当前路径应该就是 WORKSPACE， TODO: 验证一下， 替换这个路径 
-                    def install_dir = "${WORKSPACE}/install/tiflash"
-                    def basename = sh(returnStdout: true, script: "basename '${install_dir}'").trim()
-                    def repo_path = "${WORKSPACE}/tiflash"
-                    def build_path = "${WORKSPACE}/build"
-                    sh """
-                    ln -sf '${install_dir}' /tiflash
-                    """
-                    dir("/tmp/tiflash-data") {
-                        sh """
-                        ls -lha ${repo_path}
-                        ln -sf ${repo_path}/tests /tests
-                        """
-                    }
-                    // // source-patch.tar.xz 的作用，在哪里产生的（build 哪里产生的）
-                    // dir(repo_path) {
-                    //     sh """
-                    //     cp '${cwd}/source-patch.tar.xz' ./source-patch.tar.xz
-                    //     tar -xaf ./source-patch.tar.xz
-                    //     """
-                    // }
-
-                    // // build-data.tar.xz 的作用，在哪里产生的(build 哪里产生的)
-                    // dir(build_path) {
-                    //     sh """
-                    //     cp '${cwd}/build-data.tar.xz' ./build-data.tar.xz
-                    //     tar -xaf ./build-data.tar.xz
-                    //     """
-                    // }
-                }
-            }
-            stages("Unit Test") {
-                stage("Unit Test") {
-                    timeout(time: 60, unit: "MINUTES") {
-                        dir("${WORKSPACE}/tiflash") {
-                            sh """
-                            rm -rf /tmp-memfs/tiflash-tests
-                            mkdir -p /tmp-memfs/tiflash-tests
-                            export TIFLASH_TEMP_DIR=/tmp-memfs/tiflash-tests
-
-                            mkdir -p /root/.cache
-                            source /tests/docker/util.sh
-                            export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
-                            show_env
-                            ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${parallelism} /tests/run-gtest.sh
-                            """
-                        }
-                    }
-                }
-            }
+        stage("Integration test") {
+            
         }
+
     }
 }
