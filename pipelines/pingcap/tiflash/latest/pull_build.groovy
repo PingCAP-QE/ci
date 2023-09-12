@@ -10,6 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
+String proxy_commit_hash = null
 
 pipeline {
     agent {
@@ -48,7 +49,10 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, withSubmodule=true)
+                            }
+                            dir("contrib/tiflash-proxy") {
+                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             }
                         }
                     }
@@ -132,9 +136,12 @@ pipeline {
             stages("Prepare Cache") {
                 parallel {
                     stage("CCache") {
-                        def ccache_tag = "tiflash-amd64-linux-llvm-master-dbg-failpoint"
+                        // TODO: need adjust "master" against different target branch
+                        def ccache_tag = "tiflash-amd64-linux-llvm-debug-master-failpoint"
                         def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
                         dir("tiflash") {
+                            // TODO: need to refactor this part, use shell script to do the job
+                            // pass the ccache_source & cache_source to shell script by env
                             if (fileExists(ccache_source)) {
                                 echo "ccache found"
                                 sh """
@@ -153,25 +160,22 @@ pipeline {
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=${!params.UPDATE_CCACHE}
+                            ccache -o read_only=false
                             ccache -z
                             """
                         }
                     }
                     stage("Proxy Cache") {
-                        def proxy_suffix = ""
-                        def proxy_commit_hash = null
-                        dir("tiflash/contrib/tiflash-proxy") {
-                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                        }
+                        def proxy_suffix = "amd64-linux-llvm"
                         def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                        def suffix = 'so'
+                        // TODO: need to refactor this part, use shell script to do the job
+                        // cache proxy lib by pvc or nfs or fileserver ?
                         if (fileExists(cache_source)) {
                             echo "proxy cache found"
                             dir("tiflash") {
                                 sh """
-                                cp ${cache_source} libtiflash_proxy.${suffix}
-                                chmod +x libtiflash_proxy.${suffix}
+                                cp ${cache_source} libtiflash_proxy.so
+                                chmod +x libtiflash_proxy.so
                                 """
                             }
                         } else {
@@ -201,26 +205,36 @@ pipeline {
                 }
             }
             stages("Build Dependency and Utils") {
-                stage("Cluster Manage") {
-                    dir("tiflash"){
-                        sh label: "build cluster manage", script: """
-                            cd tiflash/contrib/tiflash-cluster-manage
-                            make
-                        """
-                    }
-                    def install_dir = "${WORKSPACE}/install/tiflash"
-                    sh label: "mv cluster manage", script: """
-                        mkdir -p ${install_dir} && cp -rf tiflash/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager
-                    """
+                stage("Cluster Manage") { 
+                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
+                    echo "cluster_manager is deprecated"
+                    // dir("tiflash/cluster_manage"){
+                    //     sh label: "build cluster manage", script: """
+                    //         sh release.sh
+                    //     """
+                    // }
+                    // def install_dir = "${WORKSPACE}/install/tiflash"
+                    // sh label: "mv cluster manage", script: """
+                    //     mkdir -p ${install_dir}
+                    //     cp -rf tiflash/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager
+                    // """
                 }
                 stage("TiFlash Proxy") {
-                    dir("tiflash/contrib/tiflash-proxy") {
-                        sh label: "build tiflash proxy", script: """
-                            env ENGINE_LABEL_VALUE=tiflash make release
-                            mkdir -p '${WORKSPACE}/tiflash/libs/libtiflash-proxy'
-                            cp target/release/libtiflash_proxy.so ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                        """
+                    if (proxy_cache_ready) {
+                        echo "skip becuase of cache"
+                    } else {
+                        echo "proxy cache not ready"
                     }
+                    // NOTE: we don't need to build tiflash proxy in this pipeline on master branch
+                    // skip because proxy build is integrated if toolchain is llvm
+
+                    // dir("tiflash/contrib/tiflash-proxy") {
+                    //     sh label: "build tiflash proxy", script: """
+                    //         env ENGINE_LABEL_VALUE=tiflash make release
+                    //         mkdir -p '${WORKSPACE}/tiflash/libs/libtiflash-proxy'
+                    //         cp target/release/libtiflash_proxy.so ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                    //     """
+                    // }
                 }
             }
             stage("Configure Project") {
@@ -231,39 +245,49 @@ pipeline {
                 def compatible_flag = ""
                 def openssl_root_dir = ""
                 def prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
-                sh """
-                mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
-                """
-                sh """
+                if (proxy_cache_ready) {
+                    // only for toolchain is llvm
+                    prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
+                    sh """
+                    mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
+                    cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
+                    """
+                }
+                // create build dir and install dir
+                sh label: "create build & install dir", script: """
                 mkdir -p ${WORKSPACE}/build
                 mkdir -p ${WORKSPACE}/install/tiflash
                 """
-                dir(build_dir) {
-                    sh """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
-                            -G '${generator}' \\
-                            -DENABLE_FAILPOINTS=true \\
-                            -DCMAKE_BUILD_TYPE=debug \\
-                            -DCMAKE_PREFIX_PATH='/usr/local' \\
-                            -DCMAKE_INSTALL_PREFIX=${WORKSPACE}/install/tiflash \\
-                            -DENABLE_TESTS=false \\
-                            -DUSE_CCACHE=true \\
-                            -DDEBUG_WITHOUT_DEBUG_INFO=true \\
-                            -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
-                            -DRUN_HAVE_STD_REGEX=0 \\
+                dir("${WORKSPACE}/build") {
+                    sh label: "configure project", script: """
+                    cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        -G '${generator}' \\
+                        -DENABLE_FAILPOINTS=true \\
+                        -DCMAKE_BUILD_TYPE=debug \\
+                        -DCMAKE_PREFIX_PATH='/usr/local' \\
+                        -DCMAKE_INSTALL_PREFIX=${WORKSPACE}/install/tiflash \\
+                        -DENABLE_TESTS=false \\
+                        -DUSE_CCACHE=true \\
+                        -DDEBUG_WITHOUT_DEBUG_INFO=true \\
+                        -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
+                        -DRUN_HAVE_STD_REGEX=0 \\
                     """
                 }
             }
             stage("Format Check") {
-                def target_branch = "master"
+                def target_branch = "master"  // TODO: need to adjust target branch
                 def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                 def repo_path = "${WORKSPACE}/tiflash"
-                dir(repo_path) {
+                if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
+                    echo "skipped because this branch does not support format"
+                    return
+                }
+                // TODO: need to check format-diff.py for more details
+                dir("${WORKSPACE}/tiflash") {
                     sh """
                     python3 \\
-                        ${repo_path}/format-diff.py ${diff_flag} \\
-                        --repo_path '${repo_path}' \\
+                        ${WORKSPACE}/tiflash/format-diff.py ${diff_flag} \\
+                        --repo_path '${WORKSPACE}/tiflash' \\
                         --check_formatted \\
                         --diff_from \$(git merge-base origin/${target_branch} HEAD)
                     """
@@ -273,8 +297,26 @@ pipeline {
             stages("Build TiFlash") {
                 def toolchain = getToolchain(repo_path)
                 def targets = "tiflash"
+                // need to refactor this part, use shell script to handle this
+                dir(build_dir) {
+                    if (targets.contains('page_ctl') && sh(returnStatus: true, script: 'cmake --build . --target help | grep page_ctl') != 0) {
+                        echo "remove page_ctl from target list"
+                        targets = targets.replaceAll('page_ctl', '')
+                    }
+                    if (targets.contains('page_stress_testing') && sh(returnStatus: true, script: 'cmake --build . --target help | grep page_stress_testing') != 0) {
+                        echo "remove page_stress_testing from target list"
+                        targets = targets.replaceAll('page_stress_testing', '')
+                    }
+                    if (targets.contains('gtests_libdaemon') && sh(returnStatus: true, script: 'cmake --build . --target help | grep gtests_libdaemon') != 0) {
+                        echo "remove gtests_libdaemon from target list"
+                        targets = targets.replaceAll('gtests_libdaemon', '')
+                    }
+                }
                 sh """
                 cmake --build '${WORKSPACE}/build' --target ${targets} --parallel 12
+                """
+                sh """
+                cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
                 """
             }
             stages("License check") {
@@ -296,16 +338,16 @@ pipeline {
                 stage("Static Analysis"){
                     def generator = "Ninja"
                     def include_flag = ""
+                    def repo_path = "${WORKSPACE}/tiflash"
                     def fix_compile_commands = "${repo_path}/release-centos7-llvm/scripts/fix_compile_commands.py"
                     def run_clang_tidy = "${repo_path}/release-centos7-llvm/scripts/run-clang-tidy.py"
                     def build_dir = "${WORKSPACE}/build"
-                    def repo_path = "${WORKSPACE}/tiflash"
                     dir(build_dir) {
                         sh """
                         NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
                         cmake "${repo_path}" \\
-                            -DENABLE_TESTS=${params.BUILD_TESTS} \\
-                            -DCMAKE_BUILD_TYPE=${params.CMAKE_BUILD_TYPE} \\
+                            -DENABLE_TESTS=false \\
+                            -DCMAKE_BUILD_TYPE=Debug \\
                             -DUSE_CCACHE=OFF \\
                             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \\
                             -DRUN_HAVE_STD_REGEX=0 \\
@@ -331,8 +373,7 @@ pipeline {
         }
 
         stage("Integration test") {
-            
+            echo "start tests"
         }
-
     }
 }
