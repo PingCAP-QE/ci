@@ -99,7 +99,8 @@ pipeline {
                     agent {
                         kubernetes {
                             yaml podYaml
-                            cloud "kubernetes-arm64"
+                            cloud "kubernetes"
+                            nodeSelector "kubernetes.io/arch=arm64"
                             defaultContainer 'docker'
                         }
                     }
