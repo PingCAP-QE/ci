@@ -46,6 +46,9 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
+                    // TODO: how to cache git repo 
+                    // contrib contains submodule, submodule cache about 2.5G
+                    // git repo not include submodule cache about 1.5G
                     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -61,6 +64,8 @@ pipeline {
         }
         stage("Build") {
             stages("Prepare tools") {
+                // TODO: need to simplify this part
+                // all tools should be pre-install in docker image 
                 parallel {
                     stage("CCache") {
                         sh label: "install ccache", script: """
@@ -244,7 +249,7 @@ pipeline {
                 def diagnostic_flag = ""
                 def compatible_flag = ""
                 def openssl_root_dir = ""
-                def prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
+                def prebuilt_dir_flag = ""
                 if (proxy_cache_ready) {
                     // only for toolchain is llvm
                     prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
@@ -295,25 +300,8 @@ pipeline {
 
             }
             stages("Build TiFlash") {
-                def toolchain = getToolchain(repo_path)
-                def targets = "tiflash"
-                // need to refactor this part, use shell script to handle this
-                dir(build_dir) {
-                    if (targets.contains('page_ctl') && sh(returnStatus: true, script: 'cmake --build . --target help | grep page_ctl') != 0) {
-                        echo "remove page_ctl from target list"
-                        targets = targets.replaceAll('page_ctl', '')
-                    }
-                    if (targets.contains('page_stress_testing') && sh(returnStatus: true, script: 'cmake --build . --target help | grep page_stress_testing') != 0) {
-                        echo "remove page_stress_testing from target list"
-                        targets = targets.replaceAll('page_stress_testing', '')
-                    }
-                    if (targets.contains('gtests_libdaemon') && sh(returnStatus: true, script: 'cmake --build . --target help | grep gtests_libdaemon') != 0) {
-                        echo "remove gtests_libdaemon from target list"
-                        targets = targets.replaceAll('gtests_libdaemon', '')
-                    }
-                }
                 sh """
-                cmake --build '${WORKSPACE}/build' --target ${targets} --parallel 12
+                cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
                 """
                 sh """
                 cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
@@ -335,43 +323,40 @@ pipeline {
                 }
             }
             stages("Post Build") {
-                stage("Static Analysis"){
-                    def generator = "Ninja"
-                    def include_flag = ""
-                    def repo_path = "${WORKSPACE}/tiflash"
-                    def fix_compile_commands = "${repo_path}/release-centos7-llvm/scripts/fix_compile_commands.py"
-                    def run_clang_tidy = "${repo_path}/release-centos7-llvm/scripts/run-clang-tidy.py"
-                    def build_dir = "${WORKSPACE}/build"
-                    dir(build_dir) {
-                        sh """
-                        NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
-                        cmake "${repo_path}" \\
-                            -DENABLE_TESTS=false \\
-                            -DCMAKE_BUILD_TYPE=Debug \\
-                            -DUSE_CCACHE=OFF \\
-                            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \\
-                            -DRUN_HAVE_STD_REGEX=0 \\
-                            -G '${generator}'
-                        python3 ${fix_compile_commands} ${include_flag} \\
-                            --file_path=compile_commands.json \\
-                            --load_diff_files_from "/tmp/tiflash-diff-files.json"
-                        python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
-                        """
+                parallel {
+                    stage("Static Analysis"){
+                        def generator = "Ninja"
+                        def include_flag = ""
+                        def fix_compile_commands = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/fix_compile_commands.py"
+                        def run_clang_tidy = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/run-clang-tidy.py"
+                        dir("${WORKSPACE}/build") {
+                            sh """
+                            NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
+                            cmake "${WORKSPACE}/tiflash" \\
+                                -DENABLE_TESTS=false \\
+                                -DCMAKE_BUILD_TYPE=Debug \\
+                                -DUSE_CCACHE=OFF \\
+                                -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \\
+                                -DRUN_HAVE_STD_REGEX=0 \\
+                                -G '${generator}'
+                            python3 ${fix_compile_commands} ${include_flag} \\
+                                --file_path=compile_commands.json \\
+                                --load_diff_files_from "/tmp/tiflash-diff-files.json"
+                            python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
+                            """
+                        }
                     }
-                }
-                stage("Upload Build Artifacts") {
-                    def install_dir = "${WORKSPACE}/install/tiflash"
-                    def basename = sh(returnStdout: true, script: "basename '${install_dir}'").trim()
-                    dir("${install_dir}/../") {
-                        sh """
-                        tar -czf '${basename}.tar.gz' '${basename}'
-                        """
-                        archiveArtifacts artifacts: "${basename}.tar.gz"
+                    stage("Upload Build Artifacts") {
+                        dir("${WORKSPACE}/install") {
+                            sh """
+                            tar -czf 'tiflash.tar.gz' 'tiflash'
+                            """
+                            archiveArtifacts artifacts: "tiflash.tar.gz"
+                        }
                     }
                 }
             }
         }
-
         stage("Integration test") {
             echo "start tests"
         }
