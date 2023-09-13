@@ -1,4 +1,4 @@
-job('tiproxy-docker') {
+pipelineJob('tiproxy-docker') {
     definition {
         cpsScm {
             lightweight(true)

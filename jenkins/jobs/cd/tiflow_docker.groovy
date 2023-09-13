@@ -1,4 +1,4 @@
-job('tiflow-docker') {
+pipelineJob('tiflow-docker') {
     definition {
         cpsScm {
             lightweight(true)
