@@ -14,8 +14,12 @@ pipelineJob('tiflow-docker') {
             }
         }
     }
-    triggers {
-        cron('@daily')
+    properties {
+        pipelineTriggers {
+            triggers {
+                cron{spec('@daily')}
+            }
+        }
     }
     parameters {
         stringParam {
