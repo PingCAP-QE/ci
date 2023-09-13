@@ -9,6 +9,13 @@ pipelineJob('tiflow-docker') {
                         url('https://github.com/PingCAP-QE/ci.git')
                     }
                     branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        }
+                    }
                 }
             }
         }
