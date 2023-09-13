@@ -1,0 +1,3 @@
+- upload-pipeline-run-data-to-db: unknown file agent_tibuild_pipeline_run.py
+- send_notify: unknown file agent-jenkinsci.py
+- tiup_mirror_online_ga: remove password params
