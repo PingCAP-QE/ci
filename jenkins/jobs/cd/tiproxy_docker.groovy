@@ -14,9 +14,6 @@ job('tiproxy-docker') {
             }
         }
     }
-    triggers {
-        cron('@daily')
-    }
     parameters {
         stringParam {
             name('Revision')
