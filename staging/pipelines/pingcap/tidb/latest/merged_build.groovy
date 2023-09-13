@@ -72,10 +72,10 @@ pipeline {
                 stage("enterprise-plugin") {
                     steps {
                         dir("enterprise-plugin") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${GIT_MERGE_COMMIT}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
-                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', GIT_BASE_BRANCH, "", GIT_CREDENTIALS_ID)
+                                        component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', GIT_BASE_BRANCH, "", GIT_CREDENTIALS_ID)
                                     }
                                 }
                             }

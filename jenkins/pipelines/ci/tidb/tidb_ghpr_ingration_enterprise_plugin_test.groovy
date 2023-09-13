@@ -52,18 +52,18 @@ try {
                         """
                     }
                 }
-                dir("go/src/github.com/pingcap/enterprise-plugin") {
+                dir("go/src/github.com/pingcap-inc/enterprise-plugin") {
                     timeout(15) {
                         checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: ENTERPRISE_PLUGIN_BRANCH]], 
                             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], 
                                 [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], 
                             submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: ENTERPRISE_PLUGIN_REF_SPEC, 
-                            url: 'git@github.com:pingcap/enterprise-plugin.git']]
+                            url: 'git@github.com:pingcap-inc/enterprise-plugin.git']]
                         ]
                         // ENTERPRISE_PLUGIN_REF_SPEC = "+refs/pull/80/head:refs/remotes/origin/PR-80"
                         // checkout([$class: 'GitSCM', branches: [[name: "FETCH_HEAD"]],
                         //     extensions: [[$class: 'LocalBranch']],
-                        //     userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: ENTERPRISE_PLUGIN_REF_SPEC, url: 'git@github.com:pingcap/enterprise-plugin.git']]])
+                        //     userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: ENTERPRISE_PLUGIN_REF_SPEC, url: 'git@github.com:pingcap-inc/enterprise-plugin.git']]])
                         plugin_githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                         println "plugin_githash: ${plugin_githash}"
                     }
@@ -72,14 +72,14 @@ try {
         }
         stage("ENTERPRISE_PLUGIN TEST") {
             container("golang") {
-                dir("go/src/github.com/pingcap/enterprise-plugin") {
+                dir("go/src/github.com/pingcap-inc/enterprise-plugin") {
                     timeout(15) {
                         sh """
                         cd test/
                         export PD_BRANCH=${ghprbTargetBranch}
                         export TIKV_BRANCH=${ghprbTargetBranch}
                         export TIDB_REPO_PATH=${ws}/go/src/github.com/pingcap/tidb
-                        export PLUGIN_REPO_PATH=${ws}/go/src/github.com/pingcap/enterprise-plugin
+                        export PLUGIN_REPO_PATH=${ws}/go/src/github.com/pingcap-inc/enterprise-plugin
                         ./test.sh
                         """
                     }
