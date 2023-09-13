@@ -5,18 +5,33 @@ tiup mirror reset
 tiup install tikv:${params.VERSION} tidb:${params.VERSION} pd:${params.VERSION} tiflash:${params.VERSION} cdc:${params.VERSION}
 """
 
+final  tiupYaml='''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: tiup
+    image: hub.pingcap.net/jenkins/tiup
+    args: ["sleep", "infinity"]
+'''
+
 pipeline {
     parameters {
         string defaultValue: 'nightly', description: '', name: 'VERSION', trim: true
     }
     agent none
+    options {
+        timeout(time: 40, unit: 'MINUTES')
+    }
     stages {
         stage("MultiPlatform") {
             parallel {
                 stage('linux/amd64') {
                     agent {
-                        node {
-                            label 'delivery'
+                        kubernetes {
+                            yaml tiupYaml
+                            defaultContainer 'tiup'
+                            nodeSelector "kubernetes.io/arch=amd64"
                         }
                     }
                     steps {
@@ -25,8 +40,10 @@ pipeline {
                 }
                 stage('linux/arm64') {
                     agent {
-                        node {
-                            label 'linux && arm64'
+                        kubernetes {
+                            yaml tiupYaml
+                            defaultContainer 'tiup'
+                            nodeSelector "kubernetes.io/arch=arm64"
                         }
                     }
                     steps {
