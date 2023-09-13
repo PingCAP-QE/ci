@@ -13,6 +13,8 @@ presubmits:
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^master$
+    # TODO: combine other CDC integration tests to a single one, 
+    # Currently we keep the Jenkins job name.
     - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
