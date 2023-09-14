@@ -14,9 +14,7 @@ node("pipeline_data_collection_pod") {
                 "pipeline_run_start_time":params.PIPELINE_RUN_START_TIME,
                 "pipeline_run_end_time":params.PIPELINE_RUN_END_TIME,
         ]
-
         collect_pipeline_info(finally_result)
-
     }
 }
 
