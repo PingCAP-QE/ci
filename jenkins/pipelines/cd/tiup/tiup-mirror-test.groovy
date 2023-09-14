@@ -66,6 +66,7 @@ def test = { os ->
         tiup_update(it, "")
     }
 }
+
 try {
     stage("test on linux/amd64") {
         node("build_go1130") {
