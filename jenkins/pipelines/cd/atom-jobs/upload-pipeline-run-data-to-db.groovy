@@ -1,70 +1,5 @@
 package cd
 
-properties([
-        parameters([
-                string(
-                        defaultValue: '',
-                        name: 'PIPELINE_NAME',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PIPELINE_TYPE',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'STATUS',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'JENKINS_BUILD_ID',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'JENKINS_RUN_URL',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PIPELINE_REVOKER',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'ERROR_CODE',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'ERROR_SUMMARY',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PIPELINE_RUN_START_TIME',
-                        description: '',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PIPELINE_RUN_END_TIME',
-                        description: '',
-                        trim: true
-                ),
-        ])
-])
-
 node("pipeline_data_collection_pod") {
     container("pymysql") {
         def finally_result = [
@@ -84,7 +19,6 @@ node("pipeline_data_collection_pod") {
 
     }
 }
-
 
 def collect_pipeline_info(finally_result) {
     writeJSON file: 'finally_result.json', json: finally_result, pretty: 4
