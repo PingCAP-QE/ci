@@ -33,7 +33,7 @@ pipeline {
                 stage('linux/arm64') {
                     agent {
                         kubernetes {
-                            yaml tiupPodPath
+                            yamlFile tiupPodPath
                             defaultContainer 'tiup'
                             nodeSelector "kubernetes.io/arch=arm64"
                         }
