@@ -5,15 +5,7 @@ tiup mirror reset
 tiup install tikv:${params.VERSION} tidb:${params.VERSION} pd:${params.VERSION} tiflash:${params.VERSION} cdc:${params.VERSION}
 """
 
-final  tiupYaml='''
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: tiup
-    image: hub.pingcap.net/jenkins/tiup
-    args: ["sleep", "infinity"]
-'''
+final tiupPodPath = "jenkins/pipelines/cd/tiup/tiup-pod.yaml"
 
 pipeline {
     parameters {
@@ -29,7 +21,7 @@ pipeline {
                 stage('linux/amd64') {
                     agent {
                         kubernetes {
-                            yaml tiupYaml
+                            yamlFile tiupPodPath
                             defaultContainer 'tiup'
                             nodeSelector "kubernetes.io/arch=amd64"
                         }
@@ -41,7 +33,7 @@ pipeline {
                 stage('linux/arm64') {
                     agent {
                         kubernetes {
-                            yaml tiupYaml
+                            yaml tiupPodPath
                             defaultContainer 'tiup'
                             nodeSelector "kubernetes.io/arch=arm64"
                         }
