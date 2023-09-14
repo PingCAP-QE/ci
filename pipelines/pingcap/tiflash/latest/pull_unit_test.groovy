@@ -1,29 +1,136 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-@Library('tipipeline') _
+// @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
-final REFS = readJSON(text: params.JOB_SPEC).refs
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
+// final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
+String proxy_commit_hash = null
+
+
+podYaml = """
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "cat"
+      tty: true
+      resources:
+        requests:
+          memory: 32Gi
+          cpu: "12"
+        limits:
+          memory: 32Gi
+          cpu: "12"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
+  volumes:
+    - name: "volume-0"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/rust"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-2"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/dependency"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-1"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/ccache"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-4"
+      nfs:
+        path: "/data/nvme1n1/nfs/git"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-5"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-6"
+      emptyDir: {}
+    - name: "volume-7"
+      emptyDir:
+        medium: Memory
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
+"""
+
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
+            // yamlFile POD_TEMPLATE_FILE
+            yaml podYaml
+            defaultContainer 'runner'
         }
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 50, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -42,23 +149,48 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
+            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    // TODO: how to cache git repo 
+                    // contrib contains submodule, submodule cache about 2.5G
+                    // git repo not include submodule cache about 1.5G
+                    // cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+
+                    // }
                         retry(2) {
+                            // script {
+                            //     prow.checkoutRefs(REFS, withSubmodule=true)
+                            // }
                             script {
-                                prow.checkoutRefs(REFS)
-                            }
+                                sh """
+                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz ./
+                                tar -xzf /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz --strip-components=1
+                                rm -f src-tics.tar.gz
+                                git reset --hard
+                                git clean -ffdx
+                                # git clone https://github.com/pingcap/tiflash.git .
+                                git status
+                                git pull origin master
+                                git pull
+                                git submodule update --init --recursive
+                                git status
+                                """
+                                dir("contrib/tiflash-proxy") {
+                                    proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                                    println "proxy_commit_hash: ${proxy_commit_hash}"
+                                }
+                            } 
                         }
-                    }
                 }
             }
         }
-        stage("Build") {
-            stages("Prepare tools") {
+        stage("Prepare tools") {
+                // TODO: need to simplify this part
+                // all tools should be pre-install in docker image
                 parallel {
-                    stage("CCache") {
+                stage("Ccache") {
+                    steps {
                         sh label: "install ccache", script: """
                             if ! command -v ccache &> /dev/null; then
                                 echo "ccache not found! Installing..."
@@ -68,17 +200,21 @@ pipeline {
                             fi
                         """
                     }
-                    stage("Cmake") {
+                }
+                stage("Cmake") {
+                    steps { 
                         sh label: "install cmake3", script: """
                             if ! command -v cmake &> /dev/null; then
                                 echo "cmake not found! Installing..."
-                                sh ${dependency_dir}/cmake-3.22.3-linux-${arch_id}.sh --prefix=/usr --skip-license --exclude-subdir
+                                sh ${dependency_dir}/cmake-3.22.3-linux-x86_64.sh --prefix=/usr --skip-license --exclude-subdir
                             else
                                 echo "cmake is already installed!"
                             fi
                         """
                     }
-                    stage("Clang-Format") {
+                }
+                stage("Clang-Format") {
+                    steps {
                         sh label: "install clang-format", script: """
                             if ! command -v clang-format &> /dev/null; then
                                 echo "clang-format not found! Installing..."
@@ -89,7 +225,9 @@ pipeline {
                             fi
                         """
                     }
-                    stage("Clang-Format-15") {
+                }
+                stage("Clang-Format-15") {
+                    steps { 
                         sh label: "install clang-format-15", script: """
                             if ! command -v clang-format-15 &> /dev/null; then
                                 echo "clang-format-15 not found! Installing..."
@@ -99,9 +237,10 @@ pipeline {
                                 echo "clang-format-15 is already installed!"
                             fi
                         """
-
                     }
-                    stage("Clang-Tidy") {
+                }
+                stage( "Clang-Tidy") {
+                    steps { 
                         sh label: "install clang-tidy", script: """
                             if ! command -v clang-tidy &> /dev/null; then
                                 echo "clang-tidy not found! Installing..."
@@ -114,7 +253,9 @@ pipeline {
                             fi
                         """
                     }
-                    stage("Coverage") {
+                }
+                stage("Coverage") {
+                    steps {
                         sh label: "install gcovr", script: """
                             if ! command -v gcovr &> /dev/null; then
                                 echo "lcov not found! Installing..."
@@ -128,13 +269,19 @@ pipeline {
                         """
                     }
                 }
-            }
-            stages("Prepare Cache") {
-                parallel {
-                    stage("CCache") {
-                        def ccache_tag = "tiflash-amd64-linux-llvm-master-dbg-failpoint"
+                }
+        }
+        stage("Prepare Cache") {
+            parallel {
+                stage("Ccache") {
+                    steps {
+                    script { 
+                        // TODO: need adjust "master" against different target branch
+                        def ccache_tag = "pagetools-tests-amd64-linux-llvm-debug-master-failpoints"
                         def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
                         dir("tiflash") {
+                            // TODO: need to refactor this part, use shell script to do the job
+                            // pass the ccache_source & cache_source to shell script by env
                             if (fileExists(ccache_source)) {
                                 echo "ccache found"
                                 sh """
@@ -153,25 +300,26 @@ pipeline {
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=${!params.UPDATE_CCACHE}
+                            ccache -o read_only=false
                             ccache -z
                             """
                         }
                     }
-                    stage("Proxy Cache") {
-                        def proxy_suffix = ""
-                        def proxy_commit_hash = null
-                        dir("tiflash/contrib/tiflash-proxy") {
-                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                        }
+                    }
+                }
+                stage("Proxy-Cache") {
+                    steps {
+                    script {
+                        def proxy_suffix = "amd64-linux-llvm"
                         def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                        def suffix = 'so'
+                        // TODO: need to refactor this part, use shell script to do the job
+                        // cache proxy lib by pvc or nfs or fileserver ?
                         if (fileExists(cache_source)) {
                             echo "proxy cache found"
                             dir("tiflash") {
                                 sh """
-                                cp ${cache_source} libtiflash_proxy.${suffix}
-                                chmod +x libtiflash_proxy.${suffix}
+                                cp ${cache_source} libtiflash_proxy.so
+                                chmod +x libtiflash_proxy.so
                                 """
                             }
                         } else {
@@ -197,206 +345,157 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
+                    }   
                     }
                 }
             }
-            stages("Build Dependency and Utils") {
-                stage("Cluster Manage") {
-                    dir("tiflash"){
-                        sh label: "build cluster manage", script: """
-                            cd tiflash/contrib/tiflash-cluster-manage
-                            make
-                        """
+        }
+        stage("Build Dependency and Utils") {
+            parallel {
+                stage("Cluster Manage") { 
+                    steps {
+                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
+                    echo "cluster_manager is deprecated"
                     }
-                    def install_dir = "${WORKSPACE}/install/tiflash"
-                    sh label: "mv cluster manage", script: """
-                        mkdir -p ${install_dir} && cp -rf tiflash/cluster_manage/dist/flash_cluster_manager ${install_dir}/flash_cluster_manager
-                    """
                 }
                 stage("TiFlash Proxy") {
-                    dir("tiflash/contrib/tiflash-proxy") {
-                        sh label: "build tiflash proxy", script: """
-                            env ENGINE_LABEL_VALUE=tiflash make release
-                            mkdir -p '${WORKSPACE}/tiflash/libs/libtiflash-proxy'
-                            cp target/release/libtiflash_proxy.so ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                        """
+                    steps {
+                        script {
+                        if (proxy_cache_ready) {
+                            echo "skip becuase of cache"
+                        } else {
+                            echo "proxy cache not ready"
+                        }
+                        }
                     }
                 }
             }
-            stage("Configure Project") {
-                def toolchain = getToolchain(repo_path)
-                def generator = 'Ninja'
-                def coverage_flag = ""
-                def diagnostic_flag = ""
-                def compatible_flag = ""
-                def openssl_root_dir = ""
-                def prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
-                sh """
-                mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
-                """
-                sh """
-                mkdir -p ${WORKSPACE}/build
-                mkdir -p ${WORKSPACE}/install/tiflash
-                """
-                dir(build_dir) {
-                    sh """
+        }
+        stage("Configure Project") {
+            steps {
+                script {
+                    def toolchain = "llvm"
+                    def generator = 'Ninja'
+                    def coverage_flag = ""
+                    def diagnostic_flag = ""
+                    def compatible_flag = ""
+                    def openssl_root_dir = ""
+                    def prebuilt_dir_flag = ""
+                    if (proxy_cache_ready) {
+                        // only for toolchain is llvm
+                        prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
+                        sh """
+                        mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
+                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
+                        """
+                    }
+                    // create build dir and install dir
+                    sh label: "create build & install dir", script: """
+                    mkdir -p ${WORKSPACE}/build
+                    mkdir -p ${WORKSPACE}/install/tiflash
+                    """
+                    dir("${WORKSPACE}/build") {
+                        sh label: "configure project", script: """
                         cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=debug \\
                             -DCMAKE_PREFIX_PATH='/usr/local' \\
                             -DCMAKE_INSTALL_PREFIX=${WORKSPACE}/install/tiflash \\
-                            -DENABLE_TESTS=false \\
+                            -DENABLE_TESTS=true \\
                             -DUSE_CCACHE=true \\
                             -DDEBUG_WITHOUT_DEBUG_INFO=true \\
                             -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
                             -DRUN_HAVE_STD_REGEX=0 \\
-                    """
+                        """
+                    }
                 }
             }
-            stage("Format Check") {
-                def target_branch = "master"
-                def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
-                def repo_path = "${WORKSPACE}/tiflash"
-                dir(repo_path) {
-                    sh """
-                    python3 \\
-                        ${repo_path}/format-diff.py ${diff_flag} \\
-                        --repo_path '${repo_path}' \\
-                        --check_formatted \\
-                        --diff_from \$(git merge-base origin/${target_branch} HEAD)
-                    """
-                }
-
-            }
-            stages("Build TiFlash") {
-                def toolchain = getToolchain(repo_path)
-                def targets = "tiflash"
+        }
+        stage("Build TiFlash") {
+            steps {
                 sh """
-                cmake --build '${WORKSPACE}/build' --target ${targets} --parallel 12
+                cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel 12
                 """
-            }
-            stages("License check") {
-                dir("${WORKSPACE}/tiflash") {
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
-                    """
-                }
-            }
-            stages("Post Build") {
-                stage("Static Analysis"){
-                    def generator = "Ninja"
-                    def include_flag = ""
-                    def fix_compile_commands = "${repo_path}/release-centos7-llvm/scripts/fix_compile_commands.py"
-                    def run_clang_tidy = "${repo_path}/release-centos7-llvm/scripts/run-clang-tidy.py"
-                    def build_dir = "${WORKSPACE}/build"
-                    def repo_path = "${WORKSPACE}/tiflash"
-                    dir(build_dir) {
-                        sh """
-                        NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
-                        cmake "${repo_path}" \\
-                            -DENABLE_TESTS=${params.BUILD_TESTS} \\
-                            -DCMAKE_BUILD_TYPE=${params.CMAKE_BUILD_TYPE} \\
-                            -DUSE_CCACHE=OFF \\
-                            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \\
-                            -DRUN_HAVE_STD_REGEX=0 \\
-                            -G '${generator}'
-                        python3 ${fix_compile_commands} ${include_flag} \\
-                            --file_path=compile_commands.json \\
-                            --load_diff_files_from "/tmp/tiflash-diff-files.json"
-                        python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
-                        """
-                    }
-                }
-                stage("Upload Build Artifacts") {
-                    def install_dir = "${WORKSPACE}/install/tiflash"
-                    def basename = sh(returnStdout: true, script: "basename '${install_dir}'").trim()
-                    dir("${install_dir}/../") {
-                        sh """
-                        tar -czf '${basename}.tar.gz' '${basename}'
-                        """
-                        archiveArtifacts artifacts: "${basename}.tar.gz"
-                    }
-                }
-                // only upload build data when ARCHIVE_BUILD_DATA is true
-                // currently ARCHIVE_BUILD_DATA set to true for ut triggered build-common
-                // stage("Upload build data"){
-                //     dir("${WORKSPACE}/build") {
-                //         sh """
-                //         tar -cavf build-data.tar.xz $(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna"
-                //         """
-                //         archiveArtifacts artifacts: "build-data.tar.gz" // 是否要允许为空，需要验证下上一步是否可能没有 find 到文件
-                //     }
-                //     dir("${WORKSPACE}/tiflash") {
-                //         sh """
-                //         tar -cavf source-patch.tar.xz $(find . -name "*.pb.h" -o -name "*.pb.cc")
-                //         """
-                //         archiveArtifacts artifacts: "source-patch.tar.xz" // 是否要允许为空，需要验证下上一步是否可能没有 find 到文件
-                //     }
-                // }
+                sh """
+                cp '${WORKSPACE}/build/dbms/gtests_dbms' '${WORKSPACE}/install/tiflash/'
+                cp '${WORKSPACE}/build/libs/libcommon/src/tests/gtests_libcommon' '${WORKSPACE}/install/tiflash/'
+                cmake --install ${WORKSPACE}/build --component=tiflash-gtest --prefix='${WORKSPACE}/install/tiflash'
+                """
+                sh """
+                target=`realpath \$(find . -executable | grep -v gtests_libdaemon.dir | grep gtests_libdaemon)`
+                cp \$target '${WORKSPACE}/install/tiflash/'
+                """
+                sh """
+                ccache -s
+                ls -lha ${WORKSPACE}/install/tiflash/
+                """
             }
         }
 
-        stage("Unit Test") {
-            stages("Get Artifacts") {
-                stage("get artifacts from build") {
-                    def cwd = pwd() // 当前路径应该就是 WORKSPACE， TODO: 验证一下， 替换这个路径 
-                    def install_dir = "${WORKSPACE}/install/tiflash"
-                    def basename = sh(returnStdout: true, script: "basename '${install_dir}'").trim()
-                    def repo_path = "${WORKSPACE}/tiflash"
-                    def build_path = "${WORKSPACE}/build"
-                    sh """
-                    ln -sf '${install_dir}' /tiflash
-                    """
-                    dir("/tmp/tiflash-data") {
-                        sh """
-                        ls -lha ${repo_path}
-                        ln -sf ${repo_path}/tests /tests
-                        """
-                    }
-                    // // source-patch.tar.xz 的作用，在哪里产生的（build 哪里产生的）
-                    // dir(repo_path) {
-                    //     sh """
-                    //     cp '${cwd}/source-patch.tar.xz' ./source-patch.tar.xz
-                    //     tar -xaf ./source-patch.tar.xz
-                    //     """
-                    // }
-
-                    // // build-data.tar.xz 的作用，在哪里产生的(build 哪里产生的)
-                    // dir(build_path) {
-                    //     sh """
-                    //     cp '${cwd}/build-data.tar.xz' ./build-data.tar.xz
-                    //     tar -xaf ./build-data.tar.xz
-                    //     """
-                    // }
-                }
-            }
-            stages("Unit Test") {
-                stage("Unit Test") {
-                    timeout(time: 60, unit: "MINUTES") {
-                        dir("${WORKSPACE}/tiflash") {
+        stage("Post Build") {
+            parallel {
+                stage("Upload Build Artifacts") {
+                    steps {
+                        dir("${WORKSPACE}/install") {
                             sh """
-                            rm -rf /tmp-memfs/tiflash-tests
-                            mkdir -p /tmp-memfs/tiflash-tests
-                            export TIFLASH_TEMP_DIR=/tmp-memfs/tiflash-tests
-
-                            mkdir -p /root/.cache
-                            source /tests/docker/util.sh
-                            export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%${parallelism}m.profraw"
-                            show_env
-                            ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=${parallelism} /tests/run-gtest.sh
+                            tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
+                            archiveArtifacts artifacts: "tiflash.tar.gz"
                         }
                     }
+                }
+                stage("Upload Build Data") {
+                    steps {
+                        dir("${WORKSPACE}/build") {
+                            sh """
+                            tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
+                            """
+                            archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
+                        }
+                        dir("${WORKSPACE}/tiflash") {
+                            sh """
+                            tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
+                            """
+                            archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Unit Test Prepare") {
+            steps {
+                sh """
+                ln -sf ${WORKSPACE}/install/tiflash /tiflash
+                """
+                sh """
+                ls -lha ${WORKSPACE}/tiflash
+                ln -sf ${WORKSPACE}/tiflash/tests /tests
+                """
+                dir("${WORKSPACE}/tiflash") {
+                    echo "temp skip here"
+                }
+                dir("${WORKSPACE}/build") {
+                    echo "temp skip here"
+                }
+            }
+        }
+        stage("Run Tests") {
+            steps {
+                dir("${WORKSPACE}/tiflash") {
+                    sh """
+                    parallelism=12
+                    rm -rf /tmp-memfs/tiflash-tests
+                    mkdir -p /tmp-memfs/tiflash-tests
+                    export TIFLASH_TEMP_DIR=/tmp-memfs/tiflash-tests
+
+                    mkdir -p /root/.cache
+                    source /tests/docker/util.sh
+                    export LLVM_PROFILE_FILE="/tiflash/profile/unit-test-%\${parallelism}m.profraw"
+                    show_env
+                    ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=\${parallelism} /tests/run-gtest.sh
+                    """
                 }
             }
         }
