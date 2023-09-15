@@ -159,10 +159,10 @@ try {
                             retry(3){
                                 deleteDir()
                                 sh """
-	                        while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
-                            tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
-	                        """
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
+                                tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                                """
                             }
                         }
                     }
@@ -171,27 +171,27 @@ try {
                         timeout(10) {
                             def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                             sh """
-                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
-                        """
+                                while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 5; done
+                            """
                             def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                             def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                             sh """
-                        unset GOPROXY && go env -w GOPROXY=${GOPROXY}  && go env
-                        while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
-                        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_test_url}
-                        tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
+                            unset GOPROXY && go env -w GOPROXY=${GOPROXY}  && go env
+                            while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 5; done
+                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_test_url}
+                            tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
-                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb                        
-                        cd tidb_test && ./build.sh && cd ..
-                        cd mysql_test && ./build.sh && cd ..
-                        cd randgen-test && ./build.sh && cd ..
-                        cd analyze_test && ./build.sh && cd ..
-                        if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                            cd randgen-test && ls t > packages.list
-                            split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
-                            cd ..
-                        fi
-                        """
+                            export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb                        
+                            cd tidb_test && ./build.sh && cd ..
+                            cd mysql_test && ./build.sh && cd ..
+                            cd randgen-test && ./build.sh && cd ..
+                            cd analyze_test && ./build.sh && cd ..
+                            if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                cd randgen-test && ls t > packages.list
+                                split packages.list -n r/3 packages_ -a 1 --numeric-suffixes=1
+                                cd ..
+                            fi
+                            """
 
                             sh """
                             echo "stash tidb-test"
@@ -226,7 +226,7 @@ try {
                                 }
                             }
                         }
-                        dir("go/src/github.com/pingcap") {
+                        dir("go/src/github.com/PingCAP-QE") {
                             retry(3){
                                 sh """
                                     echo "unstash tidb-test"
@@ -240,24 +240,24 @@ try {
                             try {
                                 timeout(50) {
                                     sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
+                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                    ./test.sh
 
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    """
                                 }
                             } catch (err) {
                                 sh "cat ${log_path}"
@@ -303,7 +303,7 @@ try {
                             }
                         }
 
-                        dir("go/src/github.com/pingcap") {
+                        dir("go/src/github.com/PingCAP-QE") {
                             sh """
                             echo "unstash tidb-test"
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
@@ -315,31 +315,31 @@ try {
                             try {
                                 timeout(10) {
                                     sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
-                                if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                    mv t t_bak
-                                    mkdir t
-                                    cd t_bak
-                                    cp \$(cat ../packages_${chunk}) ../t
-                                    cd ..
-                                fi
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                ./test.sh
-                                
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
+                                    if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                        mv t t_bak
+                                        mkdir t
+                                        cd t_bak
+                                        cp \$(cat ../packages_${chunk}) ../t
+                                        cd ..
+                                    fi
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                    ./test.sh
+                                    
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    """
                                 }
                             } catch (err) {
                                 sh "cat tidb*.log*"
@@ -376,7 +376,7 @@ try {
                                 }
                             }
                         }
-                        dir("go/src/github.com/pingcap") {
+                        dir("go/src/github.com/PingCAP-QE") {
                             sh """
                             echo "unstash tidb-test"
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}
@@ -463,10 +463,10 @@ try {
 
                         dir("go/src/github.com/pingcap/tidb_gopath") {
                             sh """
-                        mkdir -p ./src
-                        cp -rf ../tidb/vendor/* ./src
-                        mv ../tidb/vendor ../tidb/_vendor
-                        """
+                            mkdir -p ./src
+                            cp -rf ../tidb/vendor/* ./src
+                            mv ../tidb/vendor ../tidb/_vendor
+                            """
                         }
 
                         dir("go/src/github.com/pingcap") {
@@ -477,28 +477,28 @@ try {
                             """
                         }
 
-                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             try {
                                 timeout(10) {
                                     sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
-                                GOPATH=${ws}/go/src/github.com/PingCAP-QE/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
-                                ./test.sh
-                                
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                set -e
-                                """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
+                                    GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
+                                    ./test.sh
+                                    
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    set -e
+                                    """
                                 }
                             } catch (err) {
                                 sh "cat tidb*.log"
@@ -544,7 +544,7 @@ try {
                             """
                         }
 
-                        dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
+                        dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
                             try {
                                 timeout(10) {
                                     sh """
@@ -568,7 +568,6 @@ try {
 EOF
                                 
                                 cat ~/.m2/settings.xml || true
-
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 GOPATH=disable GOROOT=disable ${testsh}
                                 
