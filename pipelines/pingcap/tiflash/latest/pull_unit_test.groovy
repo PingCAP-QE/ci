@@ -9,7 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
 // final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
-Boolean proxy_cache_ready = false
+Boolean proxy_cache_ready = true
 String proxy_commit_hash = null
 
 
@@ -175,6 +175,8 @@ pipeline {
                                 git pull
                                 git submodule update --init --recursive
                                 git status
+
+                                git show --oneline -s
                                 """
                                 dir("contrib/tiflash-proxy") {
                                     proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
@@ -339,13 +341,19 @@ pipeline {
                         // } else {
                         //     echo "proxy cache not found"
                         // }
+                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm"
+                        if (fileExists(cache_source)) {
+                            echo "proxy cache found"
+                            proxy_cache_ready = true
+                        }
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
                         proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
                         if [ -f \$proxy_cache_file ]; then
                             echo "proxy cache found"
-                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libtiflash_proxy.so
-                            chmod +x ${WORKSPACE}/tiflash/libtiflash_proxy.so
+                            mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                         else
                             echo "proxy cache not found"
                         fi
@@ -411,7 +419,7 @@ pipeline {
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
                         sh """
                         mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
+                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
                     // create build dir and install dir

@@ -223,6 +223,11 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                     script {
+                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm"
+                        if (fileExists(cache_source)) {
+                            echo "proxy cache found"
+                            proxy_cache_ready = true
+                        }
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
                         proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
@@ -295,7 +300,7 @@ pipeline {
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
                         sh """
                         mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
+                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
                     // create build dir and install dir
