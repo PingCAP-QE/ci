@@ -1,0 +1,2 @@
+- manifest-multiarch-common: unknown file manifest-tool
+- tiup-mirror-online-rc: the same as tiup-mirror-online-ga, merge
