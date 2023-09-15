@@ -233,7 +233,6 @@ try {
                                 }
                             }
                         }
-
                         dir("go/src/github.com/PingCAP-QE/tidb-test") {
                             container("golang") {
                                 timeout(20) {
@@ -257,7 +256,7 @@ try {
                             }
                         }
                     }
-
+                    stash includes: "go/src/github.com/pingcap/tidb/bin/tidb-server", name: "tidb-server"
                     stash includes: "go/src/github.com/PingCAP-QE/tidb-test/_vendor/**", name: "tidb-test-vendor"
                     stash includes: "go/src/github.com/PingCAP-QE/tidb-test/mysql_test/**", name: "mysql_test"
                     stash includes: "go/src/github.com/PingCAP-QE/tidb-test/analyze_test/**", name: "analyze_test"
@@ -277,6 +276,7 @@ try {
                 run_with_memory_volume_pod {
                     def ws = pwd()
                     deleteDir()
+                    unstash "tidb-server"
                     unstash "tidb-test"
                     unstash "tidb-test-vendor"
                     unstash "helper"
@@ -287,29 +287,27 @@ try {
                             timeout(20) {
                                 retry(3){
                                     sh """
-	                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
-	                            tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-	
-	                            pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
-	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-	
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
-                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
-                                tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
-                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${pd_url}
-                                tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
-	
-	                            mkdir -p ./tidb-src
-	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
-                                tar -xz -C ./tidb-src -f tidb-server.tar.gz
-	                            ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-	
-	                            mv tidb-src/bin/tidb-server ./bin/tidb-server
-	                            """
+                                    tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
+                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
+                                    pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
+                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
+                                    tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${pd_url}
+                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
+        
+                                    # mkdir -p ./tidb-src
+                                    # while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
+                                    # wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
+                                    # tar -xz -C ./tidb-src -f tidb-server.tar.gz
+                                    # ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+        
+                                    mv ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/tidb-server ./bin/tidb-server
+                                    """
                                 }
 
                             }
@@ -317,48 +315,48 @@ try {
                             try {
                                 timeout(60) {
                                     sh """
-                                ps aux
+                                    ps aux
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    rm -rf ./tikv ./pd
+                                    set -e
+                                    
+                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                    sleep 10
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                    sleep 10
+                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                    export log_level=debug
+                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                    TIKV_PATH='127.0.0.1:2379' \
+                                    TIDB_TEST_STORE_NAME=tikv \
+                                    ${test_cmd}
+                                    """
+                                }
+                            } catch (err) {
+                                sh"""
+                                cat mysql-test.out || true
+                                """
+                                sh """
+                                cat pd_${mytest}.log
+                                cat tikv_${mytest}.log
+                                cat tidb*.log
+                                """
+                                throw err
+                            } finally {
+                                sh """
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
                                 killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                rm -rf ./tikv ./pd
                                 set -e
-                                
-                                bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                sleep 10
-                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                sleep 10
-                                if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                export log_level=debug
-                                TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                TIKV_PATH='127.0.0.1:2379' \
-                                TIDB_TEST_STORE_NAME=tikv \
-                                ${test_cmd}
                                 """
-                                }
-                            } catch (err) {
-                                sh"""
-                            cat mysql-test.out || true
-                            """
-                                sh """
-                            cat pd_${mytest}.log
-                            cat tikv_${mytest}.log
-                            cat tidb*.log
-                            """
-                                throw err
-                            } finally {
-                                sh """
-                            set +e
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            set -e
-                            """
                             }
                         }
                     }
@@ -369,6 +367,7 @@ try {
                 run_with_memory_volume_pod {
                     def ws = pwd()
                     deleteDir()
+                    unstash "tidb-server"
                     unstash "tidb-test"
                     unstash "tidb-test-vendor"
                     unstash "helper"
@@ -380,84 +379,85 @@ try {
                             timeout(20) {
                                 retry(3){
                                     sh """
-	                            tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
-	                            tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-	
-	                            pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
-	                            pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
-                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
-	                            tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
-	
-	                            while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
-                                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
-	                            tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
-	
-	                            mkdir -p ./tidb-src
-	                            while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
-	                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
-                                tar -xz -C ./tidb-src -f tidb-server.tar.gz
-	                            ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-	
-	                            mv tidb-src/bin/tidb-server ./bin/tidb-server
-	                            """
+                                    tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
+                                    tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
+        
+                                    pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
+                                    pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
+                                    tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
+        
+                                    while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
+                                    wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
+                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
+        
+                                    # mkdir -p ./tidb-src
+                                    # while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
+                                    # wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
+                                    # tar -xz -C ./tidb-src -f tidb-server.tar.gz
+                                    # ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
+                                    # mv tidb-src/bin/tidb-server ./bin/tidb-server
+
+                                    mv ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/tidb-server ./bin/tidb-server
+                                    """
                                 }
                             }
 
                             try {
                                 timeout(20) {
                                     sh """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    rm -rf /tmp/tidb
+                                    rm -rf ./tikv ./pd
+                                    set -e
+                                    
+                                    bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
+                                    sleep 10
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    
+                                    bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
+                                    sleep 10
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
+                                    if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
+                                        mv t t_bak
+                                        mkdir t
+                                        cd t_bak
+                                        cp \$(cat ../packages_${chunk}) ../t
+                                        cd ..
+                                        export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
+                                        export log_level=debug
+                                        TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
+                                        TIKV_PATH='127.0.0.1:2379' \
+                                        TIDB_TEST_STORE_NAME=tikv \
+                                        ${test_cmd}
+                                    fi
+                                    """
+                                }
+                            } catch (err) {
+                                sh"""
+                                cat mysql-test.out || true
+                                """
+
+                                sh """
+                                cat pd_${mytest}.log
+                                cat tikv_${mytest}.log
+                                cat tidb*.log
+                                """
+                                throw err
+                            } finally {
+                                sh """
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
                                 killall -9 -r pd-server
-                                rm -rf /tmp/tidb
-                                rm -rf ./tikv ./pd
                                 set -e
-                                
-                                bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
-                                sleep 10
-                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                
-                                bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
-                                sleep 10
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-                                if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
-                                    mv t t_bak
-                                    mkdir t
-                                    cd t_bak
-                                    cp \$(cat ../packages_${chunk}) ../t
-                                    cd ..
-                                    export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                    export log_level=debug
-                                    TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
-                                    TIKV_PATH='127.0.0.1:2379' \
-                                    TIDB_TEST_STORE_NAME=tikv \
-                                    ${test_cmd}
-                                fi
                                 """
-                                }
-                            } catch (err) {
-                                sh"""
-                            cat mysql-test.out || true
-                            """
-
-                                sh """
-                            cat pd_${mytest}.log
-                            cat tikv_${mytest}.log
-                            cat tidb*.log
-                            """
-                                throw err
-                            } finally {
-                                sh """
-                            set +e
-                            killall -9 -r tidb-server
-                            killall -9 -r tikv-server
-                            killall -9 -r pd-server
-                            set -e
-                            """
                             }
                         }
                     }
@@ -661,37 +661,37 @@ try {
 
                                     timeout(20) {
                                         sh """
-                                    if [ ! -d cmd/explaintest ]; then
-                                        echo "no explaintest file found in 'cmd/explaintest'"
-                                        exit -1
-                                    fi
-                                    cp bin/tidb-server cmd/explaintest
-                                    cp bin/importer cmd/explaintest
-                                    cd cmd/explaintest
-                                    GO111MODULE=on go build -o explain_test
-                                    set +e
-                                    killall -9 -r tidb-server
-                                    killall -9 -r tikv-server
-                                    killall -9 -r pd-server
-                                    rm -rf /tmp/tidb
-                                    set -e
-                                    ./run-tests.sh -s ./tidb-server -i ./importer -b n
-                                    """
+                                        if [ ! -d cmd/explaintest ]; then
+                                            echo "no explaintest file found in 'cmd/explaintest'"
+                                            exit -1
+                                        fi
+                                        cp bin/tidb-server cmd/explaintest
+                                        cp bin/importer cmd/explaintest
+                                        cd cmd/explaintest
+                                        GO111MODULE=on go build -o explain_test
+                                        set +e
+                                        killall -9 -r tidb-server
+                                        killall -9 -r tikv-server
+                                        killall -9 -r pd-server
+                                        rm -rf /tmp/tidb
+                                        set -e
+                                        ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                        """
                                     }
                                 } catch (err) {
                                     sh """
-                                cat tidb*.log || true
-                                """
+                                    cat tidb*.log || true
+                                    """
                                     sh "cat explain-test.out || true"
                                     throw err
                                 } finally {
                                     sh """
-                                set +e
-                                killall -9 -r tidb-server
-                                killall -9 -r tikv-server
-                                killall -9 -r pd-server
-                                set -e
-                                """
+                                    set +e
+                                    killall -9 -r tidb-server
+                                    killall -9 -r tikv-server
+                                    killall -9 -r pd-server
+                                    set -e
+                                    """
                                 }
                             }
                         }
@@ -710,9 +710,9 @@ try {
         node("lightweight_pod"){
             container("golang"){
                 sh """
-		    echo "done" > done
-		    curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
-		    """
+                echo "done" > done
+                curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload
+                """
             }
         }
     }
