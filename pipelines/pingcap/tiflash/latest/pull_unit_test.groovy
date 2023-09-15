@@ -277,34 +277,46 @@ pipeline {
                     steps {
                     script { 
                         // TODO: need adjust "master" against different target branch
-                        def ccache_tag = "pagetools-tests-amd64-linux-llvm-debug-master-failpoints"
-                        def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
+                        // def ccache_tag = "pagetools-tests-amd64-linux-llvm-debug-master-failpoints"
+                        // def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
+                        // echo "ccache_source: ${ccache_source}"
                         dir("tiflash") {
                             // TODO: need to refactor this part, use shell script to do the job
                             // pass the ccache_source & cache_source to shell script by env
-                            if (fileExists(ccache_source)) {
+                            // if (fileExists(ccache_source)) {
+                            //     echo "ccache found"
+                            //     sh """
+                            //     cd /tmp
+                            //     cp /home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar ccache.tar
+                            //     tar -xf ccache.tar
+                            //     ls -lha /tmp
+                            //     """
+                            // } else {
+                            //     echo "ccache not found"
+                            // }
+                            sh label: "copy ccache if exist", script: """
+                            pwd
+                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
-                                sh """
                                 cd /tmp
-                                cp ${ccache_source} ccache.tar
+                                cp -r \$ccache_tar_file ccache.tar
                                 tar -xf ccache.tar
-                                """
-                            } else {
+                                ls -lha /tmp
+                            else
                                 echo "ccache not found"
-                            }
-                            dir("${WORKSPACE}/tiflash") {
-                                sh """
-                                ls -lha /tmp/.ccache
-                                ccache -o cache_dir="/tmp/.ccache"
-                                ccache -o max_size=2G
-                                ccache -o limit_multiple=0.99
-                                ccache -o hash_dir=false
-                                ccache -o compression=true
-                                ccache -o compression_level=6
-                                ccache -o read_only=true
-                                ccache -z
-                                """
-                            }
+                            fi
+                            """
+                            sh label: "config ccache", script: """
+                            ccache -o cache_dir="/tmp/.ccache"
+                            ccache -o max_size=2G
+                            ccache -o limit_multiple=0.99
+                            ccache -o hash_dir=false
+                            ccache -o compression=true
+                            ccache -o compression_level=6
+                            ccache -o read_only=true
+                            ccache -z
+                            """
                         }
                     }
                     }
@@ -312,21 +324,32 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                     script {
-                        def proxy_suffix = "amd64-linux-llvm"
-                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
+                        // def proxy_suffix = "amd64-linux-llvm"
+                        // def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
                         // TODO: need to refactor this part, use shell script to do the job
                         // cache proxy lib by pvc or nfs or fileserver ?
-                        if (fileExists(cache_source)) {
+                        // if (fileExists(cache_source)) {
+                        //     echo "proxy cache found"
+                        //     dir("tiflash") {
+                        //         sh """
+                        //         cp ${cache_source} libtiflash_proxy.so
+                        //         chmod +x libtiflash_proxy.so
+                        //         """
+                        //     }
+                        // } else {
+                        //     echo "proxy cache not found"
+                        // }
+                        sh label: "copy proxy if exist", script: """
+                        proxy_suffix="amd64-linux-llvm"
+                        proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
+                        if [ -f \$proxy_cache_file ]; then
                             echo "proxy cache found"
-                            dir("tiflash") {
-                                sh """
-                                cp ${cache_source} libtiflash_proxy.so
-                                chmod +x libtiflash_proxy.so
-                                """
-                            }
-                        } else {
+                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libtiflash_proxy.so
+                            chmod +x ${WORKSPACE}/tiflash/libtiflash_proxy.so
+                        else
                             echo "proxy cache not found"
-                        }
+                        fi
+                        """
                         sh label: "link cargo cache", script: """
                             mkdir -p ~/.cargo/registry
                             mkdir -p ~/.cargo/git
@@ -416,22 +439,28 @@ pipeline {
         }
         stage("Build TiFlash") {
             steps {
+                dir("${WORKSPACE}/tiflash") {
                 sh """
-                cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel 12
-                """
-                sh """
-                cp '${WORKSPACE}/build/dbms/gtests_dbms' '${WORKSPACE}/install/tiflash/'
-                cp '${WORKSPACE}/build/libs/libcommon/src/tests/gtests_libcommon' '${WORKSPACE}/install/tiflash/'
-                cmake --install ${WORKSPACE}/build --component=tiflash-gtest --prefix='${WORKSPACE}/install/tiflash'
-                """
-                sh """
-                target=`realpath \$(find . -executable | grep -v gtests_libdaemon.dir | grep gtests_libdaemon)`
-                cp \$target '${WORKSPACE}/install/tiflash/'
-                """
-                sh """
-                ccache -s
-                ls -lha ${WORKSPACE}/install/tiflash/
-                """
+                    cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel 12
+                    """
+                    sh """
+                    cp '${WORKSPACE}/build/dbms/gtests_dbms' '${WORKSPACE}/install/tiflash/'
+                    cp '${WORKSPACE}/build/libs/libcommon/src/tests/gtests_libcommon' '${WORKSPACE}/install/tiflash/'
+                    cmake --install ${WORKSPACE}/build --component=tiflash-gtest --prefix='${WORKSPACE}/install/tiflash'
+                    """
+                }
+                dir("${WORKSPACE}/build") {
+                    sh """
+                    target=`realpath \$(find . -executable | grep -v gtests_libdaemon.dir | grep gtests_libdaemon)`
+                    cp \$target '${WORKSPACE}/install/tiflash/'
+                    """
+                }
+                dir("${WORKSPACE}/tiflash") {
+                    sh """
+                    ccache -s
+                    ls -lha ${WORKSPACE}/install/tiflash/
+                    """
+                }
             }
         }
 
