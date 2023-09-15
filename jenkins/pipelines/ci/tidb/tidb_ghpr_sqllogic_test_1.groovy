@@ -232,264 +232,108 @@ try {
         def tests = [:]
 
         tests["SQLLogic Random Aggregates_n1 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/aggregates_n1', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Aggregates_n1 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Aggregates_n1 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/aggregates_n1', 8, 0)
         }
 
         tests["SQLLogic Random Aggregates_n2 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/aggregates_n2', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Aggregates_n2 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Aggregates_n2 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/aggregates_n2', 8, 0)
         }
 
         tests["SQLLogic Random Expr Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/expr', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Expr Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Expr Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/expr', 8, 0)
         }
 
         tests["SQLLogic Random Select_n1 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/select_n1', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Select_n1 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Select_n1 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/select_n1', 8, 0)
         }
 
         tests["SQLLogic Random Select_n2 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/select_n2', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Select_n2 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Select_n2 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/select_n2', 8, 0)
         }
 
         tests["SQLLogic Select Groupby Test"] = {
-            try {
-                run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 0)
-                all_task_result << ["name": "SQLLogic Select Groupby Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Select Groupby Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 0)
         }
 
         tests["SQLLogic Index Between 1 10 Test"] = {
-            try {
-                run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 0)
-                all_task_result << ["name": "SQLLogic Index Between 1 10 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index Between 1 10 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 0)
         }
 
         tests["SQLLogic Index Between 100 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/between/100', 8, 0)
-                all_task_result << ["name": "SQLLogic Index Between 100 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index Between 100 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/between/100', 8, 0)
         }
 
         tests["SQLLogic Index Between 1000 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/between/1000', 8, 0)
-                all_task_result << ["name": "SQLLogic Index Between 1000 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index Between 1000 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/between/1000', 8, 0)
         }
 
         tests["SQLLogic Index commute 10 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/10', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 10 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 10 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/10', 8, 0)
         }
 
         tests["SQLLogic Index commute 100 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/100', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 100 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 100 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/100', 8, 0)
         }
 
         tests["SQLLogic Index commute 1000_n1 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/1000_n1', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 1000_n1 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 1000_n1 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/1000_n1', 8, 0)
         }
 
         tests["SQLLogic Index commute 1000_n2 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/1000_n2', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 1000_n2 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 1000_n2 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/1000_n2', 8, 0)
         }
 
-        if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-3") || ghprbTargetBranch.startsWith("release-4")) {
+        if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-")) {
             tests["SQLLogic Random Aggregates_n1 Cache Test"] = {
-                try {
                     run('/git/sqllogictest/test/random/aggregates_n1', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n1 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n1 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
             }
 
             tests["SQLLogic Random Aggregates_n2 Cache Test"] = {
-                try {
                     run('/git/sqllogictest/test/random/aggregates_n2', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n2 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n2 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
             }
 
             tests["SQLLogic Random Expr Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/random/expr', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Expr Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Expr Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
+                run('/git/sqllogictest/test/random/expr', 8, 1)
             }
 
             tests["SQLLogic Random Select_n1 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/random/select_n1', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Select_n1 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Select_n1 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/random/select_n1', 8, 1)
             }
 
             tests["SQLLogic Random Select_n2 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/random/select_n2', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Select_n2 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Select_n2 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
+                run('/git/sqllogictest/test/random/select_n2', 8, 1)
             }
 
             tests["SQLLogic Select Groupby Cache Test"] = {
-                try {
-                    run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 1)
-                    all_task_result << ["name": "SQLLogic Select Groupby Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Select Groupby Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
+                run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 1)
             }
 
             tests["SQLLogic Index Between 1 10 Cache Test"] = {
-                try {
-                    run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index Between 1 10 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index Between 1 10 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 1)
             }
 
             tests["SQLLogic Index Between 100 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/between/100', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index Between 100 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index Between 100 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/between/100', 8, 1)
             }
 
             tests["SQLLogic Index Between 1000 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/between/1000', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index Between 1000 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index Between 1000 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/between/1000', 8, 1)
             }
 
             tests["SQLLogic Index commute 10 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/10', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 10 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 10 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/commute/10', 8, 1)
             }
 
             tests["SQLLogic Index commute 100 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/100', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 100 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 100 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/commute/100', 8, 1)
             }
 
             tests["SQLLogic Index commute 1000_n1 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/1000_n1', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n1 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n1 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/commute/1000_n1', 8, 1)
             }
 
             tests["SQLLogic Index commute 1000_n2 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/1000_n2', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n2 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n2 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }   
+                run('/git/sqllogictest/test/index/commute/1000_n2', 8, 1)
             }
         }
 
@@ -523,13 +367,6 @@ catch (Exception e) {
         echo "${e}"
     }
 } finally {
-    stage("task summary") {
-        if (all_task_result) {
-            def json = groovy.json.JsonOutput.toJson(all_task_result)
-            println "all_results: ${json}"
-            currentBuild.description = "${json}"
-        }
-    }
 }
 
 if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_upstream_ci") == "tidb_integration_test_ci") {
