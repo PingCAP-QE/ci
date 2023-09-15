@@ -130,7 +130,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 50, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -288,21 +288,23 @@ pipeline {
                                 cd /tmp
                                 cp ${ccache_source} ccache.tar
                                 tar -xf ccache.tar
-                                cd -
                                 """
                             } else {
                                 echo "ccache not found"
                             }
-                            sh """
-                            ccache -o cache_dir="/tmp/.ccache"
-                            ccache -o max_size=2G
-                            ccache -o limit_multiple=0.99
-                            ccache -o hash_dir=false
-                            ccache -o compression=true
-                            ccache -o compression_level=6
-                            ccache -o read_only=false
-                            ccache -z
-                            """
+                            dir("${WORKSPACE}/tiflash") {
+                                sh """
+                                ls -lha /tmp/.ccache
+                                ccache -o cache_dir="/tmp/.ccache"
+                                ccache -o max_size=2G
+                                ccache -o limit_multiple=0.99
+                                ccache -o hash_dir=false
+                                ccache -o compression=true
+                                ccache -o compression_level=6
+                                ccache -o read_only=true
+                                ccache -z
+                                """
+                            }
                         }
                     }
                     }
@@ -399,7 +401,7 @@ pipeline {
                         cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
-                            -DCMAKE_BUILD_TYPE=debug \\
+                            -DCMAKE_BUILD_TYPE=Debug \\
                             -DCMAKE_PREFIX_PATH='/usr/local' \\
                             -DCMAKE_INSTALL_PREFIX=${WORKSPACE}/install/tiflash \\
                             -DENABLE_TESTS=true \\
