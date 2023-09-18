@@ -1,5 +1,0 @@
-
-
-cmake /home/jenkins/agent/workspace/test-pipeline/tiflash -DTEST_LLVM_COVERAGE=ON -G Ninja -DENABLE_FAILPOINTS=true -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/usr/local -DCMAKE_INSTALL_PREFIX=/home/jenkins/agent/workspace/test-pipeline/install/tiflash -DENABLE_TESTS=true -DUSE_CCACHE=true -DDEBUG_WITHOUT_DEBUG_INFO=true -DUSE_INTERNAL_TIFLASH_PROXY=true -DRUN_HAVE_STD_REGEX=0
-
-cmake /home/jenkins/agent/workspace/tiflash-build-common/tiflash -DPREBUILT_LIBS_ROOT=/home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib/tiflash-proxy/ -G Ninja -DENABLE_FAILPOINTS=true -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/usr/local -DCMAKE_INSTALL_PREFIX=/home/jenkins/agent/workspace/tiflash-build-common/install/tiflash -DENABLE_TESTS=true -DUSE_CCACHE=true -DDEBUG_WITHOUT_DEBUG_INFO=true -DUSE_INTERNAL_TIFLASH_PROXY=false -DRUN_HAVE_STD_REGEX=0
