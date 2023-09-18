@@ -123,9 +123,9 @@ async function run({ db, date_range, github_pat }: cliParams) {
   const issues = await octokit.paginate(octokit.rest.issues.listForRepo, {
     owner: "pingcap",
     repo: "tidb",
-    state: "open",
+    state: "all",
     sort: "created",
-    since: "2023-01-01T00:00:00Z",
+    since: "2023-06-01T00:00:00Z",
     per_page: 100,
   }) as issueBasicInfo[];
   console.debug("issues count", issues.length);
@@ -147,7 +147,7 @@ async function run({ db, date_range, github_pat }: cliParams) {
     // 2.1 检索已有的 issue
     const existedIssue = issues.find((issue) => {
       return issue.title.includes(run.case_name) &&
-        issue.title.toLowerCase().match(`\b(flaky|unstable)\b`);
+        issue.title.toLowerCase().match(`(flaky|unstable)`);
     });
     if (existedIssue) {
       // 2.1.1 如果有则追加评论。
