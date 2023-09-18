@@ -1,0 +1,11 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+postsubmits:
+  pingcap/tiflash:
+    - name: pingcap/tiflash/merged_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/merged-unit-test # need change this after test pass.
+      max_concurrency: 1
+      skip_report: true # need add this after test pass.
+      branches:
+        - ^master$
