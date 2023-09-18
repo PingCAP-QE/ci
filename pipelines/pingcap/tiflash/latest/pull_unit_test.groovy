@@ -1,128 +1,23 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-// @Library('tipipeline') _
+@Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
-// final REFS = readJSON(text: params.JOB_SPEC).refs
+final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
+final build_workspace = "/home/jenkins/agent/workspace/tiflash-build-common/build"
 Boolean proxy_cache_ready = true
 String proxy_commit_hash = null
-
-
-podYaml = """
-apiVersion: v1
-kind: Pod
-spec:
-  securityContext:
-    fsGroup: 1000
-  containers:
-    - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "cat"
-      tty: true
-      resources:
-        requests:
-          memory: 32Gi
-          cpu: "12"
-        limits:
-          memory: 32Gi
-          cpu: "12"
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
-  volumes:
-    - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
-      emptyDir:
-        medium: Memory
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
-"""
-
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            // yamlFile POD_TEMPLATE_FILE
-            yaml podYaml
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
         }
     }
@@ -130,7 +25,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -152,38 +47,27 @@ pipeline {
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
-                    // TODO: how to cache git repo 
-                    // contrib contains submodule, submodule cache about 2.5G
-                    // git repo not include submodule cache about 1.5G
-                    // cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-
-                    // }
-                        retry(2) {
-                            // script {
-                            //     prow.checkoutRefs(REFS, withSubmodule=true)
-                            // }
-                            script {
-                                sh """
-                                cp -R /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz ./
-                                tar -xzf /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz --strip-components=1
-                                rm -f src-tics.tar.gz
-                                git reset --hard
-                                git clean -ffdx
-                                # git clone https://github.com/pingcap/tiflash.git .
-                                git status
-                                git pull origin master
-                                git pull
-                                git submodule update --init --recursive
-                                git status
-
-                                git show --oneline -s
-                                """
-                                dir("contrib/tiflash-proxy") {
-                                    proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                    println "proxy_commit_hash: ${proxy_commit_hash}"
+                    retry(2) {
+                        script {
+                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                                retry(2) {
+                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
                                 }
-                            } 
+                            }
+                            cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
+                                    sh ''
+                                    sh """
+                                    git submodule update --init --recursive
+                                    git status
+                                    git show --oneline -s
+                                    """
+                            }
+                            dir("contrib/tiflash-proxy") {
+                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                                println "proxy_commit_hash: ${proxy_commit_hash}"
+                            }
                         }
+                    }
                 }
             }
         }
@@ -277,25 +161,8 @@ pipeline {
             parallel {
                 stage("Ccache") {
                     steps {
-                    script { 
-                        // TODO: need adjust "master" against different target branch
-                        // def ccache_tag = "pagetools-tests-amd64-linux-llvm-debug-master-failpoints"
-                        // def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
-                        // echo "ccache_source: ${ccache_source}"
+                    script {
                         dir("tiflash") {
-                            // TODO: need to refactor this part, use shell script to do the job
-                            // pass the ccache_source & cache_source to shell script by env
-                            // if (fileExists(ccache_source)) {
-                            //     echo "ccache found"
-                            //     sh """
-                            //     cd /tmp
-                            //     cp /home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar ccache.tar
-                            //     tar -xf ccache.tar
-                            //     ls -lha /tmp
-                            //     """
-                            // } else {
-                            //     echo "ccache not found"
-                            // }
                             sh label: "copy ccache if exist", script: """
                             pwd
                             ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
@@ -326,25 +193,12 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                     script {
-                        // def proxy_suffix = "amd64-linux-llvm"
-                        // def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                        // TODO: need to refactor this part, use shell script to do the job
-                        // cache proxy lib by pvc or nfs or fileserver ?
-                        // if (fileExists(cache_source)) {
-                        //     echo "proxy cache found"
-                        //     dir("tiflash") {
-                        //         sh """
-                        //         cp ${cache_source} libtiflash_proxy.so
-                        //         chmod +x libtiflash_proxy.so
-                        //         """
-                        //     }
-                        // } else {
-                        //     echo "proxy cache not found"
-                        // }
                         def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm"
                         if (fileExists(cache_source)) {
                             echo "proxy cache found"
                             proxy_cache_ready = true
+                        } else {
+                            echo "proxy cache not found" 
                         }
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
