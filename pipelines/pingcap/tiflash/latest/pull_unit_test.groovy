@@ -6,10 +6,10 @@
 final K8S_NAMESPACE = "jenkins-tidb"  // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-merged_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
-Boolean proxy_cache_ready = false
+Boolean proxy_cache_ready = true
 String proxy_commit_hash = null
 
 pipeline {
@@ -43,122 +43,124 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 30, unit: 'MINUTES') }
+            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
-                    script {
-                        cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                    retry(2) {
+                        script {
+                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                                retry(2) {
+                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                                }
                             }
-                        }
-                        cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                sh ''
-                                sh """
-                                git submodule update --init --recursive
-                                git status
-                                git show --oneline -s
-                                """
-                        }
-                        dir("contrib/tiflash-proxy") {
-                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                            println "proxy_commit_hash: ${proxy_commit_hash}"
+                            cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
+                                    sh ''
+                                    sh """
+                                    git submodule update --init --recursive
+                                    git status
+                                    git show --oneline -s
+                                    """
+                            }
+                            dir("contrib/tiflash-proxy") {
+                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                                println "proxy_commit_hash: ${proxy_commit_hash}"
+                            }
                         }
                     }
                 }
             }
         }
         stage("Prepare tools") {
-            // TODO: need to simplify this part
-            // all tools should be pre-install in docker image
-            parallel {
-            stage("Ccache") {
-                steps {
-                    sh label: "install ccache", script: """
-                        if ! command -v ccache &> /dev/null; then
-                            echo "ccache not found! Installing..."
-                            rpm -Uvh '${dependency_dir}/ccache.x86_64.rpm'
-                        else
-                            echo "ccache is already installed!"
-                        fi
-                    """
+                // TODO: need to simplify this part
+                // all tools should be pre-install in docker image
+                parallel {
+                stage("Ccache") {
+                    steps {
+                        sh label: "install ccache", script: """
+                            if ! command -v ccache &> /dev/null; then
+                                echo "ccache not found! Installing..."
+                                rpm -Uvh '${dependency_dir}/ccache.x86_64.rpm'
+                            else
+                                echo "ccache is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Cmake") {
-                steps { 
-                    sh label: "install cmake3", script: """
-                        if ! command -v cmake &> /dev/null; then
-                            echo "cmake not found! Installing..."
-                            sh ${dependency_dir}/cmake-3.22.3-linux-x86_64.sh --prefix=/usr --skip-license --exclude-subdir
-                        else
-                            echo "cmake is already installed!"
-                        fi
-                    """
+                stage("Cmake") {
+                    steps { 
+                        sh label: "install cmake3", script: """
+                            if ! command -v cmake &> /dev/null; then
+                                echo "cmake not found! Installing..."
+                                sh ${dependency_dir}/cmake-3.22.3-linux-x86_64.sh --prefix=/usr --skip-license --exclude-subdir
+                            else
+                                echo "cmake is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Clang-Format") {
-                steps {
-                    sh label: "install clang-format", script: """
-                        if ! command -v clang-format &> /dev/null; then
-                            echo "clang-format not found! Installing..."
-                            cp '${dependency_dir}/clang-format-12' '/usr/local/bin/clang-format'
-                            chmod +x '/usr/local/bin/clang-format'
-                        else
-                            echo "clang-format is already installed!"
-                        fi
-                    """
+                stage("Clang-Format") {
+                    steps {
+                        sh label: "install clang-format", script: """
+                            if ! command -v clang-format &> /dev/null; then
+                                echo "clang-format not found! Installing..."
+                                cp '${dependency_dir}/clang-format-12' '/usr/local/bin/clang-format'
+                                chmod +x '/usr/local/bin/clang-format'
+                            else
+                                echo "clang-format is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Clang-Format-15") {
-                steps { 
-                    sh label: "install clang-format-15", script: """
-                        if ! command -v clang-format-15 &> /dev/null; then
-                            echo "clang-format-15 not found! Installing..."
-                            cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
-                            chmod +x '/usr/local/bin/clang-format-15'
-                        else
-                            echo "clang-format-15 is already installed!"
-                        fi
-                    """
+                stage("Clang-Format-15") {
+                    steps { 
+                        sh label: "install clang-format-15", script: """
+                            if ! command -v clang-format-15 &> /dev/null; then
+                                echo "clang-format-15 not found! Installing..."
+                                cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
+                                chmod +x '/usr/local/bin/clang-format-15'
+                            else
+                                echo "clang-format-15 is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage( "Clang-Tidy") {
-                steps { 
-                    sh label: "install clang-tidy", script: """
-                        if ! command -v clang-tidy &> /dev/null; then
-                            echo "clang-tidy not found! Installing..."
-                            cp '${dependency_dir}/clang-tidy-12' '/usr/local/bin/clang-tidy'
-                            chmod +x '/usr/local/bin/clang-tidy'
-                            cp '${dependency_dir}/lib64-clang-12-include.tar.gz' '/tmp/lib64-clang-12-include.tar.gz'
-                            cd /tmp && tar zxf lib64-clang-12-include.tar.gz
-                        else
-                            echo "clang-tidy is already installed!"
-                        fi
-                    """
+                stage( "Clang-Tidy") {
+                    steps { 
+                        sh label: "install clang-tidy", script: """
+                            if ! command -v clang-tidy &> /dev/null; then
+                                echo "clang-tidy not found! Installing..."
+                                cp '${dependency_dir}/clang-tidy-12' '/usr/local/bin/clang-tidy'
+                                chmod +x '/usr/local/bin/clang-tidy'
+                                cp '${dependency_dir}/lib64-clang-12-include.tar.gz' '/tmp/lib64-clang-12-include.tar.gz'
+                                cd /tmp && tar zxf lib64-clang-12-include.tar.gz
+                            else
+                                echo "clang-tidy is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Coverage") {
-                steps {
-                    sh label: "install gcovr", script: """
-                        if ! command -v gcovr &> /dev/null; then
-                            echo "lcov not found! Installing..."
-                            cp '${dependency_dir}/gcovr.tar' '/tmp/'
-                            cd /tmp
-                            tar xvf gcovr.tar && rm -rf gcovr.tar
-                            ln -sf /tmp/gcovr/gcovr /usr/bin/gcovr
-                        else
-                            echo "lcov is already installed!"
-                        fi
-                    """
+                stage("Coverage") {
+                    steps {
+                        sh label: "install gcovr", script: """
+                            if ! command -v gcovr &> /dev/null; then
+                                echo "lcov not found! Installing..."
+                                cp '${dependency_dir}/gcovr.tar' '/tmp/'
+                                cd /tmp
+                                tar xvf gcovr.tar && rm -rf gcovr.tar
+                                ln -sf /tmp/gcovr/gcovr /usr/bin/gcovr
+                            else
+                                echo "lcov is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            }
+                }
         }
         stage("Prepare Cache") {
             parallel {
                 stage("Ccache") {
                     steps {
-                    script { 
+                    script {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
                             pwd
@@ -169,7 +171,6 @@ pipeline {
                                 cp -r \$ccache_tar_file ccache.tar
                                 tar -xf ccache.tar
                                 ls -lha /tmp
-                                ls -lha /tmp/.ccache
                             else
                                 echo "ccache not found"
                             fi
@@ -195,14 +196,17 @@ pipeline {
                         if (fileExists(cache_source)) {
                             echo "proxy cache found"
                             proxy_cache_ready = true
+                        } else {
+                            echo "proxy cache not found" 
                         }
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
                         proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
                         if [ -f \$proxy_cache_file ]; then
                             echo "proxy cache found"
-                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libtiflash_proxy.so
-                            chmod +x ${WORKSPACE}/tiflash/libtiflash_proxy.so
+                            mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                         else
                             echo "proxy cache not found"
                         fi
@@ -243,11 +247,11 @@ pipeline {
                 stage("TiFlash Proxy") {
                     steps {
                         script {
-                            if (proxy_cache_ready) {
-                                echo "skip becuase of cache"
-                            } else {
-                                echo "proxy cache not ready"
-                            }
+                        if (proxy_cache_ready) {
+                            echo "skip becuase of cache"
+                        } else {
+                            echo "proxy cache not ready"
+                        }
                         }
                     }
                 }
@@ -258,7 +262,7 @@ pipeline {
                 script {
                     def toolchain = "llvm"
                     def generator = 'Ninja'
-                    def coverage_flag = "-DTEST_LLVM_COVERAGE=ON"
+                    def coverage_flag = ""
                     def diagnostic_flag = ""
                     def compatible_flag = ""
                     def openssl_root_dir = ""
@@ -312,10 +316,12 @@ pipeline {
                     cp \$target '${WORKSPACE}/install/tiflash/'
                     """
                 }
-                sh """
-                ccache -s
-                ls -lha ${WORKSPACE}/install/tiflash/
-                """
+                dir("${WORKSPACE}/tiflash") {
+                    sh """
+                    ccache -s
+                    ls -lha ${WORKSPACE}/install/tiflash/
+                    """
+                }
             }
         }
 
@@ -349,6 +355,7 @@ pipeline {
                 }
             }
         }
+
         stage("Unit Test Prepare") {
             steps {
                 sh """
@@ -384,85 +391,6 @@ pipeline {
                 }
             }
         }
-        stage("Coverage") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    sh """
-                    llvm-profdata merge -sparse /tiflash/profile/*.profraw -o /tiflash/profile/merged.profdata
-                    
-                    export LD_LIBRARY_PATH=.
-                    llvm-cov export \\
-                        /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
-                        --format=lcov \\
-                        --instr-profile /tiflash/profile/merged.profdata \\
-                        --ignore-filename-regex "/usr/include/.*" \\
-                        --ignore-filename-regex "/usr/local/.*" \\
-                        --ignore-filename-regex "/usr/lib/.*" \\
-                        --ignore-filename-regex ".*/contrib/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                        > /tiflash/profile/lcov.info
-
-                    mkdir -p /tiflash/report
-                    genhtml /tiflash/profile/lcov.info -o /tiflash/report/ --ignore-errors source
-
-                    # llvm-cov show \\
-                    #     /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
-                    #     --instr-profile /tiflash/profile/merged.profdata \\
-                    #     --ignore-filename-regex "/usr/include/.*" \\
-                    #     --ignore-filename-regex "/usr/local/.*" \\
-                    #     --ignore-filename-regex "/usr/lib/.*" \\
-                    #     --ignore-filename-regex ".*/contrib/.*" \\
-                    #     --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
-                    #     --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                    #     > /tiflash/profile/coverage.txt
-
-                    pushd /tiflash
-                        tar -czf coverage-report.tar.gz report
-                        mv coverage-report.tar.gz ${WORKSPACE}
-                    popd
-
-                    SOURCE_DELTA=\$(cat .git-diff-names)
-                    echo '### Coverage for changed files' > ${WORKSPACE}/diff-coverage
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-
-                    if [[ -z \$SOURCE_DELTA ]]; then
-                        echo 'no c/c++ source change detected' >> ${WORKSPACE}/diff-coverage
-                    else
-                        llvm-cov report /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon -instr-profile /tiflash/profile/merged.profdata \$SOURCE_DELTA > "/tiflash/profile/diff-for-delta"
-                        if [[ \$(wc -l "/tiflash/profile/diff-for-delta" | awk -e '{printf \$1;}') -gt 32 ]]; then
-                            echo 'too many lines from llvm-cov, please refer to full report instead' >> ${WORKSPACE}/diff-coverage
-                        else
-                            cat /tiflash/profile/diff-for-delta >> ${WORKSPACE}/diff-coverage
-                        fi
-                    fi
-
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-                    echo '' >> ${WORKSPACE}/diff-coverage
-                    echo '### Coverage summary' >> ${WORKSPACE}/diff-coverage
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-                    llvm-cov report \\
-                        --summary-only \\
-                        --show-region-summary=false \\
-                        --show-branch-summary=false \\
-                        --ignore-filename-regex "/usr/include/.*" \\
-                        --ignore-filename-regex "/usr/local/.*" \\
-                        --ignore-filename-regex "/usr/lib/.*" \\
-                        --ignore-filename-regex ".*/contrib/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                        /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon -instr-profile /tiflash/profile/merged.profdata | \\
-                        grep -E "^(TOTAL|Filename)" | \\
-                        cut -d" " -f2- | sed -e 's/^[[:space:]]*//' | sed -e 's/Missed\\ /Missed/g' | column -t >> ${WORKSPACE}/diff-coverage
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-                    echo '' >> ${WORKSPACE}/diff-coverage
-                    """
-                }
-
-                archiveArtifacts artifacts: "/tiflash/profile/lcov.info", allowEmptyArchive: true
-                archiveArtifacts artifacts: "${WORKSPACE}/diff-coverage/**", allowEmptyArchive: true
-                archiveArtifacts artifacts: "/tiflash/report/**", allowEmptyArchive: true
-            }
-        }
     }
 }
+
