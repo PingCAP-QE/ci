@@ -42,6 +42,7 @@ configMapGenerator:
       - pingcap-tiproxy-latest-presubmits.yaml
       - pingcap-tiproxy-latest-postsubmits.yaml
       - pingcap-tiflash-latest-postsubmits.yaml
+      - pingcap-tiflash-latest-presubmits.yaml
       - ti-community-infra-configs-periodics.yaml
       - ti-community-infra-configs-postsubmits.yaml
       - ti-community-infra-configs-presubmits.yaml
