@@ -9,7 +9,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
-final cmake_build_dir = "/home/jenkins/agent/workspace/tiflash-build-common/build"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 
@@ -87,6 +86,74 @@ pipeline {
                         """
                     }
                 }
+                stage("Cmake") {
+                    steps { 
+                        sh label: "install cmake3", script: """
+                            if ! command -v cmake &> /dev/null; then
+                                echo "cmake not found! Installing..."
+                                sh ${dependency_dir}/cmake-3.22.3-linux-x86_64.sh --prefix=/usr --skip-license --exclude-subdir
+                            else
+                                echo "cmake is already installed!"
+                            fi
+                        """
+                    }
+                }
+                stage("Clang-Format") {
+                    steps {
+                        sh label: "install clang-format", script: """
+                            if ! command -v clang-format &> /dev/null; then
+                                echo "clang-format not found! Installing..."
+                                cp '${dependency_dir}/clang-format-12' '/usr/local/bin/clang-format'
+                                chmod +x '/usr/local/bin/clang-format'
+                            else
+                                echo "clang-format is already installed!"
+                            fi
+                        """
+                    }
+                }
+                stage("Clang-Format-15") {
+                    steps { 
+                        sh label: "install clang-format-15", script: """
+                            if ! command -v clang-format-15 &> /dev/null; then
+                                echo "clang-format-15 not found! Installing..."
+                                cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
+                                chmod +x '/usr/local/bin/clang-format-15'
+                            else
+                                echo "clang-format-15 is already installed!"
+                            fi
+                        """
+                    }
+                }
+                stage( "Clang-Tidy") {
+                    steps { 
+                        sh label: "install clang-tidy", script: """
+                            if ! command -v clang-tidy &> /dev/null; then
+                                echo "clang-tidy not found! Installing..."
+                                cp '${dependency_dir}/clang-tidy-12' '/usr/local/bin/clang-tidy'
+                                chmod +x '/usr/local/bin/clang-tidy'
+                                cp '${dependency_dir}/lib64-clang-12-include.tar.gz' '/tmp/lib64-clang-12-include.tar.gz'
+                                cd /tmp && tar zxf lib64-clang-12-include.tar.gz
+                            else
+                                echo "clang-tidy is already installed!"
+                            fi
+                        """
+                    }
+                }
+                stage("Coverage") {
+                    steps {
+                        sh label: "install gcovr", script: """
+                            if ! command -v gcovr &> /dev/null; then
+                                echo "lcov not found! Installing..."
+                                cp '${dependency_dir}/gcovr.tar' '/tmp/'
+                                cd /tmp
+                                tar xvf gcovr.tar && rm -rf gcovr.tar
+                                ln -sf /tmp/gcovr/gcovr /usr/bin/gcovr
+                            else
+                                echo "lcov is already installed!"
+                            fi
+                        """
+                    }
+                }
             }                
         }
         stage("Prepare Cache") {
@@ -135,6 +202,7 @@ pipeline {
                         // cache proxy lib by pvc or nfs or fileserver ?
                         if (fileExists(cache_source)) {
                             echo "proxy cache found"
+                            proxy_cache_ready = true
                             dir("tiflash") {
                                 sh """
                                 cp ${cache_source} libtiflash_proxy.so
@@ -181,11 +249,11 @@ pipeline {
                 stage("TiFlash Proxy") {
                     steps {
                         script {
-                        if (proxy_cache_ready) {
-                            echo "skip becuase of cache"
-                        } else {
-                            echo "proxy cache not ready"
-                        }
+                            if (proxy_cache_ready) {
+                                echo "skip becuase of cache"
+                            } else {
+                                echo "proxy cache not ready"
+                            }
                         }
                     }
                 }
@@ -322,11 +390,6 @@ pipeline {
                             tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
-
-                            // TODO: need to cache build artifacts
-                            // 1. upload build artifacts to fileserver
-                            // 2. upload build artifacts to pvc
-                            // In build tiflash step, if cache artifacts found, skip build
                         }
                     }
                 }
@@ -334,3 +397,4 @@ pipeline {
         }
     }
 }
+

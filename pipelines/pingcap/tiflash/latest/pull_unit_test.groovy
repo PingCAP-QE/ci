@@ -9,7 +9,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
-final build_workspace = "/home/jenkins/agent/workspace/tiflash-build-common/build"
 Boolean proxy_cache_ready = true
 String proxy_commit_hash = null
 
@@ -394,3 +393,4 @@ pipeline {
         }
     }
 }
+
