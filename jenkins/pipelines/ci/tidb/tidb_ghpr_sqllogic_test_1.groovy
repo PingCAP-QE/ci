@@ -19,34 +19,23 @@ if (m3) {
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
 POD_CLOUD = "kubernetes-ksyun"
 POD_NAMESPACE = "jenkins-tidb"
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
-]
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
 
@@ -62,7 +51,7 @@ metadata:
 '''
 
 def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL
     podTemplate(label: label,
             cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
@@ -108,22 +97,22 @@ try {
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
                         tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         # use tidb-server with ADMIN_CHECK as default
-                        mkdir -p ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/
-                        mv bin/tidb-server-check ${ws}/go/src/github.com/pingcap/tidb-test/sqllogic_test/tidb-server
+                        mkdir -p ${ws}/go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test/
+                        mv bin/tidb-server-check ${ws}/go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test/tidb-server
                         """
                     }
                 }
             }
 
-            dir("go/src/github.com/pingcap/tidb-test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                 container("golang") {
                     timeout(5) {
-                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 15; done
                         """
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                         sh """
                         unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
@@ -135,7 +124,7 @@ try {
                 }
             }
 
-            stash includes: "go/src/github.com/pingcap/tidb-test/sqllogic_test/**", name: "tidb-test"
+            stash includes: "go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test/**", name: "tidb-test"
             deleteDir()
         }
     }
@@ -146,7 +135,7 @@ try {
                 deleteDir()
                 unstash 'tidb-test'
 
-                dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test") {
                     container("golang") {
                         timeout(10) {
                             try {
@@ -187,7 +176,7 @@ try {
                 deleteDir()
                 unstash 'tidb-test'
 
-                dir("go/src/github.com/pingcap/tidb-test/sqllogic_test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test/sqllogic_test") {
                     container("golang") {
                         timeout(10) {
                             try{
@@ -243,264 +232,108 @@ try {
         def tests = [:]
 
         tests["SQLLogic Random Aggregates_n1 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/aggregates_n1', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Aggregates_n1 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Aggregates_n1 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/aggregates_n1', 8, 0)
         }
 
         tests["SQLLogic Random Aggregates_n2 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/aggregates_n2', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Aggregates_n2 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Aggregates_n2 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/aggregates_n2', 8, 0)
         }
 
         tests["SQLLogic Random Expr Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/expr', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Expr Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Expr Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/expr', 8, 0)
         }
 
         tests["SQLLogic Random Select_n1 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/select_n1', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Select_n1 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Select_n1 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/select_n1', 8, 0)
         }
 
         tests["SQLLogic Random Select_n2 Test"] = {
-            try {
-                run('/git/sqllogictest/test/random/select_n2', 8, 0)
-                all_task_result << ["name": "SQLLogic Random Select_n2 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Random Select_n2 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/random/select_n2', 8, 0)
         }
 
         tests["SQLLogic Select Groupby Test"] = {
-            try {
-                run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 0)
-                all_task_result << ["name": "SQLLogic Select Groupby Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Select Groupby Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 0)
         }
 
         tests["SQLLogic Index Between 1 10 Test"] = {
-            try {
-                run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 0)
-                all_task_result << ["name": "SQLLogic Index Between 1 10 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index Between 1 10 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 0)
         }
 
         tests["SQLLogic Index Between 100 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/between/100', 8, 0)
-                all_task_result << ["name": "SQLLogic Index Between 100 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index Between 100 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/between/100', 8, 0)
         }
 
         tests["SQLLogic Index Between 1000 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/between/1000', 8, 0)
-                all_task_result << ["name": "SQLLogic Index Between 1000 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index Between 1000 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/between/1000', 8, 0)
         }
 
         tests["SQLLogic Index commute 10 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/10', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 10 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 10 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/10', 8, 0)
         }
 
         tests["SQLLogic Index commute 100 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/100', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 100 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 100 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/100', 8, 0)
         }
 
         tests["SQLLogic Index commute 1000_n1 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/1000_n1', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 1000_n1 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 1000_n1 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/1000_n1', 8, 0)
         }
 
         tests["SQLLogic Index commute 1000_n2 Test"] = {
-            try {
-                run('/git/sqllogictest/test/index/commute/1000_n2', 8, 0)
-                all_task_result << ["name": "SQLLogic Index commute 1000_n2 Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "SQLLogic Index commute 1000_n2 Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run('/git/sqllogictest/test/index/commute/1000_n2', 8, 0)
         }
 
-        if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-3") || ghprbTargetBranch.startsWith("release-4")) {
+        if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-")) {
             tests["SQLLogic Random Aggregates_n1 Cache Test"] = {
-                try {
                     run('/git/sqllogictest/test/random/aggregates_n1', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n1 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n1 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
             }
 
             tests["SQLLogic Random Aggregates_n2 Cache Test"] = {
-                try {
                     run('/git/sqllogictest/test/random/aggregates_n2', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n2 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Aggregates_n2 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
             }
 
             tests["SQLLogic Random Expr Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/random/expr', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Expr Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Expr Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
+                run('/git/sqllogictest/test/random/expr', 8, 1)
             }
 
             tests["SQLLogic Random Select_n1 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/random/select_n1', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Select_n1 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Select_n1 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/random/select_n1', 8, 1)
             }
 
             tests["SQLLogic Random Select_n2 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/random/select_n2', 8, 1)
-                    all_task_result << ["name": "SQLLogic Random Select_n2 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Random Select_n2 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
+                run('/git/sqllogictest/test/random/select_n2', 8, 1)
             }
 
             tests["SQLLogic Select Groupby Cache Test"] = {
-                try {
-                    run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 1)
-                    all_task_result << ["name": "SQLLogic Select Groupby Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Select Groupby Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }
+                run_two('/git/sqllogictest/test/select', 8, '/git/sqllogictest/test/random/groupby', 8, 1)
             }
 
             tests["SQLLogic Index Between 1 10 Cache Test"] = {
-                try {
-                    run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index Between 1 10 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index Between 1 10 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run_two('/git/sqllogictest/test/index/between/1', 10, '/git/sqllogictest/test/index/between/10', 8, 1)
             }
 
             tests["SQLLogic Index Between 100 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/between/100', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index Between 100 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index Between 100 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/between/100', 8, 1)
             }
 
             tests["SQLLogic Index Between 1000 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/between/1000', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index Between 1000 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index Between 1000 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/between/1000', 8, 1)
             }
 
             tests["SQLLogic Index commute 10 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/10', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 10 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 10 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/commute/10', 8, 1)
             }
 
             tests["SQLLogic Index commute 100 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/100', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 100 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 100 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/commute/100', 8, 1)
             }
 
             tests["SQLLogic Index commute 1000_n1 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/1000_n1', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n1 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n1 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                } 
+                run('/git/sqllogictest/test/index/commute/1000_n1', 8, 1)
             }
 
             tests["SQLLogic Index commute 1000_n2 Cache Test"] = {
-                try {
-                    run('/git/sqllogictest/test/index/commute/1000_n2', 8, 1)
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n2 Cache Test", "status": "success", "error": ""]
-                } catch (err) {
-                    all_task_result << ["name": "SQLLogic Index commute 1000_n2 Cache Test", "status": "failed", "error": err.message]
-                    throw err
-                }   
+                run('/git/sqllogictest/test/index/commute/1000_n2', 8, 1)
             }
         }
 
@@ -534,13 +367,6 @@ catch (Exception e) {
         echo "${e}"
     }
 } finally {
-    stage("task summary") {
-        if (all_task_result) {
-            def json = groovy.json.JsonOutput.toJson(all_task_result)
-            println "all_results: ${json}"
-            currentBuild.description = "${json}"
-        }
-    }
 }
 
 if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_upstream_ci") == "tidb_integration_test_ci") {

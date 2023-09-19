@@ -131,10 +131,10 @@ try {
                     }
                 }
 
-                dir("go/src/github.com/pingcap/tidb-test") {
-                    def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                dir("go/src/github.com/PingCAP-QE/tidb-test") {
+                    def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                    def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                    def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                     timeout(10) {
                         sh """
@@ -147,7 +147,7 @@ try {
                 }
             }
 
-            stash includes: "go/src/github.com/pingcap/tidb-test/compatible_test/**", name: "compatible_test"
+            stash includes: "go/src/github.com/PingCAP-QE/tidb-test/compatible_test/**", name: "compatible_test"
             deleteDir()
         }
     }
@@ -159,7 +159,7 @@ try {
             deleteDir()
             unstash 'compatible_test'
 
-            dir("go/src/github.com/pingcap/tidb-test/compatible_test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test/compatible_test") {
                 container("golang") {
                     def tikv_old_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_OLD_BRANCH}/sha1"
                     def tikv_old_sha1 = sh(returnStdout: true, script: "curl ${tikv_old_refs}").trim()

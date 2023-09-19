@@ -4,8 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb-test/latest/pod-ghpr_build.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'staging/pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_build.yaml'
 
 pipeline {
     agent {
@@ -66,7 +66,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -113,8 +113,8 @@ pipeline {
         //             sh """
         //                 rm -rf .git
         //                 tar czvf tidb-test.tar.gz ./*
-        //                 filepath="builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
-        //                 refspath="refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
+        //                 filepath="builds/PingCAP-QE/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+        //                 refspath="refs/PingCAP-QE/tidb-test/pr/${ghprbPullId}/sha1"
         //                 curl -f -F ${filepath}=@tidb-test.tar.gz ${FILE_SERVER_URL}/upload
         //                 echo "pr/${ghprbActualCommit}" > sha1
         //                 curl -f -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload   

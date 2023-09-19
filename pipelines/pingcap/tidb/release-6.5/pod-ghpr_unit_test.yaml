@@ -15,12 +15,9 @@ spec:
         requests:
           memory: 8Gi
           cpu: "4"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
       volumeMounts:
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
         - name: bazel-out-lower
@@ -75,6 +72,9 @@ spec:
           memory: 256Mi
           cpu: 100m
   volumes:
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
     - name: deno-dir
       persistentVolumeClaim:
         claimName: deno-dir

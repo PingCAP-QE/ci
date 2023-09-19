@@ -30,35 +30,23 @@ if (params.containsKey("upstreamJob")) {
     println "ghprbActualCommit: ${ghprbActualCommit}"
 }
 
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
-]
+POD_NAMESPACE = "jenkins-tidb"
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
-
-POD_NAMESPACE = "jenkins-tidb"
 
 def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
@@ -124,7 +112,7 @@ def upload_test_result(reportDir) {
 }
 
 def run_test_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL
     def cloud = "kubernetes-ksyun"
     podTemplate(label: label,
             cloud: cloud,
@@ -173,7 +161,7 @@ try {
                     }
                 }
 
-                dir("go/src/github.com/pingcap/tidb-test") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test") {
                     timeout(10) {
                         def TIDB_TEST_BRANCH = ghprbTargetBranch
                         if (ghprbCommentBody =~ commentBodyReg) {
@@ -207,7 +195,7 @@ try {
                             refspecTidbTest = "+refs/pull/${pr}/head:refs/remotes/origin/PR-${pr}"
                             checkout([$class: 'GitSCM', branches: [[name: "FETCH_HEAD"]],
                                 extensions: [[$class: 'LocalBranch']],
-                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecTidbTest, url: 'git@github.com:pingcap/tidb-test.git']]])
+                                userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: refspecTidbTest, url: 'git@github.com:PingCAP-QE/tidb-test.git']]])
                         } else {
                             checkout(changelog: false, poll: false, scm: [
                                 $class: "GitSCM",
@@ -215,7 +203,7 @@ try {
                                 userRemoteConfigs: [
                                         [
                                                 credentialsId: 'github-sre-bot-ssh',
-                                                url: 'git@github.com:pingcap/tidb-test.git',
+                                                url: 'git@github.com:PingCAP-QE/tidb-test.git',
                                                 refspec: refspecTidbTest,
                                         ]
                                 ],
@@ -235,7 +223,7 @@ try {
                         sh """
                             echo "stash tidb-test"
                             cd .. && tar -czf $TIDB_TEST_STASH_FILE tidb-test/
-                            curl -F builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
+                            curl -F builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE}=@${TIDB_TEST_STASH_FILE} ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
@@ -263,14 +251,14 @@ try {
                             }
                         }
                     }
-                    dir("go/src/github.com/pingcap") {
+                    dir("go/src/github.com/PingCAP-QE") {
                         sh """
                             echo "unstash tidb"
-                            curl ${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar xz
+                            curl ${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/tmp/${TIDB_TEST_STASH_FILE} | tar xz
                             pwd && ls -alh
                         """
                     }
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         try {
                             timeout(25) {
                             sh """

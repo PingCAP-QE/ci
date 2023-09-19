@@ -17,7 +17,7 @@ pipeline {
         }
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
@@ -64,7 +64,7 @@ pipeline {
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
-                            mv bin/tidb-server bin/explain_test_tidb-server
+                            mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
                     }
@@ -77,8 +77,8 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'explaintest.sh y',
-                            'explaintest.sh n',
+                            'integrationtest.sh y',
+                            'integrationtest.sh n',
                             'run_real_tikv_tests.sh bazel_brietest',
                             'run_real_tikv_tests.sh bazel_pessimistictest',
                             'run_real_tikv_tests.sh bazel_sessiontest',
@@ -102,7 +102,7 @@ pipeline {
                 stages {
                     stage('Test')  {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 30, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
@@ -110,6 +110,11 @@ pipeline {
                                 }
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
+                                sh """
+                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                                git diff .
+                                git status
+                                """
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
@@ -122,7 +127,7 @@ pipeline {
                             }
                             failure {
                                 dir("checks-collation-enabled") {
-                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
+                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, integration-test.out', allowEmptyArchive: true)
                                 }
                             }
                             success {

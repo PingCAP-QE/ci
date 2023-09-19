@@ -32,7 +32,7 @@ pipelineJob('tidb_test_ghpr_integration_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb-test/")
+        githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
         pipelineTriggers {
             triggers {
                 ghprbTrigger {

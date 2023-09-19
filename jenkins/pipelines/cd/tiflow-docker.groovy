@@ -36,6 +36,9 @@ pipeline {
     parameters {
         string(name: 'Revision', defaultValue: 'master', description: 'branch or commit hash')
     }
+    options {
+        timeout(time: 40, unit: 'MINUTES')
+    }
     stages {
         stage ("get commit hash") {
           agent {
@@ -99,7 +102,8 @@ pipeline {
                     agent {
                         kubernetes {
                             yaml podYaml
-                            cloud "kubernetes-arm64"
+                            cloud "kubernetes"
+                            nodeSelector "kubernetes.io/arch=arm64"
                             defaultContainer 'docker'
                         }
                     }

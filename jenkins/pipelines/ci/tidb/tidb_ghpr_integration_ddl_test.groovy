@@ -41,9 +41,7 @@ def m3 = ghprbCommentBody =~ /tidb[_\-]test\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m3) {
     TIDB_TEST_BRANCH = "${m3[0][1]}"
 }
-// if (TIDB_TEST_BRANCH.startsWith("release-3")) {
-// TIDB_TEST_BRANCH = "release-3.0"
-// }
+
 m3 = null
 println "TIDB_TEST_BRANCH=${TIDB_TEST_BRANCH}"
 
@@ -51,36 +49,25 @@ def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActual
 def tidb_done_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/pr/${ghprbActualCommit}/centos7/done"
 all_task_result = []
 POD_NAMESPACE = "jenkins-tidb-mergeci"
-
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
 POD_CLOUD = "kubernetes-ksyun"
-POD_NAMESPACE = "jenkins-tidb"
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
-]
+
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
+
 
 podYAML = '''
 apiVersion: v1
@@ -91,7 +78,7 @@ metadata:
 '''
 
 def run_with_pod(Closure body) {
-    label = POD_LABEL_MAP[GO_VERSION]
+    label = POD_LABEL
     podTemplate(label: label,
             cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
@@ -122,7 +109,7 @@ def run_with_pod(Closure body) {
 }
 
 def run_with_memory_volume_pod(Closure body) {
-    label = POD_LABEL_MAP[GO_VERSION]
+    label = POD_LABEL
     podTemplate(label: label,
             cloud: POD_CLOUD,
             namespace: POD_NAMESPACE,
@@ -154,26 +141,8 @@ def run_with_memory_volume_pod(Closure body) {
 }
 
 try {
-    stage("Pre-check"){
-        if (!params.force){
-            node("lightweight_pod"){
-                container("golang"){
-                    notRun = sh(returnStatus: true, script: """
-				    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-				    """)
-                }
-            }
-        }
-
-        if (notRun == 0){
-            println "the ${ghprbActualCommit} has been tested"
-            throw new RuntimeException("hasBeenTested")
-        }
-    }
-
     run_with_pod {
         stage('Build') {
-
             def ws = pwd()
             container("golang") {
                 dir("go/src/github.com/pingcap/tidb") {
@@ -186,16 +155,14 @@ try {
                         tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
                         unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
-                            make ddltest
+                           ls bin/ddltest || make ddltest
                         fi
                         ls bin
                         rm -rf bin/tidb-server-*
-                        cd ..
-                        tar -czf tidb-server.tar.gz tidb
-                        curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
                 }
+                stash includes: "go/src/github.com/pingcap/tidb/**", name: "tidb"
             }
         }
     }
@@ -205,22 +172,21 @@ try {
 
         def run = { test_dir, mytest, ddltest ->
             run_with_memory_volume_pod {
-
                 def ws = pwd()
                 deleteDir()
-
+                unstash "tidb"
                 container("golang") {
-                    dir("go/src/github.com/pingcap/tidb-test") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
                         timeout(10) {
-                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                             sh """
                             while ! curl --output /dev/null --silent --head --fail ${tidb_test_refs}; do sleep 10; done
                             """
                             def dir = pwd()
                             sh """
                             unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                            tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
-                            tidb_test_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                            tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
+                            tidb_test_url="${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                             tidb_tar_url="${FILE_SERVER_URL}/download/builds/pingcap/tidb/ddl-test/centos7/${ghprbActualCommit}/tidb-server.tar.gz"
 
@@ -244,27 +210,15 @@ try {
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
                             tar -xz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
 
-                            mkdir -p ${dir}/../tidb/
-                            wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${tidb_tar_url}
-                            tar -xz -f tidb-server.tar.gz -C ${dir}/../ && rm -rf tidb-server.tar.gz
-                            mv ${dir}/../tidb/bin/tidb-server ./bin/ddltest_tidb-server
-
-                            cd ${dir}/../tidb/
-                            GO111MODULE=on go mod vendor -v
-
-                            mkdir -p ${dir}/../tidb_gopath/src
-                            cd ${dir}/../tidb_gopath
-                            if [ -d ../tidb/vendor/ ]; then
-                                cp -rf ../tidb/vendor/* ./src
-                                if [ -f ../tidb/go.mod ]; then
-                                    mv ${dir}/../tidb/vendor ${dir}/../tidb/_vendor
-                                fi
-                            fi
+                            ls -alh ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/
+                            cp ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/tidb-server ./bin/ddltest_tidb-server
+                            cp ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/ddltest ./bin/ddltest
+                            pwd && ls -alh ./bin/
                             """
                         }
                     }
 
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         try {
                             timeout(40) {
                                 sh """
@@ -282,15 +236,15 @@ try {
                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
-
-                                export PATH=`pwd`/bin:\$PATH
+                                
+                                ls -alh ${WORKSPACE}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/
+                                ls -alh ${WORKSPACE}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/bin/
+                                export PATH=${WORKSPACE}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/bin:\$PATH
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
-                                if [ -f ${ws}/go/src/github.com/pingcap/tidb/bin/ddltest ]; then
-                                    export DDLTEST_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/ddltest
-                                fi
+                                export DDLTEST_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/ddltest
                                 export log_level=debug
-                                TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
-                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
+                                export TIDB_SERVER_PATH="${ws}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/bin/ddltest_tidb-server"
+                                pwd && ./test.sh -test.run="${ddltest}"
                                 """
                             }
                         } catch (err) {
@@ -316,63 +270,27 @@ try {
         }
 
         tests["Integration DDL Insert Test"] = {
-            try {
-                run("ddl_test", "ddl_insert_test", "^TestSimple.*Insert\$")
-                all_task_result << ["name": "DDL Insert Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "DDL Insert Test", "status": "failed", "error": err.message]
-                throw err
-            } 
+            run("ddl_test", "ddl_insert_test", "^TestSimple.*Insert\$")
         }
 
         tests["Integration DDL Update Test"] = {
-            try {
-                run("ddl_test", "ddl_update_test", "^TestSimple.*Update\$")
-                all_task_result << ["name": "DDL Update Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "DDL Update Test", "status": "failed", "error": err.message]
-                throw err
-            }  
+            run("ddl_test", "ddl_update_test", "^TestSimple.*Update\$")
         }
 
         tests["Integration DDL Delete Test"] = {
-            try {
-                run("ddl_test", "ddl_delete_test", "^TestSimple.*Delete\$")
-                all_task_result << ["name": "DDL Delete Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "DDL Delete Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run("ddl_test", "ddl_delete_test", "^TestSimple.*Delete\$")
         }
 
         tests["Integration DDL Other Test"] = {
-            try {
-                run("ddl_test", "ddl_other_test", "^TestSimp(le\$|leMixed\$|leInc\$)")
-                all_task_result << ["name": "DDL Other Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "DDL Other Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run("ddl_test", "ddl_other_test", "^TestSimp(le\$|leMixed\$|leInc\$)")
         }
 
         tests["Integration DDL Column Test"] = {
-            try {
-                run("ddl_test", "ddl_column_index_test", "^TestColumn\$")
-                all_task_result << ["name": "DDL Column Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "DDL Column Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run("ddl_test", "ddl_column_index_test", "^TestColumn\$")
         }
 
         tests["Integration DDL Index Test"] = {
-            try {
-                run("ddl_test", "ddl_column_index_test", "^TestIndex\$")
-                all_task_result << ["name": "DDL Index Test", "status": "success", "error": ""]
-            } catch (err) {
-                all_task_result << ["name": "DDL Index Test", "status": "failed", "error": err.message]
-                throw err
-            }
+            run("ddl_test", "ddl_column_index_test", "^TestIndex\$")
         }
 
         parallel tests
@@ -405,15 +323,7 @@ catch (Exception e) {
         echo "${e}"
     }
 }
-finally {
-    stage("task summary") {
-        if (all_task_result) {
-            def json = groovy.json.JsonOutput.toJson(all_task_result)
-            println "all_results: ${json}"
-            currentBuild.description = "${json}"
-        }
-    }
-}
+
 
 if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_upstream_ci") == "tidb_integration_test_ci") {
     stage("update commit status") {

@@ -15,11 +15,6 @@ spec:
         requests:
           memory: 32Gi
           cpu: "16"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
@@ -32,6 +27,8 @@ spec:
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -67,17 +64,7 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
   volumes:
-    - name: deno-dir
-      persistentVolumeClaim:
-        claimName: deno-dir
     - name: gopathcache
       persistentVolumeClaim:
         claimName: gopathcache
@@ -91,6 +78,12 @@ spec:
       emptyDir: {}
     - name: bazel-out-merged
       emptyDir: {}
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
+    - name: deno-dir
+      persistentVolumeClaim:
+        claimName: deno-dir
     - name: bazel-rc
       secret:
         secretName: bazel
@@ -122,3 +115,8 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
+

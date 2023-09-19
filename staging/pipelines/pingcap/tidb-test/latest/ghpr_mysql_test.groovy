@@ -4,8 +4,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-test'
-final POD_TEMPLATE_FILE = 'staging/pipelines/pingcap/tidb-test/latest/pod-ghpr_mysql_test.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'staging/pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_mysql_test.yaml'
 
 pipeline {
     agent {
@@ -66,7 +66,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${ghprbActualCommit}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -96,7 +96,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        // FIXME: https://github.com/pingcap/tidb-test/issues/1987
+                        // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
                     }
                 }

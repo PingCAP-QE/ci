@@ -99,7 +99,7 @@ println "This build use ${goVersion}"
 println "This build use ${GO_BUILD_SLAVE}"
 
 
-def BUILD_URL = 'git@github.com:pingcap/tidb-test.git'
+def BUILD_URL = 'git@github.com:PingCAP-QE/tidb-test.git'
 def slackcolor = 'good'
 def githash
 def master_branch_node = "${GO_BUILD_SLAVE}"
@@ -139,7 +139,7 @@ try {
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
         }
         stage("Checkout") {
-            dir("go/src/github.com/pingcap/tidb-test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                 // 如果不是 TAG，直接传 branch 给下面的 checkout 语句； 否则就应该 checkout 到 refs/tags 下 .
                 // 值得注意的是，即使传入的是 TAG，环境变量里的 BRANCH_NAME 和 TAG_NAME 同时会是 TAG 名，如 v3.0.0
                 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
@@ -151,7 +151,7 @@ try {
         }
 
         stage("Build") {
-            dir("go/src/github.com/pingcap/tidb-test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                 container("golang") {
                     for (binCase in ['partition_test', 'coprocessor_test', 'concurrent-sql']) {
                         if (fileExists("${binCase}/build.sh")) { dir(binCase) { sh "bash build.sh" } }
@@ -161,9 +161,9 @@ try {
         }
 
         stage("Upload") {
-            dir("go/src/github.com/pingcap/tidb-test") {
-                def refspath = "refs/pingcap/tidb-test/${env.BRANCH_NAME}/sha1"
-                def filepath = "builds/pingcap/tidb-test/${githash}/centos7/tidb-test.tar.gz"
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
+                def refspath = "refs/PingCAP-QE/tidb-test/${env.BRANCH_NAME}/sha1"
+                def filepath = "builds/PingCAP-QE/tidb-test/${githash}/centos7/tidb-test.tar.gz"
                 container("golang") {
                     release_one("tidb-test","${githash}")
                     timeout(10) {

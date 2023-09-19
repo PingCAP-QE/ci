@@ -423,6 +423,14 @@ try {
                                     [$class: 'BooleanParameterValue', name: 'DEBUG_MODE', value: false],
                             ]
                     }
+                    builds["build tidb-dashboard"] = {
+                        build job: "build-tidb-dashboard",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'GitRef', value: RELEASE_BRANCH],
+                                    [$class: 'StringParameterValue', name: 'ReleaseTag', value: RELEASE_TAG],
+                            ]
+                    }
                 }
                 parallel builds
                 if (RELEASE_TAG >= "v6.6.0"){

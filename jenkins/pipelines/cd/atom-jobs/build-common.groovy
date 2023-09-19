@@ -357,14 +357,12 @@ def checkoutCode() {
 
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
-		container("golang"){
-            sh """
-			cd ../
-            curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
-            tar -xf src-tidb.tar.gz
-			rm -f src-tidb.tar.gz
-            """
-        }
+        sh """
+        cd ../
+        curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
+        tar -xf src-tidb.tar.gz
+        rm -f src-tidb.tar.gz
+        """
         def tidb_repo = 'git@github.com:pingcap/tidb.git'
         if (TIDB_HASH.contains(':')){
             def tidb_repo_hash = TIDB_HASH.split(":")
@@ -773,6 +771,10 @@ fi;
 if [ ${OS} == 'linux' ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
+fi;
+# compatibility: arm linux page sizes vary from 4k to 64k
+if [ ${OS}/${ARCH} == 'linux/arm64' ]; then
+    export JEMALLOC_SYS_WITH_LG_PAGE=16
 fi;
 if [ ${failpoint} == 'true' ]; then
     CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make fail_release

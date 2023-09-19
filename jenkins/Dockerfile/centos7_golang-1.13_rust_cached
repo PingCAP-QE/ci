@@ -10,7 +10,7 @@ RUN git clone https://github.com/pingcap/tidb.git \
 	&& git clone https://github.com/pingcap/dm.git \
         && git clone https://github.com/pingcap/tidb-binlog.git
 
-COPY --chown=jenkins:jenkins src/github.com/pingcap/tidb-test ./tidb-test
+COPY --chown=jenkins:jenkins src/github.com/PingCAP-QE/tidb-test ./tidb-test
 
 RUN cd tidb && go mod download
 RUN cd pd && go mod download

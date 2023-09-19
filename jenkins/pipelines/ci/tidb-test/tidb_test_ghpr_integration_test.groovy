@@ -228,7 +228,7 @@ run_with_toolkit_pod {
         stage("Checkout") {
             parallel(
                     'tidb-test': {
-                        dir("go/src/github.com/pingcap/tidb-test") {
+                        dir("go/src/github.com/PingCAP-QE/tidb-test") {
                             def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
                             def cacheExisted = sh(returnStatus: true, script: """
                                 if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
@@ -251,7 +251,7 @@ run_with_toolkit_pod {
                                     ],
                                     userRemoteConfigs: [
                                             [
-                                                    url: "git@github.com:pingcap/tidb-test.git",
+                                                    url: "git@github.com:PingCAP-QE/tidb-test.git",
                                                     refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                                     credentialsId: 'github-sre-bot-ssh',
                                             ]
@@ -262,7 +262,7 @@ run_with_toolkit_pod {
                                     ],
                             ])
                         }
-                        stash includes: "go/src/github.com/pingcap/tidb-test/**", name: "tidb-test"
+                        stash includes: "go/src/github.com/PingCAP-QE/tidb-test/**", name: "tidb-test"
                     },
                     'tidb': {
                         dir("go/src/github.com/pingcap/tidb") {
@@ -291,7 +291,7 @@ run_with_toolkit_pod {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         container("golang") {
                             timeout(20) {
                                 retry(3){
@@ -371,7 +371,7 @@ run_with_toolkit_pod {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         container("java") {
                             timeout(20) {
                                 retry(3){
@@ -449,7 +449,7 @@ run_with_toolkit_pod {
                     def ws = pwd()
                     deleteDir()
                     unstash "tidb-test"
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         container("ruby") {
                             timeout(20) {
                                 retry(3){
@@ -593,7 +593,7 @@ run_with_toolkit_pod {
             }
 
             println tidb_params
-            def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+            def tidb_test_download_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
             println "check if current commit is already build, if not wait for build done."
             timeout(10) {
                 sh """
