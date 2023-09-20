@@ -10,6 +10,8 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-merged_unit_test
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
+Boolean update_proxy_cache = true
+Boolean update_ccache = true
 String proxy_commit_hash = null
 
 pipeline {
@@ -162,9 +164,10 @@ pipeline {
                     steps {
                     script { 
                         dir("tiflash") {
+                            // /home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar
                             sh label: "copy ccache if exist", script: """
                             pwd
-                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
@@ -191,13 +194,19 @@ pipeline {
                     }
                 }
                 stage("Proxy-Cache") {
+                    when {
+                        expression { return fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm") }
+                    }
                     steps {
                     script {
-                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm"
-                        if (fileExists(cache_source)) {
-                            echo "proxy cache found"
-                            proxy_cache_ready = true
-                        }
+                        // def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm"
+                        // if (fileExists(cache_source)) {
+                        //     echo "proxy cache found"
+                        //     proxy_cache_ready = true
+                        // }
+                        proxy_cache_ready = true
+                        echo "proxy cache found"
+                        // /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
                         proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
@@ -209,6 +218,11 @@ pipeline {
                             echo "proxy cache not found"
                         fi
                         """
+                    }   
+                    }
+                }
+                stage("Cargo-Cache") {
+                    steps {
                         sh label: "link cargo cache", script: """
                             mkdir -p ~/.cargo/registry
                             mkdir -p ~/.cargo/git
@@ -229,7 +243,6 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
-                    }   
                     }
                 }
             }
@@ -249,6 +262,7 @@ pipeline {
                                 echo "skip becuase of cache"
                             } else {
                                 echo "proxy cache not ready"
+                                echo "skip because proxy build is integrated"
                             }
                         }
                     }
@@ -299,7 +313,7 @@ pipeline {
         stage("Build TiFlash") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                sh """
+                    sh """
                     cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel 12
                     """
                     sh """
@@ -347,6 +361,41 @@ pipeline {
                             """
                             archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
                         }
+                    }
+                }
+                stage("Upload Ccache") {
+                    when {
+                        expression { return update_ccache }
+                    }
+                    steps {
+                        dir("${WORKSPACE}/tiflash") {
+                            sh """
+                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            cd /tmp
+                            rm -rf ccache.tar
+                            tar -cf ccache.tar .ccache
+                            cp ccache.tar \${ccache_tar_file}
+                            cd -
+                            """
+                        }
+                    }
+                }
+                stage("Upload Proxy Cache") {
+                    when {
+                        expression { return update_proxy_cache }
+                    }
+                    steps {
+                        // /home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-amd64-linux-llvm
+                        sh """
+                        if 
+                        cache_source="/home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-amd64-linux-llvm"
+                        if [ -f \$cache_source ]; then
+                            echo "proxy cache found, skip upload proxy cache"
+                        else
+                            echo "proxy cache not found"
+                            cp ${WORKSPACE}/install/tiflash/libtiflash_proxy.so \$cache_source
+                        fi
+                        """
                     }
                 }
             }
