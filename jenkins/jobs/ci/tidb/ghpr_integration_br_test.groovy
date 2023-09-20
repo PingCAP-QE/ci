@@ -24,9 +24,13 @@ pipelineJob('tidb_ghpr_integration_br_test') {
                     whitelist('')
                     orgslist('pingcap')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
                         ghprbBranch { branch('^(release-)?5\\.[0-4]\\d*(\\.\\d+)?(\\-.*)?$') }
                         ghprbBranch { branch('^(release-)?6\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    }
+                    blackListTargetBranches {
+                        ghprbBranch { branch('master') }
+                        ghprbBranch { branch('^(release-)?5\\.[3-4]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?6\\.[1|5]\\d*(\\.\\d+)?(\\-.*)?$') }
                         ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
