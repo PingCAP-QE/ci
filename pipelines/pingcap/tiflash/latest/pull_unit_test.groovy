@@ -45,25 +45,27 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                dir("tiflash") {
-                    retry(2) {
-                        script {
-                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                container("jnlp") {
+                    dir("tiflash") {
+                        retry(2) {
+                            script {
+                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                                    retry(2) {
+                                        prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                                    }
                                 }
-                            }
-                            cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                    sh ''
-                                    sh """
-                                    git submodule update --init --recursive
-                                    git status
-                                    git show --oneline -s
-                                    """
-                            }
-                            dir("contrib/tiflash-proxy") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
+                                cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
+                                        sh ''
+                                        sh """
+                                        git submodule update --init --recursive
+                                        git status
+                                        git show --oneline -s
+                                        """
+                                }
+                                dir("contrib/tiflash-proxy") {
+                                    proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                                    println "proxy_commit_hash: ${proxy_commit_hash}"
+                                }
                             }
                         }
                     }
