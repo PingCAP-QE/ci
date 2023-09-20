@@ -71,7 +71,7 @@ def get_hash_main(args):
         hash = args.version
     elif args.source == 'fileserver':
         hash = get_hash_by_branch_from_fileserver(args.repo, args.version, args.s)
-    elif 'nightly' == args.version or 'alpha' in args.version:
+    elif args.source != 'github' and ('nightly' == args.version or 'alpha' in args.version):
         hash = get_hash_by_branch_from_fileserver(args.repo, args.version, args.s)
     elif args.version == 'v5.0.0-nightly':
         hash = get_hash_by_branch_from_github(args.repo, "release-5.0")
@@ -93,6 +93,8 @@ def main(args):
         raise ValueError("no repo is given")
     if args.version is None:
         raise ValueError("no version given")
+    if args.source not in ['fileserver', 'github', None]:
+        raise ValueError("bad source given")
     hash = get_hash_main(args)
     print(hash)
 
