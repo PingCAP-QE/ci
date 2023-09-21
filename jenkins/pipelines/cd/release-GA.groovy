@@ -110,6 +110,7 @@ try {
                                     parameters: [
                                         [$class: 'StringParameterValue', name: 'ReleaseTag', value: "${RELEASE_TAG}"],
                                     ]
+                            }
                         }
                         parallel publishs
                     }
