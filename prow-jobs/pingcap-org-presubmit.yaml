@@ -1,5 +1,5 @@
 presubmits:
-  pingcap/tidb:
+  PingCAP-QE/ci:
     - name: pull-auto-label
       decorate: true # need add this.
       decoration_config:
@@ -7,18 +7,18 @@ presubmits:
       skip_report: true
       optional: true
       branches:
-        - ^master$
-        - ^release-.*$
+        - ^main$
       spec:
         nodeSelector:
           kubernetes.io/arch: amd64
         containers:
           - name: ghcli
             image: maniator/gh:latest
-            command: [bash, -exec]
+            command: [sh, -exec]
             volumeMounts:
               - name: ghtoken
                 mountPath: /share/ghtoken
+                subPath: token
                 readOnly: true
             args:
               - |
