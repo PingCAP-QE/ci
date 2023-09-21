@@ -19,7 +19,8 @@ def org_repo_parse(repo):
             "tikv": "tikv",
             "importer": "tikv",
             "pd": "tikv",
-            "TiBigData": "tidb-incubator"
+            "TiBigData": "tidb-incubator",
+            "enterprise-plugin":"pingcap-inc",
         }
         org = repo_org_mapping.get(repo, "pingcap")
         return (org, repo)
@@ -60,7 +61,8 @@ def get_hash_by_pr_from_github(repo, pr):
 
 
 def get_hash_by_branch_from_fileserver(repo, branch, fileserver):
-    urlstr = fileserver + "/download/refs/pingcap/" + repo + "/" + branch + "/sha1"
+    org,repo = org_repo_parse(repo)
+    urlstr = "%s/download/refs/%s/%s/%s/sha1" %(fileserver, org, repo, branch)
     req = urllib2.Request(urlstr)
     response = urllib2.urlopen(req)
     return response.read().decode().strip()
@@ -96,7 +98,7 @@ def main(args):
     if args.source not in ['fileserver', 'github', None]:
         raise ValueError("bad source given")
     hash = get_hash_main(args)
-    print(hash)
+    print(hash, end='')
 
 
 if __name__ == "__main__":

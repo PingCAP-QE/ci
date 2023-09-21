@@ -303,7 +303,7 @@ repo = "git@github.com:pingcap/${REPO}.git"
 if (REPO == "tikv" || REPO == "importer" || REPO == "pd") {
     repo = "git@github.com:tikv/${REPO}.git"
 }
-if (REPO == "tiem") {
+if (REPO == "tiem" || REPO == "enterprise-plugin") {
     repo = "git@github.com:pingcap-inc/${REPO}.git"
 }
 if (GITHUB_REPO){
