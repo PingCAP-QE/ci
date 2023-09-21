@@ -205,15 +205,26 @@ pipeline {
                         if (fileExists(cache_source)) {
                             echo "proxy cache found"
                             proxy_cache_ready = true
-                            dir("tiflash") {
-                                sh """
-                                cp ${cache_source} libtiflash_proxy.so
-                                chmod +x libtiflash_proxy.so
-                                """
-                            }
                         } else {
                             echo "proxy cache not found"
                         }
+                        sh label: "copy proxy if exist", script: """
+                        proxy_suffix="amd64-linux-llvm"
+                        proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
+                        if [ -f \$proxy_cache_file ]; then
+                            echo "proxy cache found"
+                            mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                        else
+                            echo "proxy cache not found"
+                        fi
+                        """
+                    }   
+                    }
+                }
+                stage("Cargo-Cache") {
+                    steps {
                         sh label: "link cargo cache", script: """
                             mkdir -p ~/.cargo/registry
                             mkdir -p ~/.cargo/git
@@ -234,7 +245,6 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
-                    }   
                     }
                 }
             }

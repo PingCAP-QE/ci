@@ -213,6 +213,11 @@ pipeline {
                             echo "proxy cache not found"
                         fi
                         """
+                    } 
+                    }
+                }
+                stage("Cargo-Cache") {
+                    steps {
                         sh label: "link cargo cache", script: """
                             mkdir -p ~/.cargo/registry
                             mkdir -p ~/.cargo/git
@@ -233,7 +238,6 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
-                    }   
                     }
                 }
             }

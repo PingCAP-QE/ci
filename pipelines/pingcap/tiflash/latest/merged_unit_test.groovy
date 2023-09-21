@@ -14,12 +14,139 @@ Boolean update_proxy_cache = true
 Boolean update_ccache = true
 String proxy_commit_hash = null
 
+podYaml = """
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: jnlp
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
+    - name: runner
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "cat"
+      tty: true
+      resources:
+        requests:
+          memory: 32Gi
+          cpu: "12"
+        limits:
+          memory: 32Gi
+          cpu: "12"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+  volumes:
+    - name: "volume-0"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/rust"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-2"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/dependency"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-1"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/ccache"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-4"
+      nfs:
+        path: "/data/nvme1n1/nfs/git"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-5"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-6"
+      emptyDir: {}
+    - name: "volume-7"
+      emptyDir:
+        medium: Memory
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
+"""
+
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            // yamlFile POD_TEMPLATE_FILE
+            yaml podYaml
             defaultContainer 'runner'
+            slaveConnectTimeout 10
+            retries 5
+            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
@@ -47,29 +174,49 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                container("jnlp") {
-                    dir("tiflash") {
-                        script {
-                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
-                                }
-                            }
-                            cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                    sh ''
-                                    sh """
-                                    git submodule update --init --recursive
-                                    git status
-                                    git show --oneline -s
-                                    """
-                            }
-                            dir("contrib/tiflash-proxy") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
-                            }
+                dir("tiflash") {
+                    // script {
+                    //     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    //         retry(2) {
+                    //             prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                    //         }
+                    //     }
+                    //     cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
+                    //             sh ''
+                    //             sh """
+                    //             git submodule update --init --recursive
+                    //             git status
+                    //             git show --oneline -s
+                    //             """
+                    //     }
+                    //     dir("contrib/tiflash-proxy") {
+                    //         proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                    //         println "proxy_commit_hash: ${proxy_commit_hash}"
+                    //     }
+                    // }
+                    script {
+                        sh """
+                        pwd
+                        cp -R /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz ./
+                        tar -xzf /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz --strip-components=1
+                        rm -f src-tics.tar.gz
+                        git reset --hard
+                        git clean -ffdx
+                        # git clone https://github.com/pingcap/tiflash.git .
+                        git status
+                        git pull origin master
+                        git pull
+                        git submodule update --init --recursive
+                        git status
+
+                        git show --oneline -s
+                        """
+                        dir("contrib/tiflash-proxy") {
+                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                            println "proxy_commit_hash: ${proxy_commit_hash}"
                         }
-                    }
-                }  
+                    } 
+                }
             }
         }
         stage("Prepare tools") {
@@ -164,10 +311,9 @@ pipeline {
                     steps {
                     script { 
                         dir("tiflash") {
-                            // /home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar
                             sh label: "copy ccache if exist", script: """
                             pwd
-                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-cov-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
@@ -195,7 +341,7 @@ pipeline {
                 }
                 stage("Proxy-Cache") {
                     when {
-                        expression { return fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm") }
+                        expression { return fileExists("/home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-amd64-linux-llvm") }
                     }
                     steps {
                     script {
@@ -209,11 +355,12 @@ pipeline {
                         // /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
-                        proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
+                        proxy_cache_file="/home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-\${proxy_suffix}"
                         if [ -f \$proxy_cache_file ]; then
                             echo "proxy cache found"
-                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libtiflash_proxy.so
-                            chmod +x ${WORKSPACE}/tiflash/libtiflash_proxy.so
+                            mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                         else
                             echo "proxy cache not found"
                         fi
@@ -370,7 +517,7 @@ pipeline {
                     steps {
                         dir("${WORKSPACE}/tiflash") {
                             sh """
-                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-cov-failpoints.tar"
                             cd /tmp
                             rm -rf ccache.tar
                             tar -cf ccache.tar .ccache
@@ -385,9 +532,7 @@ pipeline {
                         expression { return update_proxy_cache }
                     }
                     steps {
-                        // /home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-amd64-linux-llvm
                         sh """
-                        if 
                         cache_source="/home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-amd64-linux-llvm"
                         if [ -f \$cache_source ]; then
                             echo "proxy cache found, skip upload proxy cache"
@@ -439,6 +584,14 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
+                    if ! command -v lcov &> /dev/null; then
+                        echo "lcov not found! Installing..."
+                        rpm -i /home/jenkins/agent/dependency/lcov-1.15-1.noarch.rpm
+                        which lcov
+                        which genhtml
+                    else
+                        echo "lcov is already installed!"
+                    fi
                     llvm-profdata merge -sparse /tiflash/profile/*.profraw -o /tiflash/profile/merged.profdata
                     
                     export LD_LIBRARY_PATH=.
@@ -457,61 +610,24 @@ pipeline {
                     mkdir -p /tiflash/report
                     genhtml /tiflash/profile/lcov.info -o /tiflash/report/ --ignore-errors source
 
-                    # llvm-cov show \\
-                    #     /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
-                    #     --instr-profile /tiflash/profile/merged.profdata \\
-                    #     --ignore-filename-regex "/usr/include/.*" \\
-                    #     --ignore-filename-regex "/usr/local/.*" \\
-                    #     --ignore-filename-regex "/usr/lib/.*" \\
-                    #     --ignore-filename-regex ".*/contrib/.*" \\
-                    #     --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
-                    #     --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                    #     > /tiflash/profile/coverage.txt
-
-                    pushd /tiflash
-                        tar -czf coverage-report.tar.gz report
-                        mv coverage-report.tar.gz ${WORKSPACE}
-                    popd
-
-                    SOURCE_DELTA=\$(cat .git-diff-names)
-                    echo '### Coverage for changed files' > ${WORKSPACE}/diff-coverage
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-
-                    if [[ -z \$SOURCE_DELTA ]]; then
-                        echo 'no c/c++ source change detected' >> ${WORKSPACE}/diff-coverage
-                    else
-                        llvm-cov report /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon -instr-profile /tiflash/profile/merged.profdata \$SOURCE_DELTA > "/tiflash/profile/diff-for-delta"
-                        if [[ \$(wc -l "/tiflash/profile/diff-for-delta" | awk -e '{printf \$1;}') -gt 32 ]]; then
-                            echo 'too many lines from llvm-cov, please refer to full report instead' >> ${WORKSPACE}/diff-coverage
-                        else
-                            cat /tiflash/profile/diff-for-delta >> ${WORKSPACE}/diff-coverage
-                        fi
-                    fi
-
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-                    echo '' >> ${WORKSPACE}/diff-coverage
-                    echo '### Coverage summary' >> ${WORKSPACE}/diff-coverage
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-                    llvm-cov report \\
-                        --summary-only \\
-                        --show-region-summary=false \\
-                        --show-branch-summary=false \\
+                    llvm-cov show \\
+                        /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
+                        --instr-profile /tiflash/profile/merged.profdata \\
                         --ignore-filename-regex "/usr/include/.*" \\
                         --ignore-filename-regex "/usr/local/.*" \\
                         --ignore-filename-regex "/usr/lib/.*" \\
                         --ignore-filename-regex ".*/contrib/.*" \\
                         --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
                         --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                        /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon -instr-profile /tiflash/profile/merged.profdata | \\
-                        grep -E "^(TOTAL|Filename)" | \\
-                        cut -d" " -f2- | sed -e 's/^[[:space:]]*//' | sed -e 's/Missed\\ /Missed/g' | column -t >> ${WORKSPACE}/diff-coverage
-                    echo '```' >> ${WORKSPACE}/diff-coverage
-                    echo '' >> ${WORKSPACE}/diff-coverage
+                        > /tiflash/profile/coverage.txt
+
+                    pushd /tiflash
+                        tar -czf coverage-report.tar.gz report
+                        mv coverage-report.tar.gz ${WORKSPACE}
+                    popd
                     """
                 }
-
-                archiveArtifacts artifacts: "/tiflash/profile/lcov.info", allowEmptyArchive: true
-                archiveArtifacts artifacts: "${WORKSPACE}/diff-coverage/**", allowEmptyArchive: true
+                archiveArtifacts artifacts: "/tiflash/profile/**", allowEmptyArchive: true
                 archiveArtifacts artifacts: "/tiflash/report/**", allowEmptyArchive: true
             }
         }
