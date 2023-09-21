@@ -62,7 +62,6 @@ def get_hash_by_pr_from_github(repo, pr):
 
 def get_hash_by_branch_from_fileserver(repo, branch, fileserver):
     urlstr = "%s/download/refs/pingcap/%s/%s/sha1" %(fileserver, repo, branch)
-    print(urlstr)
     req = urllib2.Request(urlstr)
     response = urllib2.urlopen(req)
     return response.read().decode().strip()
