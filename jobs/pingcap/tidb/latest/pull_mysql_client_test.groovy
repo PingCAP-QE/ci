@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/pull_mysql_connector_test') {
+pipelineJob('pingcap/tidb/pull_mysql_client_test') {
     logRotator {
         daysToKeep(30)
     }
