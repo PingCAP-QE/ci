@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/pull_mysql_client_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/latest/pull_mysql_connector_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/latest/pull_mysql_client_test.groovy')
             scm {
                 git{
                     remote {
