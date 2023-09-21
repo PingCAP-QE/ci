@@ -1,0 +1,34 @@
+presubmits:
+  pingcap/tidb:
+    - name: pull-auto-label
+      decorate: true # need add this.
+      decoration_config:
+        skip_cloning: true
+      skip_report: true
+      optional: true
+      branches:
+        - ^master$
+        - ^release-.*$
+      spec:
+        nodeSelector:
+          kubernetes.io/arch: amd64
+        containers:
+          - name: ghcli
+            image: maniator/gh:latest
+            command: [bash, -exec]
+            volumeMounts:
+              - name: ghtoken
+                mountPath: /share/ghtoken
+                readOnly: true
+            args:
+              - |
+                gh auth login --with-token < /share/ghtoken
+                gh pr edit https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${PULL_NUMBER} --add-label "ok-to-test" --remove-label "needs-ok-to-test"
+            resources:
+              limits:
+                memory: 1Gi
+                cpu: "500m"
+        volumes:
+          - name: ghtoken
+            secret:
+              secretName: ghtoken
