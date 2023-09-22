@@ -18,6 +18,10 @@
 * @DEBUG_MODE
 */
 
+// tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
+final TIUP_VERSION = 'v1.8.1'
+final ETCDCTL_VERSION = 'v3.3.10'
+
 def get_hash = { hash_or_branch, repo ->
     if (DEBUG_MODE == "true") {
         return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_BRANCH} -source=github").trim()
@@ -264,12 +268,11 @@ def update_ctl = { version, os, arch ->
         """
     }
 
-    // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
     sh """
     mkdir -p tiup/components/ctl
-    curl -L http://fileserver.pingcap.net/download/tiup/releases/v1.8.1/tiup-v1.8.1-${os}-${arch}.tar.gz | tar -C tiup/components/ctl -xz bin/tiup-ctl
+    curl -L http://fileserver.pingcap.net/download/tiup/releases/${TIUP_VERSION}/tiup-${TIUP_VERSION}-${os}-${arch}.tar.gz | tar -C tiup/components/ctl -xz bin/tiup-ctl
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
-    curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-${os}-${arch}.tar.gz | tar xz
+    curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-${ETCDCTL_VERSION}-${os}-${arch}.tar.gz | tar xz
     mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
     tiup package \$(ls ctls) -C ctls --name=ctl --release=${version} --entry=ctl --os=${os} --arch=${arch} --desc="${ctl_desc}"
     tiup tiup:nightly mirror publish ctl ${tidb_version} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
