@@ -39,6 +39,18 @@ presubmits:
       rerun_command: "/test cdc-integration-storage-test"
       branches:
         - ^master$
+    - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: pull-cdc-integration-pulsar-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test|all)(?: .*?)?$"
+      rerun_command: "/test cdc-integration-pulsar-test"
+      branches:
+        - ^master$
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
