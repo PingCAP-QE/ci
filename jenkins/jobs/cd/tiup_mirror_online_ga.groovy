@@ -25,85 +25,24 @@ pipelineJob('tiup-mirror-online-ga') {
         disableConcurrentBuilds{}
     }
     parameters {
-        stringParam {
-            name('RELEASE_TAG')
-            defaultValue('nightly')
-            trim(false)
-        }
-        stringParam {
-            name('TIUP_MIRRORS')
-            defaultValue('http://tiup.pingcap.net:8987')
-            trim(false)
-        }
-        stringParam {
-            name('TIDB_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('TIKV_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('PD_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('BINLOG_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('CDC_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('DM_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('BR_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('DUMPLING_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('TIFLASH_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('TIDB_CTL_HASH')
-            trim(false)
-        }
-        stringParam {
-            name('RELEASE_BRANCH')
-            trim(false)
-        }
-        stringParam {
-            name('TIUP_ENV')
-            description('prod or staging')
-            defaultValue('prod')
-            trim(false)
-        }
-        booleanParam {
-            name('ARCH_ARM')
-            defaultValue(true)
-        }
-        booleanParam {
-            name('ARCH_X86')
-            defaultValue(true)
-        }
-        booleanParam {
-            name('ARCH_MAC')
-            defaultValue(true)
-        }
-        booleanParam {
-            name('ARCH_MAC_ARM')
-            defaultValue(true)
-        }
-        booleanParam {
-            name('DEBUG_MODE')
-            defaultValue(false)
-        }
+        stringParam('RELEASE_TAG', 'nightly', '')
+        stringParam ('TIUP_MIRRORS','http://tiup.pingcap.net:8987', '')
+        stringParam('TIDB_HASH', '', '')
+        stringParam('TIKV_HASH', '', '')
+        stringParam('PD_HASH', '', '')
+        stringParam('BINLOG_HASH', '', '')
+        stringParam('CDC_HASH', '', '')
+        stringParam('DM_HASH', '', '')
+        stringParam('BR_HASH', '', '')
+        stringParam('DUMPLING_HASH', '', '')
+        stringParam('TIFLASH_HASH', '', '')
+        stringParam('TIDB_CTL_HASH', '', '')
+        stringParam('RELEASE_BRANCH', '', '')
+        stringParam ('TIUP_ENV', 'prod', 'prod or staging')
+        booleanParam('ARCH_ARM', true, '')
+        booleanParam('ARCH_X86', true, '')
+        booleanParam('ARCH_MAC', true, '')
+        booleanParam('ARCH_MAC_ARM', true, '')
+        booleanParam('DEBUG_MODE', false, '')
     }
 }
