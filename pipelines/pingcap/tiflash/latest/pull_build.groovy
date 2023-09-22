@@ -18,6 +18,9 @@ pipeline {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
+            slaveConnectTimeout 10
+            retries 5
+            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
@@ -196,18 +199,13 @@ pipeline {
 
                 }
                 stage("Proxy-Cache") {
+                    when {
+                        expression { return fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm") }
+                    }
+                    proxy_cache_ready = true
+                    echo "proxy cache found"
                     steps {
                     script {
-                        def proxy_suffix = "amd64-linux-llvm"
-                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                        // TODO: need to refactor this part, use shell script to do the job
-                        // cache proxy lib by pvc or nfs or fileserver ?
-                        if (fileExists(cache_source)) {
-                            echo "proxy cache found"
-                            proxy_cache_ready = true
-                        } else {
-                            echo "proxy cache not found"
-                        }
                         sh label: "copy proxy if exist", script: """
                         proxy_suffix="amd64-linux-llvm"
                         proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
