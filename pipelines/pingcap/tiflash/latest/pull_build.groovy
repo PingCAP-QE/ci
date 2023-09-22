@@ -166,31 +166,27 @@ pipeline {
                 stage("Ccache") {
                     steps {
                     script { 
-                        // TODO: need adjust "master" against different target branch
-                        def ccache_tag = "tiflash-amd64-linux-llvm-debug-master-failpoints"
-                        def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
                         dir("tiflash") {
-                            // TODO: need to refactor this part, use shell script to do the job
-                            // pass the ccache_source & cache_source to shell script by env
-                            if (fileExists(ccache_source)) {
+                            sh label: "copy ccache if exist", script: """
+                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
-                                sh """
                                 cd /tmp
-                                cp ${ccache_source} ccache.tar
+                                cp -r \$ccache_tar_file ccache.tar
                                 tar -xf ccache.tar
-                                cd -
-                                """
-                            } else {
+                                ls -lha /tmp
+                            else
                                 echo "ccache not found"
-                            }
-                            sh """
+                            fi
+                            """
+                            sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
                             ccache -o limit_multiple=0.99
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=false
+                            ccache -o read_only=true
                             ccache -z
                             """
                         }
@@ -247,28 +243,6 @@ pipeline {
                 }
             }
         }
-        stage("Build Dependency and Utils") {
-            parallel {
-                stage("Cluster Manage") { 
-                    steps {
-                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                    echo "cluster_manager is deprecated"
-                    }
-
-                }
-                stage("TiFlash Proxy") {
-                    steps {
-                        script {
-                            if (proxy_cache_ready) {
-                                echo "skip becuase of cache"
-                            } else {
-                                echo "proxy cache not ready"
-                            }
-                        }
-                    }
-                }
-            }
-        }
         stage("Configure Project") {
             steps {
                 script {
@@ -317,7 +291,7 @@ pipeline {
         stage("Format Check") {
             steps {
                 script { 
-                    def target_branch = "master"  // TODO: need to adjust target branch
+                    def target_branch = REFS.base_ref  // TODO: need to adjust target branch
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
                         echo "skipped because this branch does not support format"

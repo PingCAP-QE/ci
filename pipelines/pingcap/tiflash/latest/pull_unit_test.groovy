@@ -168,7 +168,6 @@ pipeline {
                     script {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
-                            pwd
                             ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
@@ -239,27 +238,6 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
-                    }
-                }
-            }
-        }
-        stage("Build Dependency and Utils") {
-            parallel {
-                stage("Cluster Manage") { 
-                    steps {
-                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                    echo "cluster_manager is deprecated"
-                    }
-                }
-                stage("TiFlash Proxy") {
-                    steps {
-                        script {
-                        if (proxy_cache_ready) {
-                            echo "skip becuase of cache"
-                        } else {
-                            echo "proxy cache not ready"
-                        }
-                        }
                     }
                 }
             }
