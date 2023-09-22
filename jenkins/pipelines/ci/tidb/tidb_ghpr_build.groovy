@@ -46,18 +46,8 @@ if (ghprbPullId != null && ghprbPullId != "") {
     specStr = "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*"
 }
 
-GO_VERSION = "go1.18"
 ALWAYS_PULL_IMAGE = true
 RESOURCE_REQUEST_CPU = '4000m'
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "release-6.2": "hub.pingcap.net/wangweizhen/tidb_image:20220823",
-    "master": "hub.pingcap.net/wangweizhen/tidb_image:go12120230809",
-]
 VOLUMES = [
     // TODO use s3 cache instead of nfs
     nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
@@ -65,33 +55,21 @@ VOLUMES = [
     emptyDirVolume(mountPath: '/tmp', memory: false),
 ]
 
-def user_bazel(branch) {
-    if (branch in ["master"] || 
-        branch.matches("^feature[/_].*") /* feature branches */ || 
-        (branch.startsWith("release-") && branch >= "release-6.2")) {
-        return GO_IMAGE_MAP["master"]
-    }
-    return ""
-}
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
-node("master") {      
-    image = user_bazel(ghprbTargetBranch)
-    if (image != "") {
-        POD_GO_IMAGE = image
-        ALWAYS_PULL_IMAGE = false
-        RESOURCE_REQUEST_CPU = '2000m'
-    } else {
-        deleteDir()
-        def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
-        sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
-        def goversion_lib = load('goversion-select-lib.groovy')
-        GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-        VOLUMES.add(emptyDirVolume(mountPath: '/home/jenkins', memory: false))
-        POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
-    }
-
+node("master") {
+    deleteDir()
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
 def taskStartTimeInMillis = System.currentTimeMillis()
@@ -210,25 +188,11 @@ try {
                     container("golang") {
                         dir("go/src/github.com/pingcap/tidb") {
                             timeout(10) {
-                                if (user_bazel(ghprbTargetBranch) != "")  {
-                                    sh """
-                                    if make bazel_build; then
-                                        touch importer.done
-                                        touch tidb-server-check.done
-                                    else 
-                                        touch importer.fail
-                                        touch tidb-server-check.fail
-                                        exit 1
-                                    fi
-                                    """
-                                } else {
-                                    sh """
-                                    nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
-                                    nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
-                                    make
-                                    """
-                                }
-
+                                sh """
+                                nohup bash -c "if make importer ;then touch importer.done;else touch importer.fail; fi"  > importer.log &
+                                nohup bash -c "if WITH_CHECK=1 make TARGET=bin/tidb-server-check ;then touch tidb-server-check.done;else touch tidb-server-check.fail; fi" > tidb-server-check.log &
+                                make
+                                """
                                 waitUntil{
                                     (fileExists('importer.done') || fileExists('importer.fail')) && (fileExists('tidb-server-check.done') || fileExists('tidb-server-check.fail'))
                                 }

@@ -104,6 +104,9 @@ spec:
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/qa/$Product:$Version-$BUILD_NUMBER"
+                        if (params.Features != ""){
+                            error "hotfix artifact but with extra features"
+                        }
                         ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version"
                         BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
                         BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
@@ -326,7 +329,7 @@ spec:
                     if (params.IsPushGCR.toBoolean()){
                         dev_build["status"]["buildReport"]["images"].add(["platform":"multi-arch", "url":ImageForGcr])
                     }
-                    node("mac"){
+                    node("light_curl"){
                         writeJSON file:"status.json", json: dev_build
                         sh "curl -X PUT 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID' -d @status.json"
                     }
@@ -336,7 +339,7 @@ spec:
         unsuccessful{
             script{
                 if (TiBuildID!=""){
-                    node("mac"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
+                    node("light_curl"){sh "curl 'https://tibuild.pingcap.net/api/devbuilds/$TiBuildID?sync=true'"}
                 }
             }
         }

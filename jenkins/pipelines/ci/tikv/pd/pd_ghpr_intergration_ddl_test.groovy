@@ -104,10 +104,10 @@ try {
 
                 container("golang") {
                 	println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
-                    dir("go/src/github.com/pingcap/tidb-test") {
-                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
+                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                         def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
                         def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
@@ -159,7 +159,7 @@ try {
                         }
                     }
 
-                    dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                         try {
                             timeout(20) {
                                 sh """
@@ -186,7 +186,7 @@ try {
                                     export DDLTEST_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/ddltest
                                 fi
                                 TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
-                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
+                                GO111MODULE=off GOPATH=${ws}/go/src/github.com/PingCAP-QE/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
                                 """
                             }
                         } catch (err) {

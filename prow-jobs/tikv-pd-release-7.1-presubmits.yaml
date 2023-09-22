@@ -9,7 +9,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
-        - ^release-7.[0-3](\.\d+(-\d+)?)?$
+        - ^release-7\.[0-3](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/release-7.1/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -18,4 +18,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-copr-test(?: .*?)?$"
       rerun_command: "/test integration-copr-test"
       branches:
-        - ^release-7.[0-3](\.\d+(-\d+)?)?$
+        - ^release-7\.[0-3](\.\d+)?(-\d+)?(-v[\.\d]+)?$

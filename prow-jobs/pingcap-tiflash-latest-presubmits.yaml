@@ -1,0 +1,25 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+presubmits:
+  pingcap/tiflash:
+    - name: pingcap/tiflash/pull_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-unit-test
+      skip_report: true # need change this after test pass.
+      optional: true # need change this after test pass.
+      trigger: "(?m)^/debug (?:.*? )?(unit-test)(?: .*?)?$"
+      rerun_command: "/debug unit-test"
+      branches:
+        - ^master$
+    - name: pingcap/tiflash/pull_build
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-build
+      skip_report: true # need change this after test pass.
+      optional: true # need change this after test pass.
+      trigger: "(?m)^/debug (?:.*? )?(build)(?: .*?)?$"
+      rerun_command: "/debug build"
+      branches:
+        - ^master$

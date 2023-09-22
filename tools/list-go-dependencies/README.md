@@ -13,5 +13,8 @@ go run . -github-token="<your-github-private-token>" -mod-file="<path of go.mod 
 - [x] List licenses.
 - [x] Get star count.
 - [x] Get forks count.
+- [X] Get count of imports modules.
+- [x] Get count of imported by modules.
 - [x] Get latest updated date.
+- [X] Get Line of codes (exclude blank and comment lines)
 - [x] Judge it's owned by person or by orgnaization.

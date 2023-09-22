@@ -49,10 +49,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -66,8 +66,8 @@ pipeline {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
                             """
@@ -128,7 +128,7 @@ pipeline {
                                             echo "TEST_SCRIPT=\${TEST_SCRIPT}"
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
+                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"

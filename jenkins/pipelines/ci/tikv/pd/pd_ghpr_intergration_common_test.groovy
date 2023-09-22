@@ -119,10 +119,10 @@ try {
                         }
                     }
 
-                    dir("go/src/github.com/pingcap/tidb-test") {
-                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
+                        def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                        def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                         timeout(30) {
                             sh """
@@ -138,11 +138,11 @@ try {
                     }
                 }
 
-                stash includes: "go/src/github.com/pingcap/tidb-test/_helper.sh", name: "helper"
-                stash includes: "go/src/github.com/pingcap/tidb-test/tidb_test/**", name: "tidb_test"
-                stash includes: "go/src/github.com/pingcap/tidb-test/randgen-test/**", name: "randgen-test"
-                stash includes: "go/src/github.com/pingcap/tidb-test/go-sql-test/**", name: "go-sql-test"
-                stash includes: "go/src/github.com/pingcap/tidb-test/go.*,go/src/github.com/pingcap/tidb-test/util/**,go/src/github.com/pingcap/tidb-test/bin/**", name: "tidb-test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/_helper.sh", name: "helper"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/tidb_test/**", name: "tidb_test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/randgen-test/**", name: "randgen-test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/go-sql-test/**", name: "go-sql-test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/go.*,go/src/github.com/PingCAP-QE/tidb-test/util/**,go/src/github.com/PingCAP-QE/tidb-test/bin/**", name: "tidb-test"
             }
         }
 
@@ -169,11 +169,11 @@ try {
                         }
                     }
 
-                    dir("go/src/github.com/pingcap/tidb-test") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
                         container("golang") {
-                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                            def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                             def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                            def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                            def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                             timeout(30) {
                                 sh """
@@ -190,10 +190,10 @@ try {
                     }
                 }
 
-                stash includes: "go/src/github.com/pingcap/tidb-test/_vendor/**", name: "tidb-test-vendor"
-                stash includes: "go/src/github.com/pingcap/tidb-test/mysql_test/**", name: "mysql_test"
-                stash includes: "go/src/github.com/pingcap/tidb-test/analyze_test/**", name: "analyze_test"
-                stash includes: "go/src/github.com/pingcap/tidb-test/gorm_test/**", name: "gorm_test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/_vendor/**", name: "tidb-test-vendor"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/mysql_test/**", name: "mysql_test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/analyze_test/**", name: "analyze_test"
+                stash includes: "go/src/github.com/PingCAP-QE/tidb-test/gorm_test/**", name: "gorm_test"
             }
         }
 
@@ -213,7 +213,7 @@ try {
                 unstash "helper"
                 unstash "${test_dir}"
 
-                dir("go/src/github.com/pingcap/tidb-test/${test_dir}") {
+                dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                     container("golang") {
                         def tidb_sha1 = sh(returnStdout: true, script: "curl ${tidb_refs}").trim()
                         def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"

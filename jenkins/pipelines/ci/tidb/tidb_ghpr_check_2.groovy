@@ -42,41 +42,21 @@ if (m2) {
 m2 = null
 println "PD_BRANCH=${PD_BRANCH}"
 
-GO_VERSION = "go1.19"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "master": "hub.pingcap.net/wangweizhen/tidb_image:go12120230809",
-]
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
-def user_bazel(branch) {
-    if (branch in ["master"] || branch.matches("^feature[/_].*") /* feature branches */ || 
-        (branch.startsWith("release-") && branch >= "release-6.2")) {
-        return GO_IMAGE_MAP["master"]
-    }
-    return ""
-}
-
-ALWAYS_PULL_IMAGE=true
 node("master") {
-    image = user_bazel(ghprbTargetBranch)
-    if (image != "") {
-        POD_GO_IMAGE = image
-        ALWAYS_PULL_IMAGE = false
-        RESOURCE_REQUEST_CPU = '2000m'
-    } else {
-        deleteDir()
-        def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib.groovy'
-        sh "curl -O --retry 3 --retry-delay 5 --retry-connrefused --fail ${goversion_lib_url}"
-        def goversion_lib = load('goversion-select-lib.groovy')
-        GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-        POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
-    }
+    deleteDir()
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
+    def goversion_lib = load('goversion-select-lib.groovy')
+    GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
 def taskStartTimeInMillis = System.currentTimeMillis()
@@ -84,6 +64,8 @@ def k8sPodReadyTime = System.currentTimeMillis()
 def taskFinishTime = System.currentTimeMillis()
 resultDownloadPath = ""
 ciErrorCode = 0
+
+ALWAYS_PULL_IMAGE = true
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
@@ -352,8 +334,8 @@ try {
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
                                     export TIDB_TEST_STORE_NAME="tikv"
-                                    chmod +x cmd/explaintest/run-tests.sh
-                                    cd cmd/explaintest && ls -alh
+                                    chmod +x tests/integrationtest/run-tests.sh
+                                    cd tests/integrationtest && ls -alh
                                     ./run-tests.sh -d y
                                     """
                                  } catch (Exception e){ 
@@ -363,7 +345,7 @@ try {
                                     sh "cat ${ws}/tikv2.log || true"
                                     sh "cat ${ws}/pd3.log || true"
                                     sh "cat ${ws}/tikv3.log || true"
-                                    sh "cat ${ws}/cmd/explaintest/explain-test.out || true"
+                                    sh "cat ${ws}/tests/integrationtest/integration-test.out || true"
                                     throw e
                                  } finally {
                                     sh """
@@ -417,8 +399,8 @@ try {
                                     export TIDB_SERVER_PATH=${ws}/bin/explain_test_tidb-server
                                     export TIKV_PATH=127.0.0.1:2379
                                     export TIDB_TEST_STORE_NAME="tikv"
-                                    chmod +x cmd/explaintest/run-tests.sh
-                                    cd cmd/explaintest && ls -alh
+                                    chmod +x tests/integrationtest/run-tests.sh
+                                    cd tests/integrationtest && ls -alh
                                     ./run-tests.sh -d n
                                     """
                                  } catch (Exception e){ 
@@ -428,7 +410,7 @@ try {
                                     sh "cat ${ws}/tikv2.log || true"
                                     sh "cat ${ws}/pd3.log || true"
                                     sh "cat ${ws}/tikv3.log || true"
-                                    sh "cat ${ws}/cmd/explaintest/explain-test.out || true"
+                                    sh "cat ${ws}/tests/integrationtest/integration-test.out || true"
                                     throw e
                                  } finally {
                                     sh """

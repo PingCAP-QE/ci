@@ -55,7 +55,7 @@ pipeline {
         stage('Check') {
             steps {
                 container('golang') {
-                    sh script: 'make gogenerate check explaintest -C tidb'
+                    sh script: 'make gogenerate check integrationtest -C tidb'
                 }
             }
         }
