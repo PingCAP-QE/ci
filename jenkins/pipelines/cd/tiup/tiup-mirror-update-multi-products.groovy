@@ -606,8 +606,8 @@ node("build_go1130") {
                         }
                 }
             }
-            if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") { 
-                stage("TiUP build tidb on darwin/arm64") {
+            stage("TiUP build tidb on darwin/arm64") {
+                if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") {
                     run_with_pod {
                             retry(3) { 
                                 deleteDir()
@@ -626,9 +626,10 @@ node("build_go1130") {
                                 update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                             }
                     }
+                }else{
+                    echo "skip for older version"
                 }
             }
-
         }
     }
 }
