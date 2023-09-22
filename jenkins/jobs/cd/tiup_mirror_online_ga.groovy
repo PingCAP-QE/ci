@@ -26,7 +26,7 @@ pipelineJob('tiup-mirror-online-ga') {
     }
     parameters {
         stringParam('RELEASE_TAG', 'nightly', '')
-        stringParam ('TIUP_MIRRORS','http://tiup.pingcap.net:8987', '')
+        stringParam('TIUP_MIRRORS','http://tiup.pingcap.net:8987', '')
         stringParam('TIDB_HASH', '', '')
         stringParam('TIKV_HASH', '', '')
         stringParam('PD_HASH', '', '')
@@ -38,7 +38,7 @@ pipelineJob('tiup-mirror-online-ga') {
         stringParam('TIFLASH_HASH', '', '')
         stringParam('TIDB_CTL_HASH', '', '')
         stringParam('RELEASE_BRANCH', '', '')
-        stringParam ('TIUP_ENV', 'prod', 'prod or staging')
+        stringParam('TIUP_ENV', 'prod', 'prod or staging')
         booleanParam('ARCH_ARM', true, '')
         booleanParam('ARCH_X86', true, '')
         booleanParam('ARCH_MAC', true, '')

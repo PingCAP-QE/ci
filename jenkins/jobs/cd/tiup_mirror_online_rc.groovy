@@ -26,7 +26,7 @@ pipelineJob('tiup-mirror-online-rc') {
     }
     parameters {
         stringParam('RELEASE_TAG', 'nightly', '')
-        stringParam ('TIUP_MIRRORS','http://172.16.5.139:8988', '')
+        stringParam('TIUP_MIRRORS','http://172.16.5.139:8988', '')
         stringParam('TIDB_HASH', '', '')
         stringParam('TIKV_HASH', '', '')
         stringParam('PD_HASH', '', '')
@@ -38,7 +38,7 @@ pipelineJob('tiup-mirror-online-rc') {
         stringParam('TIFLASH_HASH', '', '')
         stringParam('TIDB_CTL_HASH', '', '')
         stringParam('RELEASE_BRANCH', '', '')
-        stringParam ('TIUP_ENV', 'staging', 'prod or staging')
+        stringParam('TIUP_ENV', 'staging', 'prod or staging')
         booleanParam('ARCH_ARM', true, '')
         booleanParam('ARCH_X86', true, '')
         booleanParam('ARCH_MAC', true, '')
