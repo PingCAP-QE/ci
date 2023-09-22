@@ -288,8 +288,7 @@ def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes"
     def namespace = "jenkins-cd"
-    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def pod_builder_image = 'hub.pingcap.net/jenkins/tiup'
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -297,8 +296,8 @@ def run_with_pod(Closure body) {
             nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
-                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            name: 'tiup', alwaysPullImage: true,
+                            image: "${pod_builder_image}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
@@ -310,10 +309,13 @@ def run_with_pod(Closure body) {
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
             ],
     ) {
-        node(label) {
+        node(label) { container("tiup"){
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
-        }
+            withCredentials([file(credentialsId: 'tiup-prod-key', variable: 'TIUPKEY_JSON')]) {
+                sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
+                body()
+            }
+        }}
     }
 }
 
@@ -325,13 +327,6 @@ node("build_go1130") {
             stage("Prepare") {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 deleteDir()
-            }
-
-            checkout scm
-            def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
-
-            stage("Install tiup") {
-                util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
             }
 
             stage("Get component hash") {
@@ -414,7 +409,7 @@ node("build_go1130") {
             //     upload "package"
             // }
 
-            stage("TiUP build") {
+            stage("TiUP builds by products") {
                 builds = [:]
                 def paramsCDC = [
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
@@ -531,11 +526,8 @@ node("build_go1130") {
                 ]
                 stage("TiUP build grafana") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
                             build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
-                        } else {
                             build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
-                        }
                     }
                 }
                 def paramsPROMETHEUS = [
@@ -561,8 +553,6 @@ node("build_go1130") {
             }
             stage("TiUP build tidb on linux/amd64") {
                 run_with_pod {
-                    container("golang") { 
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
                             deleteDir()
                             sh """
@@ -578,13 +568,10 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "linux", "amd64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
                         }
-                    }
                 }
             }
             stage("TiUP build tidb on linux/arm64") {
                 run_with_pod {
-                    container("golang") { 
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
                             deleteDir()
                             sh """
@@ -600,13 +587,10 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "linux", "arm64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
                         }
-                    }
                 }
             }
             stage("TiUP build tidb on darwin/amd64") {
                 run_with_pod {
-                    container("golang") { 
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
                             deleteDir()
                             sh """
@@ -622,14 +606,11 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "darwin", "amd64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
                         }
-                    }
                 }
             }
             if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") { 
                 stage("TiUP build tidb on darwin/arm64") {
                     run_with_pod {
-                        container("golang") { 
-                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                             retry(3) { 
                                 deleteDir()
                                 sh """
@@ -645,7 +626,6 @@ node("build_go1130") {
                                 // update_ctl RELEASE_TAG, "darwin", "arm64"
                                 update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                             }
-                        }
                     }
                 }
             }

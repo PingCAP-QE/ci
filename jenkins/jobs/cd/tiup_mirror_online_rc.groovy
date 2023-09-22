@@ -32,7 +32,7 @@ pipelineJob('tiup-mirror-online-ga') {
         }
         stringParam {
             name('TIUP_MIRRORS')
-            defaultValue('http://tiup.pingcap.net:8987')
+            defaultValue('http://172.16.5.139:8988')
             trim(false)
         }
         stringParam {
@@ -82,7 +82,7 @@ pipelineJob('tiup-mirror-online-ga') {
         stringParam {
             name('TIUP_ENV')
             description('prod or staging')
-            defaultValue('prod')
+            defaultValue('staging')
             trim(false)
         }
         booleanParam {
