@@ -19,7 +19,8 @@ def org_repo_parse(repo):
             "tikv": "tikv",
             "importer": "tikv",
             "pd": "tikv",
-            "TiBigData": "tidb-incubator"
+            "TiBigData": "tidb-incubator",
+            "enterprise-plugin":"pingcap-inc",
         }
         org = repo_org_mapping.get(repo, "pingcap")
         return (org, repo)
@@ -96,7 +97,7 @@ def main(args):
     if args.source not in ['fileserver', 'github', None]:
         raise ValueError("bad source given")
     hash = get_hash_main(args)
-    print(hash)
+    print(hash, end='')
 
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ def get_sha() {
         """
     }
 
-    sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
+    sh "cp /gethash.py gethash.py"
     tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_BRANCH}").trim()
     enterprise_plugin_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=enterprise-plugin -version=${RELEASE_BRANCH}").trim()
     tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_BRANCH}").trim()
@@ -143,8 +143,7 @@ label = "${JOB_NAME}-${BUILD_NUMBER}"
 def run_with_pod(Closure body) {
     def cloud = "kubernetes"
     def namespace = "jenkins-cd"
-    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def pod_go_docker_image = 'hub.pingcap.net/jenkins/gethash:latest'
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -152,21 +151,17 @@ def run_with_pod(Closure body) {
             nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: false,
+                            name: 'gethash', alwaysPullImage: false,
                             image: "${pod_go_docker_image}", ttyEnabled: true,
-                            resourceRequestCpu: '8000m', resourceRequestMemory: '12Gi',
+                            resourceRequestCpu: '1000m', resourceRequestMemory: '2Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
 
                     )
             ],
-            volumes: [
-                    emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-            ],
     ) {
         node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} sh"
             body()
         }
     }
@@ -174,9 +169,11 @@ def run_with_pod(Closure body) {
 
 try {
     run_with_pod {
-        container("golang") {
+        container("gethash") {
             stage("get hash ${RELEASE_BRANCH} from github") {
-                get_sha()
+                withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+                    get_sha()
+                }
             }
             stage('Build') {
                 builds = [:]
