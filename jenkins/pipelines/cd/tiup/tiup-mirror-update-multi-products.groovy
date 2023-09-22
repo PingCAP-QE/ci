@@ -305,13 +305,15 @@ def run_with_pod(Closure body) {
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
             ],
     ) {
-        node(label) { container("tiup"){
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            withCredentials([file(credentialsId: 'tiup-prod-key', variable: 'TIUPKEY_JSON')]) {
-                sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
-                body()
+        node(label){
+            container("tiup"){
+                println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+                withCredentials([file(credentialsId: 'tiup-prod-key', variable: 'TIUPKEY_JSON')]) {
+                    sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
+                    body()
+                }
             }
-        }}
+        }
     }
 }
 
