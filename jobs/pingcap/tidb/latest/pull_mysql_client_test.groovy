@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/pull_mysql_connector_test') {
+pipelineJob('pingcap/tidb/pull_mysql_client_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/pull_mysql_connector_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/latest/pull_mysql_connector_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/latest/pull_mysql_client_test.groovy')
             scm {
                 git{
                     remote {
