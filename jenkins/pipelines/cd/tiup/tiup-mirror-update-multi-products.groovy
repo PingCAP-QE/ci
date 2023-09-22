@@ -224,15 +224,6 @@ def update = { name, version, hash, os, arch ->
 }
 
 def update_ctl = { version, os, arch ->
-    sh """
-    mkdir -p tiup
-    """
-    dir("tiup") {
-        dir("components/ctl") {
-            // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
-            sh "curl -L http://fileserver.pingcap.net/download/tiup/releases/v1.8.1/tiup-v1.8.1-${os}-${arch}.tar.gz | tar -xz bin/tiup-ctl"
-        }
-    }
 
     if (os == "linux") {
         platform = "centos7"
@@ -245,7 +236,6 @@ def update_ctl = { version, os, arch ->
         exit 1
         """
     }
-
 
     lightning_tarball_name = "br-${os}-${arch}.tar.gz"
     lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
@@ -274,7 +264,10 @@ def update_ctl = { version, os, arch ->
         """
     }
 
+    // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
     sh """
+    mkdir -p tiup/components/ctl
+    curl -L http://fileserver.pingcap.net/download/tiup/releases/v1.8.1/tiup-v1.8.1-${os}-${arch}.tar.gz | tar -C tiup/components/ctl -xz bin/tiup-ctl
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
     curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-${os}-${arch}.tar.gz | tar xz
     mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
@@ -623,7 +616,8 @@ node("build_go1130") {
                                 // if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
                                 //     update "dm", RELEASE_TAG, dm_sha1, "darwin", "amd64"
                                 // }
-                                // update_ctl RELEASE_TAG, "darwin", "arm64"
+                                // using self built etcdctl
+                                update_ctl RELEASE_TAG, "darwin", "arm64"
                                 update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                             }
                     }
