@@ -95,7 +95,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) { 
+                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) { 
                         // build cdc, pulsar_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
