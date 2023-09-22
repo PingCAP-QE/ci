@@ -264,20 +264,20 @@ try {
                                     """
                                 }
                             }
-                            dir("go/src/github.com/pingcap/enterprise-plugin") {
-                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PLUGIN_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: pluginSpec, url: 'git@github.com:pingcap/enterprise-plugin.git']]]
+                            dir("go/src/github.com/pingcap-inc/enterprise-plugin") {
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PLUGIN_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: pluginSpec, url: 'git@github.com:pingcap-inc/enterprise-plugin.git']]]
                                 githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                             }
-                            dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
+                            dir("go/src/github.com/pingcap-inc/enterprise-plugin/whitelist") {
                                 sh """
                                 GO111MODULE=on go mod tidy
-                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist
                                 """
                             }
-                            dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
+                            dir("go/src/github.com/pingcap-inc/enterprise-plugin/audit") {
                                 sh """
                                 GO111MODULE=on go mod tidy
-                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit
                                 """
                             }
                         }
