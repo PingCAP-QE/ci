@@ -137,13 +137,17 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
-                        }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
+                                    container("kafka") {
+                                        timeout(time: 6, unit: 'MINUTES') {
+                                            sh label: "Waiting for pulsar ready", script: """
+                                                echo "Waiting for pulsar to be ready..."
+                                                while ! nc -z localhost 6650; do sleep 10; done
+                                            """
+                                        }
+                                    }
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                         chmod +x ./tests/integration_tests/run_group.sh
