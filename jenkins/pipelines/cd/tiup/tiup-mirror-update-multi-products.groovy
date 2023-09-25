@@ -18,6 +18,10 @@
 * @DEBUG_MODE
 */
 
+// tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
+final TIUP_VERSION = 'v1.8.1'
+final ETCDCTL_VERSION = 'v3.3.10'
+
 def get_hash = { hash_or_branch, repo ->
     if (DEBUG_MODE == "true") {
         return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${RELEASE_BRANCH} -source=github").trim()
@@ -83,28 +87,28 @@ def pack = { name, version, os, arch ->
     if (name == "tidb") {
         sh """
         tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
-        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
+        tiup tiup:nightly mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
         """
     } else if (name == "tikv") {
         sh """
         mv bin/${name}-ctl ctls/
         tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
-        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
+        tiup tiup:nightly mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
         """
     } else if (name == "pd") {
         sh """
         mv bin/${name}-ctl ctls/
         tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
-        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
+        tiup tiup:nightly mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
         tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
-        tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
+        tiup tiup:nightly mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
         """
     } else if (name == 'tidb-binlog') {
         sh """
         tiup package pump -C bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
-        tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
+        tiup tiup:nightly mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
         tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
-        tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
+        tiup tiup:nightly mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
         mv bin/binlogctl ctls/
         """
     } else if (name == "tidb-ctl") {
@@ -192,9 +196,9 @@ def pack = { name, version, os, arch ->
         """
 
         sh """
-        tiup mirror publish ${name}-master ${tidb_version} package/${name}-master-${version}-${os}-${arch}.tar.gz ${name}-master/${name}-master --arch ${arch} --os ${os} --desc="${dm_master_desc}"
-        tiup mirror publish ${name}-worker ${tidb_version} package/${name}-worker-${version}-${os}-${arch}.tar.gz ${name}-worker/${name}-worker --arch ${arch} --os ${os} --desc="${dm_worker_desc}"
-        tiup mirror publish ${name}ctl ${tidb_version} package/${name}ctl-${version}-${os}-${arch}.tar.gz ${name}ctl/${name}ctl --arch ${arch} --os ${os} --desc="${dmctl_desc}"
+        tiup tiup:nightly mirror publish ${name}-master ${tidb_version} package/${name}-master-${version}-${os}-${arch}.tar.gz ${name}-master/${name}-master --arch ${arch} --os ${os} --desc="${dm_master_desc}"
+        tiup tiup:nightly mirror publish ${name}-worker ${tidb_version} package/${name}-worker-${version}-${os}-${arch}.tar.gz ${name}-worker/${name}-worker --arch ${arch} --os ${os} --desc="${dm_worker_desc}"
+        tiup tiup:nightly mirror publish ${name}ctl ${tidb_version} package/${name}ctl-${version}-${os}-${arch}.tar.gz ${name}ctl/${name}ctl --arch ${arch} --os ${os} --desc="${dmctl_desc}"
         """
     } else {
         sh """
@@ -203,7 +207,7 @@ def pack = { name, version, os, arch ->
 	}else{
 		tiup package ${name} -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
 	}
-        tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
+        tiup tiup:nightly mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
         """
     }
 
@@ -224,15 +228,6 @@ def update = { name, version, hash, os, arch ->
 }
 
 def update_ctl = { version, os, arch ->
-    sh """
-    mkdir -p tiup
-    """
-    dir("tiup") {
-        dir("components/ctl") {
-            // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
-            sh "curl -L http://fileserver.pingcap.net/download/tiup/releases/v1.8.1/tiup-v1.8.1-${os}-${arch}.tar.gz | tar -xz bin/tiup-ctl"
-        }
-    }
 
     if (os == "linux") {
         platform = "centos7"
@@ -245,7 +240,6 @@ def update_ctl = { version, os, arch ->
         exit 1
         """
     }
-
 
     lightning_tarball_name = "br-${os}-${arch}.tar.gz"
     lightning_ctl_bin_dir = "bin/tidb-lightning-ctl"
@@ -275,11 +269,13 @@ def update_ctl = { version, os, arch ->
     }
 
     sh """
+    mkdir -p tiup/components/ctl
+    curl -L http://fileserver.pingcap.net/download/tiup/releases/${TIUP_VERSION}/tiup-${TIUP_VERSION}-${os}-${arch}.tar.gz | tar -C tiup/components/ctl -xz bin/tiup-ctl
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
-    curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-${os}-${arch}.tar.gz | tar xz
+    curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-${ETCDCTL_VERSION}-${os}-${arch}.tar.gz | tar xz
     mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
     tiup package \$(ls ctls) -C ctls --name=ctl --release=${version} --entry=ctl --os=${os} --arch=${arch} --desc="${ctl_desc}"
-    tiup mirror publish ctl ${tidb_version} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
+    tiup tiup:nightly mirror publish ctl ${tidb_version} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
     rm -rf ctls
     """
 }
@@ -288,8 +284,7 @@ def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes"
     def namespace = "jenkins-cd"
-    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def pod_builder_image = 'hub.pingcap.net/jenkins/tiup'
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -297,8 +292,8 @@ def run_with_pod(Closure body) {
             nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
-                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            name: 'tiup', alwaysPullImage: true,
+                            image: "${pod_builder_image}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
@@ -310,9 +305,14 @@ def run_with_pod(Closure body) {
                     emptyDirVolume(mountPath: '/home/jenkins', memory: false)
             ],
     ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
+        node(label){
+            container("tiup"){
+                println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+                withCredentials([file(credentialsId: 'tiup-prod-key', variable: 'TIUPKEY_JSON')]) {
+                    sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
+                    body()
+                }
+            }
         }
     }
 }
@@ -325,13 +325,6 @@ node("build_go1130") {
             stage("Prepare") {
                 println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                 deleteDir()
-            }
-
-            checkout scm
-            def util = load "jenkins/pipelines/cd/tiup/tiup_utils.groovy"
-
-            stage("Install tiup") {
-                util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
             }
 
             stage("Get component hash") {
@@ -414,7 +407,7 @@ node("build_go1130") {
             //     upload "package"
             // }
 
-            stage("TiUP build") {
+            stage("TiUP builds by products") {
                 builds = [:]
                 def paramsCDC = [
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
@@ -428,7 +421,7 @@ node("build_go1130") {
 
                 ]
 
-                builds["TiUP build cdc"] = {
+                stage("TiUP build cdc") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: paramsCDC)
@@ -448,7 +441,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
 
-                builds["TiUP build br"] = {
+                stage("TiUP build br") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "br-tiup-mirror-update-test", wait: true, parameters: paramsBR)
@@ -467,7 +460,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build dumpling"] = {
+                stage("TiUP build dumpling") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: paramsDUMPLING)
@@ -488,7 +481,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build lightning"] = {
+                stage("TiUP build lightning") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: paramsLIGHTNING)
@@ -508,7 +501,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build tiflash"] = {
+                stage("TiUP build tiflash") {
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: paramsTIFLASH)
@@ -529,16 +522,14 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                 ]
-                builds["TiUP build grafana"] = {
+                stage("TiUP build grafana") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
                             build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
-                        } else {
                             build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
-                        }
                     }
                 }
-                def paramsPROMETHEUS = [
+                stage("TiUP build prometheus") {
+                    def paramsPROMETHEUS = [
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
@@ -548,8 +539,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-                ]
-                builds["TiUP build prometheus"] = {
+                    ]
                     retry(3) {
                         if (TIUP_ENV == "prod") {
                             build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: paramsPROMETHEUS)
@@ -558,14 +548,9 @@ node("build_go1130") {
                         }
                     }
                 }
-                parallel builds
             }
-
-            multi_os_update = [:]
-            multi_os_update["TiUP build tidb on linux/amd64"] = {
+            stage("TiUP build tidb on linux/amd64") {
                 run_with_pod {
-                    container("golang") { 
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
                             deleteDir()
                             sh """
@@ -581,13 +566,10 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "linux", "amd64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
                         }
-                    }
                 }
             }
-            multi_os_update["TiUP build tidb on linux/arm64"] = {
+            stage("TiUP build tidb on linux/arm64") {
                 run_with_pod {
-                    container("golang") { 
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
                             deleteDir()
                             sh """
@@ -603,13 +585,10 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "linux", "arm64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
                         }
-                    }
                 }
             }
-            multi_os_update["TiUP build tidb on darwin/amd64"] = {
+            stage("TiUP build tidb on darwin/amd64") {
                 run_with_pod {
-                    container("golang") { 
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                         retry(3) {
                             deleteDir()
                             sh """
@@ -625,14 +604,11 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "darwin", "amd64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
                         }
-                    }
                 }
             }
-            if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") { 
-                multi_os_update["TiUP build tidb on darwin/arm64"] = {
+            stage("TiUP build tidb on darwin/arm64") {
+                if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") {
                     run_with_pod {
-                        container("golang") { 
-                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
                             retry(3) { 
                                 deleteDir()
                                 sh """
@@ -645,15 +621,15 @@ node("build_go1130") {
                                 // if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
                                 //     update "dm", RELEASE_TAG, dm_sha1, "darwin", "amd64"
                                 // }
-                                // update_ctl RELEASE_TAG, "darwin", "arm64"
+                                // using self built etcdctl
+                                update_ctl RELEASE_TAG, "darwin", "arm64"
                                 update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                             }
-                        }
                     }
+                }else{
+                    echo "skip for older version"
                 }
             }
-            parallel multi_os_update
-
         }
     }
 }
