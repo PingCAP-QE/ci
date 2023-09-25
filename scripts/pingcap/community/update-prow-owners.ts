@@ -258,6 +258,30 @@ async function getOwnersFiles(
   return ownersFilesWithContent;
 }
 
+async function getFile(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  ref: string, // Specify the branch name, e.g., "main"
+  path: string,
+) {
+  try {
+    const contentResponse = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref,
+    });
+    return atob(contentResponse.data.content);
+  } catch (error) {
+    if (error.status === 404) {
+      return undefined; // File does not exist
+    } else {
+      throw error; // Other error occurred
+    }
+  }
+}
+
 function sameOwnersMaps(
   map1: Map<string, ProwOwners>,
   map2: Map<string, ProwOwners>,
@@ -372,6 +396,60 @@ async function createUpdateFilePR(
     return undefined;
   }
 
+  const updateFileAndContents = Array.from(ownersMap).map(([scope, owners]) => {
+    const yamlContent = `# See the OWNERS docs at https://go.k8s.io/owners\n${
+      // yaml.stringify(outputData)
+      yaml.stringify(JSON.parse(JSON.stringify(owners)))}`;
+
+    const filePath = scope.startsWith("/")
+      ? (scope === "/" ? "OWNERS" : `${scope.substring(1)}/OWNERS`)
+      : `${scope}/OWNERS`;
+
+    return [filePath, yamlContent];
+  });
+
+  // add .github/licenserc.[yml|yaml] to the udpate list if the file existed.
+  for (const ext of ["yml", "yaml"]) {
+    const filePath = `.github/licenserc.${ext}`;
+    const licensercContent = await getFile(
+      octokit,
+      owner,
+      repository,
+      baseRef,
+      filePath,
+    );
+    if (!licensercContent) {
+      continue;
+    }
+
+    const licenserc = yaml.parse(licensercContent) as {
+      header: { "paths-ignore": string[]; [key: string]: unknown };
+      [key: string]: unknown;
+    };
+
+    const ignorePaths = licenserc.header["paths-ignore"];
+    let needUpdateIgnore = false;
+    for (const p of ["**/OWNERS", "OWNERS_ALIASES"]) {
+      if (!ignorePaths.includes(p)) {
+        ignorePaths.push(p);
+        needUpdateIgnore = true;
+      }
+    }
+
+    if (needUpdateIgnore) {
+      updateFileAndContents.push([filePath, yaml.stringify(licenserc)]);
+    }
+
+    break;
+  }
+
+  if (updateFileAndContents.length == 0) {
+    console.debug(
+      `🏃 no need to create PR for repo ${owner}/${repository}: no differences found`,
+    );
+    return undefined;
+  }
+
   // Create a new branch
   await octokit.rest.git.createRef({
     owner,
@@ -379,20 +457,10 @@ async function createUpdateFilePR(
     ref: `refs/heads/${HEAD_REF}`,
     sha: baseSha,
   });
-
   console.debug(`created branch in ${owner}/${repository}: ${HEAD_REF}`);
 
   await Promise.all(
-    Array.from(ownersMap).map(async ([scope, owners]) => {
-      // Generate the output YAML data
-      const yamlContent = `# See the OWNERS docs at https://go.k8s.io/owners\n${
-        // yaml.stringify(outputData)
-        yaml.stringify(JSON.parse(JSON.stringify(owners)))}`;
-
-      const filePath = scope.startsWith("/")
-        ? (scope === "/" ? "OWNERS" : `${scope.substring(1)}/OWNERS`)
-        : `${scope}/OWNERS`;
-
+    Array.from(updateFileAndContents).map(async ([filePath, content]) => {
       console.info(
         `🫧 updating file ${filePath} for repo: ${owner}/${repository}@${HEAD_REF}`,
       );
@@ -402,7 +470,7 @@ async function createUpdateFilePR(
         repository,
         filePath,
         COMMIT_MESSAGE,
-        yamlContent,
+        content,
         HEAD_REF,
       );
       console.debug(
