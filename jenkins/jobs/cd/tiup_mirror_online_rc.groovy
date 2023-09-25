@@ -26,7 +26,7 @@ pipelineJob('tiup-mirror-online-rc') {
     }
     parameters {
         stringParam('RELEASE_TAG', 'nightly', '')
-        stringParam('TIUP_MIRRORS','http://172.16.5.139:8988', '')
+        stringParam('TIUP_MIRRORS','http://tiup.pingcap.net:8988', '')
         stringParam('TIDB_HASH', '', '')
         stringParam('TIKV_HASH', '', '')
         stringParam('PD_HASH', '', '')
