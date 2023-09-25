@@ -43,7 +43,6 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       #run_before_merge: false
       context: pull-cdc-integration-pulsar-test
       skip_report: true
