@@ -45,7 +45,7 @@ presubmits:
       always_run: false
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
-      skip_report: true
+      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-pulsar-test"
       branches:
