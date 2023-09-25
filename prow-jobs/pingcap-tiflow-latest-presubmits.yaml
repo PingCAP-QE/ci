@@ -43,11 +43,11 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      #run_before_merge: false
+      run_before_merge: true
       context: pull-cdc-integration-pulsar-test
       skip_report: true
-      trigger: "(?m)^/debug (?:.*? )?(cdc-integration-pulsar-test)(?: .*?)?$"
-      rerun_command: "/debug cdc-integration-pulsar-test"
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test|all)(?: .*?)?$"
+      rerun_command: "/test cdc-integration-pulsar-test"
       branches:
         - ^master$
     - name: pingcap/tiflow/pull_dm_compatibility_test
