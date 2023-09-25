@@ -140,7 +140,7 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    container("kafka") {
+                                    container("pulsar") {
                                         timeout(time: 6, unit: 'MINUTES') {
                                             sh label: "Waiting for pulsar ready", script: """
                                                 echo "Waiting for pulsar to be ready..."
