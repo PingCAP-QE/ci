@@ -511,7 +511,8 @@ node("build_go1130") {
 
                     }
                 }
-                def paramsGRANFANA = [
+                stage("TiUP build grafana") {
+                    def paramsGRANFANA = [
                         string(name: "RELEASE_TAG", value: "${RELEASE_TAG}"),
                         string(name: "TIDB_VERSION", value: "${tidb_version}"),
                         string(name: "TIUP_MIRRORS", value: "${TIUP_MIRRORS}"),
@@ -521,11 +522,9 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_ARM', value: params.ARCH_ARM],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC', value: params.ARCH_MAC],
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
-                ]
-                stage("TiUP build grafana") {
+                    ]
                     retry(3) {
-                            build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
-                            build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
+                        build(job: "grafana-tiup-mirror-update", wait: true, parameters: paramsGRANFANA)
                     }
                 }
                 stage("TiUP build prometheus") {
