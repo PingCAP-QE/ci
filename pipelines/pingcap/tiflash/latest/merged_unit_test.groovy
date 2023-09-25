@@ -14,135 +14,11 @@ Boolean update_proxy_cache = true
 Boolean update_ccache = true
 String proxy_commit_hash = null
 
-podYaml = """
-apiVersion: v1
-kind: Pod
-spec:
-  securityContext:
-    fsGroup: 1000
-  containers:
-    - name: jnlp
-      resources:
-        requests:
-          memory: 256Mi
-          cpu: 100m
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
-    - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "cat"
-      tty: true
-      resources:
-        requests:
-          memory: 32Gi
-          cpu: "12"
-        limits:
-          memory: 32Gi
-          cpu: "12"
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-  volumes:
-    - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
-      emptyDir:
-        medium: Memory
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
-"""
-
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            // yamlFile POD_TEMPLATE_FILE
-            yaml podYaml
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
             slaveConnectTimeout 10
             retries 5
@@ -174,48 +50,28 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir("tiflash") {
-                    // script {
-                    //     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                    //         retry(2) {
-                    //             prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
-                    //         }
-                    //     }
-                    //     cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                    //             sh ''
-                    //             sh """
-                    //             git submodule update --init --recursive
-                    //             git status
-                    //             git show --oneline -s
-                    //             """
-                    //     }
-                    //     dir("contrib/tiflash-proxy") {
-                    //         proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                    //         println "proxy_commit_hash: ${proxy_commit_hash}"
-                    //     }
-                    // }
-                    script {
-                        sh """
-                        pwd
-                        cp -R /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz ./
-                        tar -xzf /home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz --strip-components=1
-                        rm -f src-tics.tar.gz
-                        git reset --hard
-                        git clean -ffdx
-                        # git clone https://github.com/pingcap/tiflash.git .
-                        git status
-                        git pull origin master
-                        git pull
-                        git submodule update --init --recursive
-                        git status
-
-                        git show --oneline -s
-                        """
-                        dir("contrib/tiflash-proxy") {
-                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                            println "proxy_commit_hash: ${proxy_commit_hash}"
+                container("jnlp") {
+                    dir("tiflash") {
+                        script {
+                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                                retry(2) {
+                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                                }
+                            }
+                            cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
+                                    sh ''
+                                    sh """
+                                    git submodule update --init --recursive
+                                    git status
+                                    git show --oneline -s
+                                    """
+                            }
+                            dir("contrib/tiflash-proxy") {
+                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                                println "proxy_commit_hash: ${proxy_commit_hash}"
+                            }
                         }
-                    } 
+                    }
                 }
             }
         }
@@ -481,7 +337,6 @@ pipeline {
                 """
             }
         }
-
         stage("Post Build") {
             parallel {
                 stage("Upload Build Artifacts") {
@@ -633,3 +488,4 @@ pipeline {
         }
     }
 }
+
