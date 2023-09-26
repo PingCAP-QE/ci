@@ -39,6 +39,7 @@ configMapGenerator:
       - pingcap-tiflow-release-7.1.0-presubmits.yaml
       - pingcap-tiflow-release-7.2-presubmits.yaml
       - pingcap-tiflow-release-7.3-presubmits.yaml
+      - pingcap-tiflow-release-7.4-presubmits.yaml
       - pingcap-tiproxy-latest-presubmits.yaml
       - pingcap-tiproxy-latest-postsubmits.yaml
       - pingcap-tiflash-latest-postsubmits.yaml
