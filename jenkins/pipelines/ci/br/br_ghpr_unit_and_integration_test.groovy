@@ -500,6 +500,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                                 mkdir -p /tmp/backup_restore_test
                                 rm -rf cover
                                 mkdir cover
+                                rm -rf /tmp/group_cover
+                                mkdir -p /tmp/group_cover
 
                                 if [[ ! -e tests/${case_name}/run.sh ]]; then
                                     echo ${case_name} not exists, skip.
@@ -517,7 +519,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                                 # Must move coverage files to the current directory
                                 ls /tmp/backup_restore_test
                                 cp /tmp/backup_restore_test/cov.* cover/ || true
-                                ls cover
+                                cp /tmp/group_cover/cov.* cover/ || true
                                 """
                             } catch (Exception e) {
                                 sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"

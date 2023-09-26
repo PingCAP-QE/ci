@@ -371,10 +371,13 @@ def download_binaries() {
                 println "tidb_archive_path=${tidb_archive_path}"
                 break;
         }
-        def sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
+        def sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-d671b084_linux-amd64.tar.gz"
         if (ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch < "release-6.0" ) {
             println "release branch detected, use the other sync_diff version"
             sync_diff_download_url = "http://fileserver.pingcap.net/download/builds/pingcap/cdc/new_sync_diff_inspector.tar.gz"
+        } else if ( ghprbTargetBranch.startsWith("release-") && ghprbTargetBranch < "release-7.4" ) {
+            println "release branch ${ghprbTargetBranch} detected, use the other sync_diff version"
+            sync_diff_download_url = "${FILE_SERVER_URL}/download/builds/pingcap/cdc/sync_diff_inspector_hash-00998a9a_linux-amd64.tar.gz"
         }
 
         println "tidb_url: ${tidb_url}"
