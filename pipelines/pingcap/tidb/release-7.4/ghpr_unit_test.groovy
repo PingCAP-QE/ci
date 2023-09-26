@@ -90,16 +90,4 @@ pipeline {
             }
         }
     }
-    post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh """
-                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
-                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" || true
-                """
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
-        }
-    }
 }
