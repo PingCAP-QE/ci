@@ -15,7 +15,7 @@ feature_branch_use_go20 = []
 //  release branch >= release-5.1 use go1.16
 //  release branch < release-5.0 use go1.13
 //  other feature use corresponding go version
-//  the default go version is go1.18
+//  the default go version is go1.21
 // == tag
 // any tag greater or eqaul to v7.4.xxx use go1.21
 // any tag greater or eqaul to v7.0.xxx use go1.20
