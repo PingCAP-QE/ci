@@ -122,8 +122,9 @@ spec:
 def run_test_with_pod(Closure body) {
     def cloud = "kubernetes-ksyun"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def label = POD_LABEL
     podTemplate(
-            label: POD_LABEL,
+            label: label,
             cloud: cloud,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -166,7 +167,8 @@ def run_test_with_pod(Closure body) {
 
 def run_build_with_pod(Closure body) {
     def cloud = "kubernetes-ksyun"
-    podTemplate(label: POD_LABEL,
+    def label = POD_LABEL
+    podTemplate(label: label,
             cloud: cloud,
             yaml: podYAML,
             yamlMergeStrategy: merge(),
@@ -537,7 +539,7 @@ pipeline {
         }
 
         stage('Parallel Run Tests') {
-            failFast true
+            failFast false
             parallel {
                 stage('IT-all_mode') {
                     steps {
