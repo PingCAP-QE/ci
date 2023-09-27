@@ -64,7 +64,7 @@ pipeline {
                     // cache it for other pods
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
-                            mv bin/tidb-server bin/explain_test_tidb-server
+                            mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
                     }
