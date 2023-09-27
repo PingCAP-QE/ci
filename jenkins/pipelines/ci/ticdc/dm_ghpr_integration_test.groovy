@@ -539,7 +539,7 @@ pipeline {
         }
 
         stage('Parallel Run Tests') {
-            failFast true
+            failFast false
             parallel {
                 stage('IT-all_mode') {
                     steps {
