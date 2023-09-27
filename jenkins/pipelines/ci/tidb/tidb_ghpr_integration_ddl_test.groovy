@@ -68,7 +68,6 @@ node("master") {
     println "pod label: ${POD_LABEL}"
 }
 
-
 podYAML = '''
 apiVersion: v1
 kind: Pod
