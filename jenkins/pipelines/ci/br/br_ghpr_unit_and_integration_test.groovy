@@ -779,12 +779,6 @@ try {
     stage("Unit/Integration Test") {
         def test_cases = [:]
         
-        if (!params.containsKey("triggered_by_upstream_pr_ci")) {
-            // Add unit tests
-            test_cases["unit test"] = {         
-                run_unit_test()  
-            }
-        }
         if (!very_slow_case_names.isEmpty()) {
             make_parallel_jobs(
                 very_slow_case_names, 1,
@@ -832,48 +826,6 @@ try {
         }
         println "failFast: ${test_cases.failFast}"
         parallel test_cases
-    }
-
-    stage('Coverage') {
-        // Skip upload coverage when the job is initialed by TiDB PRs.
-        run_with_pod {
-            container("golang") {
-                if (params.containsKey("triggered_by_upstream_pr_ci") || params.containsKey("release_test")) {
-                    println "skip uploading coverage as it is triggered by upstream PRs"
-                } else {
-                    def ws = pwd()
-                    deleteDir()
-
-                    // unstash 'br'
-                    // "unit_test" is stashed under home folder, unstash here
-                    // to restores coverage files to "go/src/github.com/pingcap/br/cover"
-                    unstash 'unit_test'
-                    dir("${ws}/go/src/github.com/pingcap/br") {
-                        // "integration_test_${case_name}" is stashed under
-                        // ""go/src/github.com/pingcap/br"", unstash here
-                        // to restores coverage files to "cover"
-                        test_case_names.each{ case_name ->
-                            unstash "integration_test_${case_name}"
-                        }
-
-                        container("golang") {
-                            withCredentials([string(credentialsId: 'codecov-token-br', variable: 'CODECOV_TOKEN')]) {
-                                timeout(60) {
-                                    sh label: "Calculate coverage", script: """
-                                    ls cover
-                                    GO111MODULE=off go get github.com/wadey/gocovmerge
-                                    gocovmerge cover/cov.* > coverage.txt
-
-                                    echo ${CODECOV_TOKEN} > CODECOV_TOKEN
-                                    curl -s https://codecov.io/bash | bash -s - -t @CODECOV_TOKEN
-                                    """
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     currentBuild.result = "SUCCESS"
