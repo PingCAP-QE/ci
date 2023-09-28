@@ -454,12 +454,7 @@ node("build_go1130") {
                 ]
                 stage("TiUP build dumpling") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
-                            build(job: "dumpling-tiup-mirror-update-test", wait: true, parameters: paramsDUMPLING)
-                        } else {
-                            build(job: "dumpling-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsDUMPLING)
-                        }
-
+                        build(job: "dumpling-tiup-mirror-update", wait: true, parameters: paramsDUMPLING)
                     }
                 }
                 // since 4.0.12 the same as br
