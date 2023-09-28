@@ -470,12 +470,7 @@ node("build_go1130") {
                 ]
                 stage("TiUP build lightning") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
-                            build(job: "lightning-tiup-mirror-update-test", wait: true, parameters: paramsLIGHTNING)
-                        } else {
-                            build(job: "lightning-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsLIGHTNING)
-                        }
-
+                        build(job: "lightning-tiup-mirror-update", wait: true, parameters: paramsLIGHTNING)
                     }
                 }
                 def paramsTIFLASH = [
