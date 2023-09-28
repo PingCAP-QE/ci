@@ -2,7 +2,7 @@ pipelineJob('br-tiup-mirror-update') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/cd/tiup/br-tiup-mirrior-update.groovy')
+            scriptPath('jenkins/pipelines/cd/tiup/br-tiup-mirror-update.groovy')
             scm {
                 git{
                     remote {

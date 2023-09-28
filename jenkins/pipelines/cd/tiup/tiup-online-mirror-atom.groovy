@@ -100,7 +100,7 @@ node("build_go1130") {
             }
 
             stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                build(job: "prometheus-tiup-mirror-update-test", wait: true, parameters: params1)
             }
 
             if (RELEASE_TAG == "v7.5.0-alpha") {
@@ -110,7 +110,7 @@ node("build_go1130") {
             }
 
             stage("TiUP build prometheus") {
-                build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: params1)
+                build(job: "prometheus-tiup-mirror-update-test", wait: true, parameters: params1)
             }
 
             def params_tidb = [
