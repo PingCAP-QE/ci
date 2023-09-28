@@ -1,8 +1,8 @@
-pipelineJob('tiup-mirror-online-ga') {
+pipelineJob('tiflash-tiup-mirror-update') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/cd/tiup/tiup-mirror-update-multi-products.groovy')
+            scriptPath('jenkins/pipelines/cd/tiup/tiflash-tiup-mirrior-update.groovy')
             scm {
                 git{
                     remote {
@@ -25,23 +25,12 @@ pipelineJob('tiup-mirror-online-ga') {
     }
     parameters {
         stringParam('RELEASE_TAG', 'nightly', '')
-        stringParam('TIUP_MIRRORS','http://tiup.pingcap.net:8987', '')
-        stringParam('TIDB_HASH', '', '')
-        stringParam('TIKV_HASH', '', '')
-        stringParam('PD_HASH', '', '')
-        stringParam('BINLOG_HASH', '', '')
-        stringParam('CDC_HASH', '', '')
-        stringParam('DM_HASH', '', '')
-        stringParam('BR_HASH', '', '')
-        stringParam('DUMPLING_HASH', '', '')
-        stringParam('TIFLASH_HASH', '', '')
-        stringParam('TIDB_CTL_HASH', '', '')
-        stringParam('RELEASE_BRANCH', '', '')
-        stringParam('TIUP_ENV', 'prod', 'prod or staging')
+        stringParam('TIUP_MIRRORS', '', '')
+        stringParam('TIDB_VERSION', '', 'only need when version is nightly(master branch). example: v4.0.0-beta.2-nightly-20200603')
+        stringParam('ORIGIN_TAG', '', '')
         booleanParam('ARCH_ARM', true, '')
         booleanParam('ARCH_X86', true, '')
         booleanParam('ARCH_MAC', true, '')
         booleanParam('ARCH_MAC_ARM', true, '')
-        booleanParam('DEBUG_MODE', false, '')
     }
 }

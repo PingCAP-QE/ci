@@ -1,4 +1,3 @@
-// not able to use job dsl, it has password params, must refract the pipeline script
 pipelineJob('tiup-mirror-online-rc') {
     definition {
         cpsScm {

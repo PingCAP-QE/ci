@@ -443,11 +443,7 @@ node("build_go1130") {
 
                 stage("TiUP build br") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
-                            build(job: "br-tiup-mirror-update-test", wait: true, parameters: paramsBR)
-                        } else {
-                            build(job: "br-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsBR)
-                        }
+                        build(job: "br-tiup-mirror-update", wait: true, parameters: paramsBR)
                     }
                 }
                 def paramsDUMPLING = [
@@ -503,12 +499,7 @@ node("build_go1130") {
                 ]
                 stage("TiUP build tiflash") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
-                            build(job: "tiflash-tiup-mirror-update-test", wait: true, parameters: paramsTIFLASH)
-                        } else {
-                            build(job: "tiflash-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsTIFLASH)
-                        }
-
+                        build(job: "tiflash-tiup-mirror-update", wait: true, parameters: paramsTIFLASH)
                     }
                 }
                 stage("TiUP build grafana") {
@@ -540,11 +531,7 @@ node("build_go1130") {
                         [$class: 'BooleanParameterValue', name: 'ARCH_MAC_ARM', value: params.ARCH_MAC_ARM],
                     ]
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
-                            build(job: "prometheus-tiup-mirrior-update-test", wait: true, parameters: paramsPROMETHEUS)
-                        } else {
-                            build(job: "prometheus-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsPROMETHEUS)
-                        }
+                        build(job: "prometheus-tiup-mirror-update", wait: true, parameters: paramsPROMETHEUS)
                     }
                 }
             }

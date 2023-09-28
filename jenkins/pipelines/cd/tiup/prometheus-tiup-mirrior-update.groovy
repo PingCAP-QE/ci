@@ -1,5 +1,3 @@
-
-
 def name="ng-monitoring"
 def ng_monitoring_sha1
 
@@ -108,17 +106,19 @@ def pack = { version, os, arch ->
 }
 
 def update = { version, os, arch ->
+    dir("$os-$arch")
+    {
     download version, os, arch
     unpack version, os, arch
     pack version, os, arch
+    }
 }
 
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes"
     def namespace = "jenkins-cd"
-    def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def pod_builder_image = 'hub.pingcap.net/jenkins/tiup'
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -126,41 +126,37 @@ def run_with_pod(Closure body) {
             nodeSelector: "kubernetes.io/arch=amd64",
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
-                            image: "${pod_go_docker_image}", ttyEnabled: true,
+                            name: 'tiup', alwaysPullImage: true,
+                            image: "${pod_builder_image}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+                    ),
+                    containerTemplate(
+                            name: 'gethash', alwaysPullImage: true,
+                            image: "hub.pingcap.net/jenkins/gethash", ttyEnabled: true,
+                            command: '/bin/sh -c', args: 'cat',
                     )
             ],
             volumes: [
-                            emptyDirVolume(mountPath: '/tmp', memory: false),
-                            emptyDirVolume(mountPath: '/home/jenkins', memory: false)
-                    ],
+                    emptyDirVolume(mountPath: '/tmp', memory: false),
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+            ],
     ) {
-        node(label) {
-            println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            body()
+        node(label){
+            container("tiup"){
+                println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
+                withCredentials([file(credentialsId: 'tiup-prod-key', variable: 'TIUPKEY_JSON')]) {
+                    sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
+                    body()
+                }
+            }
         }
     }
 }
 
 run_with_pod {
-    container("golang") {
         stage("Prepare") {
             deleteDir()
-        }
-        retry(5) {
-            sh """
-            wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
-            """
-        }
-        
-        def util = load "tiup_utils.groovy"
-
-        stage("Install tiup") {
-            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
         }
 
         def tag = RELEASE_TAG
@@ -168,13 +164,16 @@ run_with_pod {
             tag = RELEASE_BRANCH
         }
         
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
         ng_monitoring_sha1 = ""
-        if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
-            if (RELEASE_BRANCH == "master"){
-                ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
-            } else {
-                ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${tag} -s=${FILE_SERVER_URL}").trim()
+        container("gethash"){
+            withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+                if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
+                    if (RELEASE_BRANCH == "master"){
+                        ng_monitoring_sha1 = sh(returnStdout: true, script: "python /gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
+                    } else {
+                        ng_monitoring_sha1 = sh(returnStdout: true, script: "python /gethash.py -repo=ng-monitoring -version=${tag} -s=${FILE_SERVER_URL}").trim()
+                    }
+                }
             }
         }
 
@@ -182,50 +181,27 @@ run_with_pod {
             VERSION = "2.27.1"
         }
 
-        multi_os_update = [:]
         if (params.ARCH_X86) {
-            multi_os_update["linux/amd64"] = {
-                run_with_pod {
-                    container("golang") {
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        update VERSION, "linux", "amd64"
-                    }
-                }
+            stage("linux/amd64"){
+                update VERSION, "linux", "amd64"
             }
         }
         if (params.ARCH_ARM) {
-            multi_os_update["linux/arm64"] = {
-                run_with_pod {
-                    container("golang") {
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        update VERSION, "linux", "arm64"
-                    }
-                }
+            stage("linux/arm64"){
+                update VERSION, "linux", "arm64"
             }
         }
         if (params.ARCH_MAC) {
-            multi_os_update["darwin/amd64"] = {
-                run_with_pod {
-                    container("golang") {
-                        util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                        update VERSION, "darwin", "amd64"
-                    }
-                }
+            stage("darwin/amd64"){
+                update VERSION, "darwin", "amd64"
             }
         }
         if (params.ARCH_MAC_ARM) {
             if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
-                multi_os_update["darwin/arm64"] = {
-                    run_with_pod {
-                        container("golang") {
-                            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-                            // prometheus did not provide the binary we need so we upgrade it.
-                            update "2.28.1", "darwin", "arm64"
-                        }
-                    }
+                stage("darwin/arm64"){
+                    // prometheus did not provide the binary we need so we upgrade it.
+                    update "2.28.1", "darwin", "arm64"
                 }
             }
         }
-        parallel multi_os_update
-    }
 }
