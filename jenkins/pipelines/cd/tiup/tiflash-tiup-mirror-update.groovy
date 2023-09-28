@@ -49,32 +49,56 @@ def update = { name, version, os, arch ->
 //    }
 }
 
-node("build_go1130") {
-    container("golang") {
+def run_with_pod(Closure body) {
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
+    def cloud = "kubernetes"
+    def pod_builder_image = 'hub.pingcap.net/jenkins/tiup'
+    podTemplate(label: label,
+            cloud: cloud,
+            idleMinutes: 0,
+            nodeSelector: "kubernetes.io/arch=amd64",
+            containers: [
+                    containerTemplate(
+                            name: 'tiup', alwaysPullImage: true,
+                            image: "${pod_builder_image}", ttyEnabled: true,
+                            resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
+                            command: '/bin/sh -c', args: 'cat',
+                    ),
+                    containerTemplate(
+                            name: 'gethash', alwaysPullImage: true,
+                            image: "hub.pingcap.net/jenkins/gethash", ttyEnabled: true,
+                            command: '/bin/sh -c', args: 'cat',
+                    )
+            ],
+    ) {
+        node(label){
+            container("tiup"){
+                println "debug command:\nkubectl exec -ti ${NODE_NAME} bash"
+                withCredentials([file(credentialsId: 'tiup-prod-key', variable: 'TIUPKEY_JSON')]) {
+                    sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
+                    body()
+                }
+            }
+        }
+    }
+}
+
+run_with_pod {
         stage("Prepare") {
             deleteDir()
         }
-        retry(5) {
-            sh """
-            wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
-            """
-        }
         
-        def util = load "tiup_utils.groovy"
-
-        stage("Install tiup") {
-            util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
-        }
-
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1") {
             stage("Get hash") {
-                sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-
-                tag = RELEASE_TAG
-                if(ORIGIN_TAG != "") {
-                    tiflash_sha1 = ORIGIN_TAG
-                } else {
-                    tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                container("gethash"){
+                    tag = RELEASE_TAG
+                    if(ORIGIN_TAG != "") {
+                        tiflash_sha1 = ORIGIN_TAG
+                    } else {
+                        withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+                            tiflash_sha1 = sh(returnStdout: true, script: "python3 /gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                        }
+                    }
                 }
             }
 
@@ -102,5 +126,4 @@ node("build_go1130") {
 
             // upload "package"
         }
-    }
 }
