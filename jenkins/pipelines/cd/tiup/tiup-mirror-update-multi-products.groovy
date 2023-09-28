@@ -423,11 +423,7 @@ node("build_go1130") {
 
                 stage("TiUP build cdc") {
                     retry(3) {
-                        if (TIUP_ENV == "prod") {
-                            build(job: "cdc-tiup-mirror-update-test", wait: true, parameters: paramsCDC)
-                        } else {
-                            build(job: "cdc-tiup-mirror-update-test-hotfix", wait: true, parameters: paramsCDC)
-                        }
+                        build(job: "cdc-tiup-mirror-update", wait: true, parameters: paramsCDC)
                     }
                 }
                 def paramsBR = [

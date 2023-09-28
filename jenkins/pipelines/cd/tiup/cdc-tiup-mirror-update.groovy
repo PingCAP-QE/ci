@@ -1,9 +1,7 @@
-def tiup_desc = ""
-def br_desc = "TiDB/TiKV cluster backup restore tool"
+def ticdc_sha1, platform, tag
+def cdc_desc = "CDC is a change data capture tool for TiDB"
 
-def br_sha1, tarball_name, dir_name
-
-def download = { name, version, os, arch ->
+def download = { name, hash, os, arch ->
     if (os == "linux") {
         platform = "centos7"
     } else if (os == "darwin" && arch == "amd64") {
@@ -16,43 +14,30 @@ def download = { name, version, os, arch ->
         """
     }
 
-    tarball_name = "${name}-${os}-${arch}.tar.gz"
-
     sh """
-    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${br_sha1}/${platform}/${tarball_name}
+    wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${hash}/${platform}/${name}-${os}-${arch}.tar.gz
     """
-
 }
 
-def unpack = { name, version, os, arch ->
-    tarball_name = "${name}-${os}-${arch}.tar.gz"
-
+def unpack = { name, os, arch ->
     sh """
-    tar -zxf ${tarball_name}
+    tar -zxf ${name}-${os}-${arch}.tar.gz
     """
 }
 
 def pack = { name, version, os, arch ->
 
     sh """
-    rm -rf ${name}*.tar.gz
+    # tiup package cdc -C ${name}-${os}-${arch}/bin --hide --name=cdc --release=${version} --entry=cdc --os=${os} --arch=${arch} --desc="${cdc_desc}"
     [ -d package ] || mkdir package
-    """
-
-
-    sh """
-    tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz br
-    rm -rf bin
-    """
-
-    sh """
-    tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --standalone --arch ${arch} --os ${os} --desc="${br_desc}"
+    tar -C bin -czvf package/cdc-${version}-${os}-${arch}.tar.gz cdc
+    tiup mirror publish cdc ${TIDB_VERSION} package/cdc-${version}-${os}-${arch}.tar.gz cdc --arch ${arch} --os ${os} --desc="${cdc_desc}"
     """
 }
 
-def update = { name, version, os, arch ->
-    download name, version, os, arch
-    unpack name, version, os, arch
+def update = { name, version, hash, os, arch ->
+    download name, hash, os, arch
+    unpack name, os, arch
     pack name, version, os, arch
 }
 
@@ -95,43 +80,39 @@ run_with_pod {
         deleteDir()
     }
 
-    if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1.0") {
+    if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
         stage("Get hash") {
             tag = RELEASE_TAG
             if(ORIGIN_TAG != "") {
-                br_sha1 = ORIGIN_TAG
+                ticdc_sha1 = ORIGIN_TAG
             } else {
                 container("gethash"){
                     withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
-                        if (RELEASE_TAG >= "v5.2.0") {
-                            br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        } else {
-                            br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-                        }
+                        ticdc_sha1 = sh(returnStdout: true, script: "python /gethash.py -repo=tiflow -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
                     }
                 }
             }
         }
+    }
 
-        if (params.ARCH_X86) {
-            stage("tiup release br linux amd64") {
-                update "br", RELEASE_TAG, "linux", "amd64"
-            }
+    if (params.ARCH_X86) {
+        stage("TiUP build cdc on linux/amd64") {
+            update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "amd64"
         }
-        if (params.ARCH_ARM) {
-            stage("tiup release br linux arm64") {
-                update "br", RELEASE_TAG, "linux", "arm64"
-            }
+    }
+    if (params.ARCH_ARM) {
+        stage("TiUP build cdc on linux/arm64") {
+            update "ticdc", RELEASE_TAG, ticdc_sha1, "linux", "arm64"
         }
-        if (params.ARCH_MAC) {
-            stage("tiup release br darwin amd64") {
-                update "br", RELEASE_TAG, "darwin", "amd64"
-            }
+    }
+    if (params.ARCH_MAC) {
+        stage("TiUP build cdc on darwin/amd64") {
+            update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "amd64"
         }
-        if (params.ARCH_MAC_ARM) {
-            stage("tiup release br darwin arm64") {
-                update "br", RELEASE_TAG, "darwin", "arm64"
-            }
+    }
+    if (params.ARCH_MAC_ARM && RELEASE_TAG >="v5.1.0") {
+        stage("TiUP build cdc on darwin/arm64") {
+            update "ticdc", RELEASE_TAG, ticdc_sha1, "darwin", "arm64"
         }
     }
 }
