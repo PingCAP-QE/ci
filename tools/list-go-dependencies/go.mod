@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/rs/zerolog v1.30.0
-	golang.org/x/mod v0.12.0
+	golang.org/x/mod v0.13.0
 )
 
 require (
