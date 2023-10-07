@@ -40,44 +40,28 @@ catchError {
         stage("Prepare") {
             container('toolkit') {
                 if (release_info.release_branch != "release-3.0") {
-                    sh "inv upload --force --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${params.VERSION}/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${params.VERSION}/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/tikv-server.tar.gz  --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/tikv-server.tar.gz  --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/done --content done"
 
-
-//                一些集成测试依赖其他组件，同时 e2e 测试需求，需要进行二进制替换
-//                    sh "inv upload --force --dst builds/pingcap/tikv/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/pd/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-server.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/importer/${release_info.importer_commit}/centos7/importer.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/importer/optimization/${params.VERSION}/${release_info.importer_commit}/centos7/importer.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/ticdc/${release_info.ticdc_commit}/centos7/ticdc.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/ticdc/optimization/${params.VERSION}/${release_info.ticdc_commit}/centos7/ticdc.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/tidb-binlog/${release_info.binlog_commit}/centos7/tidb-binlog.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-binlog/optimization/${params.VERSION}/${release_info.binlog_commit}/centos7/tidb-binlog.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/tidb-tools/${release_info.tools_commit}/centos7/tidb-tools.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${params.VERSION}/${release_info.tools_commit}/centos7/tidb-tools.tar.gz"
-
-//                    tiflash 和 br 在 cd 上传的时候为了兼容，两种路径都上传
-//                    sh "inv upload --force --dst builds/pingcap/tiflash/${release_info.release_branch}/${release_info.tiflash_commit}/centos7/tiflash.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tiflash/optimization/${params.VERSION}/${release_info.tiflash_commit}/centos7/tiflash.tar.gz"
-//                    sh "inv upload --force --dst builds/pingcap/br/${release_info.release_branch}/${release_info.br_commit}/centos7/br.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${params.VERSION}/${release_info.br_commit}/centos7/br.tar.gz"
 
 //                一些集成测试需要集群环境测试，依赖的其他组件有通过 refs/pingcap/xx/${branch}/sha1 找 ref 的逻辑，在这里兼容上传
                     sh "inv upload --dst refs/pingcap/tidb/${release_info.tidb_commit}/sha1 --content ${release_info.tidb_commit}"
                     sh "inv upload --dst refs/pingcap/tikv/${release_info.tikv_commit}/sha1 --content ${release_info.tikv_commit}"
                     sh "inv upload --dst refs/pingcap/pd/${release_info.pd_commit}/sha1 --content ${release_info.pd_commit}"
                     // 上传集成测试流水线需要的产物路径
-                    // upload tidb-server.tar.gz again for integration test
-                    sh "inv upload --force --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/done --content done"
-                    // upload pd-server.tar.gz again for integration test
-                    sh "inv upload --force --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/done --content done"
-                    // upload tikv-server.tar.gz again for integration test
-                    sh "inv upload --force --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
                     sh "inv upload --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/done --content done"
 
 
@@ -98,32 +82,6 @@ catchError {
                         sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
                     }
                 } else {
-                    sh "inv upload --force --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
-                    sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
-                    sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
-                    sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
-                    sh "inv upload --force --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
-                    sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
-
-//                一些集成测试需要集群环境测试，依赖的其他组件有通过 refs/pingcap/xx/${branch}/sha1 找 ref 的逻辑，在这里兼容上传
-                    sh "inv upload --dst refs/pingcap/tidb/${release_info.tidb_commit}/sha1 --content ${release_info.tidb_commit}"
-                    sh "inv upload --dst refs/pingcap/tikv/${release_info.tikv_commit}/sha1 --content ${release_info.tikv_commit}"
-                    sh "inv upload --dst refs/pingcap/pd/${release_info.pd_commit}/sha1 --content ${release_info.pd_commit}"
-
-                    if (release_info.containsKey("tiflash_commit") && release_info.tiflash_commit != "") {
-                        sh "inv upload --dst refs/pingcap/tiflash/${release_info.tiflash_commit}/sha1 --content ${release_info.tiflash_commit}"
-                    }
-                    if (release_info.containsKey("br_commit") && release_info.br_commit != "") {
-                        sh "inv upload --dst refs/pingcap/br/${release_info.br_commit}/sha1 --content ${release_info.br_commit}"
-                    }
-                    if (release_info.containsKey("ticdc_commit") && release_info.ticdc_commit != "") {
-                        sh "inv upload --dst refs/pingcap/tiflow/${release_info.ticdc_commit}/sha1 --content ${release_info.ticdc_commit}"
-                    }
-                    for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
-                        sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
-                    }
                 }
             }
         }
@@ -148,29 +106,15 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
             echo("default params: ${default_params}")
             parallel(
                     Group1: {
-                        for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
-                            container('toolkit') {
-                                sh "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1"
-                                sh "curl -C - --retry 3 --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.tidb_old_commits[i]}/centos7/tidb-server.tar.gz"
-                            }
-                            this_params = default_params.collect()
-                            this_params.add(string(name: 'release_test__tidb_old_commit', value: release_info.tidb_old_commits[i]))
-                            build(job: "tidb_ghpr_integration_campatibility_test", parameters: this_params)
-                        }
-                        //build(job: "tidb_ghpr_unit_test", parameters: default_params)
                         build(job: "tidb_ghpr_common_test", parameters: default_params)
                         build(job: "tidb_ghpr_integration_common_test", parameters: default_params)
                     },
                     Group2: {
                         build(job: "tidb_ghpr_sqllogic_test_1", parameters: default_params)
                         build(job: "tidb_ghpr_sqllogic_test_2", parameters: default_params)
-                        //build(job: "tidb_ghpr_mybatis", parameters: default_params)
                         build(job: "tidb_ghpr_integration_ddl_test", parameters: default_params)
                     },
                     Group3: {
-                        if (release_info.importer_commit) {
-                         //   build(job: "importer_ghpr_test", parameters: default_params)
-                        }
                         if (release_info.br_commit) {
                             build(job: "br_ghpr_unit_and_integration_test", parameters: default_params)
                         }
@@ -178,9 +122,6 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
                     Group4: {
                         if (release_info.binlog_commit) {
                             build(job: "binlog_ghpr_integration", parameters: default_params)
-                        }
-                        if (release_info.tools_commit) {
-                            build(job: "tools_ghpr_integration", parameters: default_params)
                         }
                     },
                     Group5: {
@@ -204,7 +145,9 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
                         }
                     },
                     Group7: {
-                     //   build(job: "pd_test", parameters: default_params)
+                        if (release_info.tools_commit) {
+                            build(job: "tools_ghpr_integration", parameters: default_params)
+                        }
                     },
                     Group8: {
                         if (release_info.dm_commit) {
@@ -213,11 +156,8 @@ string(name: 'release_test__dm_commit', value: release_info.getOrDefault('dm_com
                         }
                     },
                     Group9: { // TiKV
-                           // build(job: "tikv_ghpr_integration_common_test", parameters: default_params)
                             build(job: "tikv_ghpr_integration-copr-test", parameters: default_params)
                             build(job: "tikv_ghpr_integration_compatibility_test", parameters: default_params)
-                           // build(job: "tikv_ghpr_integration_ddl_test", parameters: default_params)
-                            //build(job: "tikv_ghpr_integration_br_test", parameters: default_params)
                     }
             )
         }
