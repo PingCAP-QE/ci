@@ -211,3 +211,13 @@ presubmits:
       rerun_command: "/test pull-integration-prisma-test"
       branches:
         - ^master$
+    - name: pingcap/tidb/pull_integration_typeorm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: pull-integration-typeorm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-typeorm-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-typeorm-test"
+      branches:
+        - ^master$
