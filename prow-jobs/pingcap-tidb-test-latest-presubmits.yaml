@@ -87,6 +87,16 @@ presubmits:
       rerun_command: "/test integration-sequelize-test"
       branches:
         - ^master$
+    - name: pingcap-qe/tidb-test/ghpr_integration_typeorm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: ci/integration-typeorm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?integration-typeorm-test(?: .*?)?$"
+      rerun_command: "/test integration-typeorm-test"
+      branches:
+        - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
