@@ -67,7 +67,7 @@ pipeline {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
                         // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || WITH_RACE=1 make server'
                     }
                 }
                 dir('tidb-test') {
