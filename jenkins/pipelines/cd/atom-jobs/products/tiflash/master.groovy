@@ -233,7 +233,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: builder
-    image: hub.pingcap.net/lijie/tiflash-builder:amd64
+    image: hub.pingcap.net/jenkins/tiflash-builder
     volumeMounts:
     - name: ccache
       mountPath: "/var/cache/ccache"
@@ -297,7 +297,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: builder
-    image: hub.pingcap.net/lijie/tiflash-builder:arm64
+    image: hub.pingcap.net/jenkins/tiflash-builder
     volumeMounts:
     - name: ccache
       mountPath: "/var/cache/ccache"
