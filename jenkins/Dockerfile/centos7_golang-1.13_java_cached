@@ -4,7 +4,7 @@ MAINTAINER Liu Yin <liuy@pingcap.com>
 
 WORKDIR /git
 
-COPY --chown=jenkins:jenkins src/github.com/pingcap/tidb-test ./tidb-test
+COPY --chown=jenkins:jenkins src/github.com/PingCAP-QE/tidb-test ./tidb-test
 RUN cd tidb-test && go mod download
 
 RUN git clone https://github.com/pingcap/tidb.git \

@@ -19,7 +19,6 @@ pipeline {
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
-        CI = "1"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -53,10 +52,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -66,21 +65,26 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_mysql_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                    retry(3) {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                        sh label: 'download binary', script: """
+                            chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
-                            """
-                        }
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tidb-server -V
+                        """
                     }
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                        sh label: 'cache tidb-test', script: """
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
+                        """
                     }
                 }
             }
@@ -98,7 +102,7 @@ pipeline {
                     }
                     axis {
                         name 'TEST_STORE'
-                        values 'unistore', "tikv"
+                        values "tikv"
                     }
                 }
                 agent{
@@ -112,26 +116,20 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_mysql_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
-                                }
-                            }
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
                                     """
                                     container("golang") {
                                         sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """
                                             #!/usr/bin/env bash
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/pingcap/tidb-test/start_tikv.sh
+                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIKV_PATH="127.0.0.1:2379"

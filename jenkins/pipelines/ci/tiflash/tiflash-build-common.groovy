@@ -408,6 +408,12 @@ def resolveDependency(dep_name) {
             chmod +x '/usr/local/bin/clang-format'
             """
         }
+        else if (dep_name == 'clang-format-15') {
+            sh """
+            cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
+            chmod +x '/usr/local/bin/clang-format-15'
+            """
+        }
         else if (dep_name == 'gcovr') {
             sh """
             cp '${dependency_dir}/gcovr.tar' '/tmp/'
@@ -468,6 +474,11 @@ def prepareStage(repo_path) {
             "Clang-Format" : {
                 if (params.ENABLE_CCACHE) {
                     resolveDependency('clang-format')
+                }
+            },
+            "Clang-Format-15" : {
+                if (params.ENABLE_CCACHE) {
+                    resolveDependency('clang-format-15')
                 }
             },
             "Coverage" : {
@@ -764,6 +775,9 @@ def buildStage(repo_path, build_dir, install_dir, proxy_cache_ready) {
     stage('Configure Project') {
         cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready)
     }
+    stage("Format Check") {
+        clangFormat(repo_path)
+    }
     stage('Build TiFlash') {
         parallel(
             "License check": {
@@ -780,9 +794,6 @@ def buildStage(repo_path, build_dir, install_dir, proxy_cache_ready) {
                         fi
                     """
                 }
-            },
-            "Format Check" : {
-                clangFormat(repo_path)
             },
             "Build TiFlash" : {
                 buildTiFlash(repo_path, build_dir, install_dir)
@@ -894,6 +905,21 @@ def postBuildStage(repo_path, build_dir, install_dir) {
     }
 }
 
+podYAML = '''
+apiVersion: v1
+kind: Pod
+spec:
+  nodeSelector:
+    enable-ci: true
+    ci-nvme-high-performance: true
+    kubernetes.io/arch: amd64
+  tolerations:
+  - key: dedicated
+    operator: Equal
+    value: test-infra
+    effect: NoSchedule
+'''
+
 def run_with_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}-build"
     def cloud = "kubernetes-ksyun"
@@ -902,12 +928,13 @@ def run_with_pod(Closure body) {
             cloud: cloud,
             namespace: namespace,
             idleMinutes: 0,
-            nodeSelector: "kubernetes.io/arch=amd64",
+            yaml: podYAML,
+            yamlMergeStrategy: merge(),
             containers: [
                     containerTemplate(
                         name: 'golang', alwaysPullImage: true,
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
-                        resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
+                        resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                         command: '/bin/sh -c', args: 'cat',
                         envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )

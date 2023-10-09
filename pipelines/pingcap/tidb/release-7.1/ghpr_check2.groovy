@@ -76,8 +76,8 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'explaintest.sh y', 
-                            'explaintest.sh n', 
+                            'integrationtest.sh y', 
+                            'integrationtest.sh n', 
                             'run_real_tikv_tests.sh bazel_brietest', 
                             'run_real_tikv_tests.sh bazel_pessimistictest', 
                             'run_real_tikv_tests.sh bazel_sessiontest', 
@@ -104,6 +104,11 @@ pipeline {
                                 }
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
+                                sh """
+                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                                git diff .
+                                git status
+                                """
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }

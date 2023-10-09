@@ -192,32 +192,21 @@ string trimPrefix = {
         it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
     }
 
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
-]
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
 podYAML = '''
@@ -235,7 +224,7 @@ spec:
 '''
 
 def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
@@ -511,6 +500,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                                 mkdir -p /tmp/backup_restore_test
                                 rm -rf cover
                                 mkdir cover
+                                rm -rf /tmp/group_cover
+                                mkdir -p /tmp/group_cover
 
                                 if [[ ! -e tests/${case_name}/run.sh ]]; then
                                     echo ${case_name} not exists, skip.
@@ -528,7 +519,7 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                                 # Must move coverage files to the current directory
                                 ls /tmp/backup_restore_test
                                 cp /tmp/backup_restore_test/cov.* cover/ || true
-                                ls cover
+                                cp /tmp/group_cover/cov.* cover/ || true
                                 """
                             } catch (Exception e) {
                                 sh "tail -4000 '/tmp/backup_restore_test/pd.log' || true"
@@ -788,12 +779,6 @@ try {
     stage("Unit/Integration Test") {
         def test_cases = [:]
         
-        if (!params.containsKey("triggered_by_upstream_pr_ci")) {
-            // Add unit tests
-            test_cases["unit test"] = {         
-                run_unit_test()  
-            }
-        }
         if (!very_slow_case_names.isEmpty()) {
             make_parallel_jobs(
                 very_slow_case_names, 1,
@@ -835,54 +820,12 @@ try {
         }
 
         println test_cases
-        test_cases.failFast = true
+        test_cases.failFast = false
         if (params.containsKey("ENABLE_FAIL_FAST")) {
             test_cases.failFast = params.get("ENABLE_FAIL_FAST")
         }
         println "failFast: ${test_cases.failFast}"
         parallel test_cases
-    }
-
-    stage('Coverage') {
-        // Skip upload coverage when the job is initialed by TiDB PRs.
-        run_with_pod {
-            container("golang") {
-                if (params.containsKey("triggered_by_upstream_pr_ci") || params.containsKey("release_test")) {
-                    println "skip uploading coverage as it is triggered by upstream PRs"
-                } else {
-                    def ws = pwd()
-                    deleteDir()
-
-                    // unstash 'br'
-                    // "unit_test" is stashed under home folder, unstash here
-                    // to restores coverage files to "go/src/github.com/pingcap/br/cover"
-                    unstash 'unit_test'
-                    dir("${ws}/go/src/github.com/pingcap/br") {
-                        // "integration_test_${case_name}" is stashed under
-                        // ""go/src/github.com/pingcap/br"", unstash here
-                        // to restores coverage files to "cover"
-                        test_case_names.each{ case_name ->
-                            unstash "integration_test_${case_name}"
-                        }
-
-                        container("golang") {
-                            withCredentials([string(credentialsId: 'codecov-token-br', variable: 'CODECOV_TOKEN')]) {
-                                timeout(60) {
-                                    sh label: "Calculate coverage", script: """
-                                    ls cover
-                                    GO111MODULE=off go get github.com/wadey/gocovmerge
-                                    gocovmerge cover/cov.* > coverage.txt
-
-                                    echo ${CODECOV_TOKEN} > CODECOV_TOKEN
-                                    curl -s https://codecov.io/bash | bash -s - -t @CODECOV_TOKEN
-                                    """
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     currentBuild.result = "SUCCESS"

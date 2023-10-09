@@ -18,7 +18,6 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        CI = "1"
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
@@ -54,9 +53,14 @@ pipeline {
             }
         }
         stage('Test') {
-            environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
+            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
+                    sh """
+                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                        git diff .
+                        git status
+                    """
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
@@ -66,46 +70,53 @@ pipeline {
             }
             post {
                  success {
-                    dir("tidb") {
-                        sh label: "upload coverage to codecov", script: """
-                        mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
-                        chmod +x codecov
-                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
-                        """
+                    dir(REFS.repo) {
+                        script {
+                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
+                        }
+                        // Fail when found long time test cases.
                     }
                 }
-                failure {
+                always {
+                    dir(REFS.repo) {
+                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                        archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
+                    }
+
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
                     container('deno') {
                         sh label: "Report flaky test case results", script: """
-                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases.ts \
+                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases-v20230821.ts \
                                 --repo=${REFS.org}/${REFS.repo} \
                                 --branch=${REFS.base_ref} \
+                                --build_url=\${BUILD_URL} \
                                 --caseDataFile=bazel-go-test-problem-cases.json || true
                         """
                     }
                     archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
-                always {
-                    dir('tidb') {
-                        // archive test report to Jenkins.
-                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
-                    }
-                }
             }
         }
     }
     post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh """
-                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
-                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" || true
-                """
+        success {
+            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                sh label: 'Fail when long time cost test cases are found', script: '''#! /usr/bin/env bash
+
+                    threshold=144 # unit is second, we should update it monthly.
+
+                    breakCaseListfile="break_longtime_case.txt"
+                    jq -r  ".[] | select(.long_time != null) | .long_time | to_entries[] | select(.value > $threshold) | .key" bazel-go-test-problem-cases.json > $breakCaseListfile
+
+                    if (($(cat $breakCaseListfile | wc -l) > 0)); then
+                        echo "$(tput setaf 1)The execution time of these test cases exceeds the threshold($threshold):$(tput sgr0)"
+                        cat $breakCaseListfile
+                        echo "📌 ref: https://github.com/pingcap/tidb/issues/46820"
+
+                        exit 1
+                    fi
+                '''
             }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }

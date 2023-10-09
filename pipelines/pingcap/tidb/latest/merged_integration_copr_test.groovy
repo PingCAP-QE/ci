@@ -19,7 +19,6 @@ pipeline {
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
-        CI = "1"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -84,8 +83,8 @@ pipeline {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/* bin/
                             ls -alh bin/
                             """

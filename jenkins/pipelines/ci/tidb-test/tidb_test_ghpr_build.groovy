@@ -38,7 +38,7 @@ POD_LABEL_MAP = [
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/ci/tidb/goversion-select-lib.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
@@ -87,7 +87,7 @@ try {
             container("golang") {
                 // update cache
                 parallel 'tidb-test': {
-                    dir("go/src/github.com/pingcap/tidb-test") {
+                    dir("go/src/github.com/PingCAP-QE/tidb-test") {
                         def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb-test.tar.gz"
                         def cacheExisted = sh(returnStatus: true, script: """
                             if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
@@ -110,7 +110,7 @@ try {
                             ],
                             userRemoteConfigs: [
                                 [
-                                    url: "git@github.com:pingcap/tidb-test.git",
+                                    url: "git@github.com:PingCAP-QE/tidb-test.git",
                                     refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
                                     credentialsId: 'github-sre-bot-ssh',
                                 ]
@@ -131,7 +131,7 @@ try {
         }
 
         stage("Build") {
-            dir("go/src/github.com/pingcap/tidb-test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                 container("golang") {
                     timeout(10) {
                         sh """
@@ -146,10 +146,10 @@ try {
         }
 
         stage("Upload") {
-            def filepath = "builds/pingcap/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
-            def refspath = "refs/pingcap/tidb-test/pr/${ghprbPullId}/sha1"
+            def filepath = "builds/PingCAP-QE/tidb-test/pr/${ghprbActualCommit}/centos7/tidb-test.tar.gz"
+            def refspath = "refs/PingCAP-QE/tidb-test/pr/${ghprbPullId}/sha1"
 
-            dir("go/src/github.com/pingcap/tidb-test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test") {
                 container("golang") {
                     timeout(10) {
                         sh """

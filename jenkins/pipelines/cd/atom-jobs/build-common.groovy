@@ -119,8 +119,7 @@ if (params.FAILPOINT) {
 // check if binary already has been built. 
 def ifFileCacheExists() {
     // return false // to re-run force build
-    node("$GO_BUILD_SLAVE") { 
-        container("golang") {
+    node("light_curl") {
             if (params.FORCE_REBUILD){
                 return false
             } 
@@ -131,7 +130,6 @@ def ifFileCacheExists() {
                 return true
             }
             return false
-        }
     }
 }
 
@@ -144,7 +142,10 @@ def ifFileCacheExists() {
 
 // choose which go version to use. 
 def String needUpgradeGoVersion(String tag,String branch) {
-    goVersion="go1.20"
+    goVersion="go1.21"
+    if (tag.startsWith("v") && tag >= "v7.0" && tag < "v7.4") {
+        return "go1.20"
+    }
     if (tag.startsWith("v") && tag >= "v6.3" && tag < "v6.7") {
         return "go1.19"
     }
@@ -177,17 +178,20 @@ def String needUpgradeGoVersion(String tag,String branch) {
     if (branch.startsWith("release-") && branch >= "release-6.3" && branch < "release-6.7"){
         return "go1.19"
     }
+    if (branch.startsWith("release-") && branch >= "release-7.0" && branch < "release-7.4"){
+        return "go1.20"
+    }
     if (branch.startsWith("hz-poc") || branch.startsWith("arm-dup") ) {
         return "go1.16"
     }
     if (REPO == "tiem") {
         return "go1.16"
     }
-    return "go1.20"
+    return "go1.21"
 }
 
-def goBuildPod = "build_go1200"
-def GO_BIN_PATH = "/usr/local/go1.20.6/bin"
+def goBuildPod = "build_go1210"
+def GO_BIN_PATH = "/usr/local/go1.21/bin"
 goVersion = needUpgradeGoVersion(params.RELEASE_TAG,params.TARGET_BRANCH)
 // tidb-tools only use branch master and use newest go version
 // only for version >= v5.3.0
@@ -207,24 +211,32 @@ if (REPO == "tidb-tools" && RELEASE_TAG < "v5.3") {
             break
         case "go1.19":
             goBuildPod = "build_go1190"
-            GO_BIN_PATH = "/usr/local/go1.19.11/bin"
+            GO_BIN_PATH = "/usr/local/go1.19/bin"
             break
         case "go1.20":
             goBuildPod = "build_go1200"
-            GO_BIN_PATH = "/usr/local/go1.20.6/bin"
+            GO_BIN_PATH = "/usr/local/go1.20/bin"
+            break
+        case "go1.21":
+            goBuildPod = "build_go1210"
+            GO_BIN_PATH = "/usr/local/go1.21/bin"
             break
         default:
             throw new Exception("go version ${goVersion} not supported")
     }
 } 
 if (REPO != "tidb-tools") {
+    if (goVersion == "go1.21") {
+        goBuildPod = "build_go1210"
+        GO_BIN_PATH = "/usr/local/go1.21/bin"
+    }
     if (goVersion == "go1.20") {
         goBuildPod = "build_go1200"
-        GO_BIN_PATH = "/usr/local/go1.20.6/bin"
+        GO_BIN_PATH = "/usr/local/go1.20/bin"
     }
     if (goVersion == "go1.19") {
         goBuildPod = "build_go1190"
-        GO_BIN_PATH = "/usr/local/go1.19.11/bin"
+        GO_BIN_PATH = "/usr/local/go1.19/bin"
     }
     if (goVersion == "go1.18") {
         goBuildPod = "build_go1180"
@@ -245,15 +257,15 @@ if (REPO != "tidb-tools") {
 def nodeLabel = goBuildPod
 def containerLabel = "golang"
 def binPath = ""
-def useArmPod = false
+def useArmPodTemplate = false
 
-if (params.ARCH == "arm64" && params.PRODUCT in ["tidb", "enterprise-plugin", "tics"]) {
-    useArmPod = true
+if (params.ARCH == "arm64" && params.OS == "linux" && !(params.PRODUCT in ["tics", "tiflash"])) {
+    useArmPodTemplate = true
 }
 if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
     nodeLabel = "build"
     containerLabel = "rust"
-} 
+}
 if (params.PRODUCT == "tics") {
     nodeLabel = "build_tiflash"
     containerLabel = "tiflash"
@@ -261,11 +273,12 @@ if (params.PRODUCT == "tics") {
         nodeLabel = "tiflash_build_arm"
         containerLabel = "tiflash"
     }
-} 
-if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPod) {
+}
+if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPodTemplate && params.PRODUCT != "tics") {
     binPath = "${GO_BIN_PATH}:/usr/local/node/bin:/root/.cargo/bin:/usr/lib64/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
     nodeLabel = "arm"
     containerLabel = ""
+    error "should not use physical node"
 }
 if (params.OS == "darwin" && params.ARCH == "amd64") {
     binPath = "${GO_BIN_PATH}:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/pingcap/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/pingcap/.cargo/bin:/usr/local/opt/binutils/bin/"
@@ -290,7 +303,7 @@ repo = "git@github.com:pingcap/${REPO}.git"
 if (REPO == "tikv" || REPO == "importer" || REPO == "pd") {
     repo = "git@github.com:tikv/${REPO}.git"
 }
-if (REPO == "tiem") {
+if (REPO == "tiem" || REPO == "enterprise-plugin") {
     repo = "git@github.com:pingcap-inc/${REPO}.git"
 }
 if (GITHUB_REPO){
@@ -344,14 +357,12 @@ def checkoutCode() {
 
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
-		container("golang"){
-            sh """
-			cd ../
-            curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
-            tar -xf src-tidb.tar.gz
-			rm -f src-tidb.tar.gz
-            """
-        }
+        sh """
+        cd ../
+        curl -O -C - --retry 5 --retry-delay 6 --retry-max-time 60 ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tidb.tar.gz
+        tar -xf src-tidb.tar.gz
+        rm -f src-tidb.tar.gz
+        """
         def tidb_repo = 'git@github.com:pingcap/tidb.git'
         if (TIDB_HASH.contains(':')){
             def tidb_repo_hash = TIDB_HASH.split(":")
@@ -761,6 +772,10 @@ if [ ${OS} == 'linux' ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
 fi;
+# compatibility: arm linux page sizes vary from 4k to 64k
+if [ ${OS}/${ARCH} == 'linux/arm64' ]; then
+    export JEMALLOC_SYS_WITH_LG_PAGE=16
+fi;
 if [ ${failpoint} == 'true' ]; then
     CARGO_TARGET_DIR=.target ROCKSDB_SYS_STATIC=1 make fail_release
 else
@@ -939,32 +954,33 @@ def run_with_arm_go_pod(Closure body) {
         case "go1.20":
             arm_go_pod_image = "hub.pingcap.net/jenkins/centos7_golang-1.20-arm64:latest"
             break
+        case "go1.21":
+            arm_go_pod_image = "hub.pingcap.net/jenkins/centos7_golang-1.21-arm64:latest"
+            break
         default:
             println "invalid go version ${goVersion}"
             break
     }
-    def cloud = "kubernetes-arm64"
+    if (PRODUCT == "tikv"){
+        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
+    }
+    def cloud = "kubernetes"
     def nodeSelector = "kubernetes.io/arch=arm64"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.10-3"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
             nodeSelector: nodeSelector,
             containers: [
                     containerTemplate(
-                            name: 'golang', alwaysPullImage: true,
+                            name: 'builder', alwaysPullImage: true,
                             image: "${arm_go_pod_image}", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                             
                     ),
-                    containerTemplate(
-                        name: 'jnlp', image: jnlp_docker_image, alwaysPullImage: false,
-                        resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
-                    )
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
@@ -973,7 +989,7 @@ def run_with_arm_go_pod(Closure body) {
     ) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
-            container("golang") {
+            container("builder") {
                 body()
             }
         }
@@ -983,11 +999,11 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if (params.PRODUCT in ["tidb", "enterprise-plugin"] && params.ARCH == "arm64" &&  params.OS == "linux") {
+            if (useArmPodTemplate) {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()
-                        release(PRODUCT, containerLabel)
+                        release(PRODUCT, 'builder')
                     }
                 }
             } else {

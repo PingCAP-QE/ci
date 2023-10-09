@@ -24,22 +24,6 @@ properties([
                         description: '',
                         trim: true
                 )
-        ]),
-        pipelineTriggers([
-                /*
-                H 18 * * * % GIT_BRANCH=release-5.0;FORCE_REBUILD=false;NEED_MULTIARCH=false
-                H 18 * * * % GIT_BRANCH=release-5.1;FORCE_REBUILD=false;NEED_MULTIARCH=false
-                H 18 * * * % GIT_BRANCH=release-5.2;FORCE_REBUILD=false;NEED_MULTIARCH=false
-                H 18 * * * % GIT_BRANCH=release-5.3;FORCE_REBUILD=false;NEED_MULTIARCH=false
-                */
-                parameterizedCron('''
-                H 18 * * * % GIT_BRANCH=release-5.4;FORCE_REBUILD=false;NEED_MULTIARCH=false
-                H 18 * * * % GIT_BRANCH=release-6.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
-                H 18 * * * % GIT_BRANCH=release-6.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
-                H 18 * * * % GIT_BRANCH=release-7.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
-                H 18 * * * % GIT_BRANCH=release-7.2;FORCE_REBUILD=false;NEED_MULTIARCH=true
-                H 19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
-            ''')
         ])
 ])
 
@@ -84,7 +68,7 @@ HARBOR_PROJECT_PREFIX = "hub.pingcap.net/qa"
 
 
 // for master branch: use default local tag: v6.1.0-nightly
-RELEASE_TAG = "v7.3.0-alpha"
+RELEASE_TAG = "v7.5.0-alpha"
 if (GIT_BRANCH.startsWith("release-")) {
     RELEASE_TAG = "v" + trimPrefix(GIT_BRANCH) + ".0-nightly"
 }
@@ -740,6 +724,12 @@ try {
         }
         currentBuild.result = "SUCCESS"
     }
+} catch (exc) {
+    def sw = new StringWriter()
+    def pw = new PrintWriter(sw)
+    exc.printStackTrace(pw)
+    echo sw.toString()
+    throw exc
 } finally {
     build job: 'send_notify',
             wait: true,

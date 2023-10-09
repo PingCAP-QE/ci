@@ -20,7 +20,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -58,10 +58,10 @@ pipeline {
                 stage("enterprise-plugin") {
                     steps {
                         dir("enterprise-plugin") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/enterprise-plugin/rev-']) {
+                            cache(path: "./", filter: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
-                                        component.checkout('git@github.com:pingcap/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                        component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                                     }
                                 }
                             }

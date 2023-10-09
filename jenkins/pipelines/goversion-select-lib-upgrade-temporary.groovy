@@ -106,5 +106,32 @@ def selectGoVersion(branchNameOrTag) {
     }
 }
 
+def selectGoImage(branchNameOrTag) {
+    // "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+    def goVersion = selectGoVersion(branchNameOrTag).substring(2)
+    def goImage = "hub.pingcap.net/jenkins/centos7_golang-${goVersion}:latest"
+    println "goImage: ${goImage}"
+    return goImage
+}
+
+def selectGoImageWithTini(branchNameOrTag) {
+    // "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+    def goVersion = selectGoVersion(branchNameOrTag).substring(2)
+    def goImage = "hub.pingcap.net/jenkins/golang-tini:${goVersion}"
+    println "goImage: ${goImage}"
+    return goImage
+}
+
+
+def getPodLabel(branchNameOrTag, jobName, buildNumber) {
+    def goVersion = selectGoVersion(branchNameOrTag).substring(2)
+    // pod label "${JOB_NAME}-go1210-${BUILD_NUMBER}"
+    def versionString = goVersion.replace(".", "")
+    def podLabel = "${jobName}-${buildNumber}-go${versionString}"
+    println "podLabel: ${podLabel}"
+    return podLabel
+}
+
+
 return this
 

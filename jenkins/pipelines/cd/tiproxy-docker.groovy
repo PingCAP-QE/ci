@@ -35,12 +35,16 @@ pipeline {
     parameters {
         string(name: 'Revision', defaultValue: 'main', description: 'branch or commit hash')
     }
+    options {
+        timeout(time: 40, unit: 'MINUTES')
+    }
     stages {
         stage ("get commit hash") {
             agent {
                 kubernetes {
                     yaml podYaml
                     defaultContainer 'docker'
+                    nodeSelector "kubernetes.io/arch=amd64"
                 }
             }
             steps{
@@ -63,6 +67,7 @@ pipeline {
                         kubernetes {
                             yaml podYaml
                             defaultContainer 'docker'
+                            nodeSelector "kubernetes.io/arch=amd64"
                         }
                     }
                     stages{
@@ -82,7 +87,8 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
-                                sh "apk update && apk add make"
+                                sh "apk update && apk add make git"
+                                sh "git config --global --add safe.directory '*'"
                                 sh "make DOCKERPREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-amd64 docker"
                                 sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-amd64"
                             }
@@ -93,7 +99,8 @@ pipeline {
                     agent {
                         kubernetes {
                             yaml podYaml
-                            cloud "kubernetes-arm64"
+                            cloud "kubernetes"
+                            nodeSelector "kubernetes.io/arch=arm64"
                             defaultContainer 'docker'
                         }
                     }
@@ -114,7 +121,8 @@ pipeline {
                         }
                         stage('build docker') {
                             steps {
-                                sh "apk update && apk add make"
+                                sh "apk update && apk add make git"
+                                sh "git config --global --add safe.directory '*'"
                                 sh "make DOCKERPREFIX=hub.pingcap.net/pingcap/ IMAGE_TAG=${ImageTag}-arm64 docker"
                                 sh "docker push hub.pingcap.net/pingcap/tiproxy:${ImageTag}-arm64"
                             }
@@ -129,6 +137,7 @@ pipeline {
             agent {
                 kubernetes {
                     yaml podYaml
+                    nodeSelector "kubernetes.io/arch=amd64"
                     defaultContainer 'docker'
                 }
             }

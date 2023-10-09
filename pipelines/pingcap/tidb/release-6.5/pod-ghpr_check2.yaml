@@ -13,11 +13,6 @@ spec:
         limits:
           memory: 32Gi
           cpu: "8"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
@@ -30,6 +25,8 @@ spec:
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -69,6 +66,9 @@ spec:
       emptyDir: {}
     - name: bazel-out-merged
       emptyDir: {}
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
     - name: bazel-rc
       secret:
         secretName: bazel
@@ -100,3 +100,7 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"

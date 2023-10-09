@@ -26,39 +26,26 @@ if (PLUGIN_BRANCH.startsWith("release-") && PLUGIN_BRANCH.split("-").size() >= 3
 }
 
 def specStr = "+refs/heads/*:refs/remotes/origin/*"
-def isBuildCheck = ghprbCommentBody && ghprbCommentBody.contains("/run-all-tests")
 
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "tidb-ghpr-common-test-go1130-${BUILD_NUMBER}",
-    "go1.16": "tidb-ghpr-common-test-go1160-${BUILD_NUMBER}",
-    "go1.18": "tidb-ghpr-common-test-go1180-${BUILD_NUMBER}",
-    "go1.19": "tidb-ghpr-common-test-go1190-${BUILD_NUMBER}",
-    "go1.20": "tidb-ghpr-common-test-go1200-${BUILD_NUMBER}",
-]
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
-    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy ${goversion_lib_url}"
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
+    sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
-
 def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
@@ -236,22 +223,22 @@ try {
                                     """
                                 }
                             }
-                            dir("go/src/github.com/pingcap/enterprise-plugin") {
-                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PLUGIN_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 5]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: pluginSpec, url: 'git@github.com:pingcap/enterprise-plugin.git']]]
+                            dir("go/src/github.com/pingcap-inc/enterprise-plugin") {
+                                checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: "${PLUGIN_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 5]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: pluginSpec, url: 'git@github.com:pingcap-inc/enterprise-plugin.git']]]
                                 githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                                 println "plugin branch: ${PLUGIN_BRANCH}"
                                 println "plugin commit id: ${githash}"
                             }
-                            dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
+                            dir("go/src/github.com/pingcap-inc/enterprise-plugin/whitelist") {
                                 sh """
                                 GO111MODULE=on go mod tidy
-                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
+                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist
                                 """
                             }
-                            dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
+                            dir("go/src/github.com/pingcap-inc/enterprise-plugin/audit") {
                                 sh """
                                 GO111MODULE=on go mod tidy
-                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
+                                ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg -pkg-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit
                                 """
                             }
                         }
@@ -275,8 +262,8 @@ try {
                             rm -rf plugin-so
                             mkdir -p plugin-so
 
-                            cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit/audit-1.so ./plugin-so/
-                            cp ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
+                            cp ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit/audit-1.so ./plugin-so/
+                            cp ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
                             ${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server -plugin-dir=${ws}/go/src/github.com/pingcap/tidb/plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
 
                             sleep 5

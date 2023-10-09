@@ -17,29 +17,8 @@ if (ghprbPullId == null || ghprbPullId == "") {
     specStr = "+refs/heads/*:refs/remotes/origin/*"
 }
 
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/golang-tini:1.13",
-    "go1.16": "hub.pingcap.net/jenkins/golang-tini:1.16",
-    "go1.18": "hub.pingcap.net/jenkins/golang-tini:1.18",
-    "go1.19": "hub.pingcap.net/jenkins/golang-tini:1.19",
-    "go1.20": "hub.pingcap.net/jenkins/golang-tini:1.20",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-build-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-build-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-build-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-build-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-build-${BUILD_NUMBER}",
-]
-TEST_POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-test-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-test-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-test-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-test-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-test-${BUILD_NUMBER}",
-]
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/golang-tini:1.21"
 
 feature_branch_use_go13 = []
 feature_branch_use_go16 = ["hz-poc", "ft-data-inconsistency", "br-stream"]
@@ -55,30 +34,32 @@ resultDownloadPath = ""
 // Version Selector
 // branch or tag
 // == branch
-//  master use go1.20
+//  master use go1.21
+//  release branch >= release-7.4 use go1.21
 //  release branch >= release-7.0 use go1.20
 //  release branch >= release-6.1 use go1.19
 //  release branch >= release-6.0 use go1.18
 //  release branch >= release-5.1 use go1.16
 //  release branch < release-5.0 use go1.13
 //  other feature use corresponding go version
-//  the default go version is go1.18
-// == tag
-// any tag greater or eqaul to v7.0.xxx use go1.19
-// any tag greater or eqaul to v6.1.xxx use go1.19
-// any tag greater or eqaul to v6.0.xxx use go1.18
-// any tag smaller than v6.0.0 and graeter or equal to v5.1.xxx use go1.16
-// any tag smaller than v5.1.0 use go1.13
-
+//  the default go version is go1.21
 
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        if (branchNameOrTag >= "v7.4") {
+            println "tag ${branchNameOrTag} use go 1.21"
+            return "go1.21"
+        }
         if (branchNameOrTag >= "v7.0") {
             println "tag ${branchNameOrTag} use go 1.20"
             return "go1.20"
         }
-        if (branchNameOrTag >= "v6.1") {
+        // special for v6.1 larger than patch 3
+        if (branchNameOrTag.startsWith("v6.1") && branchNameOrTag >= "v6.1.3" || branchNameOrTag=="v6.1.0-nightly") {
+            return "go1.19"
+        }
+        if (branchNameOrTag >= "v6.3") {
             println "tag ${branchNameOrTag} use go 1.19"
             return "go1.19"
         }
@@ -94,8 +75,8 @@ def selectGoVersion(branchNameOrTag) {
             println "tag ${branchNameOrTag} use go 1.13"
             return "go1.13"
         }
-        println "tag ${branchNameOrTag} use default version go 1.18"
-        return "go1.19"
+        println "tag ${branchNameOrTag} use default version go 1.21"
+        return "go1.21"
     } else { 
         println "this is a branch"
         if (branchNameOrTag in feature_branch_use_go13) {
@@ -119,11 +100,14 @@ def selectGoVersion(branchNameOrTag) {
             return "go1.20"
         }
         if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.20")
-            return "go1.20"
+            println("branchNameOrTag: master  use go1.21")
+            return "go1.21"
         }
 
-
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.4") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.21")
+            return "go1.21"
+        }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.20")
             return "go1.20"
@@ -132,7 +116,7 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.19")
             return "go1.19"
         }
-        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.3"  && branchNameOrTag >= "release-6.0") {
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag < "release-6.1"  && branchNameOrTag >= "release-6.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.18")
             return "go1.18"
         }
@@ -145,16 +129,21 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
             return "go1.13"
         }
-        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.20"
-        return "go1.20"
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.21"
+        return "go1.21"
     }
 }
 
-GO_VERSION = selectGoVersion(ghprbTargetBranch)
-POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
-println "go version: ${GO_VERSION}"
-println "go image: ${POD_GO_IMAGE}"
+def selectGoImageWithTini(branchNameOrTag) {
+    // "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+    def goVersion = selectGoVersion(branchNameOrTag).substring(2)
+    def goImage = "hub.pingcap.net/jenkins/golang-tini:${goVersion}"
+    println "goImage: ${goImage}"
+    return goImage
+}
 
+POD_GO_IMAGE = selectGoImageWithTini(ghprbTargetBranch)
+println "go image: ${POD_GO_IMAGE}"
 
 podYAML = '''
 apiVersion: v1
@@ -171,7 +160,7 @@ spec:
 '''
 
 def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label =  "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tiflow"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
@@ -353,7 +342,7 @@ catchError {
             common.prepare_binaries()
             common.download_binaries()
 
-            def label = TEST_POD_LABEL_MAP[GO_VERSION]
+            def label =  "${JOB_NAME}-test-${BUILD_NUMBER}"
             podTemplate(label: label,
                     cloud: "kubernetes-ksyun",
                     yaml: podYAML,

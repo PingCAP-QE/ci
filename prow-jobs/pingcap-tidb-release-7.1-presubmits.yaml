@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tidb/release-7.1/ghpr_build
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
@@ -13,7 +13,7 @@ presubmits:
     - name: pingcap/tidb/release-7.1/ghpr_check
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
@@ -22,7 +22,7 @@ presubmits:
     - name: pingcap/tidb/release-7.1/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
@@ -31,7 +31,7 @@ presubmits:
     - name: pingcap/tidb/release-7.1/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
@@ -40,9 +40,20 @@ presubmits:
     - name: pingcap/tidb/release-7.1/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
+      branches:
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.1/pull_br_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-br-integration-test
+      always_run: false
+      optional: true
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-br-integration-test"
       branches:
         - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$

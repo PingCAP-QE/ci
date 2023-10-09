@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
-  pingcap/tidb-test:
-    - name: pingcap/tidb-test/ghpr_build
+  PingCAP-QE/tidb-test:
+    - name: pingcap-qe/tidb-test/ghpr_build
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md)$"
@@ -12,7 +12,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb-test/ghpr_common_test
+    - name: pingcap-qe/tidb-test/ghpr_common_test
       agent: jenkins
       decorate: false # need add this.
       run_if_changed: "(jdbc8_test|jdbc_test)/.*"
@@ -23,7 +23,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb-test/ghpr_integration_jdbc_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
       run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
@@ -34,7 +34,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb-test/ghpr_integration_common_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_common_test
       agent: jenkins
       decorate: false # need add this.
       run_if_changed: "randgen-test/.*"
@@ -45,7 +45,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb-test/ghpr_integration_mysql_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
       run_if_changed: "mysql_test/.*"
@@ -56,7 +56,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb-test/ghpr_mysql_test
+    - name: pingcap-qe/tidb-test/ghpr_mysql_test
       agent: jenkins
       run_if_changed: "mysql_test/.*"
       decorate: false # need add this.
@@ -67,7 +67,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb-test/ghpr_integration_prisma_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_prisma_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -77,7 +77,7 @@ presubmits:
       rerun_command: "/test integration-prisma-test"
       branches:
         - ^master$
-    - name: pingcap/tidb-test/ghpr_integration_sequelize_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_sequelize_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -87,13 +87,63 @@ presubmits:
       rerun_command: "/test integration-sequelize-test"
       branches:
         - ^master$
-    - name: pingcap/tidb-test/pull_tiproxy_mysql_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_python_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/integration-python-orm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?integration-python-orm-test(?: .*?)?$"
+      rerun_command: "/test integration-python-orm-test"
+      branches:
+        - ^master$
+    - name: pingcap-qe/tidb-test/pull_tiproxy_mysql_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
       context: wip/pull-tiproxy-mysql-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiproxy-mysql-test(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-mysql-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-mysql-test"
+      branches:
+        - ^master$
+    - name: pingcap-qe/tidb-test/pull_tiproxy_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-common-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-common-test|tiproxy)(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-common-test"
+      branches:
+        - ^master$
+    - name: pingcap-qe/tidb-test/pull_tiproxy_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-jdbc-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-jdbc-test|tiproxy)(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-jdbc-test"
+      branches:
+        - ^master$
+    - name: pingcap-qe/tidb-test/pull_tiproxy_ruby_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-ruby-orm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-ruby-orm-test|tiproxy)(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-ruby-orm-test"
+      branches:
+        - ^master$
+    - name: pingcap-qe/tidb-test/pull_tiproxy_mysql_connector_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: wip/pull-tiproxy-mysql-connector-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-mysql-connector-test|tiproxy)(?: .*?)?$"
+      rerun_command: "/test pull-tiproxy-mysql-connector-test"
       branches:
         - ^master$

@@ -17,9 +17,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        CI = "1"
-    }
     options {
         timeout(time: 30, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -55,10 +52,20 @@ pipeline {
             }
         }
         stage("Checks") {
+            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir('tidb') {
-                    sh script: 'make gogenerate check explaintest'
+                    sh script: 'make gogenerate check integrationtest'
+                }
+            }
+            post {
+                success {
+                    dir("tidb") {
+                        script {
+                            prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
+                        }
+                    }
                 }
             }
         }

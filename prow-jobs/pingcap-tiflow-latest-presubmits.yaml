@@ -4,6 +4,7 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
@@ -12,9 +13,12 @@ presubmits:
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^master$
+    # TODO: combine other CDC integration tests to a single one, 
+    # Currently we keep the Jenkins job name.
     - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
@@ -26,6 +30,7 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-storage-test
@@ -34,9 +39,21 @@ presubmits:
       rerun_command: "/test cdc-integration-storage-test"
       branches:
         - ^master$
+    - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      run_before_merge: true
+      context: pull-cdc-integration-pulsar-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test|all)(?: .*?)?$"
+      rerun_command: "/test cdc-integration-pulsar-test"
+      branches:
+        - ^master$
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-compatibility-test
@@ -48,6 +65,7 @@ presubmits:
     - name: pingcap/tiflow/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-integration-test
@@ -59,6 +77,7 @@ presubmits:
     - name: pingcap/tiflow/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
+      always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-engine-integration-test

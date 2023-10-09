@@ -172,7 +172,7 @@ def build_image() {
 def nodeLabel = "delivery"
 def containerLabel = "delivery"
 if (params.ARCH == "arm64") {
-    nodeLabel = "arm"
+    nodeLabel = "arm_docker"
     containerLabel = ""
 }
 

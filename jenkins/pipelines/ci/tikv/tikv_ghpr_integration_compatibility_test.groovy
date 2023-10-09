@@ -55,36 +55,25 @@ println "TIKV_OLD_BRANCH=${TIKV_OLD_BRANCH}"
 
 def tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/pr/${ghprbActualCommit}/centos7/tikv-server.tar.gz"
 
-GO_VERSION = "go1.20"
-POD_GO_IMAGE = ""
-GO_IMAGE_MAP = [
-    "go1.13": "hub.pingcap.net/jenkins/centos7_golang-1.13:latest",
-    "go1.16": "hub.pingcap.net/jenkins/centos7_golang-1.16:latest",
-    "go1.18": "hub.pingcap.net/jenkins/centos7_golang-1.18:latest",
-    "go1.19": "hub.pingcap.net/jenkins/centos7_golang-1.19:latest",
-    "go1.20": "hub.pingcap.net/jenkins/centos7_golang-1.20:latest",
-]
-POD_LABEL_MAP = [
-    "go1.13": "${JOB_NAME}-go1130-${BUILD_NUMBER}",
-    "go1.16": "${JOB_NAME}-go1160-${BUILD_NUMBER}",
-    "go1.18": "${JOB_NAME}-go1180-${BUILD_NUMBER}",
-    "go1.19": "${JOB_NAME}-go1190-${BUILD_NUMBER}",
-    "go1.20": "${JOB_NAME}-go1200-${BUILD_NUMBER}",
-]
+GO_VERSION = "go1.21"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
 
 node("master") {
     deleteDir()
-    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-upgrade-temporary.groovy'
+    def goversion_lib_url = 'https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/goversion-select-lib-v2.groovy'
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
-    POD_GO_IMAGE = GO_IMAGE_MAP[GO_VERSION]
+    POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
+    POD_LABEL = goversion_lib.getPodLabel(ghprbTargetBranch, JOB_NAME, BUILD_NUMBER)
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
+    println "pod label: ${POD_LABEL}"
 }
 
 def run_with_pod(Closure body) {
-    def label = POD_LABEL_MAP[GO_VERSION]
+    def label = POD_LABEL
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
     def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
@@ -131,10 +120,10 @@ try {
                     }
                 }
 
-                dir("go/src/github.com/pingcap/tidb-test") {
-                    def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb-test/${TIDB_TEST_BRANCH}/sha1"
+                dir("go/src/github.com/PingCAP-QE/tidb-test") {
+                    def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
-                    def tidb_test_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
+                    def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
                     timeout(10) {
                         sh """
@@ -147,7 +136,7 @@ try {
                 }
             }
 
-            stash includes: "go/src/github.com/pingcap/tidb-test/compatible_test/**", name: "compatible_test"
+            stash includes: "go/src/github.com/PingCAP-QE/tidb-test/compatible_test/**", name: "compatible_test"
             deleteDir()
         }
     }
@@ -159,7 +148,7 @@ try {
             deleteDir()
             unstash 'compatible_test'
 
-            dir("go/src/github.com/pingcap/tidb-test/compatible_test") {
+            dir("go/src/github.com/PingCAP-QE/tidb-test/compatible_test") {
                 container("golang") {
                     def tikv_old_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_OLD_BRANCH}/sha1"
                     def tikv_old_sha1 = sh(returnStdout: true, script: "curl ${tikv_old_refs}").trim()
