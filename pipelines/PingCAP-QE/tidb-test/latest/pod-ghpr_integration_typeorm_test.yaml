@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 spec:
   securityContext:
-    fsGroup: 1000
+    fsGroup: 0
   containers:
     - name: golang
       image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
