@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_integration_typeorm_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_integration_nodejs_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -78,12 +78,12 @@ pipeline {
                 }
             }
         }
-        stage('TypeORM Tests') {
+        stage('Node.js Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'typeorm_test ./test.sh'
+                        values 'prisma_test ./test.sh', 'typeorm_test ./test.sh', 'sequelize_test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
