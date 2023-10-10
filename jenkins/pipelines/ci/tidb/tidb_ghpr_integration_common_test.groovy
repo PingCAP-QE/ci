@@ -678,7 +678,6 @@ try {
                                             echo "tests/integrationtest file found in 'tests/integrationtest'"
                                             cp bin/tidb-server tests/integrationtest
                                             cp bin/importer tests/integrationtest
-                                            cd tests/integrationtest
                                             set +e
                                             killall -9 -r tidb-server
                                             killall -9 -r tikv-server
