@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap-qe/tidb-test/ghpr_integration_typeorm_test') {
+pipelineJob('pingcap-qe/tidb-test/ghpr_integration_nodejs_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -18,7 +18,7 @@ pipelineJob('pingcap-qe/tidb-test/ghpr_integration_typeorm_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/PingCAP-QE/tidb-test/latest/ghpr_integration_typeorm_test.groovy")
+            scriptPath("pipelines/PingCAP-QE/tidb-test/latest/ghpr_integration_nodejs_test.groovy")
             scm {
                 git{
                     remote {

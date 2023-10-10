@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_integration_typeorm_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/PingCAP-QE/tidb-test/latest/pod-ghpr_integration_nodejs_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -13,7 +13,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
+            defaultContainer 'nodejs'
         }
     }
     environment {
@@ -78,25 +78,25 @@ pipeline {
                 }
             }
         }
-        stage('TypeORM Tests') {
+        stage('Node.js Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'typeorm_test ./test.sh'
+                        values 'prisma_test ./test.sh', 'typeorm_test ./test.sh', 'sequelize_test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
                         values "tikv"
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'nodejs'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
@@ -117,28 +117,24 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("nodejs") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/usr/bin/env bash
-                                            set -- \${TEST_PARAMS}
-                                            TEST_DIR=\$1
-                                            TEST_SCRIPT=\$2
-                                            echo "TEST_DIR=\${TEST_DIR}"
-                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            fi
-                                        """
-                                    }
+                                    sh label: "test_params=${TEST_PARAMS} ", script: """
+                                        #!/usr/bin/env bash
+                                        set -- \${TEST_PARAMS}
+                                        TEST_DIR=\$1
+                                        TEST_SCRIPT=\$2
+                                        echo "TEST_DIR=\${TEST_DIR}"
+                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                        export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
+                                        export TIDB_TEST_STORE_NAME="${TEST_STORE}"
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                        fi
+
+                                       cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+
+                                    """
                                 }
                             }
                         }
