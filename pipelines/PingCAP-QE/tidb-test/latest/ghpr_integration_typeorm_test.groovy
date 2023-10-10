@@ -117,18 +117,16 @@ pipeline {
                                         TEST_SCRIPT=\$2
                                         echo "TEST_DIR=\${TEST_DIR}"
                                         echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                        export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
+                                        export TIDB_TEST_STORE_NAME="${TEST_STORE}"
                                         if [[ "${TEST_STORE}" == "tikv" ]]; then
                                             echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                             bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                             export TIKV_PATH="127.0.0.1:2379"
-                                            export TIDB_TEST_STORE_NAME="tikv"
-                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                        else
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                            export TIDB_TEST_STORE_NAME="unistore"
-                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                         fi
+
+                                       cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+
                                     """
                                 }
                             }
