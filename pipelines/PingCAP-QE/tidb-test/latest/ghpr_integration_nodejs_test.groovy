@@ -90,6 +90,13 @@ pipeline {
                         values "tikv"
                     }
                 }
+                agent {
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        yamlFile POD_TEMPLATE_FILE
+                        defaultContainer 'nodejs'
+                    }
+                }
                 stages {
                     stage("Test") {
                         steps {
