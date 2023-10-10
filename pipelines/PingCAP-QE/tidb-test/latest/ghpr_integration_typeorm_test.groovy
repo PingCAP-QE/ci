@@ -120,9 +120,9 @@ pipeline {
                                     container("nodejs") {
                                         sh label: "test_params=${TEST_PARAMS} ", script: """
                                             #!/usr/bin/env bash
-                                            params_array=(\${TEST_PARAMS})
-                                            TEST_DIR=\${params_array[0]}
-                                            TEST_SCRIPT=\${params_array[1]}
+                                            set -- \${TEST_PARAMS}
+                                            TEST_DIR=\$1
+                                            TEST_SCRIPT=\$2
                                             echo "TEST_DIR=\${TEST_DIR}"
                                             echo "TEST_SCRIPT=\${TEST_SCRIPT}"
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
