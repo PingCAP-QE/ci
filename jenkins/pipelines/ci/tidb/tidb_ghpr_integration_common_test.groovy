@@ -685,7 +685,7 @@ try {
                                             killall -9 -r pd-server
                                             rm -rf /tmp/tidb
                                             set -e
-                                            ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                            make integrationtest
                                         else
                                             echo "explaintest file not found"
                                             exit 1
