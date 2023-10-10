@@ -661,21 +661,35 @@ try {
 
                                     timeout(20) {
                                         sh """
-                                        if [ ! -d cmd/explaintest ]; then
-                                            echo "no explaintest file found in 'cmd/explaintest'"
-                                            exit -1
+                                        if [ -d cmd/explaintest ]; then
+                                            echo "explaintest file found in 'cmd/explaintest'"
+                                            cp bin/tidb-server cmd/explaintest
+                                            cp bin/importer cmd/explaintest
+                                            cd cmd/explaintest
+                                            GO111MODULE=on go build -o explain_test
+                                            set +e
+                                            killall -9 -r tidb-server
+                                            killall -9 -r tikv-server
+                                            killall -9 -r pd-server
+                                            rm -rf /tmp/tidb
+                                            set -e
+                                            ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                        elif [ -d tests/integrationtest ]; then
+                                            echo "tests/integrationtest file found in 'tests/integrationtest'"
+                                            cp bin/tidb-server tests/integrationtest
+                                            cp bin/importer tests/integrationtest
+                                            cd tests/integrationtest
+                                            set +e
+                                            killall -9 -r tidb-server
+                                            killall -9 -r tikv-server
+                                            killall -9 -r pd-server
+                                            rm -rf /tmp/tidb
+                                            set -e
+                                            ./run-tests.sh -s ./tidb-server -i ./importer -b n
+                                        else
+                                            echo "explaintest file not found"
+                                            exit 1
                                         fi
-                                        cp bin/tidb-server cmd/explaintest
-                                        cp bin/importer cmd/explaintest
-                                        cd cmd/explaintest
-                                        GO111MODULE=on go build -o explain_test
-                                        set +e
-                                        killall -9 -r tidb-server
-                                        killall -9 -r tikv-server
-                                        killall -9 -r pd-server
-                                        rm -rf /tmp/tidb
-                                        set -e
-                                        ./run-tests.sh -s ./tidb-server -i ./importer -b n
                                         """
                                     }
                                 } catch (err) {
