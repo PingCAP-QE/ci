@@ -24,6 +24,30 @@ pipelineJob('archive-image-binary-to-minio') {
         }
         stringParam {
             name('TARBALL_NAME')
+            defaultValue('vx.y.z-component-pr')
+            description('')
+            trim(true)
+        }
+        stringParam {
+            name('TIDB_FAILPOINT_TAG')
+            defaultValue('qa/tidb:master-failpoint')
+            description('failpoint image tidb tag')
+            trim(true)
+        }
+        stringParam {
+            name('TIKV_FAILPOINT_TAG')
+            defaultValue('qa/tikv:master-failpoint')
+            description('failpoint image tikv tag')
+            trim(true)
+        }
+        stringParam {
+            name('PD_FAILPOINT_TAG')
+            defaultValue('qa/pd:master-failpoint')
+            description('failpoint image pd tag')
+            trim(true)
+        }
+        stringParam {
+            name('FAILPOINT_TARBALL_NAME')
             defaultValue('vx.y.z-component-pr[failpoint]')
             description('')
             trim(true)
