@@ -468,8 +468,8 @@ def build_product(build_para, product) {
         repo = "pd"
         sha1 = build_para["pd"]
     }
-    if(!sha1){
-        echo "skip because $product sha1 not set"
+    if(sha1 == "-"){
+        echo "skip because $product sha1 is set - for skip"
         return
     }
 
