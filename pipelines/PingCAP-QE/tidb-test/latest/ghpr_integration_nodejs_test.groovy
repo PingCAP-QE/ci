@@ -58,7 +58,6 @@ pipeline {
             steps {
                 dir('tidb') {
                     container('nodejs') {
-                        sh 'git config --global --add safe.directory `pwd`'
                         cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
