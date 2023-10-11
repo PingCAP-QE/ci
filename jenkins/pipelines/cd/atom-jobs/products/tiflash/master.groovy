@@ -206,7 +206,6 @@ pipeline{
         stage('Prepare'){
             steps{
                 script{
-                    echo "tiflash will build with $BUILD_CMD"
                     TIFLASH_EDITION = "Community"
                     if (params.Edition == "enterprise"){
                         TIFLASH_EDITION = "Enterprise"
