@@ -398,23 +398,33 @@ spec:
             }
             parallel{
                 stage("amd64"){
+                    when {
+                        expression{params.PathForLinuxAmd64}
+                        beforeAgent true
+                    }
                     agent { node { label 'delivery' } }
                     environment {
                         ARCH = "amd64"
                         OS = "linux"
                         HUB = credentials('harbor-pingcap') 
                         DOCKER_HOST = "tcp://localhost:2375"
+                        BinPath = "${params.PathForLinuxAmd64}"
                     }
                     steps {container('delivery'){script{
                         buildDocker()
                     }}}
                 }
                 stage("arm64"){
-                    agent { node { label 'arm' } }
+                    when {
+                        expression{params.PathForLinuxArm64}
+                        beforeAgent true
+                    }
+                    agent { node { label 'arm_docker' } }
                     environment {
                         ARCH = "arm64"
                         OS = "linux"
                         HUB = credentials('harbor-pingcap') 
+                        BinPath = "${params.PathForLinuxArm64}"
                     }
                     steps {script{
                         buildDocker()
@@ -427,7 +437,7 @@ spec:
                 not{equals expected: "", actual: params.DockerImage}
                 beforeAgent true
             }
-            agent { node { label 'arm' } }
+            agent { node { label 'arm_docker' } }
             environment {
                 HUB = credentials('harbor-pingcap') 
             }

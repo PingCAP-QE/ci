@@ -468,6 +468,10 @@ def build_product(build_para, product) {
         repo = "pd"
         sha1 = build_para["pd"]
     }
+    if(!sha1){
+        echo "skip because $product sha1 not set"
+        return
+    }
 
     def filepath = "builds/pingcap/${product}/optimization/${release_tag}/${sha1}/${platform}/${product}-${os}-${arch}.tar.gz"
     if (build_para["ENTERPRISE"]) {

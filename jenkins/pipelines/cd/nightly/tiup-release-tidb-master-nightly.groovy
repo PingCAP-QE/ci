@@ -116,7 +116,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value:''],
                                     [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                     [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
@@ -141,7 +141,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: ''],
                                     [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                     [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
@@ -165,7 +165,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: ''],
                                     [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                     [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
@@ -190,7 +190,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'DM_HASH', value: dm_sha1],
                                     [$class: 'StringParameterValue', name: 'BR_HASH', value: tidb_sha1],
                                     [$class: 'StringParameterValue', name: 'DUMPLING_HASH', value: tidb_sha1],
-                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'TIFLASH_HASH', value: ''],
                                     [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                     [$class: 'StringParameterValue', name: 'NGMonitoring_HASH', value: ng_monitoring_sha1],
@@ -202,7 +202,20 @@ retry(2) {
                             ]
                 }
 
-
+                builds["tiflash"] = {
+                    build job: "build-tiflash-master",
+                            wait: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'GitHash', value: tiflash_sha1],
+                                    [$class: 'StringParameterValue', name: 'Version', value: RELEASE_TAG],
+                                    [$class: 'StringParameterValue', name: 'Edtion', value: 'community'],
+                                    [$class: 'StringParameterValue', name: 'PathForLinuxAmd64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_CENTOS}/tiflash-linux-amd64.tar.gz"],
+                                    [$class: 'StringParameterValue', name: 'PathForLinuxArm64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_CENTOS}/tiflash-linux-arm64.tar.gz"],
+                                    [$class: 'StringParameterValue', name: 'PathForDarwinAmd64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_DARWIN}/tiflash-darwin-amd64.tar.gz"],
+                                    [$class: 'StringParameterValue', name: 'PathForDarwinArm64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_DARWIN}/tiflash-darwin-arm64.tar.gz"],
+                                    [$class: 'StringParameterValue', name: 'DockerImage', value: "hub.pingcap.net/qa/tiflash:nightly"],
+                            ]
+                }
                 parallel builds
             }
 
