@@ -208,7 +208,7 @@ retry(2) {
                             parameters: [
                                     [$class: 'StringParameterValue', name: 'GitHash', value: tiflash_sha1],
                                     [$class: 'StringParameterValue', name: 'Version', value: RELEASE_TAG],
-                                    [$class: 'StringParameterValue', name: 'Edtion', value: 'community'],
+                                    [$class: 'StringParameterValue', name: 'Edition', value: 'community'],
                                     [$class: 'StringParameterValue', name: 'PathForLinuxAmd64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_CENTOS}/tiflash-linux-amd64.tar.gz"],
                                     [$class: 'StringParameterValue', name: 'PathForLinuxArm64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_CENTOS}/tiflash-linux-arm64.tar.gz"],
                                     [$class: 'StringParameterValue', name: 'PathForDarwinAmd64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_DARWIN}/tiflash-darwin-amd64.tar.gz"],
