@@ -44,7 +44,7 @@ stage("Cover") {
                     git fetch origin
                     git checkout -f origin/${ghprbTargetBranch}
                     rustup component add llvm-tools-preview
-                    cargo install grcov
+                    cargo install --locked grcov
                 """
 
                 def should_skip = sh (label: 'Check if can skip', script: """
