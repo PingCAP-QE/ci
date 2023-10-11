@@ -190,17 +190,6 @@ def buildDocker={
 
 
 pipeline{
-    parameters {
-        string(name: 'GitHash', description: 'the git tag or commit', defaultValue:'7bd02a86e08f5077c69299ac048a700fcb68507f')
-        string(name: 'Version', description: 'important, the Version for cli --Version and profile choosing, eg. v6.5.0', defaultValue:'v7.3.0')
-        choice(name: 'Edition', choices : ["community", "enterprise"])
-        string(name: 'PathForLinuxAmd64', defaultValue: '', description: 'build path linux amd64')
-        string(name: 'PathForLinuxArm64', defaultValue: '', description: 'build path linux arm64')
-        string(name: 'PathForDarwinAmd64', defaultValue: '', description: 'build path darwin amd64')
-        string(name: 'PathForDarwinArm64', defaultValue: '', description: 'build path darwin arm64')
-        booleanParam(name: 'CleanBuild', description:"disable all caches")
-        string(name: 'DockerImage', description: 'docker image path', defaultValue: '')
-    }
     agent none
     stages{
         stage('Prepare'){
