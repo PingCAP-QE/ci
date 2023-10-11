@@ -13,7 +13,6 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'nodejs'
         }
     }
     environment {
@@ -27,14 +26,6 @@ pipeline {
         stage('Debug info') {
             // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
                 }
@@ -52,7 +43,7 @@ pipeline {
                         }
                     }
                 }
-                dir("tidb-test") {
+                dir(REFS.repo) {
                     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -66,14 +57,17 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                        """
+                    container('nodejs') {
+                        sh 'git config --global --add safe.directory `pwd`'
+                        cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
+                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                            sh label: 'download binary', script: """
+                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                mv third_bin/* bin/
+                                ls -alh bin/
+                            """
+                        }
                     }
                 }
             }
@@ -82,8 +76,8 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name 'TEST_PARAMS'
-                        values 'prisma_test ./test.sh', 'typeorm_test ./test.sh', 'sequelize_test ./test.sh'
+                        name 'TEST_DIR'
+                        values 'prisma_test', 'typeorm_test', 'sequelize_test'
                     }
                     axis {
                         name 'TEST_STORE'
@@ -117,13 +111,8 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    sh label: "test_params=${TEST_PARAMS} ", script: """
+                                    sh label: "${TEST_DIR} ", script: """
                                         #!/usr/bin/env bash
-                                        set -- \${TEST_PARAMS}
-                                        TEST_DIR=\$1
-                                        TEST_SCRIPT=\$2
-                                        echo "TEST_DIR=\${TEST_DIR}"
-                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
                                         export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
                                         export TIDB_TEST_STORE_NAME="${TEST_STORE}"
                                         if [[ "${TEST_STORE}" == "tikv" ]]; then
@@ -132,8 +121,7 @@ pipeline {
                                             export TIKV_PATH="127.0.0.1:2379"
                                         fi
 
-                                       cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-
+                                       cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
                                     """
                                 }
                             }
@@ -147,7 +135,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
