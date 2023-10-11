@@ -111,7 +111,7 @@ pipeline {
                                         ls -alh bin/
                                     """
                                     sh label: "${TEST_DIR} ", script: """
-                                        #!/usr/bin/env bash
+                                        #!/bin/bash
                                         export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
                                         export TIDB_TEST_STORE_NAME="${TEST_STORE}"
                                         if [[ "${TEST_STORE}" == "tikv" ]]; then
@@ -120,7 +120,7 @@ pipeline {
                                             export TIKV_PATH="127.0.0.1:2379"
                                         fi
 
-                                       cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
+                                        cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
                                     """
                                 }
                             }
