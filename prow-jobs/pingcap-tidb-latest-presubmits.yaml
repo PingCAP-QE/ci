@@ -201,14 +201,14 @@ presubmits:
       rerun_command: "/test pull-mysql-client-test"
       branches:
         - ^master$
-    - name: pingcap/tidb/pull_integration_prisma_test
+    - name: pingcap/tidb/pull_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: pull-integration-prisma-test
+      context: pull-integration-nodejs-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-prisma-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-prisma-test"
+      trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-nodejs-test"
       branches:
         - ^master$
 

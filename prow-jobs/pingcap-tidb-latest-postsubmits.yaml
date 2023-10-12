@@ -108,26 +108,10 @@ postsubmits:
       skip_report: false
       branches:
         - ^master$
-    - name: pingcap/tidb/merged_integration_prisma_test
+    - name: pingcap/tidb/merged_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
-      context: wip/integration-prisma-test
-      max_concurrency: 1
-      skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_typeorm_test
-      agent: jenkins
-      decorate: false # need add this.
-      context: wip/integration-typeorm-test
-      max_concurrency: 1
-      skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_sequelize_test
-      agent: jenkins
-      decorate: false # need add this.
-      context: wip/integration-sequelize-test
+      context: wip/integration-nodejs-test
       max_concurrency: 1
       skip_report: true
       branches:
