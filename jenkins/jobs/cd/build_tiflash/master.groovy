@@ -21,8 +21,8 @@ pipelineJob('build-tiflash-master') {
         }
     }
     parameters {
-        stringParam('GitHash', '7bd02a86e08f5077c69299ac048a700fcb68507f', 'the git tag or commit')
-        stringParam('Version', 'v7.3.0', 'important, the Version for cli --Version and profile choosing, eg. v6.5.0')
+        stringParam('GitHash', '', 'the git tag or commit')
+        stringParam('Version', '', 'important, the Version for cli --Version and profile choosing, eg. v6.5.0')
         choiceParam('Edition', ["community", "enterprise"])
         stringParam('PathForLinuxAmd64', '', 'build path linux amd64')
         stringParam('PathForLinuxArm64', '', 'build path linux arm64')
