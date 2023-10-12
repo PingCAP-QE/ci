@@ -110,8 +110,7 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    sh label: "${TEST_DIR} ", script: """
-                                        #!/bin/bash
+                                    sh label: "${TEST_DIR} ", script: """#!/usr/bin/env bash
                                         export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
                                         export TIDB_TEST_STORE_NAME="${TEST_STORE}"
                                         if [[ "${TEST_STORE}" == "tikv" ]]; then
