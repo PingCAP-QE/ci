@@ -40,19 +40,19 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                component.checkoutV2('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
                 }
-                dir(REFS.repo) {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                dir("tidb-test") {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -62,15 +62,22 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container('nodejs') {
-                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_nodejs_test/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_nodejs_test/rev-${BUILD_TAG}") {
+                        container("nodejs") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/* bin/
-                                ls -alh bin/
+                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            mv third_bin/* bin/
+                            ls -alh bin/
                             """
+                        }
+                    }
+                }
+                dir('tidb-test') {
+                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        container("nodejs") {
+                            sh 'touch ws-${BUILD_TAG}'
                         }
                     }
                 }
