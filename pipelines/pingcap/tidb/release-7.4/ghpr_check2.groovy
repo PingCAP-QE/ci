@@ -55,7 +55,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server github.com/pingcap/tidb/tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
                     }
                     script {
                          component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')

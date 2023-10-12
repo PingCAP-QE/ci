@@ -67,24 +67,14 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap-qe/tidb-test/ghpr_integration_prisma_test
+    - name: pingcap-qe/tidb-test/ghpr_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/integration-prisma-test
+      context: ci/integration-nodejs-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?integration-prisma-test(?: .*?)?$"
-      rerun_command: "/test integration-prisma-test"
-      branches:
-        - ^master$
-    - name: pingcap-qe/tidb-test/ghpr_integration_sequelize_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      context: wip/integration-sequelize-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?integration-sequelize-test(?: .*?)?$"
-      rerun_command: "/test integration-sequelize-test"
+      trigger: "(?m)^/test (?:.*? )?integration-nodejs-test(?: .*?)?$"
+      rerun_command: "/test integration-nodejs-test"
       branches:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_python_orm_test
