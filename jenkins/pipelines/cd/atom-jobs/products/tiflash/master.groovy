@@ -42,36 +42,36 @@ def getBinDownloadURL={
 }
 
 def getBuildCMD = {disableCache ->
-    if (BUILD_CMD){
+    if (BUILD_CMD) {
         return BUILD_CMD
     }
-    if (OS=="linux"){
-        if(disableCache){
+    if (OS=="linux") {
+        if(disableCache) {
             return cleanLinuxCmd
         }
         return cacheLinuxCmd
-    }else if (OS == "darwin"){
-        if(disableCache){
+    } else if (OS == "darwin") {
+        if(disableCache) {
             return cleanMacCmd
         }
         return cacheMacCmd
-    }else{
+    } else {
         throw new Exception("pipeline script error")
     }
 }
 
 def dylib_postfix = {
-    if (OS=="linux"){
+    if (OS=="linux") {
         return "so"
-    }else if (OS == "darwin"){
+    } else if (OS == "darwin") {
         return "dylib"
-    }else{
+    } else {
         throw new Exception("pipeline script error")
     }
 }
 
 def doBuild = {
-        stage("checkout"){
+        stage("checkout") {
             sh """
             if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-tics.tar.gz; then
                 echo 'Downloading git repo from fileserver...'
@@ -101,16 +101,16 @@ def doBuild = {
         def proxy_cache_path = ""
         def need_update_proxy = false
         def disableCache = params.CleanBuild.toBoolean()
-        stage("fetch cache"){
-            if ( disableCache ){
+        stage("fetch cache") {
+            if ( disableCache ) {
                 echo "skip fetch cache because of argument"
-            }else{
+            } else {
                 def proxy_commit_hash = ""
                 dir("contrib/tiflash-proxy") {
                     proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                 }
                 proxy_cache_path = "builds/cache/tiflash-proxy/$proxy_commit_hash/tiflash-proxy-$OS-$ARCH-llvm-release.tar.gz"
-                try{
+                try {
                     sh """
                     curl --fail -o tiflash_proxy.tar.gz ${FILE_SERVER_URL}/download/$proxy_cache_path
                     mkdir -p contrib/tiflash-proxy/target/release
@@ -124,7 +124,7 @@ def doBuild = {
                     need_update_proxy = true
                 }}
         }
-        stage("build"){
+        stage("build") {
             sh """
                 for a in \$(git tag --contains ${GitHash}); do echo \$a && git tag -d \$a;done
                 git tag -f ${Version} ${GitHash}
@@ -138,19 +138,19 @@ def doBuild = {
                 sha256sum tiflash.tar.gz | cut -d ' ' -f 1 >tiflash.tar.gz.sha256
             """
         }
-        stage("upload"){
-        dir("output"){
+        stage("upload") {
+        dir("output") {
             sh "curl -F $BinPath=@tiflash.tar.gz ${FILE_SERVER_URL}/upload"
             sh "curl -F ${BinPath}.sha256=@tiflash.tar.gz.sha256 ${FILE_SERVER_URL}/upload"
         }
         }
-        stage("upload proxy cache"){
-            if(need_update_proxy && proxy_cache_path){
+        stage("upload proxy cache") {
+            if(need_update_proxy && proxy_cache_path) {
                 sh """
                 tar -czvf tiflash_proxy.tar.gz -C output/tiflash libtiflash_proxy.${dylib_postfix()}
                 curl -F $proxy_cache_path=@tiflash_proxy.tar.gz ${FILE_SERVER_URL}/upload
                 """
-            }else{
+            } else {
                 echo "skip"
             }
         }
@@ -160,7 +160,7 @@ def doBuild = {
 
 def buildBin={
     def skip = false
-    stage("check"){
+    stage("check") {
         def binExist = sh(script: "curl -I ${getBinDownloadURL()}|grep \"200 OK\"", returnStatus: true)
         if (!params.CleanBuild.toBoolean() && binExist  == 0) {
             skip = true
@@ -170,7 +170,7 @@ def buildBin={
         echo "Binary exists, skip build"
         return
     }
-    dir('tiflash'){
+    dir('tiflash') {
         doBuild()
     }
 }
@@ -189,28 +189,28 @@ def buildDocker={
 }
 
 
-pipeline{
+pipeline {
     agent none
-    stages{
-        stage('Prepare'){
-            steps{
-                script{
+    stages {
+        stage('Prepare') {
+            steps {
+                script {
                     TIFLASH_EDITION = "Community"
-                    if (params.Edition == "enterprise"){
+                    if (params.Edition == "enterprise") {
                         TIFLASH_EDITION = "Enterprise"
                     }
                 }
             }
         }
-        stage("multi-platform bin"){
+        stage("multi-platform bin") {
         environment {
             NPROC = "16"
             TIFLASH_EDITION="$TIFLASH_EDITION"
         }
-        parallel{
-            stage("linux/amd64"){
+        parallel {
+            stage("linux/amd64") {
                 when {
-                    expression{params.PathForLinuxAmd64}
+                    expression {params.PathForLinuxAmd64}
                     beforeAgent true
                 }
                 agent { kubernetes {
@@ -266,15 +266,15 @@ spec:
                     ARCH = "amd64"
                     BinPath = "${params.PathForLinuxAmd64}"
                 }
-                steps{
-                    script{
+                steps {
+                    script {
                         buildBin()
                     }
                 }
             }
-            stage("linux/arm64"){
+            stage("linux/arm64") {
                 when {
-                    expression{params.PathForLinuxArm64}
+                    expression {params.PathForLinuxArm64}
                     beforeAgent true
                 }
                 agent { kubernetes {
@@ -330,18 +330,18 @@ spec:
                     ARCH = "arm64"
                     BinPath = "${params.PathForLinuxArm64}"
                 }
-                steps{
-                    script{ 
+                steps {
+                    script {
                         buildBin()
                     }
                 }
             }
-            stage("darwin/amd64"){
+            stage("darwin/amd64") {
                 when {
                     beforeAgent true
-                    allOf{
+                    allOf {
                         equals expected: "community", actual: params.Edition 
-                        expression{params.PathForDarwinAmd64}
+                        expression {params.PathForDarwinAmd64}
                     }
                 }
                 agent { node { label 'darwin && amd64' } }
@@ -351,18 +351,18 @@ spec:
                     BinPath = "${params.PathForDarwinAmd64}"
                     PATH = "/Users/pingcap/.cargo/bin:/bin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
-                steps{
-                    script{
+                steps {
+                    script {
                         buildBin()
                     }
                 }
             }
-            stage("darwin/arm64"){
+            stage("darwin/arm64") {
                 when {
                     beforeAgent true
-                    allOf{
+                    allOf {
                         equals expected: "community", actual: params.Edition 
-                        expression{params.PathForDarwinArm64}
+                        expression {params.PathForDarwinArm64}
                     }
                 }
                 agent { node { label 'darwin && arm64' } }
@@ -372,23 +372,23 @@ spec:
                     BinPath = "${params.PathForDarwinArm64}"
                     PATH = "/Users/pingcap/.cargo/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/sbin:/usr/bin:/usr/local/bin:/usr/local/go1.20/bin:/usr/local/opt/binutils/bin/:/usr/sbin"
                 }
-                steps{
-                    script{
+                steps {
+                    script {
                         buildBin()
                     }
                 }
             }
         }
         }
-        stage("multi-arch docker"){
+        stage("multi-arch docker") {
             when {
-                not{equals expected: "", actual: params.DockerImage}
+                not {equals expected: "", actual: params.DockerImage}
                 beforeAgent true
             }
-            parallel{
-                stage("amd64"){
+            parallel {
+                stage("amd64") {
                     when {
-                        expression{params.PathForLinuxAmd64}
+                        expression {params.PathForLinuxAmd64}
                         beforeAgent true
                     }
                     agent { node { label 'delivery' } }
@@ -399,13 +399,13 @@ spec:
                         DOCKER_HOST = "tcp://localhost:2375"
                         BinPath = "${params.PathForLinuxAmd64}"
                     }
-                    steps {container('delivery'){script{
+                    steps {container('delivery') {script {
                         buildDocker()
                     }}}
                 }
-                stage("arm64"){
+                stage("arm64") {
                     when {
-                        expression{params.PathForLinuxArm64}
+                        expression {params.PathForLinuxArm64}
                         beforeAgent true
                     }
                     agent { node { label 'arm_docker' } }
@@ -415,15 +415,15 @@ spec:
                         HUB = credentials('harbor-pingcap') 
                         BinPath = "${params.PathForLinuxArm64}"
                     }
-                    steps {script{
+                    steps {script {
                         buildDocker()
                     }}
                 }
             }
         }
-        stage("manifest docker image"){
+        stage("manifest docker image") {
             when {
-                not{equals expected: "", actual: params.DockerImage}
+                not {equals expected: "", actual: params.DockerImage}
                 beforeAgent true
             }
             agent { node { label 'arm_docker' } }
@@ -431,15 +431,15 @@ spec:
                 HUB = credentials('harbor-pingcap') 
             }
             steps {
-                script{
+                script {
                     def ammend = ""
-                    if (params.PathForLinuxAmd64.toBoolean()){
+                    if (params.PathForLinuxAmd64.toBoolean()) {
                         ammend += " -a ${DockerImage}-amd64"
                     }
-                    if (params.PathForLinuxArm64.toBoolean()){
+                    if (params.PathForLinuxArm64.toBoolean()) {
                         ammend += " -a ${DockerImage}-arm64"
                     }
-                    if (ammend == ""){
+                    if (ammend == "") {
                         return
                     }
                     sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
