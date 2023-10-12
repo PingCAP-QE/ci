@@ -116,7 +116,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
