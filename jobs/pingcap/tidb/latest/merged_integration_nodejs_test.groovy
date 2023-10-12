@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/pull_integration_prisma_test') {
+pipelineJob('pingcap/tidb/merged_integration_nodejs_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/pull_integration_prisma_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/latest/pull_integration_prisma_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/latest/merged_integration_nodejs_test.groovy')
             scm {
                 git{
                     remote {
