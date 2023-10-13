@@ -212,7 +212,7 @@ retry(2) {
                                     [$class: 'StringParameterValue', name: 'PathForLinuxAmd64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_CENTOS}/tiflash-linux-amd64.tar.gz"],
                                     [$class: 'StringParameterValue', name: 'PathForLinuxArm64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_CENTOS}/tiflash-linux-arm64.tar.gz"],
                                     [$class: 'StringParameterValue', name: 'PathForDarwinAmd64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_DARWIN}/tiflash-darwin-amd64.tar.gz"],
-                                    [$class: 'StringParameterValue', name: 'PathForDarwinArm64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_DARWIN}/tiflash-darwin-arm64.tar.gz"],
+                                    [$class: 'StringParameterValue', name: 'PathForDarwinArm64', value: "builds/pingcap/tiflash/optimization/${RELEASE_TAG}/${tiflash_sha1}/${PLATFORM_DARWINARM}/tiflash-darwin-arm64.tar.gz"],
                             ]
                 }
                 parallel builds
