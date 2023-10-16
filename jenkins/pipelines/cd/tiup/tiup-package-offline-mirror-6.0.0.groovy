@@ -50,10 +50,14 @@ def clone_toolkit_package = { arch, dst ->
     // Add some monitor tools to the toolkit package for offline mirror >= v6.1.1
     // TODO: which package is server, --cluster latest?
     // issue : https://github.com/PingCAP-QE/ci/issues/1256
+    importer_cmd = ""
+    if (release_tag < "v7.5.0"){
+        importer_cmd = "--tikv-importer v4.0.2"
+    }
     if (release_tag >= "v6.1.1") {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
-        tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
+        tiup mirror clone $dst --os linux --arch ${arch} ${importer_cmd} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
         --grafana $VERSION --alertmanager latest \
@@ -64,7 +68,7 @@ def clone_toolkit_package = { arch, dst ->
     } else {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
-        tiup mirror clone $dst --os linux --arch ${arch} --tikv-importer v4.0.2 --pd-recover $VERSION \
+        tiup mirror clone $dst --os linux --arch ${arch} ${importer_cmd} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
         --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
@@ -188,13 +192,22 @@ def package_tools = { plat, arch ->
     } else {
         br_hash = get_hash("br")
     }
-    def mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
 
     println "binlog_hash: ${binlog_hash}"
     println "pd_hash: ${pd_hash}"
     println "tools_hash: ${tools_hash}"
     println "br_hash: ${br_hash}"
-    println "mydumper_sha1: ${mydumper_sha1}"
+
+    def mydumper_cmd = ""
+    if (release_tag<"v7.5.0" && arch=="amd64"){
+        def mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
+        println "mydumper_sha1: ${mydumper_sha1}"
+        mydumper_cmd = """
+        wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
+        tar xf mydumper-linux-${arch}.tar.gz
+        cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
+        """
+    }
 
     clone_toolkit_package(arch, toolkit_dir)
 
@@ -204,9 +217,6 @@ def package_tools = { plat, arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag_actual}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag_actual}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag_actual}/${br_hash}/centos7/br-linux-${arch}.tar.gz
-        if [ ${arch} == 'amd64' ]; then
-            wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/mydumper/${mydumper_sha1}/centos7/mydumper-linux-${arch}.tar.gz
-        fi;
         wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-${arch}.tar.gz
 
 
@@ -214,9 +224,6 @@ def package_tools = { plat, arch ->
         tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
-        if [ ${arch} == 'amd64' ]; then
-            tar xf mydumper-linux-${arch}.tar.gz 
-        fi;
         tar xf etcd-v3.3.10-linux-${arch}.tar.gz
 
         
@@ -225,11 +232,10 @@ def package_tools = { plat, arch ->
         cp bin/reparo ${toolkit_dir}/
         cp bin/arbiter ${toolkit_dir}/
         cp bin/tidb-lightning-ctl ${toolkit_dir}/
-        if [ ${arch} == 'amd64' ]; then
-            cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
-        fi;
         cp etcd-v3.3.10-linux-${arch}/etcdctl ${toolkit_dir}/
         
+        ${mydumper_cmd}
+
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         sha256sum ${toolkit_dir}.tar.gz | cut -d ' ' -f 1 > ${toolkit_dir}.tar.gz.sha256
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
