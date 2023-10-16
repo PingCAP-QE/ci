@@ -62,22 +62,29 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_nodejs_test/rev-${BUILD_TAG}") {
-                        container("nodejs") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                            """
-                        }
+                    container("nodejs") {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        sh label: 'download binary', script: """
+                        chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                        ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        mv third_bin/* bin/
+                        rm -rf bin/bin
+                        ls -alh bin/
+                        """
                     }
+                    
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         container("nodejs") {
-                            sh 'touch ws-${BUILD_TAG}'
+                            sh label: 'cache tidb-test', script: """
+                            touch ws-${BUILD_TAG}
+                            mkdir -p bin
+                            cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tidb-server -V
+                            """
                         }
                     }
                 }
@@ -90,10 +97,6 @@ pipeline {
                         name 'TEST_DIR'
                         values 'prisma_test', 'typeorm_test', 'sequelize_test'
                     }
-                    axis {
-                        name 'TEST_STORE'
-                        values "tikv"
-                    }
                 }
                 agent {
                     kubernetes {
@@ -105,31 +108,20 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
-                                        pwd && ls -alh
-                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
-                                    """
-                                }
-                            }
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tidb-server -V
                                     """
                                     sh label: "${TEST_DIR} ", script: """#!/usr/bin/env bash
                                         export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
                                         export TIDB_TEST_STORE_NAME="${TEST_STORE}"
-                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                            export TIKV_PATH="127.0.0.1:2379"
-                                        fi
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                        export TIKV_PATH="127.0.0.1:2379"
 
                                         cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
                                     """
