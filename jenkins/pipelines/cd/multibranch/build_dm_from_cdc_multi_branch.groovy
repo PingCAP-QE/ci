@@ -270,10 +270,14 @@ try {
                             mv dm/worker/dm-worker.toml ${target}/conf/
                             """
                         }
+                        if ((branch.startsWith("release-") && branch < "release-7.5") || (branch.startsWith("v") && branch < "v7.5")) {
+                            sh """
+                            curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+                            mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
+                            """
+                        }
                         sh """
                         mv LICENSE ${target}/
-                        curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
-                        mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                         tar -czvf ${target}.tar.gz ${target}
 
                         # setup upload tools
