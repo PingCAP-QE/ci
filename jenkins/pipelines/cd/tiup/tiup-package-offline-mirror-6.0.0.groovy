@@ -198,7 +198,6 @@ def package_tools = { plat, arch ->
     println "tools_hash: ${tools_hash}"
     println "br_hash: ${br_hash}"
 
-    clone_toolkit_package(arch, toolkit_dir)
     def mydumper_cmd = ""
     if (release_tag<"v7.5.0" && arch=="amd64"){
         def mydumper_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/mydumper/master/sha1").trim()
@@ -209,6 +208,8 @@ def package_tools = { plat, arch ->
         cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
         """
     }
+
+    clone_toolkit_package(arch, toolkit_dir)
 
     sh """
         mkdir -p ${toolkit_dir}/
