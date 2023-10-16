@@ -14,9 +14,9 @@ EOF
     local pd_addr2="127.0.0.1:2389"
     local pd_addr3="127.0.0.1:2399"
 
-    bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://${pd_addr1} --peer-urls=http://${pd_peer_addr1} -force-new-cluster &> pd1.log &
-    bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://${pd_addr2} --peer-urls=http://${pd_peer_addr1} -force-new-cluster &> pd2.log &
-    bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://${pd_addr3} --peer-urls=http://${pd_peer_addr3} -force-new-cluster &> pd3.log &
+    bin/pd-server --name=pd1 --data-dir=pd1 --client-urls=http://${pd_addr1} --peer-urls=http://${pd_peer_addr1} --force-new-cluster &> pd1.log &
+    bin/pd-server --name=pd2 --data-dir=pd2 --client-urls=http://${pd_addr2} --peer-urls=http://${pd_peer_addr2} --force-new-cluster &> pd2.log &
+    bin/pd-server --name=pd3 --data-dir=pd3 --client-urls=http://${pd_addr3} --peer-urls=http://${pd_peer_addr3} --force-new-cluster &> pd3.log &
     bin/tikv-server --pd=${pd_addr1} -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f tikv1.log &
     bin/tikv-server --pd=${pd_addr2} -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f tikv2.log &
     bin/tikv-server --pd=${pd_addr3} -s tikv3 --addr=0.0.0.0:20180 --advertise-addr=127.0.0.1:20180 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f tikv3.log &
@@ -25,7 +25,8 @@ EOF
         chmod +x cmd/explaintest/run-tests.sh
 
         export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
-        export TIKV_PATH="${tikv_addr1}"
+        export TIKV_PATH="$(pwd)/bin/tikv-server"
+        export TIDB_TEST_STORE_NAME="tikv"
         pushd cmd/explaintest &&
             ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
         popd
@@ -33,7 +34,8 @@ EOF
         chmod +x tests/integrationtest/run-tests.sh
 
         export TIDB_SERVER_PATH="$(pwd)/bin/integration_test_tidb-server"
-        export TIKV_PATH="${tikv_addr1}"
+        export TIKV_PATH="$(pwd)/bin/tikv-server"
+        export TIDB_TEST_STORE_NAME="tikv"
         pushd tests/integrationtest &&
             ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
         popd
