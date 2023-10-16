@@ -10,7 +10,7 @@ def run_with_x86_pod(Closure body) {
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tikv"
-    def rust_image = "hub.pingcap.net/jenkins/centos7_golang-1.13_rust:latest"
+    def rust_image = "hub.pingcap.net/jenkins/centos7_rust_rocksdb:latest"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
