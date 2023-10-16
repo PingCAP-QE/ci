@@ -63,7 +63,7 @@ pipeline {
             steps {
                 container('golang') {
                     dir('tidb') {
-                        sh label: 'Unit Test', script: 'go test --tags intest -v ./extension/enterprise/...'
+                        sh label: 'Unit Test', script: 'go test --tags intest -v ./pkg/extension/enterprise/...'
                     }
                 }
             }
