@@ -25,7 +25,7 @@ EOF
         chmod +x cmd/explaintest/run-tests.sh
 
         export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
-        export TIKV_PATH="$(pwd)/bin/tikv-server"
+        export TIKV_PATH="${pd_addr1}"
         export TIDB_TEST_STORE_NAME="tikv"
         pushd cmd/explaintest &&
             ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
@@ -34,7 +34,7 @@ EOF
         chmod +x tests/integrationtest/run-tests.sh
 
         export TIDB_SERVER_PATH="$(pwd)/bin/integration_test_tidb-server"
-        export TIKV_PATH="$(pwd)/bin/tikv-server"
+        export TIKV_PATH="${pd_addr1}"
         export TIDB_TEST_STORE_NAME="tikv"
         pushd tests/integrationtest &&
             ./run-tests.sh -s "${TIDB_SERVER_PATH}" -d "$@" &&
