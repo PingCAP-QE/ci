@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap-inc/enterprise-extensions'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/enterprise-extensions/latest/pod-pr-verify.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/enterprise-extensions/le-release-7.4/pod-pr-verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -30,7 +30,7 @@ pipeline {
                         }
                     }
                 }
-                dir('tidb/pkg/extension/enterprise') {
+                dir('tidb/extension/enterprise') {
                     cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
