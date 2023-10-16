@@ -6,76 +6,16 @@ final K8S_NAMESPACE = "jenkins-tikv"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/tikv'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/latest/pod-pull_unit_test.yaml'
-// final REFS = readJSON(text: params.JOB_SPEC).refs
+final REFS = readJSON(text: params.JOB_SPEC).refs
 final CHUNK_COUNT = 2
 final EXTRA_NEXTEST_ARGS = "-j 8"
 
-podYAML = """
-apiVersion: v1
-kind: Pod
-spec:
-  securityContext:
-    fsGroup: 1000
-  containers:
-    - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-cached-master:latest"
-      tty: true
-      resources:
-        requests:
-          memory: 8Gi
-          cpu: "6"
-        limits:
-          memory: 8Gi
-          cpu: "6"
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/memvolume"
-        name: "volume-memory"
-        readOnly: false
-      - mountPath: "/home/jenkins/"
-        name: "volume-home"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-tmp"
-        readOnly: false
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-  volumes:
-  - emptyDir:
-      medium: ""
-    name: "volume-tmp"
-  - emptyDir:
-      medium: ""
-    name: "volume-home"
-  - emptyDir:
-      medium: Memory
-    name: "volume-memory"
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
-
-"""
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            // yamlFile POD_TEMPLATE_FILE
-            yaml podYAML
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
             workspaceVolume emptyDirWorkspaceVolume(memory: true)
         }
