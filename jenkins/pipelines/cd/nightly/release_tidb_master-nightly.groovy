@@ -168,7 +168,6 @@ retry(2) {
                                 sh """
                 cp ../centos7/bin/tidb-lightning ./
                 cp ../centos7/bin/tidb-lightning-ctl ./
-                cp ../centos7/bin/tikv-importer ./
                 cp ../centos7/bin/br ./
                 curl -o Dockerfile "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb-lightning.Dockerfile"
                 """
