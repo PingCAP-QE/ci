@@ -130,7 +130,7 @@ def getBuildTarget() {
     }
 
     if (params.BUILD_TESTS) {
-        targets = "gtests_dbms gtests_libcommon gtests_libdaemon ${targets}"
+        targets = "bench_dbms gtests_dbms gtests_libcommon gtests_libdaemon ${targets}"
     }
 
     if (params.BUILD_PAGE_TOOLS) {
