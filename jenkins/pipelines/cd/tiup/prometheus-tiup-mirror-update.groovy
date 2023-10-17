@@ -69,7 +69,12 @@ def pack = { version, os, arch ->
        rm -rf ng-monitoring-${RELEASE_TAG}-${os}-${arch}
     fi
     cd prometheus
-    wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/alertmanager/tidb.rules.yml || true; \
+
+    if [ ${RELEASE_TAG} \\> "v7.5.0" ] || [ ${RELEASE_TAG} == "v7.5.0" ]; then \
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/pkg/metrics/alertmanager/tidb.rules.yml ; \
+    else
+        wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/metrics/alertmanager/tidb.rules.yml ; \
+    fi
     wget -qnc https://raw.githubusercontent.com/pingcap/pd/${tag}/metrics/alertmanager/pd.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/tikv/tikv/${tag}/metrics/alertmanager/tikv.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/tikv/tikv/${tag}/metrics/alertmanager/tikv.accelerate.rules.yml || true; \
