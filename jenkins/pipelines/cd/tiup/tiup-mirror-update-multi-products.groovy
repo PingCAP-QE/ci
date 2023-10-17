@@ -587,7 +587,7 @@ node("build_go1130") {
             stage("TiUP build tidb on darwin/arm64") {
                 if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") {
                     run_with_pod {
-                        dir("darwin-arm64"){
+                        dir("darwin-arm64") {
                             retry(3) { 
                                 deleteDir()
                                 sh """
