@@ -126,6 +126,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       context: wip/pull-e2e-test
+      optional: true
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
