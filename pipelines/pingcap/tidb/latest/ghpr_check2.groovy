@@ -77,8 +77,8 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'integrationtest.sh y',
-                            'integrationtest.sh n',
+                            'integrationtest_with_tikv.sh y',
+                            'integrationtest_with_tikv.sh n',
                             'run_real_tikv_tests.sh bazel_brietest',
                             'run_real_tikv_tests.sh bazel_pessimistictest',
                             'run_real_tikv_tests.sh bazel_sessiontest',
