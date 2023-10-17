@@ -523,6 +523,7 @@ node("build_go1130") {
             }
             stage("TiUP build tidb on linux/amd64") {
                 run_with_pod {
+                    dir("linux-amd64") {
                         retry(3) {
                             deleteDir()
                             sh """
@@ -538,10 +539,12 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "linux", "amd64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "linux", "amd64"
                         }
+                    }
                 }
             }
             stage("TiUP build tidb on linux/arm64") {
                 run_with_pod {
+                    dir("linux-arm64") {
                         retry(3) {
                             deleteDir()
                             sh """
@@ -557,10 +560,12 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "linux", "arm64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "linux", "arm64"
                         }
+                    }
                 }
             }
             stage("TiUP build tidb on darwin/amd64") {
                 run_with_pod {
+                    dir("darwin-amd64") {
                         retry(3) {
                             deleteDir()
                             sh """
@@ -576,11 +581,13 @@ node("build_go1130") {
                             update_ctl RELEASE_TAG, "darwin", "amd64"
                             update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "amd64"
                         }
+                    }
                 }
             }
             stage("TiUP build tidb on darwin/arm64") {
                 if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") {
                     run_with_pod {
+                        dir("darwin-arm64") {
                             retry(3) { 
                                 deleteDir()
                                 sh """
@@ -597,6 +604,7 @@ node("build_go1130") {
                                 update_ctl RELEASE_TAG, "darwin", "arm64"
                                 update "tidb", RELEASE_TAG, tidb_sha1, "darwin", "arm64"
                             }
+                        }
                     }
                 }else{
                     echo "skip for older version"
