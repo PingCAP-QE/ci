@@ -67,7 +67,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || WITH_RACE=1 make server'
                     }
                 }
                 dir('tidb-test') {
