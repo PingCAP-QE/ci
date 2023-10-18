@@ -126,7 +126,7 @@ spec:
                     tiup mirror publish tiproxy ${params.Version} tiproxy-linux-amd64.tar.gz tiproxy  --os=linux --arch=amd64 --desc="${proxy_desc}"
                     tiup mirror publish tiproxy ${params.Version} tiproxy-linux-arm64.tar.gz tiproxy  --os=linux --arch=arm64 --desc="${proxy_desc}"
                     tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-amd64.tar.gz tiproxy  --os=darwin --arch=amd64 --desc="${proxy_desc}"
-                    tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-amd64.tar.gz tiproxy  --os=darwin --arch=amd64 --desc="${proxy_desc}"
+                    tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-arm64.tar.gz tiproxy  --os=darwin --arch=arm64 --desc="${proxy_desc}"
                    """
             }
         }
