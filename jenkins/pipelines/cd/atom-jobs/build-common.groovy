@@ -455,6 +455,7 @@ if [ ${EDITION} == 'enterprise' ]; then
 fi;
 if [ ${failpoint} == 'true' ]; then
     export WITH_RACE=1
+    export FAILPOINT=1
     make failpoint-enable
 fi;
 make
