@@ -105,7 +105,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-copr-test
+      optional: true
+      context: pull-integration-copr-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
@@ -115,7 +116,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-jdbc-test
+      optional: true
+      context: pull-integration-jdbc-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
@@ -125,8 +127,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-e2e-test
       optional: true
+      context: pull-e2e-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
@@ -137,6 +139,7 @@ presubmits:
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
+      optional: true
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
@@ -146,7 +149,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-common-test
+      optional: true
+      context: pull-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
@@ -156,7 +160,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-common-test
+      optional: true
+      context: pull-integration-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
@@ -166,7 +171,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-ddl-test
+      optional: true
+      context: pull-integration-ddl-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
@@ -176,7 +182,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-sqllogic-test
+      optional: true
+      context: pull-sqllogic-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
@@ -186,7 +193,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiflash-test
+      optional: true
+      context: pull-tiflash-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
@@ -196,6 +204,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: pull-mysql-client-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
@@ -206,10 +215,10 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: pull-integration-nodejs-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
       rerun_command: "/test pull-integration-nodejs-test"
       branches:
         - ^master$
-
