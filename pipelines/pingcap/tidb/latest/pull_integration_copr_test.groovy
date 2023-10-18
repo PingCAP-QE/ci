@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -51,7 +51,7 @@ pipeline {
                     }
                 }
                 dir("tikv-copr-test") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.base_sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, REFS.pulls[0].title, "")
@@ -66,7 +66,7 @@ pipeline {
                 dir('tidb') {
                     cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_mysql_test/rev-${BUILD_TAG}") {
                         container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                            sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                             ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
@@ -93,12 +93,11 @@ pipeline {
                     """
                 }
                 dir('tikv-copr-test') {
-                    sh label: "Push Down Test", script: """
-                    #!/usr/bin/env bash
-                    pd_bin=${WORKSPACE}/tidb/bin/pd-server \
-                    tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
-                    tidb_src_dir=${WORKSPACE}/tidb \
-                    make push-down-test
+                    sh label: "Push Down Test", script: """#!/usr/bin/env bash
+                        export pd_bin=${WORKSPACE}/tidb/bin/pd-server
+                        export tikv_bin=${WORKSPACE}/tidb/bin/tikv-server
+                        export tidb_src_dir=${WORKSPACE}/tidb
+                        make push-down-test
                     """
                 }
             }               

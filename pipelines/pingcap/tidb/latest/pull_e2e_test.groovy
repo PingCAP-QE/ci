@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -52,7 +52,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     sh label: 'download binary', script: """
                         chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                         \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
