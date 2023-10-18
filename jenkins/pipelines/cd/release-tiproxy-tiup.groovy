@@ -9,6 +9,20 @@ def build = {
     sh "make cmd"
 }
 
+def publish_tiup = {
+    sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
+    unstash "linux-amd64"
+    unstash "linux-arm64"
+    unstash "darwin-amd64"
+    unstash "darwin-arm64"
+    sh """
+        tiup mirror publish tiproxy ${params.Version} tiproxy-linux-amd64.tar.gz tiproxy  --os=linux --arch=amd64 --desc="${proxy_desc}"
+        tiup mirror publish tiproxy ${params.Version} tiproxy-linux-arm64.tar.gz tiproxy  --os=linux --arch=arm64 --desc="${proxy_desc}"
+        tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-amd64.tar.gz tiproxy  --os=darwin --arch=amd64 --desc="${proxy_desc}"
+        tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-arm64.tar.gz tiproxy  --os=darwin --arch=arm64 --desc="${proxy_desc}"
+        """
+}
+
 pipeline{
     environment {
         GOPROXY = "http://goproxy.pingcap.net,https://proxy.golang.org,direct"
@@ -113,21 +127,27 @@ spec:
                 }
             }
             environment {
-                TIUP_MIRRORS = "${params.TIUP_MIRRORS}";
                 TIUPKEY_JSON = credentials('tiup-prod-key')
             }
-            steps{
-                sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
-                unstash "linux-amd64"
-                unstash "linux-arm64"
-                unstash "darwin-amd64"
-                unstash "darwin-arm64"
-                sh """
-                    tiup mirror publish tiproxy ${params.Version} tiproxy-linux-amd64.tar.gz tiproxy  --os=linux --arch=amd64 --desc="${proxy_desc}"
-                    tiup mirror publish tiproxy ${params.Version} tiproxy-linux-arm64.tar.gz tiproxy  --os=linux --arch=arm64 --desc="${proxy_desc}"
-                    tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-amd64.tar.gz tiproxy  --os=darwin --arch=amd64 --desc="${proxy_desc}"
-                    tiup mirror publish tiproxy ${params.Version} tiproxy-darwin-arm64.tar.gz tiproxy  --os=darwin --arch=arm64 --desc="${proxy_desc}"
-                   """
+            stages{
+                stage("tiup staging"){
+                    when {expression{params.TiupStaging.toBoolean()}}
+                    environment { TIUP_MIRRORS = "http://tiup.pingcap.net:8988" }
+                    steps{
+                        script{
+                            publish_tiup()
+                        }
+                    }
+                }
+                stage("tiup product"){
+                    when {expression{params.TiupProduct.toBoolean()}}
+                    environment { TIUP_MIRRORS = "http://tiup.pingcap.net:8987" }
+                    steps{
+                        script{
+                            publish_tiup()
+                        }
+                    }
+                }
             }
         }
     }

@@ -24,7 +24,8 @@ pipelineJob('release-tiproxy-tiup') {
         parameters{
             stringParam('GitRef', 'v0.1.1', 'tiproxy repo git reference')
             stringParam('Version',  'nightly', 'tiup package verion')
-            choiceParam('TIUP_MIRRORS', ['http://tiup.pingcap.net:8987', 'http://tiup.pingcap.net:8988'], 'tiup mirror, 8987 is product, 8988 is staging')
+            booleanParam('TiupStaging', false, 'whether pubsh to tiup staging')
+            booleanParam('TiupProduct', false, 'whether pubsh to tiup product')
         }
     }
 }
