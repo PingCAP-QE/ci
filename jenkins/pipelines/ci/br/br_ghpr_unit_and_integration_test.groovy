@@ -500,8 +500,9 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                                 mkdir -p /tmp/backup_restore_test
                                 rm -rf cover
                                 mkdir cover
-                                rm -rf /tmp/group_cover
-                                mkdir -p /tmp/group_cover
+                                export COV_DIR="/tmp/group_cover"
+                                rm -rf \$COV_DIR
+                                mkdir -p \$COV_DIR
 
                                 if [[ ! -e tests/${case_name}/run.sh ]]; then
                                     echo ${case_name} not exists, skip.
