@@ -15,9 +15,6 @@ pipeline {
             yamlFile POD_TEMPLATE_FILE
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 90, unit: 'MINUTES')
     }
@@ -43,6 +40,14 @@ pipeline {
             steps {
                 container('golang') {
                     dir(REFS.repo) {
+                        sh """#!/usr/bin/env bash
+
+                            # use emptydir volume
+                            sed -i 's|--output_user_root=/home/jenkins/.tidb/tmp|--output_user_root=/home/jenkins/agent/workspace/.tidb/tmp|g' Makefile.common
+                            sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                            git diff .
+                            git status
+                        """
                         sh 'make bazel_coverage_test'
                     }
                 }
