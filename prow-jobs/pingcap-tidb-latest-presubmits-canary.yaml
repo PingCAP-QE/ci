@@ -17,7 +17,6 @@ presubmits:
       always_run: false
       optional: true
       context: canary-unit-test
-      trigger: "(?m)^/test (?:.*? )?canary-unit-test(?: .*?)?$"
       branches:
         - ^master$
         - ^feature[_/].+
