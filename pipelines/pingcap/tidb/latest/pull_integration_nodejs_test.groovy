@@ -75,8 +75,8 @@ pipeline {
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
                         sh label: "prepare", script: """
+                            touch ws-${BUILD_TAG}
                             mkdir -p bin
                             cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                             ls -alh bin/

@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -59,7 +59,7 @@ pipeline {
                             }
                         }
                     }
-                }                
+                }
             }
         }
         stage('Prepare') {
@@ -137,7 +137,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
         stage('TestsGroup2') {
             matrix {
@@ -193,7 +193,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
