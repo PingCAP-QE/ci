@@ -72,10 +72,10 @@ pipeline {
                 dir('tidb-test') {
                     cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'prepare tidb-test', script: """
-                            touch ws-${BUILD_TAG}'
+                            touch ws-${BUILD_TAG}
                             cd sqllogic_test && ./build.sh
-                            cp ${WORKSPACE}/tidb/bin/tidb-server sqllogic_test/
-                            ./sqllogic_test/tidb-server -V
+                            cp ${WORKSPACE}/tidb/bin/tidb-server ./
+                            chmod +x tidb-server && ./tidb-server -V
                         """
                     }
                 }
