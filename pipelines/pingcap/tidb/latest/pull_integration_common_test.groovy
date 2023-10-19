@@ -78,8 +78,8 @@ pipeline {
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
                         sh label: "prepare", script: """
+                        touch ws-${BUILD_TAG}
                         cd tidb_test && ./build.sh && cd ..
                         cd randgen-test && ./build.sh && cd ..
                         mkdir -p bin
@@ -151,7 +151,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

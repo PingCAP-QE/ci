@@ -87,6 +87,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: 'check version', script: """
+                    ls -alh bin/
                     ./bin/tidb-server -V
                     ./bin/tikv-server -V
                     ./bin/pd-server -V
@@ -100,7 +101,7 @@ pipeline {
                         make push-down-test
                     """
                 }
-            }               
+            }
         }
     }
 }
