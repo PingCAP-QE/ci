@@ -64,9 +64,9 @@ pipeline {
             steps {
                 dir('tidb') {
                     container("golang") {
-                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                        sh label: 'tidb-server', script: 'make'
                     }
-                }                
+                }
             }
         }
         stage('Tests') {
@@ -115,7 +115,7 @@ pipeline {
                         }
                     }
                 }
-            }       
+            }
         }
     }
 }
