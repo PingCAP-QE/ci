@@ -5,6 +5,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: canary-scan-security
       trigger: "(?m)^/test (?:.*? )?canary-scan-security(?: .*?)?$"
       rerun_command: "/test canary-scan-security"
@@ -14,6 +15,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: canary-unit-test
       branches:
         - ^master$
