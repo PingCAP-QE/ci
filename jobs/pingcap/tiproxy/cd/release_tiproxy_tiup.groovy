@@ -2,7 +2,7 @@ pipelineJob('release-tiproxy-tiup') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('jenkins/pipelines/cd/release-tiproxy-tiup.groovy')
+            scriptPath('pipelines/pingcap/tiproxy/cd/latest/release-tiproxy-tiup.groovy')
             scm {
                 git{
                     remote {

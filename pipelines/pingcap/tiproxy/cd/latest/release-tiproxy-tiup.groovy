@@ -15,16 +15,7 @@ pipeline {
                 stage("linux/amd64") {
                     agent {
                         kubernetes {
-                            yaml '''
-kind: Pod
-spec:
-  containers:
-  - name: golang
-    image: hub.pingcap.net/jenkins/centos7_golang-1.21
-    args: ["sleep", "infinity"]
-  nodeSelector:
-    kubernetes.io/arch: amd64
-'''
+                            yamlFile 'pipelines/pingcap/tiproxy/cd/latest/pod-go-amd64.yaml'
                             defaultContainer 'golang'
                         }
                     }
@@ -42,16 +33,7 @@ spec:
                 stage("linux/arm64") {
                     agent{
                         kubernetes{
-                            yaml '''
-kind: Pod
-spec:
-  containers:
-  - name: golang
-    image: hub.pingcap.net/jenkins/centos7_golang-1.21-arm64
-    args: ["sleep", "infinity"]
-  nodeSelector:
-    kubernetes.io/arch: arm64
-'''
+                            yaml 'pipelines/pingcap/tiproxy/cd/latest/pod-go-arm64.yaml'
                             defaultContainer 'golang'
                         }
                     }
