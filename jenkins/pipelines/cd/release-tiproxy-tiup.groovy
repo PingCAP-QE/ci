@@ -148,7 +148,7 @@ spec:
                             stage("publish") {
                                 steps {
                                     unstash "tiproxy-$OS-${ARCH}.tar.gz"
-                                    sh """echo tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
+                                    sh """tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
                                 }
                             }
                         }
@@ -181,7 +181,7 @@ spec:
                             stage("publish") {
                                 steps {
                                     unstash "tiproxy-$OS-${ARCH}.tar.gz"
-                                    sh """echo tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
+                                    sh """tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
                                 }
                             }
                         }
