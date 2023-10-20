@@ -43,7 +43,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -52,7 +52,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
@@ -65,14 +65,14 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         }
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                    cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh 'touch ws-${BUILD_TAG}'
                         sh 'cd sqllogic_test && ./build.sh'
                     }
@@ -107,12 +107,12 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
+                                cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'   
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/tidb-server sqllogic_test/
@@ -169,12 +169,12 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
+                                cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'   
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/tidb-server sqllogic_test/

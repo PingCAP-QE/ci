@@ -41,7 +41,7 @@ pipeline {
             options { timeout(time:10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -80,7 +80,7 @@ pipeline {
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
                         sh label: "prepare cache binary", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -111,7 +111,7 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash
                                         chmod +x br/tests/*.sh

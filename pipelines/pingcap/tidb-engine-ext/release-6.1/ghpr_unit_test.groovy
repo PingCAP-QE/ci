@@ -37,7 +37,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir('tidb-engine-ext') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb-engine-ext/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-engine-ext/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb-engine-ext/rev-${ghprbActualCommit}", restoreKeys: ['git/pingcap/tidb-engine-ext/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
