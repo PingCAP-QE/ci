@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -51,7 +51,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
@@ -64,25 +64,31 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_jdbc_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/* bin/
-                                ls -alh bin/
-                                chmod +x bin/*
-                                ./bin/tidb-server -V
-                                ./bin/tikv-server -V
-                                ./bin/pd-server -V
-                            """
-                        }
+                    container("golang") {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                        sh label: 'download binary', script: """
+                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            mv third_bin/* bin/
+                            ls -alh bin/
+                            chmod +x bin/*
+                            ./bin/tidb-server -V
+                            ./bin/tikv-server -V
+                            ./bin/pd-server -V
+                        """
                     }
                 }
                 dir('tidb-test') {
                     cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                        sh label: "prepare", script: """
+                            touch ws-${BUILD_TAG}
+                            mkdir -p bin
+                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                            ls -alh bin/
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tidb-server -V
+                        """
                     }
                 }
             }
@@ -113,25 +119,16 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_integration_jdbc_test/rev-${BUILD_TAG}") {
-                                    sh label: 'print version', script: """
-                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
-                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                    """
-                                }
-                            }
                             dir('tidb-test') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                                    sh label: "print version", script: """
                                         ls -alh bin/
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tidb-server -V
                                     """
                                     container("java") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
                                             params_array=(\${TEST_PARAMS})
                                             TEST_DIR=\${params_array[0]}
                                             TEST_SCRIPT=\${params_array[1]}
@@ -164,7 +161,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            } 
         }
     }
 }

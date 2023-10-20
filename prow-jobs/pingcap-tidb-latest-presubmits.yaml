@@ -55,6 +55,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"

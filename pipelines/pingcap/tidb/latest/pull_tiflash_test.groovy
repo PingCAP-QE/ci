@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master release branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -18,7 +18,6 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        CI = "1"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -51,10 +50,10 @@ pipeline {
                     }
                 }
                 dir("tiflash") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflash/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap/tiflash/rev-']) {
+                    cache(path: "./", filter: '**/*', key: "git/pingcap/tiflash/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflash/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tiflash.git', "", REFS.base_ref, "", GIT_CREDENTIALS_ID)
+                                component.checkout('https://github.com/pingcap/tiflash.git', 'tiflash', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -65,11 +64,9 @@ pipeline {
             steps {
                 dir('tidb') {
                     container("golang") {
-                        cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {  
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        }
+                        sh label: 'tidb-server', script: 'make'
                     }
-                }                
+                }
             }
         }
         stage('Tests') {
@@ -118,7 +115,7 @@ pipeline {
                         }
                     }
                 }
-            }       
+            }
         }
     }
 }

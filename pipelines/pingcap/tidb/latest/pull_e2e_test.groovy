@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -52,24 +52,26 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     sh label: 'download binary', script: """
                         chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                         \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                         mv third_bin/* bin/
                         ls -alh bin/
+                        chmod +x bin/*
                     """
-                }                
+                }
             }
         }
         stage('Tests') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
-                    sh label: "check version", script: """
-                    ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                    ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
-                    ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
+                    sh label: 'check version', script: """
+                    ls -alh bin/
+                    ./bin/tidb-server -V
+                    ./bin/tikv-server -V
+                    ./bin/pd-server -V
                     """
                     sh label: 'test graceshutdown', script: """
                     cd tests/graceshutdown && make
