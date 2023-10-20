@@ -119,11 +119,13 @@ spec:
                     defaultContainer 'tiup'
                 }
             }
-            environment {
-                TIUPKEY_JSON = credentials('tiup-prod-key')
-            }
+            
             stages{
-                stage("prepare"){
+                stage("prepare staging"){
+                    when {expression{params.TiupStaging.toBoolean()}}
+                    environment {
+                        TIUPKEY_JSON = credentials('tiup-staging-key')
+                    }
                     steps{
                         sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
                     }
@@ -150,6 +152,15 @@ spec:
                                 }
                             }
                         }
+                    }
+                }
+                stage("prepare prod"){
+                    when {expression{params.TiupProduct.toBoolean()}}
+                    environment {
+                        TIUPKEY_JSON = credentials('tiup-prod-key')
+                    }
+                    steps{
+                        sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
                     }
                 }
                 stage("tiup product"){
