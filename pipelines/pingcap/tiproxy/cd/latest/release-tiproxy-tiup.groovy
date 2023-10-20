@@ -33,7 +33,7 @@ pipeline {
                 stage("linux/arm64") {
                     agent{
                         kubernetes{
-                            yaml 'pipelines/pingcap/tiproxy/cd/latest/pod-go-arm64.yaml'
+                            yamlFile 'pipelines/pingcap/tiproxy/cd/latest/pod-go-arm64.yaml'
                             defaultContainer 'golang'
                         }
                     }
