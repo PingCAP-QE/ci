@@ -1,16 +1,6 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tidb:
-    - name: pingcap/tidb/canary-scan-security
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      optional: true
-      context: canary-scan-security
-      trigger: "(?m)^/test (?:.*? )?canary-scan-security(?: .*?)?$"
-      rerun_command: "/test canary-scan-security"
-      branches:
-        - ^master$
     - name: pingcap/tidb/canary_ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
