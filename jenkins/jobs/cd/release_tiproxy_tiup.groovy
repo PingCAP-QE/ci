@@ -21,11 +21,9 @@ pipelineJob('release-tiproxy-tiup') {
         }
     }
     parameters {
-        parameters{
-            stringParam('GitRef', 'v0.1.1', 'tiproxy repo git reference')
-            stringParam('Version',  'nightly', 'tiup package verion')
-            booleanParam('TiupStaging', false, 'whether pubsh to tiup staging')
-            booleanParam('TiupProduct', false, 'whether pubsh to tiup product')
-        }
+        stringParam('GitRef', '', 'tiproxy repo git reference')
+        stringParam('Version',  '', 'tiup package verion')
+        booleanParam('TiupStaging', false, 'whether pubsh to tiup staging')
+        booleanParam('TiupProduct', false, 'whether pubsh to tiup product')
     }
 }
