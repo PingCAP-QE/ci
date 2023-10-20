@@ -91,13 +91,7 @@ pipeline {
         stage("publish tiup"){
             agent{
                 kubernetes{
-                    yaml '''
-spec:
-  containers:
-  - name: tiup
-    image: hub.pingcap.net/jenkins/tiup
-    args: ["sleep", "infinity"]
-'''
+                    yamlFile "pipelines/pingcap/tiproxy/cd/latest/pod-tiup.yaml"
                     defaultContainer 'tiup'
                 }
             }
@@ -130,7 +124,11 @@ spec:
                             stage("publish") {
                                 steps {
                                     unstash "tiproxy-$OS-${ARCH}.tar.gz"
-                                    sh """tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
+                                    retry(3) {
+                                        lock("tiup-staging") {
+                                            sh """tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -163,7 +161,11 @@ spec:
                             stage("publish") {
                                 steps {
                                     unstash "tiproxy-$OS-${ARCH}.tar.gz"
-                                    sh """tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
+                                    retry(3) {
+                                        lock("tiup-product") {
+                                            sh """tiup mirror publish tiproxy ${params.Version} tiproxy-$OS-${ARCH}.tar.gz tiproxy  --os=$OS --arch=${ARCH} --desc="${proxy_desc}" """
+                                        }
+                                    }
                                 }
                             }
                         }
