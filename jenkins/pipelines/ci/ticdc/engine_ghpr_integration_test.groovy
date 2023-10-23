@@ -194,7 +194,7 @@ def doCheckout() {
 def run_with_pod(Closure body) {
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tiflow"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def jnlp_docker_image = "jenkins/inbound-agent:3148.v532a_7e715ee3-10"
     podTemplate(label: labelBuild,
             cloud: cloud,
             namespace: namespace,
@@ -225,7 +225,7 @@ def run_with_pod(Closure body) {
 def run_with_test_pod(Closure body) {
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tiflow"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def jnlp_docker_image = "jenkins/inbound-agent:3148.v532a_7e715ee3-10"
     podTemplate(label: labelTest,
             cloud: cloud,
             namespace: namespace,
