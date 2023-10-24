@@ -8,7 +8,7 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - pingcap-community-postsubmits.yaml
-      - pingcap-inc-enterprise-extensions-postsubmits.yaml      
+      - pingcap-inc-enterprise-extensions-postsubmits.yaml
       - pingcap-inc-enterprise-extensions-presubmits.yaml
       - pingcap-qe-ci-presubmits.yaml
       - pingcap-tidb-latest-postsubmits.yaml
@@ -55,5 +55,6 @@ configMapGenerator:
       - ti-community-infra-test-infra-postsubmits.yaml
       - ti-community-infra-test-infra-presubmits.yaml
       - tikv-pd-latest-presubmits.yaml
+      - tikv-pd-release-6.1-presubmits.yaml
       - tikv-pd-release-6.5-presubmits.yaml
       - tikv-pd-release-7.1-presubmits.yaml
