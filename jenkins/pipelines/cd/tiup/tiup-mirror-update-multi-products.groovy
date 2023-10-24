@@ -86,39 +86,35 @@ def pack = { name, version, os, arch ->
 
     if (name == "tidb") {
         sh """
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
         """
     } else if (name == "tikv") {
         sh """
         mv bin/${name}-ctl ctls/
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
         """
     } else if (name == "pd") {
         sh """
         mv bin/${name}-ctl ctls/
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
-        tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
+        tar -C bin -czvf package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover
         tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
         """
     } else if (name == 'tidb-binlog') {
         sh """
-        tiup package pump -C bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
+        tar -C bin -czvf package/pump-${version}-${os}-${arch}.tar.gz pump
         tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
-        tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
+        tar -C bin -czvf package/drainer-${version}-${os}-${arch}.tar.gz drainer
         tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
         mv bin/binlogctl ctls/
         """
     } else if (name == "tidb-ctl") {
-        sh """
-        mv bin/${name} ctls/
-        """
+        sh "mv bin/${name} ctls/"
     } else if (name == "dm") {
-        sh """
-        [ -d package ] || mkdir package
-        """
+        sh "[ -d package ] || mkdir package"
         // release version <= v6.0.0 exists dir dm-ansible and monitoring
         if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0" && RELEASE_TAG <= "v6.0.0") {
             sh """
@@ -202,11 +198,11 @@ def pack = { name, version, os, arch ->
         """
     } else {
         sh """
-	if(TIUP_ENV=="prod"){
-		tiup package ${name} -C bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-	}else{
-		tiup package ${name} -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-	}
+        if(TIUP_ENV=="prod"){
+            tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}
+        }else{
+            tar -C ${name}-${version}-${os}-${arch}/bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}
+        }
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
         """
     }
@@ -274,7 +270,7 @@ def update_ctl = { version, os, arch ->
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
     curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-${ETCDCTL_VERSION}-${os}-${arch}.tar.gz | tar xz
     mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
-    tiup package \$(ls ctls) -C ctls --name=ctl --release=${version} --entry=ctl --os=${os} --arch=${arch} --desc="${ctl_desc}"
+    tar -C ctls -czvf package/ctl-${version}-${os}-${arch}.tar.gz \$(ls ctls)
     tiup mirror publish ctl ${tidb_version} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
     rm -rf ctls
     """

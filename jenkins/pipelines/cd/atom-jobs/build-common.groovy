@@ -550,7 +550,7 @@ fi;
 mv LICENSE ${TARGET}/
 
 # start from v6.0.0(include v6.0.0), dm-ansible is removed, link https://github.com/pingcap/tiflow/pull/4917
-# dm-master and dm-worker tiup package also need those config file even for version >=6.0.0
+# dm-master and dm-worker tiup pkg also need those config file even for version >=6.0.0
 #  1. dm-master/conf/dm_worker.rules.yml
 #  2. dm-master/scripts/DM-Monitor-Professional.json
 #  3. dm-master/scripts/DM-Monitor-Standard.json

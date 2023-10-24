@@ -40,51 +40,33 @@ def unpack = { name, os, arch ->
 }
 
 def pack = { name, version, os, arch ->
-    sh """
-    mkdir -p ctls
-    """
+    sh "mkdir -p ctls"
 
     if (name == "tidb") {
-        sh """
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
-        #tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
-        """
+        sh "tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server"
     } else if (name == "tikv") {
         sh """
         mv bin/${name}-ctl ctls/
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
-        #tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         """
     } else if (name == "pd") {
         sh """
         mv bin/${name}-ctl ctls/
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
-        #tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
-        tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
-        #tiup mirror publish ${name}-recover ${TIDB_VERSION} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
+        tar -C bin -czvf package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover
         """
     } else if (name == 'tidb-binlog') {
         sh """
-        tiup package pump -C bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
-        #tiup mirror publish pump ${TIDB_VERSION} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
-        tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
-        #tiup mirror publish drainer ${TIDB_VERSION} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
-        #mv bin/binlogctl ctls/
+        tar -C bin -czvf package/pump-${version}-${os}-${arch}.tar.gz pump
+        tar -C bin -czvf package/drainer-${version}-${os}-${arch}.tar.gz drainer
         """
     } else if (name == "tidb-ctl") {
-        sh """
-        mv bin/${name} ctls/
-        """
+        sh "mv bin/${name} ctls/"
     } else {
-        sh """
-        tiup package ${name} -C bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-        #tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
-        """
+        sh "tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}"
     }
 
-    sh """
-    rm -rf ${name}*.tar.gz
-    """
+    sh "rm -rf ${name}*.tar.gz"
 }
 
 def update = { name, version, hash, os, arch ->
@@ -151,7 +133,7 @@ def update_ctl = { version, os, arch ->
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
     curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-${os}-${arch}.tar.gz | tar xz
     mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
-    tiup package \$(ls ctls) -C ctls --name=ctl --release=${version} --entry=ctl --os=${os} --arch=${arch} --desc="${ctl_desc}"
+    tar -C ctls -czvf package/ctl-${version}-${os}-${arch}.tar.gz \$(ls ctls)
     tiup mirror publish ctl ${TIDB_VERSION} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
     rm -rf ctls
     """

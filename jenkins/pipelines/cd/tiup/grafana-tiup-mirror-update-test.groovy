@@ -65,16 +65,14 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_summary.json
 
     cd ..
-    tiup package . -C grafana-${version} --hide --arch ${arch} --os "${os}" --desc 'Grafana is the open source analytics & monitoring solution for every database' --entry "bin/grafana-server" --name grafana --release "${RELEASE_TAG}"
+    tar -czvf package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz .
     tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
     rm -rf grafana-${version}
     """
 }
 
 def update = { version, os, arch ->
-    sh """
-    rm -rf ./grafana*
-    """
+    sh 'rm -rf ./grafana*'
     download version, os, arch
     unpack version, os, arch
     pack version, os, arch
