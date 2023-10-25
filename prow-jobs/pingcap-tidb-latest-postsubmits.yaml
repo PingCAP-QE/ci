@@ -111,9 +111,10 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
-      context: wip/integration-nodejs-test
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: ci/integration-nodejs-test
       max_concurrency: 1
-      skip_report: true
+      skip_report: false
       branches:
         - ^master$
     - name: pingcap/tidb/merged_mysql_client_test
