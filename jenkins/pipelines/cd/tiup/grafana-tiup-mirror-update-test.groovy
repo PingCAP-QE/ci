@@ -65,7 +65,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/grafana/tiflash_summary.json
 
     cd ..
-    tar -czvf package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz .
+    tar -C grafana-${version} -czvf package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz .
     tiup mirror publish grafana ${TIDB_VERSION} package/grafana-${RELEASE_TAG}-${os}-${arch}.tar.gz "bin/grafana-server" --arch ${arch} --os ${os} --desc="Grafana is the open source analytics & monitoring solution for every database"
     rm -rf grafana-${version}
     """
