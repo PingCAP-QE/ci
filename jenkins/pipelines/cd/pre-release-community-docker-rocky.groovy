@@ -1,67 +1,4 @@
-properties([
-        parameters([
-                string(
-                        defaultValue: '',
-                        name: 'RELEASE_BRANCH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'RELEASE_TAG',
-                        trim: true
-                ),
-                booleanParam(
-                        defaultValue: true,
-                        name: 'FORCE_REBUILD'
-                ),
-                booleanParam(
-                        defaultValue: true,
-                        name: 'NEED_DEBUG_IMAGE'
-                ),
-                booleanParam(
-                        defaultValue: false,
-                        name: 'DEBUG_MODE'
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIDB_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIKV_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PD_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIFLASH_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'NG_MONITORING_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIDB_BINLOG_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TICDC_HASH',
-                        trim: true
-                ),
-        ])
-])
-
-
-HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/qa'
+HARBOR_REGISTRY_PROJECT_PREFIX = "hub.pingcap.net/${params.HUB_PROJECT}"
 if (params.DEBUG_MODE) {
     HARBOR_REGISTRY_PROJECT_PREFIX = 'hub.pingcap.net/ee-debug'
     println('DEBUG_MODE is true, use hub.pingcap.net/ee-debug')
@@ -79,7 +16,7 @@ def get_dockerfile_url(product, is_enterprise, is_debug){
 }
 
 def get_image_str_for_community(product, arch, tag, is_failpoint, is_debug) {
-    def imageTag = tag + "-rocky"+ "-pre"
+    def imageTag = tag + params.POSTFIX
     def imageName = product
     if (product == "monitoring") {
         imageName = "tidb-monitor-initializer"

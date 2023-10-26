@@ -79,5 +79,7 @@ pipelineJob('pre-release-community-docker-rocky') {
             defaultValue('')
             trim(true)
         }
+        stringParam('POSTFIX',  '-rocky-pre', '')
+        stringParam('HUB_PROJECT', 'qa', '')
     }
 }
