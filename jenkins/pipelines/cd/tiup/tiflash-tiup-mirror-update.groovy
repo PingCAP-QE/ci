@@ -32,7 +32,7 @@ def unpack = { name, version, os, arch ->
 
 def pack = { name, version, os, arch ->
     sh """
-    tiup package tiflash --name=${name} --release=${version} --entry=${name}/${name} --os=${os} --arch=${arch} --desc="The TiFlash Columnar Storage Engine" --hide
+    tar -czvf package/${name}-${version}-${os}-${arch}.tar.gz tiflash
     tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name}/${name} --arch ${arch} --os ${os} --desc="The TiFlash Columnar Storage Engine"
     rm -rf tiflash tiflash*.tar.gz
     """
@@ -87,7 +87,7 @@ run_with_pod {
         stage("Prepare") {
             deleteDir()
         }
-        
+
         if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v3.1") {
             stage("Get hash") {
                 container("gethash"){

@@ -28,7 +28,6 @@ def unpack = { name, os, arch ->
 def pack = { name, version, os, arch ->
 
     sh """
-    # tiup package cdc -C ${name}-${os}-${arch}/bin --hide --name=cdc --release=${version} --entry=cdc --os=${os} --arch=${arch} --desc="${cdc_desc}"
     [ -d package ] || mkdir package
     tar -C bin -czvf package/cdc-${version}-${os}-${arch}.tar.gz cdc
     tiup mirror publish cdc ${TIDB_VERSION} package/cdc-${version}-${os}-${arch}.tar.gz cdc --arch ${arch} --os ${os} --desc="${cdc_desc}"
