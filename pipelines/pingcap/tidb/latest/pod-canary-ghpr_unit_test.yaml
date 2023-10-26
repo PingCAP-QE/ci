@@ -54,11 +54,11 @@ spec:
     - name: bazel-rc
       configMap:
         name: bazel
-        items:
-          - key: canary-bazel
-            path: bazel
-          - key: canary-bazel-prepare-in-container.sh
-            path: bazel-prepare-in-container.sh
+        # items:
+        #   - key: canary-bazel
+        #     path: bazel
+        #   - key: canary-bazel-prepare-in-container.sh
+        #     path: bazel-prepare-in-container.sh
     - name: containerinfo
       downwardAPI:
         items:
