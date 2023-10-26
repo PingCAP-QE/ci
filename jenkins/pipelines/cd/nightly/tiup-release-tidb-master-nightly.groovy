@@ -249,7 +249,8 @@ retry(2) {
                         string(name: 'HUB_PROJECT', value: 'rc')
                     ]
                     def syncs = [:]
-                    for product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", "tidb-lightning", "tidb-monitor-initializer", "tiflash", "tikv"]{
+                    for (product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
+                            "tidb-lightning", "tidb-monitor-initializer", "tiflash", "tikv"]){
                         syncs["sync image ${product}"] = {
                             build job: 'jenkins-image-syncer',
                                 parameters: [
