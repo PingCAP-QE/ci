@@ -79,6 +79,9 @@ pipeline {
                             script {
                                 component.checkout('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "")
                                 sh label: "checkout tidb code", script: """
+                                    git status
+                                    git fetch origin ${TARGET_BRANCH}:local_${TARGET_BRANCH}
+                                    git checkout local_${TARGET_BRANCH}
                                     git checkout -f ${tidb_commit_sha}
                                 """
                             }
