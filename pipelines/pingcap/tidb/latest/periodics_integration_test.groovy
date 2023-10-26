@@ -1,7 +1,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final FILESERVER_URL = 'http://fileserver.pingcap.net'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-periodics_integration_test..yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-periodics_integration_test.yaml'
 
 final tikv_sha1_url = "${FILESERVER_URL}/download/refs/pingcap/tikv/${TARGET_BRANCH}/sha1"
 final pd_sha1_url = "${FILESERVER_URL}/download/refs/pingcap/pd/${TARGET_BRANCH}/sha1"
