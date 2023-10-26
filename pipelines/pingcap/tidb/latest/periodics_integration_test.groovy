@@ -1,3 +1,5 @@
+@Library('tipipeline') _
+
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final FILESERVER_URL = 'http://fileserver.pingcap.net'
@@ -75,8 +77,11 @@ pipeline {
                     cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', ${TARGET_BRANCH}, "", GIT_CREDENTIALS_ID)
+                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "")
                                 sh label: "checkout tidb code", script: """
+                                    git status
+                                    git fetch origin ${TARGET_BRANCH}:local_${TARGET_BRANCH}
+                                    git checkout local_${TARGET_BRANCH}
                                     git checkout -f ${tidb_commit_sha}
                                 """
                             }
@@ -137,7 +142,6 @@ pipeline {
                     stage('Test')  {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
-                            unstash 'ws'
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     // will fail when not found in cache or no cached
