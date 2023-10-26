@@ -6,6 +6,7 @@ node("delivery") {
             printenv harborPassword | docker login -u ${harborUser} --password-stdin hub.pingcap.net
             export DOCKER_CLI_EXPERIMENTAL=enabled
             docker manifest create ${MULTI_ARCH_IMAGE}  -a ${AMD64_IMAGE} -a ${ARM64_IMAGE}
+            docker manifest push ${MULTI_ARCH_IMAGE}
             """
             }
         }
