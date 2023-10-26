@@ -139,7 +139,6 @@ pipeline {
                     stage('Test')  {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
-                            unstash 'ws'
                             dir('tidb') {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     // will fail when not found in cache or no cached
