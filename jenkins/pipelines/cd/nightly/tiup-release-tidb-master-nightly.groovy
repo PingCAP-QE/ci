@@ -232,7 +232,7 @@ retry(2) {
                     PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
                 }
                 jobs["docker"] = {
-                    build job: "pre-release-community-docker-rocky",
+                    build job: "community-docker-multi-products",
                     parameters: [
                         string(name: 'RELEASE_BRANCH', value: 'master'),
                         string(name: 'RELEASE_TAG', value: RELEASE_TAG),
