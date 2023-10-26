@@ -22,63 +22,18 @@ pipelineJob('community-docker-multi-products') {
     }
 
     parameters {
-        stringParam {
-            name('RELEASE_BRANCH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('RELEASE_TAG')
-            defaultValue('')
-            trim(true)
-        }
-        booleanParam {
-            name('FORCE_REBUILD')
-            defaultValue(true)
-        }
-        booleanParam {
-            name('NEED_DEBUG_IMAGE')
-            defaultValue(true)
-        }
-        booleanParam {
-            name('DEBUG_MODE')
-            defaultValue(false)
-        }
-        stringParam {
-            name('TIDB_HASH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('TIKV_HASH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('PD_HASH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('TIFLASH_HASH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('NG_MONITORING_HASH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('TIDB_BINLOG_HASH')
-            defaultValue('')
-            trim(true)
-        }
-        stringParam {
-            name('TICDC_HASH')
-            defaultValue('')
-            trim(true)
-        }
+        stringParam ('RELEASE_BRANCH','','')
+        stringParam ('RELEASE_TAG','','')
+        booleanParam ('FORCE_REBUILD', true, '')
+        booleanParam ('NEED_DEBUG_IMAGE', true, '')
+        booleanParam ('DEBUG_MODE', false, '')
+        stringParam('TIDB_HASH', '', '')
+        stringParam('TIKV_HASH', '', '')
+        stringParam('PD_HASH', '', '')
+        stringParam('TIFLASH_HASH','','')
+        stringParam('NG_MONITORING_HASH','','')
+        stringParam('TIDB_BINLOG_HASH','','')
+        stringParam('TICDC_HASH','','')
         stringParam('POSTFIX',  '-rocky-pre', '')
         stringParam('HUB_PROJECT', 'qa', '')
     }
