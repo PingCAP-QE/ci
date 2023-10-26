@@ -9,9 +9,9 @@ final tikv_sha1_url = "${FILESERVER_URL}/download/refs/pingcap/tikv/${TARGET_BRA
 final pd_sha1_url = "${FILESERVER_URL}/download/refs/pingcap/pd/${TARGET_BRANCH}/sha1"
 final tidb_sha1_url = "${FILESERVER_URL}/download/refs/pingcap/tidb/${TARGET_BRANCH}/sha1"
 
-final tikv_sha1_verify_url = "${FILESERVER_URL}/download/refs/pingcap/tikv/${TARGET_BRANCH}/sha1.verify"
-final pd_sha1_verify_url = "${FILESERVER_URL}/download/refs/pingcap/pd/${TARGET_BRANCH}/sha1.verify"
-final tidb_sha1_verify_url = "${FILESERVER_URL}/download/refs/pingcap/tidb/${TARGET_BRANCH}/sha1.verify"
+final tikv_sha1_verify_path = "refs/pingcap/tikv/${TARGET_BRANCH}/sha1.verify"
+final pd_sha1_verify_path = "refs/pingcap/pd/${TARGET_BRANCH}/sha1.verify"
+final tidb_sha1_verify_path = "refs/pingcap/tidb/${TARGET_BRANCH}/sha1.verify"
 
 def tikv_commit_sha = ""
 def pd_commit_sha = ""
@@ -192,9 +192,9 @@ pipeline {
             echo ${tikv_commit_sha} > tikv.sha1.verify
             echo ${pd_commit_sha} > pd.sha1.verify
             echo ${tidb_commit_sha} > tidb.sha1.verify
-            curl -F ${tikv_sha1_verify_url}=@tikv.sha1.verify ${FILE_SERVER_URL}/upload
-            curl -F ${pd_sha1_verify_url}=@pd.sha1.verify ${FILE_SERVER_URL}/upload
-            curl -F ${tidb_sha1_verify_url}=@tidb.sha1.verify ${FILE_SERVER_URL}/upload
+            curl -F ${tikv_sha1_verify_path}=@tikv.sha1.verify ${FILE_SERVER_URL}/upload
+            curl -F ${pd_sha1_verify_path}=@pd.sha1.verify ${FILE_SERVER_URL}/upload
+            curl -F ${tidb_sha1_verify_path}=@tidb.sha1.verify ${FILE_SERVER_URL}/upload
             """
         }
 
