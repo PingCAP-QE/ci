@@ -104,7 +104,7 @@ pipeline {
                 }
             }
         }
-        stage('Checks') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {

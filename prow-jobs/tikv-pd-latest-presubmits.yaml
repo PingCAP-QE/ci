@@ -23,3 +23,15 @@ presubmits:
         - ^master$
         - ^feature[_/].+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: tikv/pd/pull_integration_test_with_tidb
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false # TODO: change to true after tests is passed.
+      optional: true # # TODO: remove this line after tests is passed.
+      skip_report: true # TODO: change to false after tests is passed.
+      context: pull-integration-test-with-tidb
+      trigger: "(?m)^/test (?:.*? )?pull-integration-test-with-tidb(?: .*?)?$"
+      rerun_command: "/test pull-integration-test-with-tidb"
+      branches:
+        - ^master$
+
