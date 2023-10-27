@@ -140,7 +140,8 @@ pipeline {
                                 cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
                                     // will fail when not found in cache or no cached
                                     sh """   
-                                    ls -l rev-${tidb_commit_sha} 
+                                    ls -l rev-${tidb_commit_sha}
+                                    cp bin/tidb-server bin/integration_test_tidb-server
                                     ./bin/integration_test_tidb-server -V
                                     ./bin/pd-server -V
                                     ./bin/tikv-server -V
