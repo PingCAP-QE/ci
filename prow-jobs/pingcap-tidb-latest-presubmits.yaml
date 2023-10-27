@@ -163,8 +163,7 @@ presubmits:
     - name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      optional: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-mysql-client-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
