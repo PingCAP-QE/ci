@@ -130,8 +130,7 @@ presubmits:
     - name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      optional: true
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-integration-ddl-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
