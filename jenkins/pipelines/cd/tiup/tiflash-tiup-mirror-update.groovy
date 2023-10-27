@@ -32,6 +32,7 @@ def unpack = { name, version, os, arch ->
 
 def pack = { name, version, os, arch ->
     sh """
+    mkdir -p package
     tar -czvf package/${name}-${version}-${os}-${arch}.tar.gz tiflash
     tiup mirror publish ${name} ${TIDB_VERSION} package/${name}-${version}-${os}-${arch}.tar.gz ${name}/${name} --arch ${arch} --os ${os} --desc="The TiFlash Columnar Storage Engine"
     rm -rf tiflash tiflash*.tar.gz

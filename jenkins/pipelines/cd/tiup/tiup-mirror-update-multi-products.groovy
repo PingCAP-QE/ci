@@ -82,6 +82,7 @@ def unpack = { name, os, arch ->
 def pack = { name, version, os, arch ->
     sh """
     mkdir -p ctls
+    mkdir -p package
     """
 
     if (name == "tidb") {
