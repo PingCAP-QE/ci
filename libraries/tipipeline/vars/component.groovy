@@ -96,9 +96,8 @@ def checkoutV2(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsI
 }
 
 // fetch component artifact from artifactory(current http server)
-def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBody, artifactPath, pathInArchive="", trunkBranch="master") {
-    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody,  trunkBranch)
-
+def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBody, artifactPath, pathInArchive="", trunkBranch="master", artifactVerify=false) {
+    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody, trunkBranch)
     sh(label: 'download and extract from server', script: """
         sha1=""
 
@@ -106,6 +105,9 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
             sha1=${componentBranch}
         else
             refUrl="${serverUrl}/download/refs/pingcap/${keyInComment}/${componentBranch}/sha1"
+            if [[ "${artifactVerify}" = "true" ]]; then
+                refUrl="${serverUrl}/download/refs/pingcap/${keyInComment}/${componentBranch}/sha1.verify"
+            fi
             echo "🔍 ref url: \${refUrl}"
             sha1="\$(curl --fail \${refUrl} | head -1)"
         fi
