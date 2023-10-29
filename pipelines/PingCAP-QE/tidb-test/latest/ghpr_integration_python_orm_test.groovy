@@ -44,7 +44,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
                                 component.checkoutV2('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, "")
@@ -53,7 +53,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
@@ -66,7 +66,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
+                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
@@ -101,7 +101,7 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
+                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                                     sh label: "print version", script: """
                                         pwd && ls -alh
                                         ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
@@ -111,7 +111,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                         sh label: "copy binaries", script: """
                                             mkdir -p bin
                                             cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*

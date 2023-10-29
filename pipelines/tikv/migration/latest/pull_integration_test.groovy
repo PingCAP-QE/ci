@@ -43,7 +43,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("migration") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}", restoreKeys: ['git/tikv/migration/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}", restoreKeys: ['git/tikv/migration/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -71,7 +71,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('migration') {
-                    cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
+                    cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
                         container("golang") {
                             sh label: 'integration test prepare', script: """
                             cd cdc/
@@ -104,7 +104,7 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
+                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """
                                         cd cdc/
                                         ./tests/integration_tests/run_group.sh ${TEST_GROUP}

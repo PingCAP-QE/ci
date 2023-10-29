@@ -74,7 +74,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "")
@@ -93,7 +93,7 @@ pipeline {
         stage("Prepare") {
             steps {
                   dir('tidb') {
-                        cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") { 
+                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") { 
                             sh """
                             make
                             cp bin/tidb-server bin/integration_test_tidb-server
@@ -143,7 +143,7 @@ pipeline {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     // will fail when not found in cache or no cached
                                     sh """   
                                     ls -l rev-${tidb_commit_sha} 

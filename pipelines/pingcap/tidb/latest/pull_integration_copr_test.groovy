@@ -42,7 +42,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -51,7 +51,7 @@ pipeline {
                     }
                 }
                 dir("tikv-copr-test") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/copr-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/tikv/copr-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, REFS.pulls[0].title, "")
@@ -64,7 +64,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/pull_mysql_test/rev-${BUILD_TAG}") {
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/pull_mysql_test/rev-${BUILD_TAG}") {
                         container("golang") {
                             sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                             sh label: 'download binary', script: """
