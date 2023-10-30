@@ -232,22 +232,22 @@ retry(2) {
                 }
                 jobs["docker"] = {
                     build job: "community-docker-multi-products",
-                    parameters: [
-                        string(name: 'RELEASE_BRANCH', value: 'master'),
-                        string(name: 'RELEASE_TAG', value: RELEASE_TAG),
-                        booleanParam(name: 'FORCE_REBUILD', value: true),
-                        booleanParam(name: 'NEED_DEBUG_IMAGE', value: false),
-                        string(name: 'TIDB_HASH', value: tidb_sha1),
-                        string(name: 'TIKV_HASH', value: tikv_sha1),
-                        string(name: 'PD_HASH', value: pd_sha1),
-                        string(name: 'TIFLASH_HASH', value: tiflash_sha1),
-                        string(name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1),
-                        string(name: 'TIDB_BINLOG_HASH', value: tidb_binlog_sha1),
-                        string(name: 'TICDC_HASH', value: cdc_sha1),
-                        string(name: 'POSTFIX', value: ''),
-                        string(name: 'HUB_PROJECT', value: 'rc')
-                        string(name: 'NO_FAILPOINT', value: true)
-                    ]
+                        parameters: [
+                            string(name: 'RELEASE_BRANCH', value: 'master'),
+                            string(name: 'RELEASE_TAG', value: RELEASE_TAG),
+                            booleanParam(name: 'FORCE_REBUILD', value: true),
+                            booleanParam(name: 'NEED_DEBUG_IMAGE', value: false),
+                            string(name: 'TIDB_HASH', value: tidb_sha1),
+                            string(name: 'TIKV_HASH', value: tikv_sha1),
+                            string(name: 'PD_HASH', value: pd_sha1),
+                            string(name: 'TIFLASH_HASH', value: tiflash_sha1),
+                            string(name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1),
+                            string(name: 'TIDB_BINLOG_HASH', value: tidb_binlog_sha1),
+                            string(name: 'TICDC_HASH', value: cdc_sha1),
+                            string(name: 'POSTFIX', value: ''),
+                            string(name: 'HUB_PROJECT', value: 'rc'),
+                            booleanParam(name: 'NO_FAILPOINT', value: true)
+                        ]
                     def syncs = [:]
                     for (product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
                             "tidb-lightning", "tidb-monitor-initializer", "tiflash", "tikv"]){
