@@ -222,10 +222,11 @@ retry(2) {
             stage("Publish"){
                 jobs = [:]
                 jobs["tiup"] = {
+                    def TIUP_RELEASE_TAG = 'nightly'
                     def job = build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value:'nightly'],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: TIUP_RELEASE_TAG],
                                 [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
                     PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
