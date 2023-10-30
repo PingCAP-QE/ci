@@ -239,7 +239,7 @@ def release_docker(releaseRepos, builds, arch) {
         }
     }
 
-    if (arch == "amd64") {
+    if (arch == "amd64" && ! params.NO_FAILPOINT.toBoolean()) {
         failpointRepos = ["tidb", "pd", "tikv"]
         for (item in failpointRepos) {
             def product = "${item}"

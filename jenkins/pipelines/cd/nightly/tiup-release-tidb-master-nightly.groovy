@@ -218,7 +218,6 @@ retry(2) {
                 parallel builds
             }
 
-            RELEASE_TAG = "nightly"
 
             stage("Publish"){
                 jobs = [:]
@@ -226,7 +225,7 @@ retry(2) {
                     def job = build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value:'nightly'],
                                 [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
                     PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
@@ -247,6 +246,7 @@ retry(2) {
                         string(name: 'TICDC_HASH', value: cdc_sha1),
                         string(name: 'POSTFIX', value: ''),
                         string(name: 'HUB_PROJECT', value: 'rc')
+                        string(name: 'NO_FAILPOINT', value: true)
                     ]
                     def syncs = [:]
                     for (product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 

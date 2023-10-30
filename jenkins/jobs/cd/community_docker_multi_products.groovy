@@ -36,5 +36,6 @@ pipelineJob('community-docker-multi-products') {
         stringParam('TICDC_HASH','','')
         stringParam('POSTFIX',  '-rocky-pre', '')
         stringParam('HUB_PROJECT', 'qa', '')
+        booleanParam('NO_FAILPOINT', false, '')
     }
 }
