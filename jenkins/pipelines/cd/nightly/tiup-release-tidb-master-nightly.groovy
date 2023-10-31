@@ -250,8 +250,9 @@ retry(2) {
                             booleanParam(name: 'NO_FAILPOINT', value: true)
                         ]
                     def syncs = [:]
-                    for (product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
+                    for (_product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
                             "tidb-lightning", "tidb-monitor-initializer", "tiflash", "tikv"]){
+                        def product = _product //fix bug in closure
                         syncs["sync image ${product}"] = {
                             build job: 'jenkins-image-syncer',
                                 parameters: [
