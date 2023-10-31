@@ -220,13 +220,13 @@ retry(2) {
 
 
             stage("Publish"){
+                def NIGHTLY_RELEASE_TAG = 'nightly'
                 jobs = [:]
                 jobs["tiup"] = {
-                    def TIUP_RELEASE_TAG = 'nightly'
                     def job = build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: TIUP_RELEASE_TAG],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: NIGHTLY_RELEASE_TAG],
                                 [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
                     PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
@@ -236,7 +236,7 @@ retry(2) {
                         parameters: [
                             string(name: 'RELEASE_BRANCH', value: 'master'),
                             string(name: 'RELEASE_TAG', value: RELEASE_TAG),
-                            booleanParam(name: 'FORCE_REBUILD', value: true),
+                            booleanParam(name: 'FORCE_REBUILD', value: false),
                             booleanParam(name: 'NEED_DEBUG_IMAGE', value: false),
                             string(name: 'TIDB_HASH', value: tidb_sha1),
                             string(name: 'TIKV_HASH', value: tikv_sha1),
@@ -245,7 +245,7 @@ retry(2) {
                             string(name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1),
                             string(name: 'TIDB_BINLOG_HASH', value: tidb_binlog_sha1),
                             string(name: 'TICDC_HASH', value: cdc_sha1),
-                            string(name: 'POSTFIX', value: ''),
+                            string(name: 'IMAGE_TAG', value: NIGHTLY_RELEASE_TAG),
                             string(name: 'HUB_PROJECT', value: 'rc'),
                             booleanParam(name: 'NO_FAILPOINT', value: true)
                         ]
@@ -255,8 +255,8 @@ retry(2) {
                         syncs["sync image ${product}"] = {
                             build job: 'jenkins-image-syncer',
                                 parameters: [
-                                        string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/rc/${product}:${RELEASE_TAG}"),
-                                        string(name: 'TARGET_IMAGE', value: "docker.io/pingcap/${product}:${RELEASE_TAG}")
+                                        string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/rc/${product}:${NIGHTLY_RELEASE_TAG}"),
+                                        string(name: 'TARGET_IMAGE', value: "docker.io/pingcap/${product}:${NIGHTLY_RELEASE_TAG}")
                                 ]
                         }
                     }

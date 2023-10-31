@@ -34,7 +34,7 @@ pipelineJob('community-docker-multi-products') {
         stringParam('NG_MONITORING_HASH','','')
         stringParam('TIDB_BINLOG_HASH','','')
         stringParam('TICDC_HASH','','')
-        stringParam('POSTFIX',  '-rocky-pre', '')
+        stringParam('IMAGE_TAG',  '', 'default RELEASE_TAG-rocky-pre')
         stringParam('HUB_PROJECT', 'qa', '')
         booleanParam('NO_FAILPOINT', false, '')
     }

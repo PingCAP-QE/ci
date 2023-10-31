@@ -16,7 +16,10 @@ def get_dockerfile_url(product, is_enterprise, is_debug){
 }
 
 def get_image_str_for_community(product, arch, tag, is_failpoint, is_debug) {
-    def imageTag = tag + params.POSTFIX
+    def imageTag = params.IMAGE_TAG
+    if (! imageTag){
+        imageTag = tag + "-rocky"+ "-pre"
+    }
     def imageName = product
     if (product == "monitoring") {
         imageName = "tidb-monitor-initializer"
