@@ -8,7 +8,7 @@ pipelineJob('community-docker-multi-products') {
                     remote {
                         url('https://github.com/PingCAP-QE/ci.git')
                     }
-                    branch('feat/tiup_image')
+                    branch('main')
                     extensions {
                         cloneOptions {
                             depth(1)
