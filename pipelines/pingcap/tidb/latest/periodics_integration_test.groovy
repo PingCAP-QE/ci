@@ -166,14 +166,10 @@ pipeline {
                                 dir('tidb') {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
-                                }
-                            }
-                            failure {
-                                dir("tidb") {
                                     sh """
-                                    find . -name "pd*.log" -type f -exec tail '{}' +
-                                    find . -name "tikv*.log" -type f -exec tail '{}' +
-                                    find . -name "*.out" -type f -exec tail '{}' +
+                                    find . -name "pd*.log" -type f -exec tail -n 500 '{}' +
+                                    find . -name "tikv*.log" -type f -exec tail -n 500 '{}' +
+                                    find . -name "*.out" -type f -exec tail -n 500 '{}' +
                                     """
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, tests/integrationtest/integration-test.out', allowEmptyArchive: true)
                                 }
