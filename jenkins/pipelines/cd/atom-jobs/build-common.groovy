@@ -328,7 +328,13 @@ def checkoutCode() {
                                                 refspec      : specRef,
                                                 url          : repo]]]
     }
-
+    // special for tiflash submodule
+    if (params.OS=="linux"){
+        container('jnlp'){
+            sh "git submodule deinit -f . && git reset --hard HEAD && git submodule update  --init --recursive"
+            sh "git status"
+        }
+    }
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
         sh """
