@@ -43,10 +43,18 @@ def runTest(label, name, path, tidb_branch) {
                                 echo "path: ${pwd()}"
                                 sh "TAG=${ghprbActualCommit} BRANCH=${tidb_branch} ./run.sh"
                             } catch (e) {
-                                sh "mv log ${name}-log"
-                                sh "find ${name}-log -name '*.log' | xargs tail -n 500"
-                                sh "docker ps -a"
-                                archiveArtifacts(artifacts: "${name}-log/**/*.log", allowEmptyArchive: true)
+                                sh label: "debug fail", script: """
+                                docker ps -a
+                                mv log ${name}-log
+                                find ${name}-log -name '*.log' | xargs tail -n 500
+                                """
+                                sh label: "archive logs", script: """
+                                chown -R 1000:1000 ./
+                                find ${name}-log -type f -name "*.log" -exec tar -czvf ${name}-logs.tar.gz {} +
+                                chown -R 1000:1000 ./
+                                ls -alh ${name}-logs.tar.gz
+                                """
+                                archiveArtifacts(artifacts: "${name}-logs.tar.gz", allowEmptyArchive: true)
                                 throw e
                             }
                         }
