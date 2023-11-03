@@ -130,7 +130,12 @@ def getBuildTarget() {
     }
 
     if (params.BUILD_TESTS) {
-        targets = "bench_dbms gtests_dbms gtests_libcommon gtests_libdaemon ${targets}"
+        targets = "gtests_dbms gtests_libcommon gtests_libdaemon ${targets}"
+
+        // Only build bench binary for the master branch
+        if (params.TARGET_BRANCH == "master") {
+            targets = "bench_dbms ${targets}"
+        }
     }
 
     if (params.BUILD_PAGE_TOOLS) {
