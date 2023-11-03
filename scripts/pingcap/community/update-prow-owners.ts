@@ -623,7 +623,10 @@ async function main(
   await Promise.all(
     Array.from(pullRequests).map(async (pullRequest, index) => {
       // Introduce a delay between API requests to avoid rate limit errors
-      const delay = 5000 * index; // Adjust the delay time according to your needs
+      // Also we need wait some seconds when only one pull request created to
+      //  avoid conflicts with prow plugins on label operations.
+      // Adjust the delay time according to your needs.
+      const delay = 5000 * (index + 1);
       await new Promise((resolve) => setTimeout(resolve, delay));
       const { owner, repo, num } = pullRequest;
       console.info(
