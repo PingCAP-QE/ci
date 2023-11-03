@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tidb/canary_ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       skip_report: true
       optional: true
       context: canary-unit-test
