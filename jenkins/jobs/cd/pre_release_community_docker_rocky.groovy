@@ -79,5 +79,8 @@ pipelineJob('pre-release-community-docker-rocky') {
             defaultValue('')
             trim(true)
         }
+        stringParam('IMAGE_TAG',  '', 'default RELEASE_TAG-rocky-pre')
+        stringParam('HUB_PROJECT', 'qa', '')
+        booleanParam('NEED_FAILPOINT', true, '')
     }
 }
