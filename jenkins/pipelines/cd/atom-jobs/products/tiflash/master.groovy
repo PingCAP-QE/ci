@@ -95,6 +95,12 @@ def doBuild = {
                                         refspec      : specRef,
                                         url          : "git@github.com:pingcap/tiflash.git"]]
                     ]
+        if (OS=="linux"){
+            container('jnlp'){
+                sh "git submodule deinit -f . && git reset --hard HEAD && git submodule update  --init --recursive"
+                sh "git status"
+            }
+        }
             sh 'test -z "$(git status --porcelain)"'
             }
         }

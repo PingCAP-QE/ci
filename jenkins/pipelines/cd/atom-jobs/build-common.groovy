@@ -329,7 +329,7 @@ def checkoutCode() {
                                                 url          : repo]]]
     }
     // special for tiflash submodule
-    if (params.OS=="linux"){
+    if (params.OS=="linux" && params.PRODUCT in ["tiflash", "tics"]){
         container('jnlp'){
             sh "git submodule deinit -f . && git reset --hard HEAD && git submodule update  --init --recursive"
             sh "git status"
