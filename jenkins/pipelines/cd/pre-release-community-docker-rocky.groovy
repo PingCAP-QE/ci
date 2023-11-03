@@ -15,10 +15,10 @@ def get_dockerfile_url(product, is_enterprise, is_debug){
     return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
 }
 
-def get_image_str_for_community(product, arch, tag, is_failpoint, is_debug) {
+def get_image_str_for_community(product, arch, is_failpoint, is_debug) {
     def imageTag = params.IMAGE_TAG
     if (! imageTag){
-        imageTag = tag + "-rocky"+ "-pre"
+        imageTag = params.RELEASE_TAG + "-rocky"+ "-pre"
     }
     def imageName = product
     if (product == "monitoring") {
@@ -150,7 +150,7 @@ def release_one(repo, arch, failpoint) {
 
 
     def dockerfile = get_dockerfile_url(repo, false, false)
-    def image = get_image_str_for_community(repo, arch, RELEASE_TAG, failpoint, false)
+    def image = get_image_str_for_community(repo, arch, failpoint, false)
 
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -171,7 +171,7 @@ def release_one(repo, arch, failpoint) {
 
     if (NEED_DEBUG_IMAGE.toBoolean() && arch == "amd64") {
         def dockerfileForDebug = get_dockerfile_url(repo, false, true)
-        def imageForDebug = get_image_str_for_community(repo, "", RELEASE_TAG, failpoint, true)
+        def imageForDebug = get_image_str_for_community(repo, "", failpoint, true)
         def paramsDockerForDebug = [
                 string(name: "ARCH", value: "amd64"),
                 string(name: "OS", value: "linux"),
@@ -195,7 +195,7 @@ def release_one(repo, arch, failpoint) {
     if (repo == "br") {
         println("start build tidb-lightning")
         def dockerfileLightning = get_dockerfile_url("tidb-lightning", false, false)
-        def imageLightling = get_image_str_for_community("tidb-lightning", arch, RELEASE_TAG,false,false)
+        def imageLightling = get_image_str_for_community("tidb-lightning", arch, false,false)
         def paramsDockerLightning = [
                 string(name: "ARCH", value: arch),
                 string(name: "OS", value: "linux"),
@@ -212,7 +212,7 @@ def release_one(repo, arch, failpoint) {
 
         if (NEED_DEBUG_IMAGE.toBoolean() && arch == "amd64") {
             def dockerfileLightningForDebug = get_dockerfile_url("tidb-lightning", false, true)
-            def imageLightlingForDebug = get_image_str_for_community("tidb-lightning", "",RELEASE_TAG,failpoint,true)
+            def imageLightlingForDebug = get_image_str_for_community("tidb-lightning", "",failpoint,true)
             def paramsDockerLightningForDebug = [
                     string(name: "ARCH", value: "amd64"),
                     string(name: "OS", value: "linux"),
@@ -273,9 +273,9 @@ stage("create multi-arch image") {
         def product = item // important: groovy closure may use the last status of loop var
         manifest_multiarch_builds[product] = {
             def paramsManifest = [
-                    string(name: "AMD64_IMAGE", value: get_image_str_for_community(product, "amd64", RELEASE_TAG, false, false)),
-                    string(name: "ARM64_IMAGE", value: get_image_str_for_community(product, "arm64", RELEASE_TAG, false, false)),
-                    string(name: "MULTI_ARCH_IMAGE", value: get_image_str_for_community(product, "", RELEASE_TAG, false, false)),
+                    string(name: "AMD64_IMAGE", value: get_image_str_for_community(product, "amd64", false, false)),
+                    string(name: "ARM64_IMAGE", value: get_image_str_for_community(product, "arm64", false, false)),
+                    string(name: "MULTI_ARCH_IMAGE", value: get_image_str_for_community(product, "", false, false)),
             ]
             println "paramsManifest: ${paramsManifest}"
             build job: "manifest-multiarch-common",
