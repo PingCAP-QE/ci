@@ -111,7 +111,7 @@ retry(2) {
                             sh "curl -C - --fail --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz | tar xz"
                         }
                         dir('etcd') {
-                            sh "curl -L --fail ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz | tar xz"
+                            sh "curl -L --fail ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.21-linux-amd64.tar.gz | tar xz"
                         }
                     }
                     stage("publish docker image") {
