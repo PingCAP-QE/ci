@@ -36,6 +36,6 @@ pipelineJob('community-docker-multi-products') {
         stringParam('TICDC_HASH','','')
         stringParam('IMAGE_TAG',  '', 'default RELEASE_TAG-rocky-pre')
         stringParam('HUB_PROJECT', 'qa', '')
-        booleanParam('NO_FAILPOINT', false, '')
+        booleanParam('NEED_FAILPOINT', true, '')
     }
 }

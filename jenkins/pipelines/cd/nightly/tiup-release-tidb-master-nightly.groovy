@@ -246,8 +246,8 @@ retry(2) {
                             string(name: 'TIDB_BINLOG_HASH', value: tidb_binlog_sha1),
                             string(name: 'TICDC_HASH', value: cdc_sha1),
                             string(name: 'IMAGE_TAG', value: NIGHTLY_RELEASE_TAG),
-                            string(name: 'HUB_PROJECT', value: 'rc'),
-                            booleanParam(name: 'NO_FAILPOINT', value: true)
+                            string(name: 'HUB_PROJECT', value: 'qa'),
+                            booleanParam(name: 'NEED_FAILPOINT', value: false)
                         ]
                     def syncs = [:]
                     for (_product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
@@ -256,7 +256,7 @@ retry(2) {
                         syncs["sync image ${product}"] = {
                             build job: 'jenkins-image-syncer',
                                 parameters: [
-                                        string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/rc/${product}:${NIGHTLY_RELEASE_TAG}"),
+                                        string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${product}:${NIGHTLY_RELEASE_TAG}"),
                                         string(name: 'TARGET_IMAGE', value: "docker.io/pingcap/${product}:${NIGHTLY_RELEASE_TAG}")
                                 ]
                         }
