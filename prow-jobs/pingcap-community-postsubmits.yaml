@@ -20,7 +20,6 @@ postsubmits:
               - --inputs=teams/tiunimanager/membership.json
               - --inputs=teams/tidb/membership.json
               - --inputs=teams/tiflash/membership.json
-              - --inputs=teams/tiup/membership.json
               - --inputs=teams/kubernetes/membership.json
               - --inputs=teams/migration/membership.json
               - --inputs=teams/bigdata/membership.json
