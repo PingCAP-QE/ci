@@ -18,6 +18,14 @@ def TIKV_BRANCH = ghprbTargetBranch
 def PD_BRANCH = ghprbTargetBranch
 def TIDB_BRANCH = ghprbTargetBranch
 def TIDB_TOOLS_BRANCH = ghprbTargetBranch
+def HOTFIX_BRANCH_REG = /^(release\-)?(\d+\.\d+)-(\d+)-v(\d+\.\d+\.\d+)(-.+)?$/
+
+if (ghprbTargetBranch.matches(HOTFIX_BRANCH_REG)) {
+    TIKV_BRANCH = String.format('release-%s', (ghprbTargetBranch =~ HOTFIX_BRANCH_REG)[0][2])
+    PD_BRANCH = TIKV_BRANCH
+    TIDB_BRANCH = TIKV_BRANCH
+    println "target branch is hotfix branch, Download dependencies using the corresponding release branch ${TIKV_BRANCH}"
+}
 
 // parse tikv branch
 def m1 = ghprbCommentBody =~ /tikv\s*=\s*([^\s\\]+)(\s|\\|$)/
