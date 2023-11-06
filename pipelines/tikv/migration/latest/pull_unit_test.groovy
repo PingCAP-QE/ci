@@ -43,7 +43,6 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("migration") {
-                    cache(path: "./", includes: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}", restoreKeys: ['git/tikv/migration/rev-']) {
                         retry(2) {
                             checkout(
                                 changelog: false,
@@ -64,7 +63,11 @@ pipeline {
                                 ]
                             )
                         }
-                    }
+                        sh """
+                        git rev-parse --show-toplevel
+                        git status
+                        git status -s .
+                        """
                 }
             }
         }
