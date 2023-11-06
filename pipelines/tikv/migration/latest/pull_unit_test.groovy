@@ -64,6 +64,11 @@ pipeline {
                                 ]
                             )
                         }
+                        sh """
+                        git rev-parse --show-toplevel
+                        git status
+                        git status -s .
+                        """
                     }
                 }
             }
