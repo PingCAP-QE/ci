@@ -619,6 +619,9 @@ async function main(
     }),
   );
 
+  // Wait a minute after the pull requests created: let the approve plugin dealing firstly.
+  await new Promise((resolve) => setTimeout(resolve, 60000));
+
   // Post deal the pull requests.
   await Promise.all(
     Array.from(pullRequests).map(async (pullRequest, index) => {
@@ -626,7 +629,7 @@ async function main(
       // Also we need wait some seconds when only one pull request created to
       //  avoid conflicts with prow plugins on label operations.
       // Adjust the delay time according to your needs.
-      const delay = 5000 * (index + 1);
+      const delay = 5000 * index;
       await new Promise((resolve) => setTimeout(resolve, delay));
       const { owner, repo, num } = pullRequest;
       console.info(
