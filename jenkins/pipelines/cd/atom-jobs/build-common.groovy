@@ -328,7 +328,7 @@ def checkoutCode() {
                                                 refspec      : specRef,
                                                 url          : repo]]]
     }
-
+    sh "git config --global --add safe.directory '*'"
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
         sh """
@@ -660,6 +660,7 @@ cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tics"] = """
+git config --global --add safe.directory '*'
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
