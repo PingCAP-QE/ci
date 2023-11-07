@@ -242,10 +242,10 @@ if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
 }
 if (params.PRODUCT == "tics") {
     nodeLabel = "build_tiflash"
-    containerLabel = "tiflash"
+    containerLabel = "tiflash-llvm"
     if (params.ARCH == "arm64" && params.OS == "linux"){
         nodeLabel = "tiflash_build_arm"
-        containerLabel = "tiflash"
+        containerLabel = "tiflash-llvm"
     }
 }
 if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPodTemplate && params.PRODUCT != "tics") {
@@ -328,13 +328,7 @@ def checkoutCode() {
                                                 refspec      : specRef,
                                                 url          : repo]]]
     }
-    // special for tiflash submodule
-    if (params.OS=="linux" && params.PRODUCT in ["tiflash", "tics"]){
-        container('jnlp'){
-            sh "git submodule deinit -f . && git reset --hard HEAD && git submodule update  --init --recursive"
-            sh "git status"
-        }
-    }
+
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
         sh """
@@ -892,6 +886,8 @@ def release(product, label) {
                 image_tag_suffix = config.image_tag_suffix
             }
             label = "tiflash-llvm${image_tag_suffix}".replaceAll('\\.', '-')
+        }else if (fileExists('release-centos7/Makefile') && params.OS != "darwin"){
+            label = "tiflash"
         }
     }
 
