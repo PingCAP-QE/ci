@@ -16,6 +16,7 @@ def computeBranchFromPR(String keyInComment, String prTargetBranch, String prCom
     final componentsSupportPatchReleaseBranch = ['tidb-test']
 
     def componentBranch = prTargetBranch
+    // example pr tilte : "feat: add new feature | tidb=pr/123"
     if (prCommentBody =~ commentBodyReg) {
         componentBranch = (prCommentBody =~ commentBodyReg)[0][1]
     } else if (prTargetBranch =~ newHotfixBranchReg && componentsSupportPatchReleaseBranch.contains(keyInComment)) {        
@@ -93,6 +94,72 @@ def checkoutV2(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsI
             ]]
         ]
     )
+}
+
+// default fetch targetBranch
+// if title contains | tidb=pr/xxx，fetch tidb from pr/xxx (with merge base branch)
+def checkoutWithMergeBase(gitUrl, keyInComment, prTargetBranch, prCommentBody, trunkBranch="master", timeout=5, credentialsId="") {
+    // example pr tilte : "feat: add new feature | tidb=pr/123"
+    // componentBranch = pr/123
+    // componentBranch = release-6.2
+    // componentBranch = master
+    def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, prCommentBody, trunkBranch)
+    sh(label: 'checkout', script: """#!/usr/bin/env bash
+        set -e
+        git --version
+        git init
+        git rev-parse --resolve-git-dir .git
+
+        # Configure git to enable non-interactive operation
+        git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
+        # Add the original repository as a remote if it hasn't been added
+        git config remote.origin.url ${gitUrl}
+        git config core.sparsecheckout true
+
+        # reset & clean
+        git reset --hard
+        git clean -ffdx
+
+        refSpec="+refs/heads/${prTargetBranch}:refs/remotes/origin/${prTargetBranch}"
+
+        ## checkout PR and merge base branch
+        if [[ ${componentBranch} == pr/* ]]; then
+            echo "🔍 fetch ${keyInComment} ${componentBranch} and merge ${prTargetBranch} branch"
+            prNumber=\$(echo "${componentBranch}" | sed 's/[^0-9]*//g')
+            refSpec="\${refSpec} +refs/pull/\${prNumber}/head:refs/remotes/origin/pr/\${prNumber}/head"
+            git fetch --force --verbose --prune --prune-tags -- ${gitUrl} \${refSpec}
+            git checkout -f origin/pr/\${prNumber}/head
+            echo "🧾 HEAD info:"
+            git rev-parse HEAD^{commit}
+            git log -n 3 --oneline
+
+            # Merge the latest target branch into the PR branch
+            # --no-edit uses the default commit message without launching an editor
+            # If there is a merge conflict, the "||" part will execute
+            echo "🔀 Merge ${prTargetBranch} into ${componentBranch}"
+            git merge  origin/${prTargetBranch} --no-edit --no-ff || {
+                echo "ERROR: Merge conflict detected. Exiting with error."
+                exit 1
+            }
+            echo "🧾 Merge result:"
+            git rev-parse HEAD^{commit}
+            git log -n 3 --oneline
+            echo "✅ Merge base branch 🎉"
+        else
+            git fetch --force --verbose --prune --prune-tags -- ${gitUrl} \${refSpec}
+            git checkout -f origin/${prTargetBranch}
+            git rev-parse HEAD^{commit}
+            git log -n 3 --oneline
+            echo "✅ Checkout ${prTargetBranch} 🎉"
+        fi
+
+        git clean -ffdx
+        git rev-parse --show-toplevel
+        git status -s .
+
+        echo "✅ ~~~~~ All done. ~~~~~~"
+    """)
+
 }
 
 // fetch component artifact from artifactory(current http server)
