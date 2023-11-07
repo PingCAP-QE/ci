@@ -95,6 +95,7 @@ def doBuild = {
                                         refspec      : specRef,
                                         url          : "git@github.com:pingcap/tiflash.git"]]
                     ]
+            sh "git config --global --add safe.directory '*'"
             sh 'test -z "$(git status --porcelain)"'
             }
         }
