@@ -81,7 +81,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/integration-python-orm-test
+      context: ci/integration-python-orm-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test integration-python-orm-test"
@@ -91,7 +91,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiproxy-mysql-test
+      optional: true
+      context: pull-tiproxy-mysql-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-mysql-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-mysql-test"
@@ -101,7 +102,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiproxy-common-test
+      optional: true
+      context: pull-tiproxy-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-common-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-common-test"
@@ -111,7 +113,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiproxy-jdbc-test
+      optional: true
+      context: pull-tiproxy-jdbc-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-jdbc-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-jdbc-test"
@@ -121,7 +124,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiproxy-ruby-orm-test
+      optional: true
+      context: pull-tiproxy-ruby-orm-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-ruby-orm-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-ruby-orm-test"
@@ -131,7 +135,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiproxy-mysql-connector-test
+      optional: true
+      context: pull-tiproxy-mysql-connector-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-tiproxy-mysql-connector-test|tiproxy)(?: .*?)?$"
       rerun_command: "/test pull-tiproxy-mysql-connector-test"
