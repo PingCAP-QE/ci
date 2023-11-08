@@ -159,7 +159,6 @@ def checkoutWithMergeBase(gitUrl, keyInComment, prTargetBranch, prCommentBody, t
 
         echo "✅ ~~~~~ All done. ~~~~~~"
     """)
-
 }
 
 // fetch component artifact from artifactory(current http server)
