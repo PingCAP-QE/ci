@@ -5,7 +5,6 @@ RUN set -eux; \
         url=https://ks3util-version-update.ks3-cn-beijing.ksyuncs.com/2.4.2/ks3util-linux-amd64; \
         ;; \
     aarch64) \
-        # todo update url after ksyun fix this
         url=https://ks3util-version-update.ks3-cn-beijing.ksyuncs.com/2.4.2/ks3util-linux-arm64; \
         ;; \
     *) \
