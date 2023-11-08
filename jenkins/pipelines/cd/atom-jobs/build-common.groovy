@@ -986,7 +986,7 @@ def run_with_arm_go_pod(Closure body) {
                     ),
                     containerTemplate(
                             name: 'ks3util', alwaysPullImage: true,
-                            image: "hub.pingcap.net/jenkins/ks3util", ttyEnabled: true,
+                            image: "hub.pingcap.net/jenkins/ks3util:v2.4.2", ttyEnabled: true,
                             command: '/bin/sh -c', args: 'cat',
                     ),
             ],

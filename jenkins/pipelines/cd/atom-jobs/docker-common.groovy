@@ -238,7 +238,7 @@ kind: Pod
 spec:
   containers:
     - name: ks3util
-      image: hub.pingcap.net/jenkins/ks3util
+      image: hub.pingcap.net/jenkins/ks3util:v2.4.2
       args: ["sleep", "infinity"]
     - name: docker
       image: hub.pingcap.net/jenkins/docker-builder
