@@ -50,20 +50,16 @@ def clone_toolkit_package = { arch, dst ->
     // Add some monitor tools to the toolkit package for offline mirror >= v6.1.1
     // TODO: which package is server, --cluster latest?
     // issue : https://github.com/PingCAP-QE/ci/issues/1256
-    def importer_cmd = ""
+    def pkgs_deprecate_v75 = "" // components that deprecate since 7.5
     if (release_tag < "v7.5.0"){
-        importer_cmd = "--tikv-importer v4.0.2"
-    }
-    def spark_cmd = ""
-    if (spark_cmd < "v7.5.0"){
-        spark_cmd = "--spark latest --tispark latest"
+        pkgs_deprecate_v75 = "--tikv-importer v4.0.2 --spark latest --tispark latest"
     }
     if (release_tag >= "v6.1.1") {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
-        tiup mirror clone $dst --os linux --arch ${arch} ${importer_cmd} --pd-recover $VERSION \
+        tiup mirror clone $dst --os linux --arch ${arch} ${pkgs_deprecate_v75} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
-        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION ${spark_cmd} \
+        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
         --grafana $VERSION --alertmanager latest \
         --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
         --package latest  --bench latest --errdoc latest --dba latest \
@@ -72,10 +68,10 @@ def clone_toolkit_package = { arch, dst ->
     } else {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
-        tiup mirror clone $dst --os linux --arch ${arch} ${importer_cmd} --pd-recover $VERSION \
+        tiup mirror clone $dst --os linux --arch ${arch} ${pkgs_deprecate_v75} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
-        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
-        --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
+        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
+        --package latest  --bench latest --errdoc latest --dba latest \
         --PCC latest --pump $VERSION --drainer $VERSION 
         """
     }
