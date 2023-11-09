@@ -50,6 +50,8 @@ RUN make package
 
 FROM hub.pingcap.net/bases/pingcap-base:v1
 
+RUN dnf install perl-interpreter -y && dnf clean all
+
 COPY --from=builder /go/src/github.com/pingcap/tidb-dashboard/bin/tidb-dashboard /tidb-dashboard
 
 EXPOSE 12333
