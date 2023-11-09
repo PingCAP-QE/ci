@@ -15,6 +15,7 @@ def CHUNK_COUNT = 2
 def LEGACY_CHUNK_COUNT = 20
 def use_legacy_test = false
 def EXTRA_NEXTEST_ARGS = "-j 8"
+def TEST_BINARIES_TMP_PATH = "test-binaries-tmp"
 
 def m1 = ghprbCommentBody =~ /retry\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
@@ -47,6 +48,10 @@ podYAML = '''
 apiVersion: v1
 kind: Pod
 spec:
+  containers:
+    - name: ks3util
+      image: hub.pingcap.net/jenkins/ks3util
+      args: ["sleep", "infinity"]
   nodeSelector:
     enable-ci: true
     ci-nvme-high-performance: true
@@ -333,13 +338,23 @@ pool.join()
 with open('test-binaries.json', 'w') as f:
     json.dump(merged_dict, f)
 EOF
+                            ls -alh archive-test-binaries
+                            tar -cvf archive-test-binaries.tar archive-test-binaries
+                            ls -alh archive-test-binaries.tar
+
                             tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
-                            curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
-                            echo 1 > cached_build_passed
-                            curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
-                            echo 1 > is_nextest_build
-                            curl -F tikv_test/${ghprbActualCommit}/is_nextest_build=@is_nextest_build ${FILE_SERVER_URL}/upload
+                            ls -alh test-artifacts.tar.gz
                             """
+                            container("util") {
+                                sh label: 'Upload test artifacts', script: """
+                                curl -F tikv_test/${ghprbActualCommit}/archive-test-binaries.tar=@archive-test-binaries.tar ${FILE_SERVER_URL}/upload
+                                curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
+                                echo 1 > cached_build_passed
+                                curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                                echo 1 > is_nextest_build
+                                curl -F tikv_test/${ghprbActualCommit}/is_nextest_build=@is_nextest_build ${FILE_SERVER_URL}/upload
+                                """
+                            }
                         } else {
                             use_legacy_test = true
                             sh label: 'Build test artifact', script: """
@@ -443,12 +458,26 @@ pool.close()
 writer.close()
 pool.join()
 EOF
+                            ls -alh archive-test-binaries
+                            tar -cvf archive-test-binaries.tar archive-test-binaries
+                            ls -alh archive-test-binaries.tar
+
                             chmod a+x test-chunk-*
                             tar czf test-artifacts.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
+                            ls -alh test-artifacts.tar.gz
+
                             curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
                             echo 1 > cached_build_passed
                             curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
                             """
+                            container("util") {
+                                sh label: 'Upload test artifacts', script: """
+                                curl -F tikv_test/${ghprbActualCommit}/archive-test-binaries.tar=@archive-test-binaries.tar ${FILE_SERVER_URL}/upload
+                                curl -F tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz=@test-artifacts.tar.gz ${FILE_SERVER_URL}/upload
+                                echo 1 > cached_build_passed
+                                curl -F tikv_test/${ghprbActualCommit}/cached_build_passed=@cached_build_passed ${FILE_SERVER_URL}/upload
+                                """
+                            }
                         }
                     }
                 }
@@ -475,15 +504,21 @@ stage('Test') {
                     println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                     deleteDir()
                     try {
-                        sh """
-                        # set -o pipefail
-                        ln -s `pwd` \$HOME/tikv-src
-                        uname -a
-                        mkdir -p target/debug
-                        curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
-                        tar xf test-artifacts.tar.gz
-                        ls -la
-                        """
+                        container("util") {
+                            sh """
+                            # set -o pipefail
+                            ln -s `pwd` \$HOME/tikv-src
+                            uname -a
+                            mkdir -p target/debug
+                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                            tar xf test-artifacts.tar.gz
+                            ls -la
+
+                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar
+                            tar xf archive-test-binaries.tar
+                            ls -la
+                            """
+                        }
                         timeout(15) {
                             sh """
                             export RUSTFLAGS=-Dwarnings
@@ -492,20 +527,6 @@ stage('Test') {
                             export MALLOC_CONF=prof:true,prof_active:false
                             export CI=1
                             export LOG_FILE=\$HOME/tikv-src/target/my_test.log
-                            for i in `cat test-binaries`; do
-                                # 判断字符串是否以 / 开头
-                                if [ "\${i:0:1}" = "/" ]; then
-                                    # 如果以 / 开头，去掉第一个字符（即 /）
-                                    new_string="\${i:1}"
-                                else
-                                    new_string="\$i"
-                                fi
-
-                                echo "Original string: \$i"
-                                echo "New string: \$new_string"
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$new_string --create-dirs;
-                                chmod +x \$i;
-                            done
                             if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} ${EXTRA_NEXTEST_ARGS}; then
                                 echo "test pass"
                             else
@@ -533,14 +554,24 @@ stage('Test') {
                         println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                         deleteDir()
                         timeout(15) {
+                            container("util") { 
+                                sh """ 
+                                # set -o pipefail
+                                ln -s `pwd` \$HOME/tikv-src
+                                uname -a
+                                mkdir -p target/debug
+                                curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
+                                tar xf test-artifacts.tar.gz
+                                ls -la
+                                curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar
+                                tar xf archive-test-binaries.tar
+                                ls -la
+                                """
+                            }
                             sh """
                             # set -o pipefail
                             ln -s `pwd` \$HOME/tikv-src
                             uname -a
-                            mkdir -p target/debug
-                            curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
-                            tar xf test-artifacts.tar.gz
-                            ls -la
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export RUST_BACKTRACE=1
@@ -553,20 +584,6 @@ stage('Test') {
                                 exit 1
                                 fi
                             fi
-                            for i in `cat test-chunk-${chunk_suffix} | cut -d ' ' -f 1 | sort -u`; do
-                                # 判断字符串是否以 / 开头
-                                if [ "\${i:0:1}" = "/" ]; then
-                                    # 如果以 / 开头，去掉第一个字符（即 /）
-                                    new_string="\${i:1}"
-                                else
-                                    new_string="\$i"
-                                fi
-
-                                echo "Original string: \$i"
-                                echo "New string: \$new_string"
-                                curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$new_string --create-dirs;
-                                chmod +x \$i;
-                            done
                             CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${chunk_suffix} 2>&1 | tee tests.out
                             chunk_count=`grep nocapture test-chunk-${chunk_suffix} | wc -l`
                             ok_count=`grep "test result: ok" tests.out | wc -l`
