@@ -57,8 +57,6 @@ if (params.PRODUCT.length() <= 1) {
     PRODUCT = REPO
 }
 
-
-
 // download binarys
 binarys = params.INPUT_BINARYS.split(",")
 def download() {
