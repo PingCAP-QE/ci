@@ -106,8 +106,6 @@ compileFinishTimeInMillis = System.currentTimeMillis()
 uploadStartTimeInMillis = System.currentTimeMillis()
 uploadFinishTimeInMillis = System.currentTimeMillis()
 
-final ks3util-secrete = 'ks3util-secret-config'
-
 if (params.PRODUCT.length() <= 1) {
     PRODUCT = REPO
 }
@@ -847,12 +845,12 @@ def usePod(){
 def upload_fileserver(local, remote){
     if(usePod()){
         container("ks3util"){
-            withCredentials([file(credentialsId: ks3util-secrete, variable: 'KS3UTIL_CONF')]) {
+            withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
                 sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
             }
         }
     }else{
-        withCredentials([file(credentialsId: ks3util-secrete, variable: 'KS3UTIL_CONF')]) {
+        withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
             sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
         }
     }
@@ -861,12 +859,12 @@ def upload_fileserver(local, remote){
 def download_fileserver(remote, local){
     if(usePod()){
         container("ks3util"){
-            withCredentials([file(credentialsId: ks3util-secrete, variable: 'KS3UTIL_CONF')]) {
+            withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
                 sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
             }
         }
     }else{
-        withCredentials([file(credentialsId: ks3util-secrete, variable: 'KS3UTIL_CONF')]) {
+        withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
             sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
         }
     }
@@ -972,7 +970,7 @@ def run_with_arm_go_pod(Closure body) {
     }
     def cloud = "kubernetes"
     def nodeSelector = "kubernetes.io/arch=arm64"
-    def label = "build-common-${BUILD_NUMBER}"
+    def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
     podTemplate(label: label,
             cloud: cloud,
