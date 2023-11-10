@@ -240,12 +240,20 @@ spec:
     - name: ks3util
       image: hub.pingcap.net/jenkins/ks3util:v2.4.2
       args: ["sleep", "infinity"]
+      resources:
+        requests:
+            cpu: 100m
+            memory: 256Mi
     - name: docker
       image: hub.pingcap.net/jenkins/docker-builder
       args: ["sleep", "infinity"]
       env:
         - name: DOCKER_HOST
           value: tcp://localhost:2375
+      resources:
+        requests:
+            cpu: 100m
+            memory: 256Mi
     - name: dind
       image: hub.pingcap.net/jenkins/docker:dind
       args: ["--registry-mirror=https://registry-mirror.pingcap.net"]
@@ -256,6 +264,10 @@ spec:
           value: tcp://localhost:2375
       securityContext:
         privileged: true
+      resources:
+        requests:
+            cpu: "2"
+            memory: "2048Mi"
       readinessProbe:
         exec:
           command: ["docker", "info"]

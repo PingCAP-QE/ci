@@ -990,6 +990,7 @@ def run_with_arm_go_pod(Closure body) {
                             name: 'ks3util', alwaysPullImage: true,
                             image: "hub.pingcap.net/jenkins/ks3util:v2.4.2", ttyEnabled: true,
                             command: '/bin/sh -c', args: 'cat',
+                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
                     ),
             ],
             volumes: [
