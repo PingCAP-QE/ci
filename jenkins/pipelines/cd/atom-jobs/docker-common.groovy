@@ -240,7 +240,10 @@ spec:
       args: ["sleep", "infinity"]
       resources:
         requests:
-            cpu: 100m
+            cpu: 200m
+            memory: 256Mi
+        limits:
+            cpu: 200m
             memory: 256Mi
     - name: docker
       image: hub.pingcap.net/jenkins/docker-builder
