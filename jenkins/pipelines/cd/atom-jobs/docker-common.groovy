@@ -53,9 +53,6 @@ properties([
         ])
 ])
 
-env.DOCKER_HOST = "tcp://localhost:2375"
-env.DOCKER_REGISTRY = "docker.io"
-
 if (params.PRODUCT.length() <= 1) {
     PRODUCT = REPO
 }
@@ -64,9 +61,15 @@ if (params.PRODUCT.length() <= 1) {
 binarys = params.INPUT_BINARYS.split(",")
 def download() {
     for (item in binarys) {
-        retry(3) { 
-            sh "curl --fail ${FILE_SERVER_URL}/download/${item} | tar xz"
-        } 
+        retry(3) {
+            def local = '.downloaded.tar.gz'
+            container("ks3util"){
+                withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${item} $local"
+                }
+            }
+            sh "tar -xzvf $local && rm -f $local"
+        }
     }
 }
 
@@ -168,14 +171,6 @@ def build_image() {
 }
 
 
-
-def nodeLabel = "delivery"
-def containerLabel = "delivery"
-if (params.ARCH == "arm64") {
-    nodeLabel = "arm_docker"
-    containerLabel = ""
-}
-
 images = params.RELEASE_DOCKER_IMAGES.split(",")
 def release_images() {
     for (item in images) {
@@ -233,14 +228,64 @@ def release() {
     release_images()
 }
 
+def POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}"
+
+final podYaml='''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: ks3util
+      image: hub.pingcap.net/jenkins/ks3util:v2.4.2
+      args: ["sleep", "infinity"]
+      resources:
+        requests:
+            cpu: 200m
+            memory: 256Mi
+        limits:
+            cpu: 200m
+            memory: 256Mi
+    - name: docker
+      image: hub.pingcap.net/jenkins/docker-builder
+      args: ["sleep", "infinity"]
+      env:
+        - name: DOCKER_HOST
+          value: tcp://localhost:2375
+      resources:
+        requests:
+            cpu: 100m
+            memory: 256Mi
+    - name: dind
+      image: hub.pingcap.net/jenkins/docker:dind
+      args: ["--registry-mirror=https://registry-mirror.pingcap.net"]
+      env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        - name: DOCKER_HOST
+          value: tcp://localhost:2375
+      securityContext:
+        privileged: true
+      resources:
+        requests:
+            cpu: "2"
+            memory: "2048Mi"
+      readinessProbe:
+        exec:
+          command: ["docker", "info"]
+        initialDelaySeconds: 10
+        failureThreshold: 6
+'''
+
 stage("Build & Release ${PRODUCT} image") {
-    node(nodeLabel) {
-        if (containerLabel != "") {
-            container(containerLabel){
+    podTemplate(
+        label: POD_LABEL,
+        yaml: podYaml,
+        nodeSelector: "kubernetes.io/arch=$ARCH",
+    ){
+        node(POD_LABEL){
+            container("docker"){
                 release()
             }
-        } else {
-            release()
         }
     }
 }

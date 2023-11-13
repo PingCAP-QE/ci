@@ -299,15 +299,15 @@ def checkoutCode() {
         """
         sh "chown -R 1000:1000 ./"
     } else {
-        def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-${REPO}.tar.gz"
+        def codeCacheInFileserverUrl = "cicd/daily-cache-code/src-${REPO}.tar.gz"
         def cacheExisted = sh(returnStatus: true, script: """
-            if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
+            if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
             """)
         if (cacheExisted == 0) {
             println "get code from fileserver to reduce clone time"
             println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+            download_fileserver(codeCacheInFileserverUrl, "src-${REPO}.tar.gz")
             sh """
-            wget -c --tries 3 --no-verbose ${codeCacheInFileserverUrl}
             tar -xzf src-${REPO}.tar.gz --strip-components=1
             rm -f src-${REPO}.tar.gz
             rm -rf ./*
@@ -839,33 +839,62 @@ cp audit/audit-1.so.md5 ${TARGET}/bin
 cp audit/audit-1.so ${TARGET}/bin
 """
 
+def usePod(){
+    return OS=="linux"
+}
+
+def upload_fileserver(local, remote){
+    if(usePod()){
+        container("ks3util"){
+            withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+                sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
+            }
+        }
+    }else{
+        withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+            sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
+        }
+    }
+}
+
+def download_fileserver(remote, local){
+    if(usePod()){
+        container("ks3util"){
+            withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
+            }
+        }
+    }else{
+        withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+            sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
+        }
+    }
+}
+
 def packageBinary() {
     // 是否和代码一起打包，可以手动设置 NEED_SOURCE_CODE=true
     if (params.NEED_SOURCE_CODE) {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
         """
     //  pd,tidb,tidb-test 非release版本，和代码一起打包
     } else if ((PRODUCT == "pd" || PRODUCT == "tidb" || PRODUCT == "tidb-test" ) && RELEASE_TAG.length() < 1) {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
         """
     } else if (PRODUCT == "tiem") {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
         """
     } else {
         sh """
-        cd ${TARGET}
-        tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
-        sha256sum ${TARGET}.tar.gz | cut -d ' ' -f 1 >${TARGET}.tar.gz.sha256
-        curl -F ${OUTPUT_BINARY}.sha256=@${TARGET}.tar.gz.sha256 ${FILE_SERVER_URL}/upload
+        tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz ${TARGET}/
         """
     }
+    sh "sha256sum ${TARGET}.tar.gz | cut -d ' ' -f 1 >${TARGET}.tar.gz.sha256"
+    // replace curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
+    upload_fileserver("${TARGET}.tar.gz", OUTPUT_BINARY)
+    upload_fileserver("${TARGET}.tar.gz.sha256", "${OUTPUT_BINARY}.sha256")
 }
 
 def release(product, label) {
@@ -957,7 +986,12 @@ def run_with_arm_go_pod(Closure body) {
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+                    ),
+                    containerTemplate(
+                            name: 'ks3util', alwaysPullImage: true,
+                            image: "hub.pingcap.net/jenkins/ks3util:v2.4.2", ttyEnabled: true,
+                            command: '/bin/sh -c', args: 'cat',
+                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
                     ),
             ],
             volumes: [
