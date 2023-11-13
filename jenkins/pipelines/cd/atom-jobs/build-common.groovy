@@ -888,7 +888,7 @@ def packageBinary() {
         """
     } else {
         sh """
-        tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz ${TARGET}/
+        tar  -czvf ${TARGET}.tar.gz -C ${TARGET}/ *
         """
     }
     sh "sha256sum ${TARGET}.tar.gz | cut -d ' ' -f 1 >${TARGET}.tar.gz.sha256"
