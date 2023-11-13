@@ -3,7 +3,7 @@ def CHUNK_COUNT = 2
 def LEGACY_CHUNK_COUNT = 20
 def use_legacy_test = false
 def EXTRA_NEXTEST_ARGS = "-j 8"
-def TEST_BINARIES_TMP_PATH = "test-binaries-tmp"
+def TEST_BINARIES_TMP_PATH = "archive-test-binaries"
 
 def m1 = ghprbCommentBody =~ /retry\s*=\s*([^\s\\]+)(\s|\\|$)/
 if (m1) {
