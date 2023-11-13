@@ -56,6 +56,10 @@ pipeline {
                             script {
                                 component.checkout('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, REFS.pulls[0].title, "")
                             }
+                            sh """
+                            git status
+                            git log -1
+                            """
                         }
                     }
                 }
@@ -64,20 +68,17 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/pull_mysql_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                            chmod +x bin/*
-                            ./bin/tidb-server -V
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
-                            """
-                        }
+                    container("golang") {
+                        sh label: 'download binary', script: """
+                        chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                        ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        mkdir -p bin/
+                        mv third_bin/* bin/
+                        ls -alh bin/
+                        chmod +x bin/*
+                        ./bin/tikv-server -V
+                        ./bin/pd-server -V
+                        """
                     }
                 }
             }
@@ -88,7 +89,6 @@ pipeline {
                 dir('tidb') {
                     sh label: 'check version', script: """
                     ls -alh bin/
-                    ./bin/tidb-server -V
                     ./bin/tikv-server -V
                     ./bin/pd-server -V
                     """

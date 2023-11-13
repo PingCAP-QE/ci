@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -53,24 +53,13 @@ pipeline {
                 dir("tikv-copr-test") {
                     cache(path: "./", includes: '**/*', key: "git/tikv/copr-test/rev-${REFS.base_sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: "${REFS.base_ref}" ]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/heads/*:refs/remotes/origin/*",
-                                        url: 'https://github.com/tikv/copr-test.git',
-                                    ]],
-                                ]
-                            )
+                            script {
+                                component.checkout('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
+                                sh """
+                                git status
+                                git log -1
+                                """
+                            }
                         }
                     }
                 }
@@ -79,16 +68,14 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/merged_mysql_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                            """
-                        }
+                    container("golang") {
+                        sh label: 'download binary', script: """
+                        chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                        ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        mkdir -p bin
+                        mv third_bin/* bin/
+                        ls -alh bin/
+                        """
                     }
                 }
             }
@@ -97,20 +84,21 @@ pipeline {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
+                    sh label: 'print version', script: """
+                    chmod +x bin/*
+                    ./bin/tikv-server -V
+                    ./bin/pd-server -V
+                    """
                 }
                 dir('tikv-copr-test') {
-                    sh label: "Push Down Test", script: """
-                        #!/usr/bin/env bash
+                    sh label: "Push Down Test", script: """#!/usr/bin/env bash
                         pd_bin=${WORKSPACE}/tidb/bin/pd-server \
                         tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
                         tidb_src_dir=${WORKSPACE}/tidb \
                         make push-down-test
                     """
                 }
-            }               
+            }
         }
     }
 }
