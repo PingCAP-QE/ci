@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import subprocess
 import json
+import os
+import shutil
 
 chunk_count = 20
 scores = list()
@@ -22,8 +24,24 @@ def write_to(part):
     f.write("set -ex\\n")
     return f
 
-def upload(bin, binary_tmp_path="test-binaries-tmp"):
-    return subprocess.check_call(["cp", bin, binary_tmp_path])
+# def upload(bin, binary_tmp_path="test-binaries-tmp"):
+#     return subprocess.check_call(["cp", bin, binary_tmp_path])
+
+def move_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_dir="archive-test-binaries"):
+    # Function to copy files preserving the directory structure, excluding base_dir
+    relative_path = os.path.relpath(full_source_path, src_base_dir)
+    # Construct the full target path
+    full_target_path = os.path.join(target_dir, relative_path)
+    
+    # Create the target directory if it doesn't exist
+    target_path_dir = os.path.dirname(full_target_path)
+    if not os.path.exists(target_path_dir):
+        os.makedirs(target_path_dir)
+    # Copy the file
+    shutil.copy2(full_source_path, full_target_path)
+    shutil.move(full_source_path, full_source_path)
+    print("Moved %s to %s" % (full_source_path, full_target_path))
+
 
 total_score=0
 visited_files=set()
@@ -53,7 +71,7 @@ writer = write_to(part)
 scores.sort(key=lambda t: t[0])
 
 for bin, cases, bin_score in scores:
-    upload(bin)
+    move_file(bin)
     if current_chunk_score + bin_score <= chunk_score:
         writer.write("%s --test --nocapture\\n" % bin)
         current_chunk_score += bin_score

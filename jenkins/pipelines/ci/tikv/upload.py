@@ -3,7 +3,7 @@ import json
 import os
 import shutil
 
-def copy_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_dir="archive-test-binaries"):
+def move_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_dir="archive-test-binaries"):
     # Function to copy files preserving the directory structure, excluding base_dir
     relative_path = os.path.relpath(full_source_path, src_base_dir)
     # Construct the full target path
@@ -15,7 +15,8 @@ def copy_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_di
         os.makedirs(target_path_dir)
     # Copy the file
     shutil.copy2(full_source_path, full_target_path)
-    print("Copied %s to %s" % (full_source_path, full_target_path))
+    shutil.move(full_source_path, full_source_path)
+    print("Moved %s to %s" % (full_source_path, full_target_path))
 
 merged_dict={ "rust-binaries": {} }
 visited_files=set()
@@ -36,7 +37,7 @@ with open('test-binaries', 'w') as writer:
                 visited_files.add(bin)
                 merged_dict["rust-binaries"][name] = meta
                 writer.write("%s\\n" % bin)
-                copy_file(bin, )
+                move_file(bin, )
 
 with open('test-binaries.json', 'w') as f:
     json.dump(merged_dict, f)
