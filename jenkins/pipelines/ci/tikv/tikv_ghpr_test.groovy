@@ -1,4 +1,3 @@
-
 def notRun = 1
 def CHUNK_COUNT = 2
 def LEGACY_CHUNK_COUNT = 20
@@ -142,37 +141,37 @@ def run_test_with_pod_legacy(Closure body) {
 
 try {
 
-// stage("PreCheck") {
-//     if (!params.force) {
-//         def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
-//         podTemplate(name: label, label: label, 
-//             cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
-//             nodeSelector: "kubernetes.io/arch=amd64",
-//             yaml: podYAML, yamlMergeStrategy: merge(),
-//             workspaceVolume: emptyDirWorkspaceVolume(memory: true),
-//             containers: [
-//                 containerTemplate(name: "2c", image: rust_image,
-//                     alwaysPullImage: true, privileged: true,
-//                     resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
-//                     ttyEnabled: true, command: 'cat'),
-//             ],
-//         ) {
-//             node(label) {
-//                 container("2c") {
-//                     notRun = sh(returnStatus: true, script: """
-//                     if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-//                     """)
-//                 }
-//             }
-//         }
-//     }
+stage("PreCheck") {
+    if (!params.force) {
+        def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
+        podTemplate(name: label, label: label, 
+            cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
+            nodeSelector: "kubernetes.io/arch=amd64",
+            yaml: podYAML, yamlMergeStrategy: merge(),
+            workspaceVolume: emptyDirWorkspaceVolume(memory: true),
+            containers: [
+                containerTemplate(name: "2c", image: rust_image,
+                    alwaysPullImage: true, privileged: true,
+                    resourceRequestCpu: '2', resourceRequestMemory: '2Gi',
+                    ttyEnabled: true, command: 'cat'),
+            ],
+        ) {
+            node(label) {
+                container("2c") {
+                    notRun = sh(returnStatus: true, script: """
+                    if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
+                    """)
+                }
+            }
+        }
+    }
 
-//     if (notRun == 0) {
-//         println "the ${ghprbActualCommit} has been tested"
-//         currentBuild.result = 'SUCCESS'
-//         throw new RuntimeException("hasBeenTested")
-//     }
-// }
+    if (notRun == 0) {
+        println "the ${ghprbActualCommit} has been tested"
+        currentBuild.result = 'SUCCESS'
+        throw new RuntimeException("hasBeenTested")
+    }
+}
 
 stage("Prepare") {
     def clippy = {
@@ -193,13 +192,12 @@ stage("Prepare") {
                 println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                 def is_cached_lint_passed = false
-                // TODO: uncomment this after debug
-                // container("4c") {
-                //     is_cached_lint_passed = (sh(
-                //         label: 'Try to skip linting', returnStatus: true,
-                //         script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed") == 0)
-                //     println "Skip linting: ${is_cached_lint_passed}"
-                // }
+                container("4c") {
+                    is_cached_lint_passed = (sh(
+                        label: 'Try to skip linting', returnStatus: true,
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_lint_passed") == 0)
+                    println "Skip linting: ${is_cached_lint_passed}"
+                }
 
                 if (!is_cached_lint_passed) {
                     container("4c") {
@@ -236,12 +234,6 @@ stage("Prepare") {
                             source /opt/rh/devtoolset-8/enable
                             make clippy || (echo Please fix the clippy error; exit 1)
                         """
-
-                        // sh label: 'Post-lint: Save lint status', script: """
-                        // cd \$HOME/tikv-src
-                        // echo 1 > cached_lint_passed
-                        // curl -F tikv_test/${ghprbActualCommit}/cached_lint_passed=@cached_lint_passed ${FILE_SERVER_URL}/upload
-                        // """
                         container("util") {
                             dir("$WORKSPACE") { 
                                 sh label: 'Gen lint flag', script: """
@@ -275,18 +267,17 @@ stage("Prepare") {
                 println "[Debug Info] Debug command: kubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                 def is_artifact_existed = false
-                // TODO: uncomment this after debug
-                // container("4c") {
-                //     is_artifact_existed = (sh(
-                //         label: 'Try to skip building test artifact', returnStatus: true,
-                //         script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
-                //     if (is_artifact_existed) {
-                //         use_legacy_test = !(sh(
-                //             label: 'Check if nextest', returnStatus: true,
-                //             script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/is_nextest_build") == 0)
-                //     }
-                //     println "Skip building test artifact: ${is_artifact_existed}"
-                // }
+                container("4c") {
+                    is_artifact_existed = (sh(
+                        label: 'Try to skip building test artifact', returnStatus: true,
+                        script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/cached_build_passed") == 0)
+                    if (is_artifact_existed) {
+                        use_legacy_test = !(sh(
+                            label: 'Check if nextest', returnStatus: true,
+                            script: "curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/is_nextest_build") == 0)
+                    }
+                    println "Skip building test artifact: ${is_artifact_existed}"
+                }
 
                 if (!is_artifact_existed) {
                     container("4c") {
@@ -572,19 +563,6 @@ stage('Test') {
                     deleteDir()
                     try {
                         container("util") {
-                            // sh """
-                            // # set -o pipefail
-                            // ln -s `pwd` \$HOME/tikv-src
-                            // uname -a
-                            // mkdir -p target/debug
-                            // curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
-                            // tar xf test-artifacts.tar.gz
-                            // ls -la
-
-                            // curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar
-                            // tar xf archive-test-binaries.tar
-                            // ls -la
-                            // """
                             sh label: 'os info', script:"""
                             # set -o pipefail
                             ln -s `pwd` \$HOME/tikv-src
@@ -646,18 +624,6 @@ stage('Test') {
                         deleteDir()
                         timeout(15) {
                             container("util") { 
-                                // sh """ 
-                                // # set -o pipefail
-                                // ln -s `pwd` \$HOME/tikv-src
-                                // uname -a
-                                // mkdir -p target/debug
-                                // curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz
-                                // tar xf test-artifacts.tar.gz
-                                // ls -la
-                                // curl -O ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar
-                                // tar xf archive-test-binaries.tar
-                                // ls -la
-                                // """
                                 sh label: 'os info', script:"""
                                 # set -o pipefail
                                 uname -a
