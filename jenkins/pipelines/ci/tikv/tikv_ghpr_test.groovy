@@ -247,7 +247,7 @@ stage("Prepare") {
                                 sh label: 'Gen lint flag', script: """
                                     echo 1 > cached_lint_passed
                                 """
-                                upload_fileserver("cached_lint_passed", "purelind/tikv_test/${ghprbActualCommit}/cached_lint_passed")
+                                upload_fileserver("cached_lint_passed", "tikv_test/${ghprbActualCommit}/cached_lint_passed")
                             }
                         }
                     }
@@ -386,14 +386,14 @@ EOF
                                     sh """
                                     ls -alh
                                     """
-                                    upload_fileserver("archive-test-binaries.tar", "purelind/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar")
-                                    upload_fileserver("test-artifacts.tar.gz", "purelind/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz")
+                                    upload_fileserver("archive-test-binaries.tar", "tikv_test/${ghprbActualCommit}/archive-test-binaries.tar")
+                                    upload_fileserver("test-artifacts.tar.gz", "tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz")
                                     sh label: 'Gen build flag', script: """
                                         echo 1 > cached_build_passed
                                         echo 1 > is_nextest_build
                                     """
-                                    upload_fileserver("cached_build_passed", "purelind/tikv_test/${ghprbActualCommit}/cached_build_passed")
-                                    upload_fileserver("is_nextest_build", "purelind/tikv_test/${ghprbActualCommit}/is_nextest_build")
+                                    upload_fileserver("cached_build_passed", "tikv_test/${ghprbActualCommit}/cached_build_passed")
+                                    upload_fileserver("is_nextest_build", "tikv_test/${ghprbActualCommit}/is_nextest_build")
                                 }
                             }
                         } else {
@@ -537,12 +537,12 @@ EOF
                                     sh """
                                     pwd && ls -alh
                                     """
-                                    upload_fileserver("archive-test-binaries.tar", "purelind/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar")
-                                    upload_fileserver("test-artifacts.tar.gz", "purelind/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz")
+                                    upload_fileserver("archive-test-binaries.tar", "tikv_test/${ghprbActualCommit}/archive-test-binaries.tar")
+                                    upload_fileserver("test-artifacts.tar.gz", "tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz")
                                     sh label: 'Gen build flag', script: """
                                         echo 1 > cached_build_passed
                                     """
-                                    upload_fileserver("cached_build_passed", "purelind/tikv_test/${ghprbActualCommit}/cached_build_passed")
+                                    upload_fileserver("cached_build_passed", "tikv_test/${ghprbActualCommit}/cached_build_passed")
                                 }
                             }
                         }
@@ -594,8 +594,8 @@ stage('Test') {
                             sh """
                             pwd && ls -alh
                             """
-                            download_fileserver("purelind/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
-                            download_fileserver("purelind/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar", "archive-test-binaries.tar")
+                            download_fileserver("tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
+                            download_fileserver("tikv_test/${ghprbActualCommit}/archive-test-binaries.tar", "archive-test-binaries.tar")
                             sh """
                             ls -alh test-artifacts.tar.gz archive-test-binaries.tar
                             tar xf test-artifacts.tar.gz && rm test-artifacts.tar.gz
@@ -666,8 +666,8 @@ stage('Test') {
                                 sh """
                                 pwd && ls -alh
                                 """
-                                download_fileserver("purelind/tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
-                                download_fileserver("purelind/tikv_test/${ghprbActualCommit}/archive-test-binaries.tar", "archive-test-binaries.tar")
+                                download_fileserver("tikv_test/${ghprbActualCommit}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
+                                download_fileserver("tikv_test/${ghprbActualCommit}/archive-test-binaries.tar", "archive-test-binaries.tar")
                                 sh """
                                 ls -alh test-artifacts.tar.gz archive-test-binaries.tar
                                 tar xf test-artifacts.tar.gz && rm test-artifacts.tar.gz
