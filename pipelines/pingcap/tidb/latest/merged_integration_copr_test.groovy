@@ -55,6 +55,10 @@ pipeline {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
+                                sh """
+                                git status
+                                git log -1
+                                """
                             }
                         }
                     }
@@ -94,7 +98,7 @@ pipeline {
                         make push-down-test
                     """
                 }
-            }               
+            }
         }
     }
 }
