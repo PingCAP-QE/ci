@@ -43,7 +43,7 @@ postsubmits:
       context: ci/integration-jdbc-test
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       max_concurrency: 1
-      skip_report: false
+      skip_report: true
       branches:
         - ^master$
     - name: pingcap/tidb/merged_integration_mysql_test
@@ -114,7 +114,7 @@ postsubmits:
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-nodejs-test
       max_concurrency: 1
-      skip_report: false
+      skip_report: true
       branches:
         - ^master$
     - name: pingcap/tidb/merged_mysql_client_test
