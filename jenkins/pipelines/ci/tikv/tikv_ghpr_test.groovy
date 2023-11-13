@@ -506,7 +506,7 @@ stage('Test') {
                                 curl -o \$i ${FILE_SERVER_URL}/download/tikv_test/${ghprbActualCommit}/\$new_string --create-dirs;
                                 chmod +x \$i;
                             done
-                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} ${EXTRA_NEXTEST_ARGS}; then
+                            if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:${chunk_suffix}/${CHUNK_COUNT} --nocapture ${EXTRA_NEXTEST_ARGS}; then
                                 echo "test pass"
                             else
                                 # test failed
