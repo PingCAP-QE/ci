@@ -8,12 +8,9 @@ spec:
       image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
       tty: true
       resources:
-        requests:
-          memory: 12Gi
-          cpu: "4"
         limits:
-          memory: 16Gi
-          cpu: "6"
+          memory: 12Gi
+          cpu: "16"
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
