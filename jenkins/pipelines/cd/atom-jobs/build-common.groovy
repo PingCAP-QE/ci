@@ -14,88 +14,6 @@
 * @USE_TIFLASH_RUST_CACHE(string:use rust code cache, for tiflash only, Optional)
 */
 
-properties([
-        parameters([
-                choice(
-                        choices: ['arm64', 'amd64'],
-                        name: 'ARCH'
-                ),
-                choice(
-                        choices: ['linux', 'darwin'],
-                        name: 'OS'
-                ),
-                choice(
-                        choices: ['community', 'enterprise'],
-                        name: 'EDITION'
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'OUTPUT_BINARY',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'REPO',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PRODUCT',
-                        trim: true,
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'GIT_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'GIT_PR',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'RELEASE_TAG',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TARGET_BRANCH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIDB_HASH',
-                        trim: true
-                ),
-                string(
-                         defaultValue: '',
-                         name: 'GITHUB_REPO',
-                         trim: true
-                ),
-                booleanParam(
-                        defaultValue: true,
-                        name: 'FORCE_REBUILD'
-                ),
-                booleanParam(
-                        name: 'FAILPOINT',
-                        defaultValue: false
-                ),
-                booleanParam(
-                        name: 'NEED_SOURCE_CODE',
-                        defaultValue: false
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'USE_TIFLASH_RUST_CACHE',
-                        trim: true                        
-                ),
-                booleanParam(
-                        name: 'TIFLASH_DEBUG',
-                        defaultValue: false
-                ),
-    ])
-])
 
 taskStartTimeInMillis = System.currentTimeMillis()
 taskFinishTimeInMillis = System.currentTimeMillis()
@@ -926,25 +844,26 @@ def release(product, label) {
 
     if (label != '') {
         container(label) {
-            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                compileStartTimeInMillis = System.currentTimeMillis()
-                sh buildsh[product]
-                compileFinishTimeInMillis = System.currentTimeMillis()
-            }
-            uploadStartTimeInMillis = System.currentTimeMillis()
-            packageBinary()
-            uploadFinishTimeInMillis = System.currentTimeMillis()
+            do_release(product)
         }
     } else {
-        withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-            compileStartTimeInMillis = System.currentTimeMillis()
-            sh buildsh[product]
-            compileFinishTimeInMillis = System.currentTimeMillis()
-        }
-        uploadStartTimeInMillis = System.currentTimeMillis()
-        packageBinary()
-        uploadFinishTimeInMillis = System.currentTimeMillis()
+        do_release(product)
     }
+}
+
+def do_release(product){
+    withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+        compileStartTimeInMillis = System.currentTimeMillis()
+        def cmd = buildsh[product]
+        if (params.BUILD_ENV){
+            cmd = "export ${params.BUILD_ENV};\n"+cmd
+        }
+        sh cmd
+        compileFinishTimeInMillis = System.currentTimeMillis()
+    }
+    uploadStartTimeInMillis = System.currentTimeMillis()
+    packageBinary()
+    uploadFinishTimeInMillis = System.currentTimeMillis()
 }
 
 def run_with_arm_go_pod(Closure body) {
@@ -974,10 +893,20 @@ def run_with_arm_go_pod(Closure body) {
     if (PRODUCT == "tikv"){
         arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
     }
+    run_with_pod(arm_go_pod_image, body)
+}
+
+def run_with_pod(String builder, Closure body) {
     def cloud = "kubernetes"
-    def nodeSelector = "kubernetes.io/arch=arm64"
+    def nodeSelector = "kubernetes.io/arch=${params.ARCH}"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
+    def builderRequestCpu="4"
+    def buidlerRequestMemory="8Gi"
+    if (PRODUCT in ["tikv", "tiflash","tics"] ){
+        builderRequestCpu="16"
+        buidlerRequestMemory="32Gi"
+    }
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -985,8 +914,8 @@ def run_with_arm_go_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'builder', alwaysPullImage: true,
-                            image: "${arm_go_pod_image}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                            image: "${builder}", ttyEnabled: true,
+                            resourceRequestCpu: builderRequestCpu, resourceRequestMemory: buidlerRequestMemory,
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     ),
@@ -1014,7 +943,14 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if (useArmPodTemplate) {
+            if (params.BUILDER_IMG && params.OS=="linux"){
+                run_with_pod(params.BUILDER_IMG,{
+                        dir("go/src/github.com/pingcap/${PRODUCT}") {
+                        deleteDir()
+                        release(PRODUCT, 'builder')
+                    }
+                })
+            }else if (useArmPodTemplate) {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()
