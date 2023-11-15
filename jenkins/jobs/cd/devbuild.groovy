@@ -45,6 +45,16 @@ pipelineJob('devbuild') {
             defaultValue('master')
         }
         stringParam {
+            name('BuildEnv')
+            description('optional environment var during build')
+            defaultValue('')
+        }
+        stringParam {
+            name('ProductDockerfile')
+            description('optional product dockerfile')
+            defaultValue('')
+        }
+        stringParam {
             name('GithubRepo')
             description('the GitHub repo, just ignore unless in a forked repo, e.g., pingcap/tidb')
             defaultValue('')
