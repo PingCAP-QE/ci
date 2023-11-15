@@ -893,10 +893,20 @@ def run_with_arm_go_pod(Closure body) {
     if (PRODUCT == "tikv"){
         arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
     }
+    run_with_pod(arm_go_pod_image, body)
+}
+
+def run_with_pod(String builder, Closure body) {
     def cloud = "kubernetes"
-    def nodeSelector = "kubernetes.io/arch=arm64"
+    def nodeSelector = "kubernetes.io/arch=${params.ARCH}"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
+    def builderRequestCpu="4"
+    def buidlerRequestMemory="8Gi"
+    if (PRODUCT in ["tikv", "tiflash","tics"] ){
+        builderRequestCpu="16"
+        buidlerRequestMemory="32Gi"
+    }
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -904,8 +914,8 @@ def run_with_arm_go_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'builder', alwaysPullImage: true,
-                            image: "${arm_go_pod_image}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                            image: "${builder}", ttyEnabled: true,
+                            resourceRequestCpu: builderRequestCpu, resourceRequestMemory: buidlerRequestMemory,
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     ),
@@ -933,7 +943,14 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if (useArmPodTemplate) {
+            if (params.BUILDER_IMG && params.OS=="linux"){
+                run_with_pod(params.BUILDER_IMG,{
+                        dir("go/src/github.com/pingcap/${PRODUCT}") {
+                        deleteDir()
+                        release(PRODUCT, 'builder')
+                    }
+                })
+            }else if (useArmPodTemplate) {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()

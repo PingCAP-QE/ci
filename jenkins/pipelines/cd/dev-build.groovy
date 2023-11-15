@@ -138,6 +138,7 @@ spec:
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "GITHUB_REPO", value: params.GithubRepo),
                                     string(name: "BUILD_ENV", value: params.BuildEnv),
+                                    string(name: "BUILDER_IMG", value: params.BuilderImg),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                     [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: params.Features.contains('failpoint')],

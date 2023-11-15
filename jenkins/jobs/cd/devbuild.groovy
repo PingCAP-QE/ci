@@ -55,6 +55,11 @@ pipelineJob('devbuild') {
             defaultValue('')
         }
         stringParam {
+            name('BuilderImg')
+            description('optional builder image')
+            defaultValue('')
+        }
+        stringParam {
             name('GithubRepo')
             description('the GitHub repo, just ignore unless in a forked repo, e.g., pingcap/tidb')
             defaultValue('')
