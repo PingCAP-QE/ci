@@ -53,13 +53,18 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    sh label: 'download binary', script: """
-                        chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                        \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                        mv third_bin/* bin/
-                        ls -alh bin/
-                        chmod +x bin/*
-                    """
+                    retry(3) {
+                        sh label: 'download binary', script: """
+                            chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                            \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            mv third_bin/tikv-server bin/
+                            mv third_bin/pd-server bin/
+                            ls -alh bin/
+                            chmod +x bin/*
+                            ./bin/tikv-server -V
+                            ./bin/pd-server -V
+                        """
+                    }
                 }
             }
         }

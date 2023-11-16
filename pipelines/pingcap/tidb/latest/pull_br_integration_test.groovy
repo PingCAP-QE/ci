@@ -60,7 +60,8 @@ pipeline {
                         sh label: "download third_party", script: """
                             chmod +x ../tidb/br/tests/*.sh
                             ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
-                            mkdir -p bin && mv third_bin/* bin/
+                            rm -rf bin/ && mkdir -p bin
+                            mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
@@ -70,8 +71,7 @@ pipeline {
                 }
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all tests added to group", script: """
-                            #!/usr/bin/env bash
+                        sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                             chmod +x br/tests/*.sh
                             ./br/tests/run_group.sh others
                         """
@@ -116,8 +116,7 @@ pipeline {
                         steps {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """
-                                        #!/usr/bin/env bash
+                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
                                         ./br/tests/run_group.sh ${TEST_GROUP}
                                     """  
