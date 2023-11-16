@@ -52,7 +52,7 @@ pipeline {
                 }
                 dir("tikv-copr-test") {
                     cache(path: "./", includes: '**/*', key: "git/tikv/copr-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
-                        retry(2) {
+                        retry(3) {
                             script {
                                 component.checkout('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, REFS.pulls[0].title, "")
                             }
