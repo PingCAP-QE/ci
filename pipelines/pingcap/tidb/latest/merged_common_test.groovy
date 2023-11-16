@@ -114,8 +114,7 @@ pipeline {
                                         ls -alh bin/
                                     """
                                     container("java") {
-                                        sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
                                             export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                             cd ${TEST_DIR} && ${TEST_CMD}
                                         """

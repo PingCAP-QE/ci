@@ -98,7 +98,7 @@ pipeline {
                         '''
                     }
                     dir("enterprise-plugin") {
-                        retry(2) {
+                        retry(3) {
                             sh label: 'audit plugin test', script: """
                             go version
                             cd test/
@@ -115,3 +115,4 @@ pipeline {
         }
     }
 }
+
