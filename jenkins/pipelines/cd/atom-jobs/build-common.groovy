@@ -206,35 +206,21 @@ if (params.GIT_PR.length() >= 1) {
    specRef = "+refs/pull/${GIT_PR}/*:refs/remotes/origin/pr/${GIT_PR}/*"
 }
 def checkoutCode() {
-    def repoDailyCache = "/nfs/cache/git/src-${REPO}.tar.gz"
-    if (fileExists(repoDailyCache)) {
-        println "get code from nfs to reduce clone time"
+    try{
+        def codeCacheInFileserverUrl = "cicd/daily-cache-code/src-${REPO}.tar.gz"
+        println "get code from fileserver to reduce clone time"
+        println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+        download_fileserver(codeCacheInFileserverUrl, "src-${REPO}.tar.gz")
         sh """
-        cp -R ${repoDailyCache}  ./
-        tar -xzf ${repoDailyCache} --strip-components=1
+        tar -xzf src-${REPO}.tar.gz --strip-components=1
         rm -f src-${REPO}.tar.gz
         rm -rf ./*
         """
-        sh "chown -R 1000:1000 ./"
-    } else {
-        def codeCacheInFileserverUrl = "cicd/daily-cache-code/src-${REPO}.tar.gz"
-        def cacheExisted = sh(returnStatus: true, script: """
-            if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
-            """)
-        if (cacheExisted == 0) {
-            println "get code from fileserver to reduce clone time"
-            println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
-            download_fileserver(codeCacheInFileserverUrl, "src-${REPO}.tar.gz")
-            sh """
-            tar -xzf src-${REPO}.tar.gz --strip-components=1
-            rm -f src-${REPO}.tar.gz
-            rm -rf ./*
-            """
-        } else {
-            println "get code from github"
-        }
+    }catch(err){
+        echo "Caught: ${err}"
+        println "get code from github"
     }
-    retry(3) { 
+    retry(3) {
         checkout changelog: false, poll: true,
                         scm: [$class: 'GitSCM', branches: [[name: "${GIT_HASH}"]], doGenerateSubmoduleConfigurations: false,
                             extensions: [[$class: 'CheckoutOption', timeout: 30],
