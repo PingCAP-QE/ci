@@ -23,6 +23,12 @@ def get_dockerfile_url(arch){
     if (params.ProductDockerfile){
         return param.ProductDockerfile
     }
+    if (params.ProductBaseImg){
+        if (Product == "tidb" && Edition == "enterprise") {
+            fileName = fileName + '-enterprise'
+        }
+        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/varbase/dockerfiles/products-var-base/${fileName}.Dockerfile"
+    }
     if (Version>='v6.6.0'){
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = fileName + '-enterprise'
@@ -209,6 +215,7 @@ spec:
                                     string(name: "PRODUCT", value: ProductForBuild),
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "DOCKERFILE", value: get_dockerfile_url(arch)),
+                                    string(name: "BASE_IMG", value: params.ProductBaseImg,
                                     string(name: "RELEASE_DOCKER_IMAGES", value: "$Image-$arch"),
                                 ]
                                 echo "$paramsDocker"

@@ -55,6 +55,11 @@ pipelineJob('devbuild') {
             defaultValue('')
         }
         stringParam {
+            name('ProductBaseImg')
+            description('optional product base image')
+            defaultValue('')
+        }
+        stringParam {
             name('BuilderImg')
             description('optional builder image')
             defaultValue('')

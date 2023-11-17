@@ -44,6 +44,11 @@ properties([
                         name: 'DOCKERFILE',
                         trim: true
                 ),
+                string(
+                        defaultValue: '',
+                        name: 'BASE_IMG',
+                        trim: true
+                ),
                 
                 string(
                         defaultValue: '',
@@ -92,7 +97,7 @@ cd monitoring/
 mv Dockerfile Dockerfile.bak || true
 curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
 cat Dockerfile
-docker build --pull  -t ${imagePlaceHolder} .
+docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
 """
 
 buildImgagesh["tics"] = """
@@ -101,10 +106,10 @@ curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFI
 cat Dockerfile
 if [[ "${RELEASE_TAG}" == "" ]]; then
     # No release tag, the image may be used in testings
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1
+    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1 --build-arg BASE_IMG=${params.BASE_IMG}
 else
     # Release tag provided, do not install test utils
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0
+    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0 --build-arg BASE_IMG=${params.BASE_IMG}
 fi
 """
 
@@ -114,21 +119,21 @@ curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFI
 cat Dockerfile
 if [[ "${RELEASE_TAG}" == "" ]]; then
     # No release tag, the image may be used in testings
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1
+    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1 --build-arg BASE_IMG=${params.BASE_IMG}
 else
     # Release tag provided, do not install test utils
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0
+    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0 --build-arg BASE_IMG=${params.BASE_IMG}
 fi
 """
 
 
 buildImgagesh["monitoring"] = """
-docker build --pull -t ${imagePlaceHolder} .
+docker build --pull -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
 """
 
 buildImgagesh["tiem"] = """
 cp /usr/local/go/lib/time/zoneinfo.zip ./
-docker build --pull  -t ${imagePlaceHolder} .
+docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
 """
 
 buildImgagesh["tidb"] = """
@@ -146,7 +151,7 @@ fi
 mv Dockerfile Dockerfile.bak || true
 curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
 cat Dockerfile
-docker build --pull  -t ${imagePlaceHolder} .
+docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
 """
 
 
@@ -165,7 +170,7 @@ def build_image() {
         mv Dockerfile Dockerfile.bak || true
         curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
         cat Dockerfile
-        docker build --pull  -t ${imagePlaceHolder} .
+        docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
         """
     }
 }
