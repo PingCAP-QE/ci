@@ -130,8 +130,8 @@ pipeline {
                                 }
                             }
                             failure {
-                                dir("checks-collation-enabled") {
-                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, integration-test.out', allowEmptyArchive: true)
+                                dir("tidb") {
+                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, tests/integrationtest/integration-test.out', allowEmptyArchive: true)
                                 }
                             }
                             success {
