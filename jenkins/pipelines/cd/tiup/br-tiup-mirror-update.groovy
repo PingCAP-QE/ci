@@ -1,4 +1,3 @@
-def tiup_desc = ""
 def br_desc = "TiDB/TiKV cluster backup restore tool"
 
 def br_sha1, tarball_name, dir_name

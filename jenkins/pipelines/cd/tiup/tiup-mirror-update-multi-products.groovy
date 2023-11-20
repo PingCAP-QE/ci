@@ -39,7 +39,6 @@ def tidb_desc = "TiDB is an open source distributed HTAP database compatible wit
 def tikv_desc = "Distributed transactional key-value database, originally created to complement TiDB"
 def pd_desc = "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster"
 def ctl_desc = "TiDB controller suite"
-def binlog_desc = ""
 def pump_desc = "The pump componet of TiDB binlog service"
 def drainer_desc = "The drainer componet of TiDB binlog service"
 def pd_recover_desc = "PD Recover is a disaster recovery tool of PD, used to recover the PD cluster which cannot start or provide services normally"
