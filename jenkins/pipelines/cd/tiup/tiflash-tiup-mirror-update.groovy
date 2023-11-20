@@ -1,5 +1,3 @@
-def tiup_desc = ""
-
 def tiflash_sha1, tarball_name, dir_name
 
 def download = { name, version, os, arch ->
