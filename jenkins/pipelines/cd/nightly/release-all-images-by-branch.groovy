@@ -3,29 +3,6 @@
 * @FORCE_REBUILD(bool:if force rebuild binary,default true,Optional)
 */
 
-properties([
-        parameters([
-                string(
-                        defaultValue: 'master',
-                        name: 'GIT_BRANCH',
-                        trim: true
-                ),
-                booleanParam(
-                        defaultValue: false,
-                        name: 'FORCE_REBUILD'
-                ),
-                booleanParam(
-                        defaultValue: false,
-                        name: 'NEED_MULTIARCH'
-                ),
-                string(
-                        defaultValue: '-1',
-                        name: 'PIPELINE_BUILD_ID',
-                        description: '',
-                        trim: true
-                )
-        ])
-])
 
 taskStartTimeInMillis = System.currentTimeMillis()
 taskFinishTimeInMillis = System.currentTimeMillis()
