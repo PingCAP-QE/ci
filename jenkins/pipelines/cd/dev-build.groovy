@@ -215,7 +215,7 @@ spec:
                                     string(name: "PRODUCT", value: ProductForBuild),
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "DOCKERFILE", value: get_dockerfile_url(arch)),
-                                    string(name: "BASE_IMG", value: params.ProductBaseImg,
+                                    string(name: "BASE_IMG", value: params.ProductBaseImg),
                                     string(name: "RELEASE_DOCKER_IMAGES", value: "$Image-$arch"),
                                 ]
                                 echo "$paramsDocker"
