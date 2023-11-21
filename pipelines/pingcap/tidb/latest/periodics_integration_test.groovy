@@ -77,12 +77,13 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "")
+                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "", trunkBranch=TARGET_BRANCH, timeout=5, credentialsId="")
                                 sh label: "checkout tidb code", script: """
                                     git status
                                     git fetch origin ${TARGET_BRANCH}:local_${TARGET_BRANCH}
                                     git checkout local_${TARGET_BRANCH}
                                     git checkout -f ${tidb_commit_sha}
+                                    git status -s 
                                 """
                             }
                         }
