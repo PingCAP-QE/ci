@@ -648,7 +648,7 @@ if [ ${EDITION} == 'enterprise' ]; then
     export TIKV_EDITION=Enterprise
     export ROCKSDB_SYS_SSE=0
 fi;
-if [ ${OS} == 'linux' ]; then
+if [ ${OS} == 'linux' ] && [ "${BUILDER_IMG}"x == ''x ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
 fi;
