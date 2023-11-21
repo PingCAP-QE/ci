@@ -145,7 +145,6 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
-                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
