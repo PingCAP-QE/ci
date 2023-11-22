@@ -197,7 +197,7 @@ async function main() {
 // deno run --allow-all me.ts \
 //  --github_pat <github token> \
 //  --date_range '"2023-09-01" AND "2023-09-08"' \
-//  --db.host localhost \
+//  --db.hostname localhost \
 //  --db.port 3306 \
 //  --db.db <database name> \
 //  --db.username <db user> \
