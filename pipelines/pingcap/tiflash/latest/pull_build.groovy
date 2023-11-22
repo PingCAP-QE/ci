@@ -1,23 +1,140 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-@Library('tipipeline') _
+// @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb" // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
-final REFS = readJSON(text: params.JOB_SPEC).refs
+// final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
+
+
+podYaml = """
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/ee/ci/release-build-base-tiflash:v20231106"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "cat"
+      tty: true
+      resources:
+        requests:
+          memory: 32Gi
+          cpu: "12"
+        limits:
+          memory: 32Gi
+          cpu: "12"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
+    - name: util
+      image: hub.pingcap.net/jenkins/ks3util
+      args: ["sleep", "infinity"]
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "500Mi"
+        limits:
+          cpu: "500m"
+          memory: "500Mi"
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
+  volumes:
+    - name: "volume-0"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/rust"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-2"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/dependency"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-1"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/ccache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-4"
+      nfs:
+        path: "/data/nvme1n1/nfs/git"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-5"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-6"
+      emptyDir: {}
+    - name: "volume-7"
+      emptyDir:
+        medium: Memory
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
+"""
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            // yamlFile POD_TEMPLATE_FILE
+            yaml podYaml
             defaultContainer 'runner'
+            retries 5
+            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
@@ -48,23 +165,50 @@ pipeline {
                 dir("tiflash") {
                     retry(2) {
                         script {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                            // cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                            //     retry(2) {
+                            //         prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                            //     }
+                            // }
+                            // cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
+                            //         sh ''
+                            //         sh """
+                            //         git submodule update --init --recursive
+                            //         git status
+                            //         git show --oneline -s
+                            //         """
+                            // }
+
+                            container("util") {
+                                withCredentials(
+                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
+                                ) {
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tics.tar.gz src-tics.tar.gz"
+                                    sh """
+                                    ls -alh
+                                    chown 1000:1000 src-tics.tar.gz
+                                    """
                                 }
                             }
-                            cache(path: ".git/modules", includes: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                    sh ''
-                                    sh """
-                                    git submodule update --init --recursive
-                                    git status
-                                    git show --oneline -s
-                                    """
-                            }
+                            sh """
+                            printenv
+                            time tar -xzf src-tics.tar.gz --strip-components=1 && rm -rf src-tics.tar.gz
+                            ls -alh
+                            chown 1000:1000 -R ./
+                            ls -alh
+                            git version
+                            git config --global --add safe.directory '*'
+                            git submodule update --init --recursive
+                            git status
+                            git show --oneline -s
+                            """
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
                             }
+                            sh """
+                            chown 1000:1000 -R ./
+                            """
                         }
                     }
                 }
@@ -161,31 +305,27 @@ pipeline {
                 stage("Ccache") {
                     steps {
                     script { 
-                        // TODO: need adjust "master" against different target branch
-                        def ccache_tag = "tiflash-amd64-linux-llvm-debug-master-failpoints"
-                        def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
                         dir("tiflash") {
-                            // TODO: need to refactor this part, use shell script to do the job
-                            // pass the ccache_source & cache_source to shell script by env
-                            if (fileExists(ccache_source)) {
+                            sh label: "copy ccache if exist", script: """
+                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
-                                sh """
                                 cd /tmp
-                                cp ${ccache_source} ccache.tar
+                                cp -r \$ccache_tar_file ccache.tar
                                 tar -xf ccache.tar
-                                cd -
-                                """
-                            } else {
+                                ls -lha /tmp
+                            else
                                 echo "ccache not found"
-                            }
-                            sh """
+                            fi
+                            """
+                            sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
                             ccache -o limit_multiple=0.99
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=false
+                            ccache -o read_only=true
                             ccache -z
                             """
                         }
@@ -194,24 +334,32 @@ pipeline {
 
                 }
                 stage("Proxy-Cache") {
+                    // when {
+                    //     expression { return fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm") }
+                    // }
+                    // proxy_cache_ready = true
+                    // echo "proxy cache found"
                     steps {
-                    script {
-                        def proxy_suffix = "amd64-linux-llvm"
-                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                        // TODO: need to refactor this part, use shell script to do the job
-                        // cache proxy lib by pvc or nfs or fileserver ?
-                        if (fileExists(cache_source)) {
-                            echo "proxy cache found"
-                            proxy_cache_ready = true
-                            dir("tiflash") {
-                                sh """
-                                cp ${cache_source} libtiflash_proxy.so
-                                chmod +x libtiflash_proxy.so
-                                """
-                            }
-                        } else {
-                            echo "proxy cache not found"
-                        }
+                        script {
+                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
+                            println "proxy_cache_ready: ${proxy_cache_ready}"
+                            sh label: "copy proxy if exist", script: """
+                            proxy_suffix="amd64-linux-llvm"
+                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
+                            if [ -f \$proxy_cache_file ]; then
+                                echo "proxy cache found"
+                                mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                                cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            else
+                                echo "proxy cache not found"
+                            fi
+                            """
+                        }   
+                    }
+                }
+                stage("Cargo-Cache") {
+                    steps {
                         sh label: "link cargo cache", script: """
                             mkdir -p ~/.cargo/registry
                             mkdir -p ~/.cargo/git
@@ -232,29 +380,6 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
-                    }   
-                    }
-                }
-            }
-        }
-        stage("Build Dependency and Utils") {
-            parallel {
-                stage("Cluster Manage") { 
-                    steps {
-                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                    echo "cluster_manager is deprecated"
-                    }
-
-                }
-                stage("TiFlash Proxy") {
-                    steps {
-                        script {
-                            if (proxy_cache_ready) {
-                                echo "skip becuase of cache"
-                            } else {
-                                echo "proxy cache not ready"
-                            }
-                        }
                     }
                 }
             }
@@ -282,10 +407,6 @@ pipeline {
                     mkdir -p ${WORKSPACE}/build
                     mkdir -p ${WORKSPACE}/install/tiflash
                     """
-                    sh """
-                    printenv
-                    sleep 3000
-                    """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
                         cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
@@ -307,7 +428,8 @@ pipeline {
         stage("Format Check") {
             steps {
                 script { 
-                    def target_branch = "master"  // TODO: need to adjust target branch
+                    // def target_branch = REFS.base_ref  // TODO: need to adjust target branch
+                    def target_branch = master
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
                         echo "skipped because this branch does not support format"
@@ -355,6 +477,7 @@ pipeline {
                 }
             }
         }
+
         stage("Post Build") {
             parallel {
                 stage("Static Analysis"){
@@ -397,4 +520,5 @@ pipeline {
         }
     }
 }
+
 
