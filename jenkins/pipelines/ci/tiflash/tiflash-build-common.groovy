@@ -271,6 +271,7 @@ def checkoutStage(repo_path, checkout_target) {
             def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
             if (fileExists(cache_path)) {
                 sh label: "Get code from nfs to reduce clone time", script: """
+                pwd && ls -alh
                 cp -R ${cache_path}  ./
                 tar -xzf ${cache_path} --strip-components=1
                 rm -f src-tics.tar.gz
@@ -946,7 +947,9 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                        serverPath: '/data/nvme1n1/nfs/git', readOnly: true),
                     ],
     ) {
         node(label) {
@@ -965,6 +968,15 @@ run_with_pod {
         def error_msg = ""
         try {
             dir(repo_path) {
+                sh label: "copy code cache", script: """#!/usr/bin/env bash
+                if [[ -f /home/jenkins/agent/ci-cached-code-daily/src-tiflash-without-submodule.tar.gz ]]; then
+                    cp -R /home/jenkins/agent/ci-cached-code-daily/src-tiflash-without-submodule.tar.gz ./
+                    tar -xzf src-tiflash-without-submodule.tar.gz --strip-components=1
+                    rm -f src-tiflash-without-submodule.tar.gz
+                    chown -R 1000:1000 ./
+                    git status -s
+                fi
+                """
                 checkoutTiFlash(checkout_target, false)
             }
             dispatchRunEnv(repo_path) {
