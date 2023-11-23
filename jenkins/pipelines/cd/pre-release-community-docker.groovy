@@ -120,10 +120,11 @@ def get_sha(hash, repo, branch) {
     if (hash != "") {
         return hash
     } else {
-        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
-        return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
+        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash_rc.py > gethash.py"
+        withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+            return sh(returnStdout: true, script: "python3 gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
+        }
     }
-
 }
 
 def test_binary_already_build(binary_url) {

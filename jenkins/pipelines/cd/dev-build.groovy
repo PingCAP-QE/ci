@@ -63,7 +63,7 @@ spec:
                 script{
                     RepoForBuild = RepoDict[Product]
                     def hash_repo = params.GithubRepo ? params.GithubRepo : RepoForBuild
-                    GitHash = sh(returnStdout: true, script: "python /gethash.py -repo=$hash_repo -version=$GitRef").trim()
+                    GitHash = sh(returnStdout: true, script: "python3 /gethash.py -repo=$hash_repo -version=$GitRef").trim()
                     assert GitHash.length() == 40 : "invalid GitRef: $GitRef, returned hash is $GitHash"
                     if (GitRef ==~ 'pull/(\\d+)'){
                         GitPR = "${(GitRef =~ 'pull/(\\d+)')[0][1]}"
@@ -78,7 +78,7 @@ spec:
                             PluginGitRef = String.format('release-%s', (Version =~ semverReg)[0][2])
                         }
                         echo "enterprise plugin commit: $PluginGitRef"
-                        EnterprisePluginHash = sh(returnStdout: true, script: "python /gethash.py -repo=enterprise-plugin -version=${PluginGitRef}").trim()
+                        EnterprisePluginHash = sh(returnStdout: true, script: "python3 /gethash.py -repo=enterprise-plugin -version=${PluginGitRef}").trim()
                         echo "enterprise plugin hash: $EnterprisePluginHash"
                         PluginBinPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
                         PluginBinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/enterprise-plugin-linux-arm64.tar.gz"

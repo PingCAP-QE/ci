@@ -237,9 +237,9 @@ try {
 }
 
 def getHash() {
-    node("delivery") {
-        container("delivery") {
-            sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
+    node("gethash") { container("gethash") {
+        withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+            sh "cp /gethash.py gethash.py"
             tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
             tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
             pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
@@ -264,7 +264,7 @@ def getHash() {
             enterprise_plugin_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=enterprise-plugin -version=${RELEASE_BRANCH}").trim()
             tidb_monitor_initializer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=monitoring -version=master").trim()
         }
-    }
+    }}
 }
 
 def enterprise_docker_sync_gcr(source) {
