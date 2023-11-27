@@ -105,6 +105,17 @@ presubmits:
       rerun_command: "/test pull-br-integration-test"
       branches:
         - ^master$
+    - name: pingcap/tidb/pull_lightning_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/pull-lightning-integration-test  # need remove wip/ after test passed.
+      always_run: false
+      optional: true
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-lightning-integration-test"
+      branches:
+        - ^master$
     - name: pingcap/tidb/pull_common_test
       agent: jenkins
       decorate: false # need add this.
