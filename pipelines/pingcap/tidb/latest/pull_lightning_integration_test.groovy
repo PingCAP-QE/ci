@@ -70,10 +70,9 @@ pipeline {
                 }
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'lightning-integration-test')) {
-                        sh label: "check all tests added to group", script: """
-                            #!/usr/bin/env bash
+                        sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                             chmod +x br/tests/*.sh
-                            ./br/tests/run_group.sh others
+                            ./br/tests/run_group_lightning_tests.sh others
                         """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
