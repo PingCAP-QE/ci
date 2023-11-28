@@ -42,7 +42,7 @@ def fetch_hash_version(repo, version){
     }
 }
 
-def fetch_hash(repo){
+def fetch_hash={repo->
     return fetch_hash_version(repo, RELEASE_BRANCH)
 }
 
