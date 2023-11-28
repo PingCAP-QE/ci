@@ -724,11 +724,15 @@ try {
 }
 
 def fetch_hash(repo, version){
+    def to_sleep = false
     retry(3){
+        if (to_sleep){
+            sleep(time:61,unit:"SECONDS")
+        }else{
+            to_sleep = true
+        }
         return sh(returnStdout: true, script: "python /gethash.py -repo=${repo} -version=${version}").trim()
-        sleep(time:61,unit:"SECONDS")
     }
-    
 }
 
 def getHash() {
