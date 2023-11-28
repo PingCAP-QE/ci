@@ -236,35 +236,50 @@ try {
     upload_pipeline_run_data()
 }
 
+def fetch_hash_version(repo, version){
+    def to_sleep = false
+    retry(3){
+        if (to_sleep){
+            sleep(time:61,unit:"SECONDS")
+        }else{
+            to_sleep = true
+        }
+        return sh(returnStdout: true, script: "python /gethash.py -repo=${repo} -version=${version}").trim()
+    }
+}
+
+def fetch_hash(repo){
+    return fetch_hash_version(repo, RELEASE_TAG)
+}
+
 def getHash() {
-    node("delivery") {
-        container("delivery") {
-            sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
-            tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+    node("gethash") { container("gethash") {
+        withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+            tidb_sha1 = fetch_hash("tidb")
+            tikv_sha1 = fetch_hash("tikv")
+            pd_sha1 =  fetch_hash("pd")
             if (RELEASE_TAG >= "v5.2.0") {
                 tidb_br_sha1 = tidb_sha1
             } else {
-                tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                tidb_br_sha1 = fetch_hash("br")
             }
-            tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
-            cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+            tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+            tiflash_sha1 = fetch_hash("tiflash")
+            cdc_sha1 = fetch_hash("tiflow")
 
             if (RELEASE_TAG >= "v5.3.0") {
                 dumpling_sha1 = tidb_sha1
                 dm_sha1 = cdc_sha1
-                ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                ng_monitoring_sha1 = fetch_hash("ng-monitoring")
             } else {
-                dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${RELEASE_TAG} -s=${FILE_SERVER_URL}").trim()
+                dumpling_sha1 = fetch_hash("dumpling")
             }
 
             tidb_lightning_sha1 = tidb_br_sha1
-            enterprise_plugin_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=enterprise-plugin -version=${RELEASE_BRANCH}").trim()
-            tidb_monitor_initializer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=monitoring -version=master").trim()
+            enterprise_plugin_sha1 = fetch_hash_version("enterprise-plugin", RELEASE_BRANCH)
+            tidb_monitor_initializer_sha1 = fetch_hash_version("monitoring", "master")
         }
-    }
+    }}
 }
 
 def enterprise_docker_sync_gcr(source) {
