@@ -267,7 +267,7 @@ pipeline {
                             // todo only x86
                             steps {
                                 script {
-                                    [""tidb-control"].each {
+                                    ["tidb-control"].each {
                                         sh """
                                            docker buildx build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/${it} --platform=linux/amd64 --push -t hub.pingcap.net/rc/${it}:${ReleaseTag} misc/images/${it}
                                            """
