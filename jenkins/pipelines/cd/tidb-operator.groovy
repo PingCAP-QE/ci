@@ -179,7 +179,7 @@ pipeline {
                         stage("charts") {
                             steps {
                                 sh """
-                        	mkdir ${CHARTS_BUILD_DIR}
+                        	mkdir -p ${CHARTS_BUILD_DIR}
 				for chartItem in ${CHART_ITEMS}
 				do
 					chartPrefixName=\$chartItem-${ReleaseTag}
