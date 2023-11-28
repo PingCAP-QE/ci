@@ -8,7 +8,7 @@ def EnableE2E = false
 
 
 
-final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-lightning'
+final CHART_ITEMS = 'tidb-operator tidb-drainer tidb-lightning'
 final CHARTS_BUILD_DIR = 'output/chart'
 final K8S_CLUSTER = "kubernetes"
 final K8S_NAMESPACE="jenkins-cd"
