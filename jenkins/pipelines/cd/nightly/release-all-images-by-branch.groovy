@@ -707,7 +707,6 @@ try {
     echo sw.toString()
     throw exc
 } finally {
-    /*
     build job: 'send_notify',
             wait: true,
             parameters: [
@@ -720,10 +719,9 @@ try {
             ]
     upload_result_to_db()
     upload_pipeline_run_data()
-    */
 }
 
-def fetch_hash(repo, version){
+def fetch_hash_version(repo, version){
     def to_sleep = false
     retry(3){
         if (to_sleep){
@@ -735,38 +733,42 @@ def fetch_hash(repo, version){
     }
 }
 
+def fetch_hash(repo){
+    return fetch_hash_version(repo, GIT_BRANCH)
+}
+
 def getHash() {
     node("gethash") {container("gethash") {
         withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
-            tidb_sha1 = fetch_hash("tidb", GIT_BRANCH)
-            tikv_sha1 = fetch_hash("tikv", GIT_BRANCH)
-            pd_sha1 = fetch_hash("pd", GIT_BRANCH)
+            tidb_sha1 = fetch_hash("tidb")
+            tikv_sha1 = fetch_hash("tikv")
+            pd_sha1 = fetch_hash("pd")
             if (GIT_BRANCH == 'master' || GIT_BRANCH >= "release-5.2") {
                 tidb_br_sha1 = tidb_sha1
             } else {
-                tidb_br_sha1 = fetch_hash("br", GIT_BRANCH)
+                tidb_br_sha1 = fetch_hash("br")
             }
-            tidb_binlog_sha1 = fetch_hash("tidb-binlog", GIT_BRANCH)
-            tiflash_sha1 = fetch_hash("tiflash", GIT_BRANCH)
-            cdc_sha1 = fetch_hash("ticdc", GIT_BRANCH)
+            tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+            tiflash_sha1 = fetch_hash("tiflash")
+            cdc_sha1 = fetch_hash("ticdc")
 
             if (GIT_BRANCH == 'master' || GIT_BRANCH >= "release-5.3") {
                 dumpling_sha1 = tidb_sha1
                 dm_sha1 = cdc_sha1
                 if(GIT_BRANCH == 'master'){
-                    ng_monitoring_sha1 = fetch_hash("ng-monitoring", "main")
+                    ng_monitoring_sha1 = fetch_hash_version("ng-monitoring", "main")
                 }else{
-                    ng_monitoring_sha1 = fetch_hash("ng-monitoring", GIT_BRANCH)
+                    ng_monitoring_sha1 = fetch_hash("ng-monitoring")
                 }
             } else {
-                dumpling_sha1 = fetch_hash("dumpling", GIT_BRANCH)
+                dumpling_sha1 = fetch_hash("dumpling")
             }
 
 
             tidb_lightning_sha1 = tidb_br_sha1
-            tidb_monitor_initializer_sha1 = fetch_hash("monitoring", "master")
-            monitoring_sha1 = fetch_hash("monitoring", GIT_BRANCH)
-            tiflow_sha1 = fetch_hash("tiflow", GIT_BRANCH)
+            tidb_monitor_initializer_sha1 = fetch_hash_version("monitoring", "master")
+            monitoring_sha1 = fetch_hash("monitoring")
+            tiflow_sha1 = fetch_hash("tiflow")
         }
     }}
 }

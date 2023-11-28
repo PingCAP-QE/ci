@@ -30,7 +30,7 @@ ng_monitoring_sha1 = ""
 String PRODUCED_VERSION
 
 
-def fetch_hash(repo, version){
+def fetch_hash_version(repo, version){
     def to_sleep = false
     retry(3){
         if (to_sleep){
@@ -40,6 +40,10 @@ def fetch_hash(repo, version){
         }
         return sh(returnStdout: true, script: "python /gethash.py -repo=${repo} -version=${version}").trim()
     }
+}
+
+def fetch_hash(repo){
+    return fetch_hash_version(repo, RELEASE_BRANCH)
 }
 
 retry(2) {
@@ -58,16 +62,16 @@ retry(2) {
 
                     stage("Get hash") {
                         withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
-                            tidb_sha1 = fetch_hash("tidb", RELEASE_BRANCH)
-                            tikv_sha1 = fetch_hash("tikv", RELEASE_BRANCH)
-                            pd_sha1 = fetch_hash("pd", RELEASE_BRANCH)
-                            tidb_binlog_sha1 = fetch_hash("tidb-binlog", RELEASE_BRANCH)
-                            tidb_tools_sha1 = fetch_hash("tidb-tools", RELEASE_BRANCH)
-                            tiflash_sha1 = fetch_hash("tiflash", RELEASE_BRANCH)
-                            cdc_sha1 = fetch_hash("tiflow", RELEASE_BRANCH)
-                            dm_sha1 = fetch_hash("tiflow", RELEASE_BRANCH)
-                            tidb_ctl_githash = fetch_hash("tidb-ctl", RELEASE_BRANCH)
-                            ng_monitoring_sha1 = fetch_hash("ng-monitoring", "main")
+                            tidb_sha1 = fetch_hash("tidb")
+                            tikv_sha1 = fetch_hash("tikv")
+                            pd_sha1 = fetch_hash("pd")
+                            tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+                            tidb_tools_sha1 = fetch_hash("tidb-tools")
+                            tiflash_sha1 = fetch_hash("tiflash")
+                            cdc_sha1 = fetch_hash("tiflow")
+                            dm_sha1 = fetch_hash("tiflow")
+                            tidb_ctl_githash = fetch_hash("tidb-ctl")
+                            ng_monitoring_sha1 = fetch_hash_version("ng-monitoring", "main")
                         }
                         println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}"
                         println "tiflow hash:${cdc_sha1}\ntidb-ctl hash:${tidb_ctl_githash}\nng_monitoring hash:${ng_monitoring_sha1}"
