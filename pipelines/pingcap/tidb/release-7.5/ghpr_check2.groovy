@@ -131,9 +131,9 @@ pipeline {
                                     str="$SCRIPT_AND_ARGS"
                                     logs_dir="logs_\${str// /_}"
                                     mkdir -p \${logs_dir}
-                                    mv pd*.log \${logs_dir}
-                                    mv tikv*.log \${logs_dir}
-                                    mv tests/integrationtest/integration-test.out \${logs_dir}
+                                    mv pd*.log \${logs_dir} || true
+                                    mv tikv*.log \${logs_dir} || true
+                                    mv tests/integrationtest/integration-test.out \${logs_dir} || true
                                     tar -czvf \${logs_dir}.tar.gz \${logs_dir}
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
