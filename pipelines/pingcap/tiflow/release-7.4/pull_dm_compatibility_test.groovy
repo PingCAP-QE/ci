@@ -104,7 +104,7 @@ pipeline {
                             """
                             sh label: "download third_party", script: """
                                 pwd && ls -alh dm/tests/
-                                cd dm/tests && ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                                cd dm/tests && ./download-compatibility-test-binaries.sh release-7.4 && ls -alh ./bin
                                 cd - && cp -r dm/tests/bin/* ./bin
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
