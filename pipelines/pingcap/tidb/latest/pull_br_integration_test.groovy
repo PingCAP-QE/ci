@@ -70,10 +70,9 @@ pipeline {
                 }
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all tests added to group", script: """
-                            #!/usr/bin/env bash
+                        sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                             chmod +x br/tests/*.sh
-                            ./br/tests/run_group.sh others
+                            ./br/tests/run_group_br_tests.sh others
                         """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -84,7 +83,7 @@ pipeline {
                             ./bin/tidb-server -V
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -98,8 +97,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
-                            'G14', 'G15', 'G16', 'G17'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08'
                     }
                 }
                 agent{
@@ -115,11 +113,10 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """
-                                        #!/usr/bin/env bash
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
+                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
-                                        ./br/tests/run_group.sh ${TEST_GROUP}
+                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
@@ -149,3 +146,4 @@ pipeline {
         }
     }
 }
+
