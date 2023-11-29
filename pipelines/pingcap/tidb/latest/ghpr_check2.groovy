@@ -106,7 +106,7 @@ pipeline {
                 stages {
                     stage('Test')  {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 60, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -129,9 +129,18 @@ pipeline {
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
                             }
-                            failure {
+                            unsuccessful {
                                 dir("tidb") {
-                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, tests/integrationtest/integration-test.out', allowEmptyArchive: true)
+                                    sh label: "archive log", script: """
+                                    str="$SCRIPT_AND_ARGS"
+                                    logs_dir="logs_\${str// /_}"
+                                    mkdir -p \${logs_dir}
+                                    mv pd*.log \${logs_dir}
+                                    mv tikv*.log \${logs_dir}
+                                    mv tests/integrationtest/integration-test.out \${logs_dir}
+                                    tar -czvf \${logs_dir}.tar.gz \${logs_dir}
+                                    """
+                                    archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
                             }
                             success {

@@ -125,9 +125,18 @@ pipeline {
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
                             }
-                            failure {
-                                dir("checks-collation-enabled") {
-                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, integration-test.out', allowEmptyArchive: true)
+                            unsuccessful {
+                                dir("tidb") {
+                                    sh label: "archive log", script: """
+                                    str="$SCRIPT_AND_ARGS"
+                                    logs_dir="logs_\${str// /_}"
+                                    mkdir -p \${logs_dir}
+                                    mv pd*.log \${logs_dir}
+                                    mv tikv*.log \${logs_dir}
+                                    mv tests/integrationtest/integration-test.out \${logs_dir}
+                                    tar -czvf \${logs_dir}.tar.gz \${logs_dir}
+                                    """
+                                    archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
                             }
                         }
