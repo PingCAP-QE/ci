@@ -112,6 +112,5 @@ RUN cd tikv-src \
         build_branch("release-6.5")
         build_branch("release-6.1")
         build_branch("release-5.4")
-        build_branch("release-5.3")
     }
 }
