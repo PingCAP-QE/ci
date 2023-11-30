@@ -9,16 +9,6 @@ skip-checks: true
 `;
 
 const PR_DESCRIPTION = `
-<!--
-
-Thank you for contributing to TiDB!
-
-PR Title Format:
-1. pkg [, pkg2, pkg3]: what's changed
-2. *: what's changed
-
--->
-
 ### What problem does this PR solve?
 
 Problem Summary: update submodule exterprise-extensions
