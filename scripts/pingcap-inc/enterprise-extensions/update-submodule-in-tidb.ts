@@ -4,10 +4,8 @@ import { Octokit } from "npm:/octokit@3.1.0";
 const HEAD_REF = `bot/update-submodule-${Date.now()}`;
 const COMMIT_MESSAGE = `[SKIP-CI] update submodule exterprise-extensions
 
-
 skip-checks: true
 `;
-
 const PR_DESCRIPTION = `
 ### What problem does this PR solve?
 
@@ -54,6 +52,7 @@ None
 
 `;
 const DELAY_SECONDS_BEFORE_CREATE_PR = 5;
+const DELAY_SECONDS_BEFORE_DEAL_PR = 5;
 
 interface cliArgs {
   owner: string;
@@ -163,6 +162,11 @@ async function createUpdateSubModulePR(
 
   return pr;
 }
+
+// Wait a moment, let's other plugins run firstly.
+await new Promise((resolve) =>
+  setTimeout(resolve, DELAY_SECONDS_BEFORE_DEAL_PR * 1000)
+);
 
 async function postDealPR(
   octokit: Octokit,
