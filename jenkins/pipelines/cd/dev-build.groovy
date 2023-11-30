@@ -22,7 +22,7 @@ def PrintedVersion = ''
 def get_dockerfile_url(arch){
     def fileName = Product
     if (params.ProductDockerfile){
-        return param.ProductDockerfile
+        return params.ProductDockerfile
     }
     if (params.ProductBaseImg){
         if (Product == "tidb" && Edition == "enterprise") {
