@@ -4,10 +4,55 @@ import { Octokit } from "npm:/octokit@3.1.0";
 const HEAD_REF = `bot/update-submodule-${Date.now()}`;
 const COMMIT_MESSAGE = `[SKIP-CI] update submodule exterprise-extensions
 
-
 skip-checks: true
 `;
+const PR_DESCRIPTION = `
+### What problem does this PR solve?
+
+Problem Summary: update submodule exterprise-extensions
+
+### What changed and how does it work?
+
+See code changes.
+
+### Check List
+
+Tests <!-- At least one of them must be included. -->
+
+- [x] Unit test
+- [ ] Integration test
+- [ ] Manual test (add detailed scripts or steps below)
+- [ ] No need to test
+  > - [ ] I checked and no code files have been changed.
+  > <!-- Or your custom  "No need to test" reasons -->
+
+Side effects
+
+- [ ] Performance regression: Consumes more CPU
+- [ ] Performance regression: Consumes more Memory
+- [ ] Breaking backward compatibility
+
+Documentation
+
+- [ ] Affects user behaviors
+- [ ] Contains syntax changes
+- [ ] Contains variable changes
+- [ ] Contains experimental features
+- [ ] Changes MySQL compatibility
+
+### Release note
+
+<!-- compatibility change, improvement, bugfix, and new feature need a release note -->
+
+Please refer to [Release Notes Language Style Guide](https://pingcap.github.io/tidb-dev-guide/contribute-to-tidb/release-notes-style-guide.html) to write a quality release note.
+
+\`\`\`release-note
+None
+\`\`\`
+
+`;
 const DELAY_SECONDS_BEFORE_CREATE_PR = 5;
+const DELAY_SECONDS_BEFORE_DEAL_PR = 5;
 
 interface cliArgs {
   owner: string;
@@ -106,6 +151,7 @@ async function createUpdateSubModulePR(
     owner,
     repo: repository,
     title: `${path}: update submodule`,
+    body: PR_DESCRIPTION,
     head: HEAD_REF,
     base: baseRef,
     draft,
@@ -116,6 +162,11 @@ async function createUpdateSubModulePR(
 
   return pr;
 }
+
+// Wait a moment, let's other plugins run firstly.
+await new Promise((resolve) =>
+  setTimeout(resolve, DELAY_SECONDS_BEFORE_DEAL_PR * 1000)
+);
 
 async function postDealPR(
   octokit: Octokit,
