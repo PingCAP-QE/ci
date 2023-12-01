@@ -138,7 +138,7 @@ pipeline {
                                     mv pd*.log \${logs_dir} || true
                                     mv tikv*.log \${logs_dir} || true
                                     mv tests/integrationtest/integration-test.out \${logs_dir} || true
-                                    tar -czvf \${logs_dir}.tar.gz \${logs_dir}
+                                    tar -czvf \${logs_dir}.tar.gz \${logs_dir} || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
