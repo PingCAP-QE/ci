@@ -3,29 +3,6 @@
 * @FORCE_REBUILD(bool:if force rebuild binary,default true,Optional)
 */
 
-properties([
-        parameters([
-                string(
-                        defaultValue: 'master',
-                        name: 'GIT_BRANCH',
-                        trim: true
-                ),
-                booleanParam(
-                        defaultValue: false,
-                        name: 'FORCE_REBUILD'
-                ),
-                booleanParam(
-                        defaultValue: false,
-                        name: 'NEED_MULTIARCH'
-                ),
-                string(
-                        defaultValue: '-1',
-                        name: 'PIPELINE_BUILD_ID',
-                        description: '',
-                        trim: true
-                )
-        ])
-])
 
 taskStartTimeInMillis = System.currentTimeMillis()
 taskFinishTimeInMillis = System.currentTimeMillis()
@@ -45,8 +22,9 @@ tiflash_sha1 = ""
 cdc_sha1 = ""
 dm_sha1 = ""
 dumpling_sha1 = ""
-ng_monitoring_sha1 = ""
 tidb_monitor_initializer_sha1 = ""
+monitoring_sha1 = ""
+tiflow_sha1 = ""
 
 // ***
 // thress type image: noremal, failpoint, debug, multiArch
@@ -75,12 +53,9 @@ if (GIT_BRANCH.startsWith("release-")) {
 
 
 def get_sha(repo) {
-    sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
-    def branch = "${GIT_BRANCH}"
-    if (repo == "ng-monitoring" && GIT_BRANCH == "master") {
-        branch = "main"
-    }
-    return sh(returnStdout: true, script: "python gethash.py -repo=${repo} -version=${branch} -s=${FILE_SERVER_URL}").trim()
+    return ["monitoring":monitoring_sha1,"tics":tiflash_sha1, "tiflash":tiflash_sha1,"tidb":tidb_sha1, "tikv":tikv_sha1,
+        "pd":pd_sha1, "tiflow":tiflow_sha1, "tidb-binlog":tidb_binlog_sha1, "ng-monitoring":ng_monitoring_sha1,
+        "br": tidb_br_sha1].getOrDefault(repo.toString(), "")
 }
 
 
@@ -183,7 +158,7 @@ def parseBuildInfo(repo) {
     if (sha1.length() == 40) {
         println "valid sha1: ${sha1}"
     } else {
-        println "invalid sha1: ${sha1}"
+        println "invalid $actualRepo sha1: ${sha1}"
         currentBuild.result = "FAILURE"
         println "ERROR: can not get sha1 for ${repo} ${GIT_BRANCH}"
         throw new Exception("can not get sha1 for ${repo} ${GIT_BRANCH}")
@@ -670,6 +645,7 @@ def run_with_pod(Closure body) {
 }
 
 try {
+    getHash()
     run_with_pod {
         container("golang") {
             builds = [:]
@@ -741,43 +717,60 @@ try {
                     [$class: 'StringParameterValue', name: 'RESULT_TASK_START_TS', value: "${taskStartTimeInMillis}"],
                     [$class: 'StringParameterValue', name: 'SEND_TYPE', value: "ALL"]
             ]
-    getHash()
     upload_result_to_db()
     upload_pipeline_run_data()
 }
 
+def fetch_hash_version(repo, version){
+    def to_sleep = false
+    retry(3){
+        if (to_sleep){
+            sleep(time:61,unit:"SECONDS")
+        }else{
+            to_sleep = true
+        }
+        return sh(returnStdout: true, script: "python /gethash.py -repo=${repo} -version=${version}").trim()
+    }
+}
+
+def fetch_hash(repo){
+    return fetch_hash_version(repo, GIT_BRANCH)
+}
+
 def getHash() {
-    node("delivery") {
-        container("delivery") {
-            sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/get_hash_from_github.py > gethash.py"
-            tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
-            tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
-            pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
+    node("gethash") {container("gethash") {
+        withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+            tidb_sha1 = fetch_hash("tidb")
+            tikv_sha1 = fetch_hash("tikv")
+            pd_sha1 = fetch_hash("pd")
             if (GIT_BRANCH == 'master' || GIT_BRANCH >= "release-5.2") {
                 tidb_br_sha1 = tidb_sha1
             } else {
-                tidb_br_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=br -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                tidb_br_sha1 = fetch_hash("br")
             }
-            tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
-            tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
-            cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ticdc -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
+            tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+            tiflash_sha1 = fetch_hash("tiflash")
+            cdc_sha1 = fetch_hash("ticdc")
 
             if (GIT_BRANCH == 'master' || GIT_BRANCH >= "release-5.3") {
                 dumpling_sha1 = tidb_sha1
                 dm_sha1 = cdc_sha1
                 if(GIT_BRANCH == 'master'){
-                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=main -s=${FILE_SERVER_URL}").trim()
+                    ng_monitoring_sha1 = fetch_hash_version("ng-monitoring", "main")
                 }else{
-                    ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                    ng_monitoring_sha1 = fetch_hash("ng-monitoring")
                 }
             } else {
-                dumpling_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=dumpling -version=${GIT_BRANCH} -s=${FILE_SERVER_URL}").trim()
+                dumpling_sha1 = fetch_hash("dumpling")
             }
 
+
             tidb_lightning_sha1 = tidb_br_sha1
-            tidb_monitor_initializer_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=monitoring -version=master").trim()
+            tidb_monitor_initializer_sha1 = fetch_hash_version("monitoring", "master")
+            monitoring_sha1 = fetch_hash("monitoring")
+            tiflow_sha1 = fetch_hash("tiflow")
         }
-    }
+    }}
 }
 
 def upload_result_to_db() {

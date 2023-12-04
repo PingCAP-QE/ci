@@ -1,4 +1,3 @@
-def tiup_desc = ""
 def desc = "TiDB Lightning is a tool used for fast full import of large amounts of data into a TiDB cluster"
 
 def lightning_sha1, tarball_name, dir_name

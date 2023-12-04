@@ -147,7 +147,7 @@ pipeline {
                                         """
                                     }
                                     sh label: "prepare image", script: """
-                                        TIDB_CLUSTER_BRANCH=${REFS.base_ref}
+                                        TIDB_CLUSTER_BRANCH=release-7.4
                                         TIDB_TEST_TAG=nightly
 
                                         docker pull hub.pingcap.net/tiflow/minio:latest

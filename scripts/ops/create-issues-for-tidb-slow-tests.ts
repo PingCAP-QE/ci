@@ -222,7 +222,7 @@ async function main() {
 //  --github_pat <github token> \
 //  --date_range '"2023-09-01" AND "2023-09-08"' \
 //  --timecost_threshold 100000 \
-//  --db.host localhost \
+//  --db.hostname localhost \
 //  --db.port 3306 \
 //  --db.db <database name> \
 //  --db.username <db user> \

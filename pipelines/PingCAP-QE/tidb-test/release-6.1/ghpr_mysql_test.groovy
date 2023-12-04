@@ -66,7 +66,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -race -o bin/tidb-server ./tidb-server'
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                 }
                 dir('tidb-test') {

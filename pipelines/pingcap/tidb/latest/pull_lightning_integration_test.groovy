@@ -4,8 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_br_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_lightning_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -21,6 +22,7 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
+        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -38,7 +40,7 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time:10, unit: 'MINUTES') }
+            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -56,8 +58,6 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            rm -rf third_bin/
-                            rm -rf bin/
                             chmod +x ../tidb/br/tests/*.sh
                             ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
                             mkdir -p bin && mv third_bin/* bin/
@@ -69,18 +69,22 @@ pipeline {
                     }
                 }
                 dir('tidb') {
-                    sh label: "check all tests added to group", script: """#!/usr/bin/env bash
-                        chmod +x br/tests/*.sh
-                        ./br/tests/run_group_br_tests.sh others
-                    """
-                    sh label: "prepare build", script: """
-                        [ -f ./bin/tidb-server ] || make
-                        [ -f ./bin/br.test ] || make build_for_br_integration_test
-                        ls -alh ./bin
-                        ./bin/tidb-server -V
-                    """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
-                        sh label: "prepare cache binary", script: """
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'lightning-integration-test')) {
+                        sh label: "check all tests added to group", script: """#!/usr/bin/env bash
+                            chmod +x br/tests/*.sh
+                            ./br/tests/run_group_lightning_tests.sh others
+                        """
+                        // build br.test for integration test
+                        // only build binarys if not exist, use the cached binarys if exist
+                        sh label: "prepare", script: """
+                            [ -f ./bin/tidb-server ] || make
+                            [ -f ./bin/br.test ] || make build_for_br_integration_test
+                            ls -alh ./bin
+                            ./bin/tidb-server -V
+                        """
+                    }
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
+                        sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
                         """
@@ -99,24 +103,23 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
+                        yamlFile POD_TEMPLATE_FILE
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
-                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
+                                        ./br/tests/run_group_lightning_tests.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
-                            
                         }
                         post{
                             failure {
@@ -127,10 +130,19 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
+                            success {
+                                dir('tidb'){
+                                    sh label: "upload coverage", script: """
+                                        ls -alh /tmp/group_cover
+                                        gocovmerge /tmp/group_cover/cov.* > coverage.txt
+                                        codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
+                                    """
+                                }
+                            }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

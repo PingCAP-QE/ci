@@ -56,6 +56,10 @@ pipelineJob('docker-common') {
             trim(true)
         }
         stringParam {
+            name('BASE_IMG')
+            defaultValue('')
+        }
+        stringParam {
             name('RELEASE_DOCKER_IMAGES')
             defaultValue('')
             trim(true)

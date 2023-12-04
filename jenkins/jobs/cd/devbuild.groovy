@@ -24,7 +24,7 @@ pipelineJob('devbuild') {
     parameters {
         choiceParam {
             name('Product')
-            choices(['tidb', 'tikv', 'pd', 'tiflash', 'br', 'dumpling', 'tidb-lightning', 'ticdc', 'dm', 'tidb-binlog', 'tidb-tools'])
+            choices(['tidb', 'tikv', 'pd', 'tiflash', 'br', 'dumpling', 'tidb-lightning', 'ticdc', 'dm', 'tidb-binlog', 'tidb-tools', 'ng-monitoring', 'tidb-dashboard'])
             description('the product to build, e.g., tidb/tikv/pd')
         }
         stringParam {
@@ -43,6 +43,26 @@ pipelineJob('devbuild') {
             name('PluginGitRef')
             description('the git commit for enterprise plugin, only in enterprise tidb')
             defaultValue('master')
+        }
+        stringParam {
+            name('BuildEnv')
+            description('optional environment var during build')
+            defaultValue('')
+        }
+        stringParam {
+            name('ProductDockerfile')
+            description('optional product dockerfile')
+            defaultValue('')
+        }
+        stringParam {
+            name('ProductBaseImg')
+            description('optional product base image')
+            defaultValue('')
+        }
+        stringParam {
+            name('BuilderImg')
+            description('optional builder image')
+            defaultValue('')
         }
         stringParam {
             name('GithubRepo')

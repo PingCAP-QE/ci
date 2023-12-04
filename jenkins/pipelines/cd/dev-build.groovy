@@ -1,4 +1,5 @@
-final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog", "tidb-tools":"tidb-tools"]
+final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", 
+    "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog", "tidb-tools":"tidb-tools", "ng-monitoring":"ng-monitoring", "tidb-dashboard":"tidb-dashboard"]
 final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
 def GitHash = ''
@@ -20,6 +21,15 @@ def PrintedVersion = ''
 
 def get_dockerfile_url(arch){
     def fileName = Product
+    if (params.ProductDockerfile){
+        return params.ProductDockerfile
+    }
+    if (params.ProductBaseImg){
+        if (Product == "tidb" && Edition == "enterprise") {
+            fileName = fileName + '-enterprise'
+        }
+        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
+    }
     if (Version>='v6.6.0'){
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = fileName + '-enterprise'
@@ -34,18 +44,6 @@ def get_dockerfile_url(arch){
 }
 pipeline{
     agent none
-    parameters {
-        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning", "ticdc", "dm","tidb-binlog", "tidb-tools"], description: 'the product to build, eg. tidb/tikv/pd')
-        string(name: 'GitRef', description: 'the git tag or commit or branch or pull/id of repo')
-        string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
-        choice(name: 'Edition', choices : ["community", "enterprise"])
-        string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
-        string(name: 'GithubRepo', description: 'the github repo,just ignore unless in forked repo, eg pingcap/tidb', defaultValue: '')
-        booleanParam(name: 'IsPushGCR', description: 'whether push gcr')
-        booleanParam(name: 'IsHotfix', description: 'is it a hotfix build', defaultValue: false)
-        string(name: 'Features', description: 'comma seperated features to build with', defaultValue: '')
-        string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
-    }
     stages{
         stage('prepare'){
             agent{
@@ -146,6 +144,8 @@ spec:
                                     string(name: "GIT_PR", value: GitPR),
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "GITHUB_REPO", value: params.GithubRepo),
+                                    string(name: "BUILD_ENV", value: params.BuildEnv),
+                                    string(name: "BUILDER_IMG", value: params.BuilderImg),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                     [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: params.Features.contains('failpoint')],
@@ -216,6 +216,7 @@ spec:
                                     string(name: "PRODUCT", value: ProductForBuild),
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "DOCKERFILE", value: get_dockerfile_url(arch)),
+                                    string(name: "BASE_IMG", value: params.ProductBaseImg),
                                     string(name: "RELEASE_DOCKER_IMAGES", value: "$Image-$arch"),
                                 ]
                                 echo "$paramsDocker"
