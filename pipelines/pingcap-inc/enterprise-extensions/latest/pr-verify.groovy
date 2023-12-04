@@ -55,7 +55,7 @@ pipeline {
         stage('Check') {
             steps {
                 container('golang') {
-                    sh script: 'make gogenerate check integrationtest -C tidb'
+                    sh script: 'make gogenerate check integrationtest bazel_lint -C tidb'
                 }
             }
         }
