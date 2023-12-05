@@ -74,7 +74,6 @@ pipeline {
                         script {
                             prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
                         }
-                        // Fail when found long time test cases.
                     }
                 }
                 always {
@@ -82,20 +81,8 @@ pipeline {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                         archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
                     }
-
-                    // TODO(#2572): remove those steps when we have a better way to report flaky test cases.
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                    container('deno') {
-                        sh label: "Report flaky test case results", script: """
-                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases-v20230821.ts \
-                                --repo=${REFS.org}/${REFS.repo} \
-                                --branch=${REFS.base_ref} \
-                                --build_url=\${BUILD_URL} \
-                                --caseDataFile=bazel-go-test-problem-cases.json || true
-                        """
-                    }
-                    sh label: '[Canary] Send event to cloudevents server', script: """
+                    sh label: 'Send event to cloudevents server', script: """
                         curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
                         --header "ce-id: \$(uuidgen)" \
                         --header "ce-source: \${JENKINS_URL}" \
@@ -107,6 +94,7 @@ pipeline {
                         --header 'content-type: application/json; charset=UTF-8' \
                         --data @bazel-go-test-problem-cases.json || true
                     """
+                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
             }
         }
