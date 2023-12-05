@@ -3,7 +3,6 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-pd"
-final GIT_FULL_REPO_NAME = 'tikv/pd'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/latest/pod-pull_integration_realcluster_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
