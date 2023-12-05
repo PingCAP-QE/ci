@@ -182,8 +182,8 @@ async function postDealPR(
     body: "/release-note-none",
   }).catch((error: any) => console.error("Error creating comment:", error));
 
-  // add "skip-issue-check", "lgtm", "approved" labels:
-  const toAddLabels = ["skip-issue-check", "lgtm", "approved"];
+  // add "skip-issue-check", "lgtm" labels:
+  const toAddLabels = ["skip-issue-check", "lgtm"];
   if (repo.startsWith("docs")) {
     toAddLabels.push("translation/no-need");
   }
