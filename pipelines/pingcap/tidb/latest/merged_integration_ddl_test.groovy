@@ -65,22 +65,31 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/merged_integration_ddl_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
+                    container("golang") {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
+                        retry(3) {
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                             ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
+                            mv third_bin/tikv-server bin/
+                            mv third_bin/pd-server bin/
                             ls -alh bin/
                             """
                         }
+                        
                     }
                 }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                        sh label: 'cache tidb-test', script: """
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp -r ../tidb/bin/*  bin/ && chmod +x bin/*
+                        ./bin/pd-server -V
+                        ./bin/tikv-server -V
+                        ./bin/tidb-server -V
+                        """
                     }
                 }
             }
@@ -105,23 +114,16 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/merged_integration_ddl_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
-                                }
-                            }
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
                                     """
                                     container("golang") {
-                                        sh label: "ddl_test ${DDL_TEST}", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
                                             echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                             bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                             cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
@@ -144,7 +146,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

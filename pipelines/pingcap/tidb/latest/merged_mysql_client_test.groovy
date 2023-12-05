@@ -82,8 +82,7 @@ pipeline {
             steps {
                 container('mysql-client-test') {
                     dir('tidb-test') {
-                        sh label: "run test", script: """
-                            #!/usr/bin/env bash
+                        sh label: "run test", script: """#!/usr/bin/env bash
                             make mysql_client_test
                         """
                     }

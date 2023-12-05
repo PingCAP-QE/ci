@@ -60,7 +60,8 @@ pipeline {
                         sh label: "download third_party", script: """
                             chmod +x ../tidb/br/tests/*.sh
                             ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
-                            mkdir -p bin && mv third_bin/* bin/
+                            rm -rf bin/ && mkdir -p bin
+                            mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
                             ./bin/tikv-server -V

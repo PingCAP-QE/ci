@@ -10,7 +10,7 @@ spec:
       resources:
         limits:
           memory: 16Gi
-          cpu: "16"
+          cpu: "20"
     - name: net-tool
       image: wbitt/network-multitool
       tty: true

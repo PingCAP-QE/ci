@@ -98,18 +98,21 @@ pipeline {
                         '''
                     }
                     dir("enterprise-plugin") {
-                        sh label: 'audit plugin test', script: """
-                        go version
-                        cd test/
-                        export PD_BRANCH=${REFS.base_ref}
-                        export TIKV_BRANCH=${REFS.base_ref}
-                        export TIDB_REPO_PATH=${WORKSPACE}/tidb
-                        export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
-                        ./test.sh
-                        """
+                        retry(3) {
+                            sh label: 'audit plugin test', script: """
+                            go version
+                            cd test/
+                            export PD_BRANCH=${REFS.base_ref}
+                            export TIKV_BRANCH=${REFS.base_ref}
+                            export TIDB_REPO_PATH=${WORKSPACE}/tidb
+                            export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
+                            ./test.sh
+                            """
+                        }       
                     }
                 }
             }
         }
     }
 }
+

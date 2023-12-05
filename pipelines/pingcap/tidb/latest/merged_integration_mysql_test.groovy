@@ -70,7 +70,8 @@ pipeline {
                         sh label: 'download binary', script: """
                             chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                             \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
+                            mv third_bin/tikv-server bin/
+                            mv third_bin/pd-server bin/
                             ls -alh bin/
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
@@ -125,8 +126,7 @@ pipeline {
                                     ./bin/tidb-server -V
                                     """
                                     container("golang") {
-                                        sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """#!/usr/bin/env bash
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                                 bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
@@ -148,7 +148,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
