@@ -7,7 +7,7 @@ postsubmits:
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/e2e-test
       max_concurrency: 1
-      skip_report: false
+      skip_report: true
       branches:
         - ^master$
     - name: pingcap/tidb/merged_common_test
