@@ -11,7 +11,7 @@ pipelineJob('tikv/pd/pull_integration_realcluster_test') {
         stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
-        buildFailureAnalyzer(false) // disable failure analyze
+        buildFailureAnalyzer(false)
         githubProjectUrl("https://github.com/tikv/pd")
     }
  
