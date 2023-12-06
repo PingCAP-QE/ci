@@ -61,7 +61,7 @@ def upload_fileserver(local, remote){
     withCredentials(
         [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
     ) {
-        sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f $local ks3://ee-fileserver/download/${remote}"
+        sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
     }
 }
 
@@ -69,7 +69,7 @@ def download_fileserver(remote, local){
     withCredentials(
         [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
     ) {
-        sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${remote} $local"
+        sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
     }
 }
 
