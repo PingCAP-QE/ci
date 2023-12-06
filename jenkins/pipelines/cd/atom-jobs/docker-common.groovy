@@ -70,7 +70,7 @@ def download() {
             def local = '.downloaded.tar.gz'
             container("ks3util"){
                 withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
-                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${item} $local"
+                    sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${item} $local"
                 }
             }
             sh "tar -xzvf $local && rm -f $local"

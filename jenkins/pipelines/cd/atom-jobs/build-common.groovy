@@ -751,12 +751,12 @@ def upload_fileserver(local, remote){
     if(usePod()){
         container("ks3util"){
             withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
-                sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
+                sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f $local ks3://ee-fileserver/download/${remote}"
             }
         }
     }else{
         withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
-            sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
+            sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f $local ks3://ee-fileserver/download/${remote}"
         }
     }
 }
@@ -765,12 +765,12 @@ def download_fileserver(remote, local){
     if(usePod()){
         container("ks3util"){
             withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
-                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
+                sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${remote} $local"
             }
         }
     }else{
         withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
-            sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
+            sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${remote} $local"
         }
     }
 }
