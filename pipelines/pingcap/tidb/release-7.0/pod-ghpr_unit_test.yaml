@@ -38,6 +38,23 @@ spec:
             command:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
+    - name: deno
+      image: "denoland/deno:1.31.2"
+      command: [sh]
+      tty: true
+      env:
+        - name: DENO_DIR
+          value: /cache/deno
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+      volumeMounts:
+        - mountPath: /cache/deno
+          name: deno-dir
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -53,6 +70,9 @@ spec:
           memory: 256Mi
           cpu: 100m
   volumes:
+    - name: deno-dir
+      persistentVolumeClaim:
+        claimName: deno-dir
     - name: gopathcache
       persistentVolumeClaim:
         claimName: gopathcache

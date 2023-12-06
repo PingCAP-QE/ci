@@ -39,7 +39,7 @@ pipeline {
         }
         stage('Checkout') {
             steps {
-                dir(REFS.repo) {
+                dir('tidb') {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -53,7 +53,7 @@ pipeline {
         stage('Test') {
             environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
-                dir(REFS.repo) {
+                dir('tidb') {
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
@@ -62,34 +62,48 @@ pipeline {
                 }
             }
             post {
-                success {
-                    dir(REFS.repo) {
-                        script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
-                        }
+                 success {
+                    dir("tidb") {
+                        sh label: "upload coverage to codecov", script: """
+                        mv coverage.dat test_coverage/coverage.dat
+                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
+                        chmod +x codecov
+                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
+                        """
                     }
-                }                
-                always {
-                    dir(REFS.repo) {
-                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
-                        archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
-                    }
+                }
+                failure {
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                    sh label: 'Send event to cloudevents server', script: """
-                        curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
-                        --header "ce-id: \$(uuidgen)" \
-                        --header "ce-source: \${JENKINS_URL}" \
-                        --header 'ce-type: test-case-run-report' \
-                        --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
-                        --header 'ce-branch: ${REFS.base_ref}' \
-                        --header "ce-buildurl: \${BUILD_URL}" \
-                        --header 'ce-specversion: 1.0' \
-                        --header 'content-type: application/json; charset=UTF-8' \
-                        --data @bazel-go-test-problem-cases.json || true
-                    """
+                    container('deno') {
+                        sh label: "Report flaky test case results", script: """
+                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases-v20230821.ts \
+                                --repo=${REFS.org}/${REFS.repo} \
+                                --branch=${REFS.base_ref} \
+                                --build_url=\${BUILD_URL} \
+                                --caseDataFile=bazel-go-test-problem-cases.json || true
+                        """
+                    }
                     archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
+                always {
+                    dir('tidb') {
+                        // archive test report to Jenkins.
+                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                    }
+                }
             }
+        }
+    }
+    post {
+        // TODO(wuhuizuo): put into container lifecyle preStop hook.
+        always {
+            container('report') {
+                sh """
+                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
+                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" || true
+                """
+            }
+            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
