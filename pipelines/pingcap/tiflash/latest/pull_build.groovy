@@ -56,6 +56,37 @@ spec:
       - mountPath: "/tmp-memfs"
         name: "volume-7"
         readOnly: false
+    - name: jnlp
+      image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "500Mi"
+        limits:
+          cpu: "500m"
+          memory: "500Mi"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
     - name: util
       image: hub.pingcap.net/jenkins/ks3util
       args: ["sleep", "infinity"]
@@ -72,13 +103,6 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
           cpu: 100m
   volumes:
     - name: "volume-0"
@@ -198,6 +222,8 @@ pipeline {
                             ls -alh
                             git version
                             git config --global --add safe.directory '*'
+                            git fetch origin master
+                            git reset --hard origin/master
                             git submodule update --init --recursive
                             git status
                             git show --oneline -s
@@ -307,7 +333,7 @@ pipeline {
                     script { 
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
-                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache/tiflash-amd64-linux-llvm-debug-master-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
@@ -334,15 +360,11 @@ pipeline {
 
                 }
                 stage("Proxy-Cache") {
-                    // when {
-                    //     expression { return fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm") }
-                    // }
-                    // proxy_cache_ready = true
-                    // echo "proxy cache found"
                     steps {
                         script {
                             proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
                             println "proxy_cache_ready: ${proxy_cache_ready}"
+
                             sh label: "copy proxy if exist", script: """
                             proxy_suffix="amd64-linux-llvm"
                             proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
@@ -399,7 +421,7 @@ pipeline {
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
                         sh """
                         mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
+                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
                     // create build dir and install dir
@@ -412,7 +434,7 @@ pipeline {
                         cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
-                            -DCMAKE_BUILD_TYPE=debug \\
+                            -DCMAKE_BUILD_TYPE=Debug \\
                             -DCMAKE_PREFIX_PATH='/usr/local' \\
                             -DCMAKE_INSTALL_PREFIX=${WORKSPACE}/install/tiflash \\
                             -DENABLE_TESTS=false \\
@@ -429,7 +451,7 @@ pipeline {
             steps {
                 script { 
                     // def target_branch = REFS.base_ref  // TODO: need to adjust target branch
-                    def target_branch = master
+                    def target_branch = "master"
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
                         echo "skipped because this branch does not support format"
@@ -456,6 +478,10 @@ pipeline {
                     """
                     sh """
                     cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
+                    """
+                    sh """
+                    ccache -s
+                    ls -lha ${WORKSPACE}/install/tiflash
                     """
                 }
             }
@@ -520,5 +546,3 @@ pipeline {
         }
     }
 }
-
-
