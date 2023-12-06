@@ -1,5 +1,7 @@
-final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", 
-    "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog", "tidb-tools":"tidb-tools", "ng-monitoring":"ng-monitoring", "tidb-dashboard":"tidb-dashboard"]
+final RepoDict = ["tiflash":"tics", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", 
+    "ticdc":"tiflow", "dm":"tiflow", "drainer":"tidb-binlog", "pump":"tidb-binlog"]
+final ProductForBuildMapping = ["tiflash":"tics", "tidb-lightning":"br", "drainer":"tidb-binlog", "pump":"tidb-binlog"]
+final DockerMapping = ["drainer":"tidb-binlog", "pump":"tidb-binlog"]
 final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
 def GitHash = ''
@@ -15,12 +17,13 @@ def PipelineEndAt = ''
 
 def RepoForBuild = ''
 def ProductForBuild = ''
+def ProductForDocker = ''
 def NeedEnterprisePlugin = false
 def PrintedVersion = ''
 
 
-def get_dockerfile_url(arch){
-    def fileName = Product
+def get_dockerfile_url={arch ->
+    def fileName = ProductForDocker
     if (params.ProductDockerfile){
         return params.ProductDockerfile
     }
@@ -62,7 +65,7 @@ spec:
             environment {GHTOKEN = credentials('github-token-gethash')}
             steps{
                 script{
-                    RepoForBuild = RepoDict[Product]
+                    RepoForBuild = RepoDict.getOrDefault(Product, Product)
                     def hash_repo = params.GithubRepo ? params.GithubRepo : RepoForBuild
                     GitHash = sh(returnStdout: true, script: "python /gethash.py -repo=$hash_repo -version=$GitRef").trim()
                     assert GitHash.length() == 40 : "invalid GitRef: $GitRef, returned hash is $GitHash"
@@ -89,23 +92,18 @@ spec:
                     BinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
                     BinBuildPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
                     BinBuildPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
-                    ProductForBuild = Product
-                    if (ProductForBuild == "tiflash"){
-                        ProductForBuild = "tics"
-                    }
-                    if (Product == "tidb-lightning"){
-                        ProductForBuild = "br"
-                    }
+                    ProductForBuild = ProductForBuildMapping.getOrDefault(Product, Product)
+                    ProductForDocker = DockerMapping.getOrDefault(Product, Product)
                     def date = new Date()
                     PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
-                    Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
-                    ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$BUILD_NUMBER-dev"
+                    Image = "hub.pingcap.net/devbuild/$ProductForDocker:$Version-$BUILD_NUMBER"
+                    ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
-                        Image = "hub.pingcap.net/qa/$Product:$Version-$BUILD_NUMBER"
+                        Image = "hub.pingcap.net/qa/$ProductForDocker:$Version-$BUILD_NUMBER"
                         if (params.Features != ""){
                             error "hotfix artifact but with extra features"
                         }
-                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version"
+                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version"
                         BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
                         BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
                         PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
