@@ -65,6 +65,28 @@ spec:
   nodeSelector:
     kubernetes.io/arch: amd64
 '''
+final goBuildArmYaml = '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: builder
+    image: hub.pingcap.net/jenkins/centos7_golang-1.21-arm64:latest
+    args: ["sleep", "infinity"]
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "32Gi"
+        cpu: "16"
+  tolerations:
+  - effect: NoSchedule
+    key: tidb-operator
+    operator: Exists
+  nodeSelector:
+    kubernetes.io/arch: arm64
+'''
 final dockerSyncYaml = '''
 apiVersion: v1
 kind: Pod
@@ -102,6 +124,7 @@ pipeline {
         string(name: 'GitRef', defaultValue: 'master', description: 'branch or commit hash')
         string(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
         booleanParam(name: 'BrFederation', defaultValue: false, description: 'whether release BR federation manager')
+        booleanParam(name: 'FIPS', defaultValue: false, description: 'whether to enable fips')
     }
     stages {
         stage("PARAMS") {
@@ -110,6 +133,9 @@ pipeline {
                     ReleaseTag = params.ReleaseTag
                     if (!ReleaseTag) {
                         ReleaseTag = params.GitRef
+                    }
+                    if(params.FIPS.toBoolean()){
+                        ReleaseTag = ReleaseTag+"-fips"
                     }
                     PushPublic = true
                     BrFederation = params.BrFederation.toBoolean()
@@ -148,15 +174,46 @@ pipeline {
                             }
                         }
                         stage("bin") {
-                            environment {GIT_COMMIT = "$GitHash"; GOPROXY = "http://goproxy.pingcap.net,https://proxy.golang.org,direct" }
-                            steps {
-                                sh """set -eux
-                                    go mod download
-                                    git checkout -- go.sum
-                                    """
-                                sh "git status"
-                                sh "GOOS=linux GOARCH=arm64 make build"
-                                sh "GOOS=linux GOARCH=amd64 make build"
+                            environment {
+                                GIT_COMMIT = "$GitHash";
+                                GOPROXY = "http://goproxy.pingcap.net,https://proxy.golang.org,direct";
+                                ENABLE_FIPS = "${params.FIPS.toBoolean()?1:0}";
+                            }
+                            stages{
+                                stage("arm64"){
+                                    agent {
+                                        kubernetes {
+                                            yaml goBuildArmYaml
+                                            defaultContainer 'builder'
+                                            cloud K8S_CLUSTER
+                                            namespace K8S_NAMESPACE
+                                        }
+                                    }
+                                    steps{ dir("operator"){
+                                        checkout changelog: false, poll: false, scm: [
+                                                $class           : 'GitSCM',
+                                                branches         : [[name: params.GitRef]],
+                                                userRemoteConfigs: [[
+                                                                            refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pull/*',
+                                                                            url    : 'https://github.com/pingcap/tidb-operator.git',
+                                                                    ]]
+                                        ]
+                                        sh """git status
+                                        printenv ENABLE_FIPS
+                                        ls -al .
+                                        make build"""
+                                        stash name: "arm-bin", includes: "images/"
+                                    }}
+                                }
+                                stage("amd64"){
+                                    steps {
+                                        sh """git status
+                                        printenv ENABLE_FIPS
+                                        make build"""
+                                        unstash "arm-bin"
+                                        sh "ls -Rl images/"
+                                    }
+                                }
                             }
                         }
                         stage("e2e bin") {
