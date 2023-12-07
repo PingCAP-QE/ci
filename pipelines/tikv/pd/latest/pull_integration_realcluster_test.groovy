@@ -53,7 +53,7 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('pd/') {
+                dir('pd') {
                     sh label: "PD Real Cluster Check", script: """
                         cd tests/integrations/realtiup
                         make check
