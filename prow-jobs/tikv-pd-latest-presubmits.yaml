@@ -16,10 +16,21 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: pull-integration-copr-test
-      trigger: "(?m)^/test (?:.*? )?integration-copr-test(?: .*?)?$"
-      rerun_command: "/test integration-copr-test"
+      trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-copr-test"
       branches:
         - ^master$
         - ^feature[_/].+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: tikv/pd/pull_integration_realcluster_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false  # need change to true after the test is stable.
+      optional: true    # need change to false after the test is stable.
+      context: pull-integration-realcluster-test
+      trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-realcluster-test"
+      branches:
+        - ^master$
