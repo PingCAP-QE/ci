@@ -18,6 +18,7 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        ENABLE_FIPS = 1
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
