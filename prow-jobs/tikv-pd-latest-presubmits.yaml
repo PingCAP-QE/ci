@@ -10,7 +10,6 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
-        - ^feature[_/].+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/pull_integration_copr_test
       agent: jenkins
@@ -22,7 +21,6 @@ presubmits:
       rerun_command: "/test pull-integration-copr-test"
       branches:
         - ^master$
-        - ^feature[_/].+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/pull_integration_realcluster_test
       agent: jenkins
@@ -34,3 +32,4 @@ presubmits:
       rerun_command: "/test pull-integration-realcluster-test"
       branches:
         - ^master$
+
