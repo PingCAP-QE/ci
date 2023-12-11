@@ -157,7 +157,7 @@ try {
                 }
                 dir("tikv") {
                     container("rust") {
-                        timeout(60) {
+                        timeout(90) {
                             sh """
                             rm ~/.gitconfig || true
                             rm -rf bin/*
@@ -183,7 +183,7 @@ try {
 
                 dir("tikv") {
                     container("rust") {
-                        timeout(60) {
+                        timeout(90) {
                             sh """
                             rm ~/.gitconfig || true
                             rm -rf bin/*
@@ -245,3 +245,4 @@ try {
     }
    
 }
+
