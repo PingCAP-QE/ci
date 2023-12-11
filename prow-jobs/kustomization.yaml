@@ -59,4 +59,5 @@ configMapGenerator:
       - tikv-pd-latest-presubmits.yaml
       - tikv-pd-release-6.1-presubmits.yaml
       - tikv-pd-release-6.5-presubmits.yaml
+      - tikv-pd-release-6.5-fips-presubmits.yaml
       - tikv-pd-release-7.1-presubmits.yaml
