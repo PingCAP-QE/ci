@@ -5,8 +5,10 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      # TODO: update image to suuport FIPS
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips
+      imagePullPolicy: Always
+      args:
+        - cat
       tty: true
       resources:
         requests:

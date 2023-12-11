@@ -18,11 +18,10 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - args:
-        - cat
-      # TODO: update image to suuport FIPS
-      image: hub.pingcap.net/jenkins/golang-tini:1.19
+    - image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips
       imagePullPolicy: Always
+      args:
+        - cat
       name: golang
       resources:
         requests:
