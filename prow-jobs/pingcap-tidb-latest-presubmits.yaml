@@ -10,7 +10,6 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_check
       agent: jenkins
       decorate: false # need add this.
@@ -20,7 +19,6 @@ presubmits:
       rerun_command: "/test check-dev"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
@@ -30,7 +28,6 @@ presubmits:
       rerun_command: "/test check-dev2"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -40,7 +37,6 @@ presubmits:
       rerun_command: "/test mysql-test"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -50,7 +46,6 @@ presubmits:
       rerun_command: "/test unit-test"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
