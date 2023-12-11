@@ -58,8 +58,8 @@ pipeline {
                     retry(2) {
                         sh label: "download third_party", script: """
                             chmod +x ../tidb/br/tests/*.sh
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh release-6.5-fips
+                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb/release-6.5-fips/br_integration_test_download_dependency.sh
+                            ${WORKSPACE}/scripts/pingcap/tidb/release-6.5-fips/br_integration_test_download_dependency.sh release-6.5-fips
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
