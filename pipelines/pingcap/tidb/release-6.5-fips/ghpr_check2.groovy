@@ -44,6 +44,9 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
+                                sh """
+                                git config --system --add safe.directory '*'
+                                """
                                 prow.checkoutRefs(REFS)
                             }
                         }
@@ -58,8 +61,8 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
                     }
                     script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', "release-6.5-fips", REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
+                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', "release-6.5-fips", REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -107,6 +110,7 @@ pipeline {
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """
                                 sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                                git config --system --add safe.directory '*'
                                 git diff .
                                 git status
                                 """

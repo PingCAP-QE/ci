@@ -44,6 +44,9 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
+                                sh """
+                                git config --system --add safe.directory '*'
+                                """
                                 prow.checkoutRefs(REFS)
                             }
                         }
@@ -57,6 +60,7 @@ pipeline {
                 dir(REFS.repo) {
                     sh """
                         sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                        git config --system --add safe.directory '*'
                         git diff .
                         git status
                     """
