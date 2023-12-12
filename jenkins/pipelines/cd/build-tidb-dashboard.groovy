@@ -145,7 +145,8 @@ pipeline {
                                                     ]]
                         ]
                         sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
-                        sh 'docker buildx create --name mybuilder --use || true'
+                        writeFile file: 'buildkitd.toml', text: '''[registry."docker.io"]\nmirrors = ["registry-mirror.pingcap.net"]'''
+                        sh 'docker buildx create --name mybuilder --use  --config buildkitd.toml && rm buildkitd.toml'
                         writeFile file:'build-tidb-dashboard.Dockerfile',text:dockerfile
                         sh 'cat build-tidb-dashboard.Dockerfile'
                         sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard-builder:cache-amd64 --cache-from hub.pingcap.net/rc/tidb-dashboard-builder:cache-amd64 --target builder '--platform=linux/amd64' --build-arg 'BUILDKIT_INLINE_CACHE=1' --push"
@@ -186,7 +187,8 @@ pipeline {
                                                     ]]
                         ]
                         sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
-                        sh 'docker buildx create --name mybuilder --use || true'
+                        writeFile file: 'buildkitd.toml', text: '''[registry."docker.io"]\nmirrors = ["registry-mirror.pingcap.net"]'''
+                        sh 'docker buildx create --name mybuilder --use  --config buildkitd.toml && rm buildkitd.toml'
                         writeFile file:'build-tidb-dashboard.Dockerfile',text:dockerfile
                         sh 'cat build-tidb-dashboard.Dockerfile'
                         sh "docker buildx build . -f build-tidb-dashboard.Dockerfile -t hub.pingcap.net/rc/tidb-dashboard-builder:cache-arm64 --cache-from hub.pingcap.net/rc/tidb-dashboard-builder:cache-arm64 --target builder '--platform=linux/arm64' --build-arg 'BUILDKIT_INLINE_CACHE=1' --push"
