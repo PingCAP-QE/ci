@@ -5,10 +5,8 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips
+      image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips-bazel
       imagePullPolicy: Always
-      args:
-        - cat
       securityContext:
         privileged: true
       tty: true
