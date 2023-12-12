@@ -6,6 +6,8 @@ spec:
   containers:
     - name: golang
       image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips
+      args:
+        - cat
       tty: true
       resources:
         requests:
