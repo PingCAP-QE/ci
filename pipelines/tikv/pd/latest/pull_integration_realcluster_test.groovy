@@ -61,7 +61,8 @@ pipeline {
                         rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
                         bin/pd-server -V
                         bin/tikv-server -V
-                        bin/tiflash --version
+                        bin/tidb-server -V
+                        bin/tiflash --version        
                         """
                     }
                 }
