@@ -84,6 +84,11 @@ pipelineJob('devbuild') {
             defaultValue('')
         }
         stringParam {
+            name('TargetImg')
+            description('optional target image path')
+            defaultValue('')
+        }
+        stringParam {
             name('TiBuildID')
             description('the ID of TiBuild object, just leave empty if you do not know')
         }
