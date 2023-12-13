@@ -50,6 +50,25 @@ pipeline {
                 }
             }
         }
+        stage('Prepare') {
+            steps {
+                dir('pd') {
+                    container("golang") {
+                        sh label: 'pd-server', script: '[ -f bin/pd-server ] || make'
+                        sh label: 'other-server', script: """
+                        chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref}
+                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tikv=${REFS.base_ref}
+                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tiflash=${REFS.base_ref}
+                        rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
+                        bin/pd-server -V
+                        bin/tikv-server -V
+                        bin/tiflash --version
+                        """
+                    }
+                }
+            }
+        }
         stage('Tests') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
