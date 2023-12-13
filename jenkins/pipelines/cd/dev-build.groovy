@@ -97,6 +97,9 @@ spec:
                     def date = new Date()
                     PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                     Image = "hub.pingcap.net/devbuild/$ProductForDocker:$Version-$BUILD_NUMBER"
+                    if (params.TargetImg!=""){
+                        Image = params.TargetImg
+                    }
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/qa/$ProductForDocker:$Version-$BUILD_NUMBER"
