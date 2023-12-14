@@ -11,6 +11,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
+String tiflash_commit_hash = null
 
 
 podYaml = """
@@ -150,6 +151,91 @@ spec:
                   - "true"
 """
 
+
+podYamlOfIntegrationTest = """
+apiVersion: "v1"
+kind: "Pod"
+spec:
+  containers:
+  - image: "docker:18.09.6-dind"
+    imagePullPolicy: "IfNotPresent"
+    name: "dockerd"
+    resources:
+      limits:
+        memory: "32Gi"
+        cpu: "16000m"
+      requests:
+        memory: "10Gi"
+        cpu: "5000m"
+    securityContext:
+      privileged: true
+    tty: false
+    volumeMounts:
+    - mountPath: "/home/jenkins"
+      name: "volume-0"
+      readOnly: false
+    - mountPath: "/tmp"
+      name: "volume-3"
+      readOnly: false
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - command:
+    - "cat"
+    env:
+    - name: "DOCKER_HOST"
+      value: "tcp://localhost:2375"
+    image: "hub.pingcap.net/jenkins/docker:build-essential-java"
+    imagePullPolicy: "Always"
+    name: "docker"
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "5000m"
+    tty: true
+    volumeMounts:
+    - mountPath: "/home/jenkins"
+      name: "volume-0"
+      readOnly: false
+    - mountPath: "/tmp"
+      name: "volume-3"
+      readOnly: false
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
+    name: "jnlp"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "100m"
+    volumeMounts:
+    - mountPath: "/home/jenkins"
+      name: "volume-0"
+      readOnly: false
+    - mountPath: "/tmp"
+      name: "volume-3"
+      readOnly: false
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  nodeSelector:
+    kubernetes.io/arch: "amd64"
+  volumes:
+  - emptyDir:
+      medium: ""
+    name: "volume-0"
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"
+  - emptyDir:
+      medium: ""
+    name: "volume-3"
+"""
+
 pipeline {
     agent {
         kubernetes {
@@ -228,6 +314,8 @@ pipeline {
                             git status
                             git show --oneline -s
                             """
+                            tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                            println "tiflash_commit_hash: ${tiflash_commit_hash}"
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
@@ -545,6 +633,87 @@ pipeline {
             }
         }
 
-        
+        stage("Cache code and artifact") {
+            steps {
+                dir("${WORKSPACE}/tiflash") {
+                    dir('tests/.build') { 
+                        sh """
+                        cp -r ${WORKSPACE}/install/* ./
+                        pwd && ls -alh
+                        """
+                    }
+                    sh """
+                    git status
+                    git show --oneline -s
+                    rm -rf .git
+                    rm -rf contrib
+                    du -sh ./
+                    ls -alh
+                    """
+                    stash name: "code-and-artifacts", useDefaultExcludes: true
+                }
+            }
+        }
+
+        stage('Integration Tests') {
+            matrix {
+                axes {
+                    axis {
+                        name 'TEST_PATH'
+                        values 'tidb-ci', 'delta-merge-test', 'fullstack-test', 'fullstack-test2'
+                    }
+                }
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        // yamlFile POD_TEMPLATE_FILE
+                        yaml podYamlOfIntegrationTest
+                        defaultContainer 'docker'
+                        retries 5
+                        customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
+                    }
+                } 
+                stages {
+                    stage("unstash") {
+                        steps {
+                            unstash "code-and-artifacts"
+                            sh """
+                            printenv
+                            pwd && ls -alh
+                            """
+                        }
+                    }
+                    stage("Test") {
+                        options { timeout(time: 40, unit: 'MINUTES') }
+                        steps {
+                            dir("tests/${TEST_PATH}") {
+                                echo "path: ${pwd()}"
+                                sh "docker ps -a && docker version"
+                                sh "TAG=${tiflash_commit_hash} BRANCH=master ./run.sh"
+                            }
+                        }
+                        post {
+                            unsuccessful {
+                                script {
+                                    println "Test failed, archive the log"
+                                    sh label: "debug fail", script: """
+                                        docker ps -a
+                                        mv log ${TEST_PATH}-log
+                                        find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
+                                    """
+                                    sh label: "archive logs", script: """
+                                        chown -R 1000:1000 ./
+                                        find ${TEST_PATH}-log -type f -name "*.log" -exec tar -czvf ${TEST_PATH}-logs.tar.gz {} +
+                                        chown -R 1000:1000 ./
+                                        ls -alh ${TEST_PATH}-logs.tar.gz
+                                    """
+                                    archiveArtifacts(artifacts: "${TEST_PATH}-logs.tar.gz", allowEmptyArchive: true)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
