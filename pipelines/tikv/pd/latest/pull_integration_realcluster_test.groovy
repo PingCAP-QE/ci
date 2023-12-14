@@ -54,7 +54,7 @@ pipeline {
             steps {
                 dir('pd') {
                     container("golang") {
-                        sh label: 'pd-server', script: '[ -f bin/pd-server ] || RUN_CI=1 make pd-server-basic'
+                        sh label: 'pd-server', script: '[ -f bin/pd-server ] || WITH_RACE=1 RUN_CI=1 make pd-server-basic'
                         sh label: 'other-server', script: """
                         chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
                         ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
