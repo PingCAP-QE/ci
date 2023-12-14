@@ -18,13 +18,15 @@ pipeline {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
+            retries 5
+            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 120, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -48,23 +50,38 @@ pipeline {
                 dir("tiflash") {
                     retry(2) {
                         script {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                            container("util") {
+                                withCredentials(
+                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
+                                ) {
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tics.tar.gz src-tics.tar.gz"
+                                    sh """
+                                    ls -alh
+                                    chown 1000:1000 src-tics.tar.gz
+                                    """
                                 }
                             }
-                            cache(path: ".git/modules", includes: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                    sh ''
-                                    sh """
-                                    git submodule update --init --recursive
-                                    git status
-                                    git show --oneline -s
-                                    """
-                            }
+                            sh """
+                            printenv
+                            time tar -xzf src-tics.tar.gz --strip-components=1 && rm -rf src-tics.tar.gz
+                            ls -alh
+                            chown 1000:1000 -R ./
+                            ls -alh
+                            git version
+                            git config --global --add safe.directory '*'
+                            git fetch origin master
+                            git reset --hard origin/master
+                            git submodule update --init --recursive
+                            git status
+                            git show --oneline -s
+                            """
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
                             }
+                            sh """
+                            chown 1000:1000 -R ./
+                            """
                         }
                     }
                 }
