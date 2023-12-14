@@ -47,13 +47,16 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
+    - name: util
+      image: hub.pingcap.net/jenkins/ks3util
+      args: ["sleep", "infinity"]
       resources:
+        requests:
+          cpu: "500m"
+          memory: "500Mi"
         limits:
-          memory: 256Mi
-          cpu: 100m
+          cpu: "500m"
+          memory: "500Mi"
   volumes:
     - name: "volume-0"
       nfs:
