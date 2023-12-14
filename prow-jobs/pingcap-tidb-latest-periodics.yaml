@@ -1,12 +1,11 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Periodic
 periodics:
-  pingcap/tidb:
-    - name: pingcap/tidb/periodic_unit_test
-      agent: jenkins
-      decorate: false # need add this.
-      cron: "0 17 * * *"
-      skip_report: true
-      extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-      - org: pingcap
-        repo: tidb
-        base_ref: master
+  - name: pingcap/tidb/periodic_unit_test
+    agent: jenkins
+    decorate: false # need add this.
+    cron: "0 17 * * *"
+    skip_report: true
+    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
+    - org: pingcap
+      repo: tidb
+      base_ref: master
