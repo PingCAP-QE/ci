@@ -3,7 +3,7 @@
 // should triggerd for master branches
 // @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb" // TODO: need to adjust namespace after test
+final K8S_NAMESPACE = "jenkins-tiflash" // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'

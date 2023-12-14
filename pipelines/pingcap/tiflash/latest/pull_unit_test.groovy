@@ -1,22 +1,130 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-@Library('tipipeline') _
+// @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"  // TODO: need to adjust namespace after test
+final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
-final REFS = readJSON(text: params.JOB_SPEC).refs
+// final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = true
 String proxy_commit_hash = null
+
+
+podYaml = """
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/tiflash/tiflash-llvm13-amd64:v20231214"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "cat"
+      tty: true
+      resources:
+        requests:
+          memory: 32Gi
+          cpu: "12"
+        limits:
+          memory: 32Gi
+          cpu: "12"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
+    - name: net-tool
+      image: wbitt/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    - name: util
+      image: hub.pingcap.net/jenkins/ks3util
+      args: ["sleep", "infinity"]
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "500Mi"
+        limits:
+          cpu: "500m"
+          memory: "500Mi"
+  volumes:
+    - name: "volume-0"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/rust"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-2"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/dependency"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-1"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/ccache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-4"
+      nfs:
+        path: "/data/nvme1n1/nfs/git"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-5"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-6"
+      emptyDir: {}
+    - name: "volume-7"
+      emptyDir:
+        medium: Memory
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
+"""
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            // yamlFile POD_TEMPLATE_FILE
+            yaml podYaml
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -75,6 +183,14 @@ pipeline {
                             git status
                             git show --oneline -s
                             """
+                            // sh """
+                            // printenv
+                            // time tar -xzf src-tics.tar.gz --strip-components=1 && rm -rf src-tics.tar.gz
+                            // ls -alh
+                            // chown 1000:1000 -R ./
+                            // ls -alh
+                            // """
+                            // prow.checkoutRefs(REFS, withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
@@ -410,4 +526,3 @@ pipeline {
         }
     }
 }
-
