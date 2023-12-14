@@ -21,7 +21,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/ee/ci/release-build-base-tiflash:v20231106"
+      image: "hub.pingcap.net/tiflash/tiflash-llvm13-amd64:v20231214"
       command:
         - "/bin/bash"
         - "-c"
@@ -544,5 +544,7 @@ pipeline {
                 }
             }
         }
+
+        
     }
 }
