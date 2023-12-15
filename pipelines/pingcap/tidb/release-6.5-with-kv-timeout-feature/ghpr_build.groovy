@@ -97,35 +97,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage("Upload") {
-                            options {
-                                timeout(time: 5, unit: 'MINUTES')
-                            }
-                            steps {
-                                dir("tidb") {
-                                    sh label: "create tidb-server tarball", script: """
-                                        rm -rf .git
-                                        tar czvf tidb-server.tar.gz ./*
-                                        echo "pr/${REFS.pulls[0].sha}" > sha1
-                                        echo "done" > done
-                                        """
-                                    sh label: 'upload to tidb dir', script: """
-                                        filepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
-                                        donepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/done"
-                                        refspath="refs/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].number}/sha1"
-                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
-                                        curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
-                                        """
-                                    sh label: 'upload to tidb-checker dir', script: """
-                                        filepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
-                                        donepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/done"
-                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload                                    
-                                        """
-                                }
-                            }
-                        }
                     }
                 }
                 stage("Build plugins") {
