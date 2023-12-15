@@ -56,7 +56,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutWithMergeBase('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "feature/release-6.5-fips", REFS.pulls[0].title, credentialsId=GIT_CREDENTIALS_ID,trunkBranch="feature/release-6.5-fips")
+                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "feature/release-6.5-fips", REFS.pulls[0].title, credentialsId=GIT_CREDENTIALS_ID, trunkBranch="feature/release-6.5-fips")
                             }
                         }
                     }
