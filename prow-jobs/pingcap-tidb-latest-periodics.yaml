@@ -6,9 +6,11 @@ periodics:
     cron: "0 * * * *" # every hour, change to "0 0 * * *" for daily after test.
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
+    - base_ref: master
+      org: pingcap
       repo: tidb
-      base_ref: master
+      skip_submodules: true
+      clone_depth: 1
     spec:
       containers:
         - name: check
@@ -24,3 +26,16 @@ periodics:
             limits:
               memory: 32Gi
               cpu: "16"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
