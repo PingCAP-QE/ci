@@ -56,8 +56,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                // TODO: need to create new branch feature/release-6.5-fips on tidb-test repo or not?
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "release-6.5", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "feature/release-6.5-fips", REFS.pulls[0].title, credentialsId=GIT_CREDENTIALS_ID, trunkBranch="feature/release-6.5-fips")
                             }
                         }
                     }
