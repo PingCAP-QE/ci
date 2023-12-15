@@ -27,6 +27,7 @@ pipelineJob('tidb_ghpr_mysql_test') {
                         ghprbBranch { branch('^feature[_|/].*') }
                         ghprbBranch { branch('^(release-)?6\\.[1-9]\\d*(\\.\\d+)?(\\-.*)?$') }
                         ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('tidb-6.5-with-kv-timeout-feature') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
