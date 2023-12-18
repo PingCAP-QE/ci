@@ -22,10 +22,12 @@ pipelineJob('pingcap/tidb/canary_ghpr_unit_test') {
                 git{
                     remote {
                         url('https://github.com/PingCAP-QE/ci.git')
+                        refspec('+refs/heads/main:refs/remotes/origin/main') 
                     }
-                    branch('main')
+                    branch('refs/heads/main')
                     extensions {
                         cloneOptions {
+                            noTags(true)
                             depth(1)
                             shallow(true)
                             timeout(5)
