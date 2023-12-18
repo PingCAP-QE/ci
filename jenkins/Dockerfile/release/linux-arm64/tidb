@@ -1,7 +1,4 @@
-FROM pingcap/centos-stream:8
-RUN set -e && \
-    dnf install bind-utils curl nmap-ncat -y && \
-    dnf clean all
+FROM pingcap/tidb-base:centos8
 COPY tidb-server /tidb-server
 EXPOSE 4000
 ENTRYPOINT ["/tidb-server"]
