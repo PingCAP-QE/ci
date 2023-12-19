@@ -73,7 +73,7 @@ pipeline {
             steps {
                 dir('pd') {
                     sh label: "PD Real Cluster Check", script: """
-                        make check
+                        make test-real-cluster
                     """
                 }
             }
