@@ -62,6 +62,19 @@ pipeline {
                     sh script: 'make gogenerate check integrationtest'
                 }
             }
+            post {
+                unsuccessful {
+                    dir("tidb") {
+                        sh label: "archive log", script: """
+                        logs_dir='test_logs'
+                        mkdir -p \${logs_dir}
+                        mv tests/integrationtest/integration-test.out \${logs_dir} || true
+                        tar -czvf \${logs_dir}.tar.gz \${logs_dir} || true
+                        """
+                        archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
+                    }
+                }
+            }
         }
     }
     post {
