@@ -3,14 +3,16 @@
 // should triggerd for master branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb" // TODO: need to adjust namespace after test
+final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
+final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
+String tiflash_commit_hash = null
 
 pipeline {
     agent {
@@ -18,6 +20,8 @@ pipeline {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
+            retries 5
+            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
@@ -48,23 +52,27 @@ pipeline {
                 dir("tiflash") {
                     retry(2) {
                         script {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                            container("util") {
+                                withCredentials(
+                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
+                                ) {
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tics.tar.gz src-tics.tar.gz"
+                                    sh """
+                                    ls -alh
+                                    chown 1000:1000 src-tics.tar.gz
+                                    """
                                 }
                             }
-                            cache(path: ".git/modules", includes: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                    sh ''
-                                    sh """
-                                    git submodule update --init --recursive
-                                    git status
-                                    git show --oneline -s
-                                    """
-                            }
+                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
+                            tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                            println "tiflash_commit_hash: ${tiflash_commit_hash}"
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
                             }
+                            sh """
+                            chown 1000:1000 -R ./
+                            """
                         }
                     }
                 }
@@ -161,31 +169,27 @@ pipeline {
                 stage("Ccache") {
                     steps {
                     script { 
-                        // TODO: need adjust "master" against different target branch
-                        def ccache_tag = "tiflash-amd64-linux-llvm-debug-master-failpoints"
-                        def ccache_source = "/home/jenkins/agent/ccache/${ccache_tag}.tar"
                         dir("tiflash") {
-                            // TODO: need to refactor this part, use shell script to do the job
-                            // pass the ccache_source & cache_source to shell script by env
-                            if (fileExists(ccache_source)) {
+                            sh label: "copy ccache if exist", script: """
+                            ccache_tar_file="/home/jenkins/agent/ccache/tiflash-amd64-linux-llvm-debug-master-failpoints.tar"
+                            if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
-                                sh """
                                 cd /tmp
-                                cp ${ccache_source} ccache.tar
+                                cp -r \$ccache_tar_file ccache.tar
                                 tar -xf ccache.tar
-                                cd -
-                                """
-                            } else {
+                                ls -lha /tmp
+                            else
                                 echo "ccache not found"
-                            }
-                            sh """
+                            fi
+                            """
+                            sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
                             ccache -o limit_multiple=0.99
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=false
+                            ccache -o read_only=true
                             ccache -z
                             """
                         }
@@ -195,23 +199,27 @@ pipeline {
                 }
                 stage("Proxy-Cache") {
                     steps {
-                    script {
-                        def proxy_suffix = "amd64-linux-llvm"
-                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                        // TODO: need to refactor this part, use shell script to do the job
-                        // cache proxy lib by pvc or nfs or fileserver ?
-                        if (fileExists(cache_source)) {
-                            echo "proxy cache found"
-                            proxy_cache_ready = true
-                            dir("tiflash") {
-                                sh """
-                                cp ${cache_source} libtiflash_proxy.so
-                                chmod +x libtiflash_proxy.so
-                                """
-                            }
-                        } else {
-                            echo "proxy cache not found"
-                        }
+                        script {
+                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
+                            println "proxy_cache_ready: ${proxy_cache_ready}"
+
+                            sh label: "copy proxy if exist", script: """
+                            proxy_suffix="amd64-linux-llvm"
+                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
+                            if [ -f \$proxy_cache_file ]; then
+                                echo "proxy cache found"
+                                mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                                cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            else
+                                echo "proxy cache not found"
+                            fi
+                            """
+                        }   
+                    }
+                }
+                stage("Cargo-Cache") {
+                    steps {
                         sh label: "link cargo cache", script: """
                             mkdir -p ~/.cargo/registry
                             mkdir -p ~/.cargo/git
@@ -232,29 +240,6 @@ pipeline {
                             ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                             ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                         """
-                    }   
-                    }
-                }
-            }
-        }
-        stage("Build Dependency and Utils") {
-            parallel {
-                stage("Cluster Manage") { 
-                    steps {
-                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                    echo "cluster_manager is deprecated"
-                    }
-
-                }
-                stage("TiFlash Proxy") {
-                    steps {
-                        script {
-                            if (proxy_cache_ready) {
-                                echo "skip becuase of cache"
-                            } else {
-                                echo "proxy cache not ready"
-                            }
-                        }
                     }
                 }
             }
@@ -274,7 +259,7 @@ pipeline {
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
                         sh """
                         mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/releasev
+                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
                     // create build dir and install dir
@@ -282,16 +267,12 @@ pipeline {
                     mkdir -p ${WORKSPACE}/build
                     mkdir -p ${WORKSPACE}/install/tiflash
                     """
-                    sh """
-                    printenv
-                    sleep 3000
-                    """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
                         cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
-                            -DCMAKE_BUILD_TYPE=debug \\
+                            -DCMAKE_BUILD_TYPE=Debug \\
                             -DCMAKE_PREFIX_PATH='/usr/local' \\
                             -DCMAKE_INSTALL_PREFIX=${WORKSPACE}/install/tiflash \\
                             -DENABLE_TESTS=false \\
@@ -307,7 +288,7 @@ pipeline {
         stage("Format Check") {
             steps {
                 script { 
-                    def target_branch = "master"  // TODO: need to adjust target branch
+                    def target_branch = REFS.base_ref 
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
                         echo "skipped because this branch does not support format"
@@ -335,12 +316,17 @@ pipeline {
                     sh """
                     cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
                     """
+                    sh """
+                    ccache -s
+                    ls -lha ${WORKSPACE}/install/tiflash
+                    """
                 }
             }
         }
         stage("License check") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
+                    // TODO: add license-eye to docker image
                     sh label: "license header check", script: """
                         echo "license check"
                         if [[ -f .github/licenserc.yml ]]; then
@@ -355,6 +341,7 @@ pipeline {
                 }
             }
         }
+
         stage("Post Build") {
             parallel {
                 stage("Static Analysis"){
@@ -395,6 +382,89 @@ pipeline {
                 }
             }
         }
+
+        stage("Cache code and artifact") {
+            steps {
+                dir("${WORKSPACE}/tiflash") {
+                    dir('tests/.build') { 
+                        sh """
+                        cp -r ${WORKSPACE}/install/* ./
+                        pwd && ls -alh
+                        """
+                    }
+                    sh """
+                    git status
+                    git show --oneline -s
+                    rm -rf .git
+                    rm -rf contrib
+                    du -sh ./
+                    ls -alh
+                    """
+                    // TODO: cache code and artifact by s3
+                    stash name: "code-and-artifacts", useDefaultExcludes: true
+                }
+            }
+        }
+
+        stage('Integration Tests') {
+            matrix {
+                axes {
+                    axis {
+                        name 'TEST_PATH'
+                        values 'tidb-ci', 'delta-merge-test', 'fullstack-test', 'fullstack-test2'
+                    }
+                }
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
+                        defaultContainer 'docker'
+                        retries 5
+                        customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
+                    }
+                } 
+                stages {
+                    stage("unstash") {
+                        steps {
+                            // TODO: cache code and artifact by s3
+                            unstash "code-and-artifacts"
+                            sh """
+                            printenv
+                            pwd && ls -alh
+                            """
+                        }
+                    }
+                    stage("Test") {
+                        options { timeout(time: 40, unit: 'MINUTES') }
+                        steps {
+                            dir("tests/${TEST_PATH}") {
+                                echo "path: ${pwd()}"
+                                sh "docker ps -a && docker version"
+                                sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                            }
+                        }
+                        post {
+                            unsuccessful {
+                                script {
+                                    println "Test failed, archive the log"
+                                    sh label: "debug fail", script: """
+                                        docker ps -a
+                                        mv log ${TEST_PATH}-log
+                                        find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
+                                    """
+                                    sh label: "archive logs", script: """
+                                        chown -R 1000:1000 ./
+                                        find ${TEST_PATH}-log -type f -name "*.log" -exec tar -czvf ${TEST_PATH}-logs.tar.gz {} +
+                                        chown -R 1000:1000 ./
+                                        ls -alh ${TEST_PATH}-logs.tar.gz
+                                    """
+                                    archiveArtifacts(artifacts: "${TEST_PATH}-logs.tar.gz", allowEmptyArchive: true)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-
