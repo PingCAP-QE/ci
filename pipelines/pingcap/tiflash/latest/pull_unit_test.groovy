@@ -1,130 +1,22 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-// @Library('tipipeline') _
+@Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
-// final REFS = readJSON(text: params.JOB_SPEC).refs
+final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
-Boolean proxy_cache_ready = true
+Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
-
-
-podYaml = """
-apiVersion: v1
-kind: Pod
-spec:
-  securityContext:
-    fsGroup: 1000
-  containers:
-    - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm13-amd64:v20231214"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "cat"
-      tty: true
-      resources:
-        requests:
-          memory: 32Gi
-          cpu: "12"
-        limits:
-          memory: 32Gi
-          cpu: "12"
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: util
-      image: hub.pingcap.net/jenkins/ks3util
-      args: ["sleep", "infinity"]
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
-  volumes:
-    - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
-      emptyDir:
-        medium: Memory
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
-"""
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            // yamlFile POD_TEMPLATE_FILE
-            yaml podYaml
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -169,28 +61,7 @@ pipeline {
                                     """
                                 }
                             }
-                            sh """
-                            printenv
-                            time tar -xzf src-tics.tar.gz --strip-components=1 && rm -rf src-tics.tar.gz
-                            ls -alh
-                            chown 1000:1000 -R ./
-                            ls -alh
-                            git version
-                            git config --global --add safe.directory '*'
-                            git fetch origin master
-                            git reset --hard origin/master
-                            git submodule update --init --recursive
-                            git status
-                            git show --oneline -s
-                            """
-                            // sh """
-                            // printenv
-                            // time tar -xzf src-tics.tar.gz --strip-components=1 && rm -rf src-tics.tar.gz
-                            // ls -alh
-                            // chown 1000:1000 -R ./
-                            // ls -alh
-                            // """
-                            // prow.checkoutRefs(REFS, withSubmodule=true)
+                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
@@ -324,47 +195,42 @@ pipeline {
                 }
                 stage("Proxy-Cache") {
                     steps {
-                    script {
-                        def cache_source = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm"
-                        if (fileExists(cache_source)) {
-                            echo "proxy cache found"
-                            proxy_cache_ready = true
-                        } else {
-                            echo "proxy cache not found" 
-                        }
-                        sh label: "copy proxy if exist", script: """
-                        proxy_suffix="amd64-linux-llvm"
-                        proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
-                        if [ -f \$proxy_cache_file ]; then
-                            echo "proxy cache found"
-                            mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
-                            cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                            chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                        else
-                            echo "proxy cache not found"
-                        fi
-                        """
-                        sh label: "link cargo cache", script: """
-                            mkdir -p ~/.cargo/registry
-                            mkdir -p ~/.cargo/git
-                            mkdir -p /home/jenkins/agent/rust/registry/cache
-                            mkdir -p /home/jenkins/agent/rust/registry/index
-                            mkdir -p /home/jenkins/agent/rust/git/db
-                            mkdir -p /home/jenkins/agent/rust/git/checkouts
+                        script {
+                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
+                            println "proxy_cache_ready: ${proxy_cache_ready}"
+                            sh label: "copy proxy if exist", script: """
+                            proxy_suffix="amd64-linux-llvm"
+                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
+                            if [ -f \$proxy_cache_file ]; then
+                                echo "proxy cache found"
+                                mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
+                                cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                            else
+                                echo "proxy cache not found"
+                            fi
+                            """
+                            sh label: "link cargo cache", script: """
+                                mkdir -p ~/.cargo/registry
+                                mkdir -p ~/.cargo/git
+                                mkdir -p /home/jenkins/agent/rust/registry/cache
+                                mkdir -p /home/jenkins/agent/rust/registry/index
+                                mkdir -p /home/jenkins/agent/rust/git/db
+                                mkdir -p /home/jenkins/agent/rust/git/checkouts
 
-                            rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                            rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                            rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                            rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
+                                rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
+                                rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
+                                rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
+                                rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
 
-                            rm -rf ~/.rustup/tmp
-                            rm -rf ~/.rustup/toolchains
-                            mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                            mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-                            ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                            ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
-                        """
-                    }   
+                                rm -rf ~/.rustup/tmp
+                                rm -rf ~/.rustup/toolchains
+                                mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
+                                mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
+                                ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
+                                ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
+                            """
+                        }   
                     }
                 }
             }
@@ -391,6 +257,7 @@ pipeline {
             }
         }
         stage("Configure Project") {
+            // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
                     def toolchain = "llvm"
