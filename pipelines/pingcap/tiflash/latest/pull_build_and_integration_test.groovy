@@ -1,247 +1,24 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
-// @Library('tipipeline') _
+@Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tiflash" // TODO: need to adjust namespace after test
+final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
-// final REFS = readJSON(text: params.JOB_SPEC).refs
+final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_integration_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
-
-podYaml = """
-apiVersion: v1
-kind: Pod
-spec:
-  securityContext:
-    fsGroup: 1000
-  containers:
-    - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm13-amd64:v20231214"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "cat"
-      tty: true
-      resources:
-        requests:
-          memory: 32Gi
-          cpu: "12"
-        limits:
-          memory: 32Gi
-          cpu: "12"
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
-    - name: jnlp
-      image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
-      volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
-    - name: util
-      image: hub.pingcap.net/jenkins/ks3util
-      args: ["sleep", "infinity"]
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
-    - name: net-tool
-      image: wbitt/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-  volumes:
-    - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
-    - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: true
-        server: "10.2.12.82"
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
-      emptyDir:
-        medium: Memory
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
-"""
-
-
-podYamlOfIntegrationTest = """
-apiVersion: "v1"
-kind: "Pod"
-spec:
-  containers:
-  - image: "docker:18.09.6-dind"
-    imagePullPolicy: "IfNotPresent"
-    name: "dockerd"
-    resources:
-      limits:
-        memory: "32Gi"
-        cpu: "16000m"
-      requests:
-        memory: "10Gi"
-        cpu: "5000m"
-    securityContext:
-      privileged: true
-    tty: false
-    volumeMounts:
-    - mountPath: "/home/jenkins"
-      name: "volume-0"
-      readOnly: false
-    - mountPath: "/tmp"
-      name: "volume-3"
-      readOnly: false
-    - mountPath: "/home/jenkins/agent"
-      name: "workspace-volume"
-      readOnly: false
-  - command:
-    - "cat"
-    env:
-    - name: "DOCKER_HOST"
-      value: "tcp://localhost:2375"
-    image: "hub.pingcap.net/jenkins/docker:build-essential-java"
-    imagePullPolicy: "Always"
-    name: "docker"
-    resources:
-      requests:
-        memory: "8Gi"
-        cpu: "5000m"
-    tty: true
-    volumeMounts:
-    - mountPath: "/home/jenkins"
-      name: "volume-0"
-      readOnly: false
-    - mountPath: "/tmp"
-      name: "volume-3"
-      readOnly: false
-    - mountPath: "/home/jenkins/agent"
-      name: "workspace-volume"
-      readOnly: false
-  - image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
-    name: "jnlp"
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "100m"
-    volumeMounts:
-    - mountPath: "/home/jenkins"
-      name: "volume-0"
-      readOnly: false
-    - mountPath: "/tmp"
-      name: "volume-3"
-      readOnly: false
-    - mountPath: "/home/jenkins/agent"
-      name: "workspace-volume"
-      readOnly: false
-  nodeSelector:
-    kubernetes.io/arch: "amd64"
-  volumes:
-  - emptyDir:
-      medium: ""
-    name: "volume-0"
-  - emptyDir:
-      medium: ""
-    name: "workspace-volume"
-  - emptyDir:
-      medium: ""
-    name: "volume-3"
-"""
-
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            // yamlFile POD_TEMPLATE_FILE
-            yaml podYaml
+            yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -275,20 +52,6 @@ pipeline {
                 dir("tiflash") {
                     retry(2) {
                         script {
-                            // cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                            //     retry(2) {
-                            //         prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
-                            //     }
-                            // }
-                            // cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                            //         sh ''
-                            //         sh """
-                            //         git submodule update --init --recursive
-                            //         git status
-                            //         git show --oneline -s
-                            //         """
-                            // }
-
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
@@ -300,20 +63,7 @@ pipeline {
                                     """
                                 }
                             }
-                            sh """
-                            printenv
-                            time tar -xzf src-tics.tar.gz --strip-components=1 && rm -rf src-tics.tar.gz
-                            ls -alh
-                            chown 1000:1000 -R ./
-                            ls -alh
-                            git version
-                            git config --global --add safe.directory '*'
-                            git fetch origin master
-                            git reset --hard origin/master
-                            git submodule update --init --recursive
-                            git status
-                            git show --oneline -s
-                            """
+                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
                             dir("contrib/tiflash-proxy") {
@@ -538,8 +288,7 @@ pipeline {
         stage("Format Check") {
             steps {
                 script { 
-                    // def target_branch = REFS.base_ref  // TODO: need to adjust target branch
-                    def target_branch = "master"
+                    def target_branch = REFS.base_ref 
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
                         echo "skipped because this branch does not support format"
@@ -577,6 +326,7 @@ pipeline {
         stage("License check") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
+                    // TODO: add license-eye to docker image
                     sh label: "license header check", script: """
                         echo "license check"
                         if [[ -f .github/licenserc.yml ]]; then
@@ -650,6 +400,7 @@ pipeline {
                     du -sh ./
                     ls -alh
                     """
+                    // TODO: cache code and artifact by s3
                     stash name: "code-and-artifacts", useDefaultExcludes: true
                 }
             }
@@ -666,8 +417,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        // yamlFile POD_TEMPLATE_FILE
-                        yaml podYamlOfIntegrationTest
+                        yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
                         defaultContainer 'docker'
                         retries 5
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
@@ -676,6 +426,7 @@ pipeline {
                 stages {
                     stage("unstash") {
                         steps {
+                            // TODO: cache code and artifact by s3
                             unstash "code-and-artifacts"
                             sh """
                             printenv
@@ -689,7 +440,7 @@ pipeline {
                             dir("tests/${TEST_PATH}") {
                                 echo "path: ${pwd()}"
                                 sh "docker ps -a && docker version"
-                                sh "TAG=${tiflash_commit_hash} BRANCH=master ./run.sh"
+                                sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
                             }
                         }
                         post {
