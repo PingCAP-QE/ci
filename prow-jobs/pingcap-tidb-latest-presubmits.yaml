@@ -105,7 +105,7 @@ presubmits:
       decorate: false # need add this.
       context: pull-lightning-integration-test
       always_run: false
-      optional: true
+      optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
       rerun_command: "/test pull-lightning-integration-test"
