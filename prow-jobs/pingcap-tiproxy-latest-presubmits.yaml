@@ -17,7 +17,7 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
-      context: idc-jenkins-ci-tiproxy/check_dev
+      context: idc-jenkins-ci-tiproxy/check
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(check|all)(?: .*?)?$"
       rerun_command: "/test check"
