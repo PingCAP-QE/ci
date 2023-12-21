@@ -1,15 +1,37 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tiproxy:
-    - name: pingcap/tiproxy/pull_mysql_test
+    - name: pingcap/tiproxy/ghpr_build
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
-      context: pull-mysql-test
+      context: idc-jenkins-ci-tiproxy/build
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(pull-mysql-test|all)(?: .*?)?$"
-      rerun_command: "/test pull-mysql-test"
+      trigger: "(?m)^/test (?:.*? )?(build|all)(?: .*?)?$"
+      rerun_command: "/test build"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/ghpr_check
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: idc-jenkins-ci-tiproxy/check_dev
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(check|all)(?: .*?)?$"
+      rerun_command: "/test check"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/ghpr_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: idc-jenkins-ci-tiproxy/unit-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(unit-test|all)(?: .*?)?$"
+      rerun_command: "/test unit-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/pull_mysql_connector_test
@@ -22,6 +44,17 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-mysql-connector-test|all)(?: .*?)?$"
       rerun_command: "/test pull-mysql-connector-test"
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/pull_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      context: pull-mysql-test
+      skip_report: false
+      optional: true
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/pull_integration_jdbc_test
