@@ -19,6 +19,26 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-optional
+      decorate: true
+      max_concurrency: 1
+      always_run: false
+      optional: false
+      branches:
+        - main
+      spec:
+        containers:
+          - name: main
+            image: wbitt/network-multitool
+            command: [bash, -ce]
+            args:
+              - |
+                echo "This is a optional job, it will always fail."
+                exit 1
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
     - name: pull-verify-prow-jobs
       decorate: true
       extra_refs:
