@@ -5,7 +5,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       max_concurrency: 2
-      run_if_changed: "pkg/executor"
+      # run_if_changed: "pkg/executor"
+      always_run: false      
       skip_report: true
       optional: true
       context: canary-unit-test
