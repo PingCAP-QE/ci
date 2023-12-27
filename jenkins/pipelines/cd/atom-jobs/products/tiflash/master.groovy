@@ -306,10 +306,10 @@ spec:
     command: ['sleep', '3600000']
     resources:
       requests:
-        memory: "32Gi"
+        memory: "40Gi"
         cpu: "16"
       limits:
-        memory: "32Gi"
+        memory: "40Gi"
         cpu: "16"
   nodeSelector:
     kubernetes.io/arch: arm64
