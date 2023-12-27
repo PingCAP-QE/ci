@@ -16,11 +16,6 @@ spec:
           cpu: "6"
       command: [/bin/sh, -c]
       args: [cat]
-      volumeMounts:
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
     - name: net-tool
       image: wbitt/network-multitool
       tty: true
@@ -28,13 +23,6 @@ spec:
         limits:
           memory: 128Mi
           cpu: 200m
-  volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
