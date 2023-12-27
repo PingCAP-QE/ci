@@ -1,0 +1,14 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tidb-engine-ext:
+    - name: pingcap/tidb-engine-ext/ghpr_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: pull-unit-test
+      trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
+      rerun_command: "/test pull-unit-test"
+      branches:
+        - ^master$
+        - ^raftstore-proxy$
+        - ^(raftstore-proxy-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$
