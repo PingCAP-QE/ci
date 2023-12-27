@@ -5,16 +5,12 @@ presubmits:
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
       always_run: true
-      context: pull-unit-test
-      trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
-      rerun_command: "/test pull-unit-test"
+      skip_submodules: true
+      clone_depth: 1
       branches:
         - ^master$
         - ^raftstore-proxy$
         - ^(raftstore-proxy-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$
-      extra_refs:
-      - skip_submodules: true
-        clone_depth: 1
       spec:
         containers:
           - name: unit-test
