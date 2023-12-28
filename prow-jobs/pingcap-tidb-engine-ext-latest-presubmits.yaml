@@ -10,7 +10,7 @@ presubmits:
       branches:
         - ^master$
         - ^raftstore-proxy$
-        - ^(raftstore-proxy-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$
+        - ^(raftstore-proxy-)?6\.[2-9]\d*(\.\d+)?(\-.*)?$
       spec:
         containers:
           - name: unit-test
@@ -37,4 +37,3 @@ presubmits:
                   operator: In
                   values:
                     - amd64
-
