@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tidb-engine-ext:
-    - name: pull-unit-test # TODO: Need to confirm if the same name can be used in different presubmit files.
+    - name: pull-unit-test
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
       always_run: true
