@@ -29,7 +29,7 @@ spec:
           memory: 16Gi
           cpu: "8"
     - name: net-tool
-      image: wbitt/network-multitool
+      image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:

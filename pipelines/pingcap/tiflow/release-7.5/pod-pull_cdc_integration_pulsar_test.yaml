@@ -27,7 +27,7 @@ spec:
           cpu: "6"
       command: ["bin/pulsar", "standalone"]
     - name: net-tool
-      image: wbitt/network-multitool
+      image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:
