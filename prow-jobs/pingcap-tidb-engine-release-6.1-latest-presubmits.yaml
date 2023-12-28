@@ -1,0 +1,37 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tidb-engine-ext:
+    - name: pull-unit-test
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: true
+      skip_submodules: true
+      clone_depth: 1
+      branches:
+        - ^(raftstore-proxy-)?6\.1\d*(\.\d+)?(\-.*)?$
+      spec:
+        containers:
+          - name: unit-test
+            image: hub.pingcap.net/tiflash/tiflash-llvm-base:amd64
+            command: [bash, -ce]
+            args:
+              - |
+                set -euox pipefail
+                make ci_fmt_check
+                make ci_test
+            env:
+              - name: GO_PROXY
+                value: http://goproxy.pingcap.net,direct
+            resources:
+              limits:
+                memory: 16Gi
+                cpu: "6"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
