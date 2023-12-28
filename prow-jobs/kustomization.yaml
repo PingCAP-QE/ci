@@ -60,6 +60,7 @@ configMapGenerator:
       - ti-community-infra-periodics.yaml
       - ti-community-infra-test-infra-postsubmits.yaml
       - ti-community-infra-test-infra-presubmits.yaml
+      - tikv-migration-latest-presubmits.yaml
       - tikv-pd-latest-presubmits.yaml
       - tikv-pd-release-6.1-presubmits.yaml
       - tikv-pd-release-6.5-presubmits.yaml
