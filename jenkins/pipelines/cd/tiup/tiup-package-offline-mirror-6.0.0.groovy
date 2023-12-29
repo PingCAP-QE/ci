@@ -38,7 +38,7 @@ def clone_server_package = { arch, dst ->
     }
     def tiproxy_package = ""
     if (VERSION>="v7.6.0"){
-        dashboard_package =  " --tiproxy latest"
+        tiproxy_package =  " --tiproxy latest"
     }
     sh """
     tiup mirror set https://tiup-mirrors.pingcap.com
