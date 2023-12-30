@@ -149,6 +149,25 @@ pipeline {
                 }
             }
         }
+        stage("Test plugin") {
+            steps {
+                sh label: 'build tidb-server', script: 'make server -C tidb'
+                sh label: 'Test plugins', script: '''
+                  rm -rf /tmp/tidb
+                  rm -rf plugin-so
+                  mkdir -p plugin-so
+
+                  cp enterprise-plugin/audit/audit-1.so ./plugin-so/
+                  cp enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
+                  ./tidb/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
+
+                  sleep 30
+                  ps aux | grep tidb-server
+                  cat /tmp/loading-plugin.log
+                  killall -9 -r tidb-server
+                '''
+            }
+        }
     }
     post {
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
