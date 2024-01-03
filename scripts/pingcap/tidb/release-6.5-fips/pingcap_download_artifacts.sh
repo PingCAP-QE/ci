@@ -44,7 +44,8 @@ fi
 
 file_server_url="http://fileserver.pingcap.net"
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
-oci_base_url="https://internal.do.pingcap.net:30443"
+# Note: osci_base_url is only available in the ci environment.
+oci_base_url="http://dl.apps.svc"
 
 tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${TIFLASH}/sha1"
 

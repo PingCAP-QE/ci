@@ -15,7 +15,8 @@ set -o pipefail
 branch=${1:-release-6.5-fips}
 file_server_url=${2:-http://fileserver.pingcap.net}
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
-oci_base_url="https://internal.do.pingcap.net:30443"
+# Note: osci_base_url is only available in the ci environment.
+oci_base_url="http://dl.apps.svc"
 
 tikv_importer_branch="release-5.0"
 default_target_branch="release-6.5"
@@ -69,8 +70,8 @@ function download() {
 function download_from_oci() {
     local org_and_repo=$1
 	local grep_pattern=$2
-    local list_api="${oci_base_url}/dl/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
-    local download_api="${oci_base_url}/dl/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+    local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
 
     # TODO: remove --insecure after the certificate issue is fixed
     local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
@@ -95,7 +96,7 @@ function main() {
     rm -rf tmp
     mkdir third_bin
     mkdir tmp
-    
+
     download_from_oci "tikv/pd" 'pd-v[^"]*.tar.gz'
 	download_from_oci "tikv/tikv" 'tikv-v[^"]*.tar.gz'
 

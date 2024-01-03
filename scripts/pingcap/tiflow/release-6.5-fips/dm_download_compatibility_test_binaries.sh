@@ -12,7 +12,8 @@ set -o nounset
 set -o pipefail
 
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
-oci_base_url="https://internal.do.pingcap.net:30443"
+# Note: osci_base_url is only available in the ci environment.
+oci_base_url="http://dl.apps.svc"
 
 # See https://misc.flogisoft.com/bash/tip_colors_and_formatting.
 color-green() { # Green
@@ -35,8 +36,8 @@ function download() {
 function download_from_oci() {
     local org_and_repo=$1
 	local grep_pattern=$2
-    local list_api="${oci_base_url}/dl/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
-    local download_api="${oci_base_url}/dl/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+    local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
 
     # TODO: remove --insecure after the certificate issue is fixed
     local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
