@@ -11,6 +11,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
+oci_base_url="https://internal.do.pingcap.net:30443"
+
 # See https://misc.flogisoft.com/bash/tip_colors_and_formatting.
 color-green() { # Green
 	echo -e "\x1B[1;32m${*}\x1B[0m"
@@ -29,17 +32,37 @@ function download() {
 	wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "${file_path}" "${url}"
 }
 
+function download_from_oci() {
+    local org_and_repo=$1
+	local grep_pattern=$2
+    local list_api="${oci_base_url}/dl/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/dl/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+
+    # TODO: remove --insecure after the certificate issue is fixed
+    local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
+
+    for file in $file_list; do
+		# TODO: remove --no-check-certificate after the certificate issue is fixed
+		echo "download file: ${download_api}${file}"
+        wget --no-check-certificate -q "${download_api}${file}" -O "tmp/$file"
+        
+        # if download successfully, extract the file
+        if [ $? -eq 0 ]; then
+            echo "Extracting $file..."
+            tar -xzf "tmp/$file" -C "third_bin"
+        else
+            echo "Failed to download $file"
+        fi
+    done
+}
+
 # Specify the download branch.
 branch=${1:-release-6.5-fips}
 
 # PingCAP file server URL.
 file_server_url="http://fileserver.pingcap.net"
 
-# Get sha1 based on branch name.
-tidb_sha1=$(curl "${file_server_url}/download/refs/pingcap/tidb/${branch}/sha1")
-
 # All download links.
-tidb_download_url="${file_server_url}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
 sync_diff_inspector_download_url="http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz"
 mydumper_download_url="http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz"
 
@@ -55,9 +78,7 @@ mkdir -p tmp
 mkdir -p bin
 
 color-green "Download binaries..."
-download "$tidb_download_url" "tidb-server.tar.gz" "tmp/tidb-server.tar.gz"
-tar -xz -C third_bin bin/tidb-server -f tmp/tidb-server.tar.gz && mv third_bin/bin/tidb-server third_bin/
-
+download_from_oci "pingcap/tidb" 'tidb-v[^"]*.tar.gz'
 download "$sync_diff_inspector_download_url" "tidb-enterprise-tools-nightly-linux-amd64.tar.gz" "tmp/tidb-enterprise-tools-nightly-linux-amd64.tar.gz"
 tar -xz -C third_bin tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector -f tmp/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
 mv third_bin/tidb-enterprise-tools-nightly-linux-amd64/bin/sync_diff_inspector third_bin/ && rm -rf third_bin/tidb-enterprise-tools-nightly-linux-amd64
