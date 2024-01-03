@@ -97,7 +97,7 @@ function main() {
     mkdir third_bin
     mkdir tmp
 
-    download_from_oci "tikv/pd" 'pd-v[^"]*.tar.gz'
+    download_from_oci "tikv/pd" 'pd-[^"]*.tar.gz'
     download_from_oci "tikv/tikv" 'tikv-v[^"]*.tar.gz'
 
     download "$tiflash_download_url" "tiflash.tar.gz" "tmp/tiflash.tar.gz"

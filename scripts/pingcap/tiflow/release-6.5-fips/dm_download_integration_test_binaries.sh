@@ -82,7 +82,7 @@ mkdir -p tmp
 mkdir -p bin
 
 color-green "Download binaries..."
-download_from_oci "tikv/pd" 'pd-v[^"]*.tar.gz'
+download_from_oci "tikv/pd" 'pd-[^"]*.tar.gz'
 download_from_oci "tikv/tikv" 'tikv-v[^"]*.tar.gz'
 download_from_oci "pingcap/tidb" 'tidb-v[^"]*.tar.gz'
 download "$tidb_tools_download_url" "tidb-tools.tar.gz" "tmp/tidb-tools.tar.gz"

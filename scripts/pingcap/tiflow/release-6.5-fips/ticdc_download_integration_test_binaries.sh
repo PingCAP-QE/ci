@@ -70,7 +70,7 @@ function download_binaries() {
     # PingCAP file server URL.
     file_server_url="http://fileserver.pingcap.net"
 
-    download_from_oci "tikv/pd" 'pd-v[^"]*.tar.gz'
+    download_from_oci "tikv/pd" 'pd-[^"]*.tar.gz'
     download_from_oci "tikv/tikv" 'tikv-v[^"]*.tar.gz'
     download_from_oci "pingcap/tidb" 'tidb-v[^"]*.tar.gz'
 
