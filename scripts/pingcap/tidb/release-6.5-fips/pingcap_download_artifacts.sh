@@ -79,7 +79,7 @@ function main() {
     fi
     if [[ ! -z $PD ]]; then
         echo ">>> start download pd "
-        download_from_oci "tikv/pd" 'pd-v[^"]*.tar.gz'
+        download_from_oci "tikv/pd" 'pd-[^"]*.tar.gz'
     fi
     if [[ ! -z $TIFLASH ]]; then
         echo ">>> start download tiflash "
