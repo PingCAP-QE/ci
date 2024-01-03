@@ -68,6 +68,9 @@ pipeline {
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
+                            which bin/tidb-server
+                            which bin/tikv-server
+                            which bin/pd-server
                             mv bin/tidb-server bin/explain_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
