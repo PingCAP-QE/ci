@@ -17,25 +17,25 @@ oci_base_url="http://dl.apps.svc"
 
 # See https://misc.flogisoft.com/bash/tip_colors_and_formatting.
 color-green() { # Green
-	echo -e "\x1B[1;32m${*}\x1B[0m"
+    echo -e "\x1B[1;32m${*}\x1B[0m"
 }
 
 function download() {
-	local url=$1
-	local file_name=$2
-	local file_path=$3
-	if [[ -f "${file_path}" ]]; then
-		echo "file ${file_name} already exists, skip download"
-		return
-	fi
-	echo ">>>"
-	echo "download ${file_name} from ${url}"
-	wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "${file_path}" "${url}"
+    local url=$1
+    local file_name=$2
+    local file_path=$3
+    if [[ -f "${file_path}" ]]; then
+        echo "file ${file_name} already exists, skip download"
+        return
+    fi
+    echo ">>>"
+    echo "download ${file_name} from ${url}"
+    wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "${file_path}" "${url}"
 }
 
 function download_from_oci() {
     local org_and_repo=$1
-	local grep_pattern=$2
+    local grep_pattern=$2
     local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
     local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
 
@@ -43,8 +43,8 @@ function download_from_oci() {
     local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
 
     for file in $file_list; do
-		# TODO: remove --no-check-certificate after the certificate issue is fixed
-		echo "download file: ${download_api}${file}"
+        # TODO: remove --no-check-certificate after the certificate issue is fixed
+        echo "download file: ${download_api}${file}"
         wget --no-check-certificate -q "${download_api}${file}" -O "tmp/$file"
         
         # if download successfully, extract the file
