@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+set -o errexit
+set -o pipefail
+
 for i in "$@"; do
   case $i in
     -tidb=*|--tidb=*)
@@ -61,6 +64,30 @@ function download() {
     echo "download ${file_name} from ${url}"
     wget -v --retry-connrefused --tries=3 -O "${file_path}" "${url}"
     ls -alh "${file_path}"
+}
+
+function download_from_oci() {
+    local org_and_repo=$1
+    local grep_pattern=$2
+    local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+
+    # TODO: remove --insecure after the certificate issue is fixed
+    local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
+
+    for file in $file_list; do
+        # TODO: remove --no-check-certificate after the certificate issue is fixed
+        echo "download file: ${download_api}${file}"
+        wget --no-check-certificate -q "${download_api}${file}" -O "tmp/$file"
+        
+        # if download successfully, extract the file
+        if [ $? -eq 0 ]; then
+            echo "Extracting $file..."
+            tar -xzf "tmp/$file" -C "third_bin"
+        else
+            echo "Failed to download $file"
+        fi
+    done
 }
 
 function main() { 
