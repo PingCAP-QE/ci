@@ -14,6 +14,9 @@ set -o pipefail
 # http://fileserver.pingcap.net.
 branch=${1:-release-6.5-fips}
 file_server_url=${2:-http://fileserver.pingcap.net}
+oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
+# Note: osci_base_url is only available in the ci environment.
+oci_base_url="http://dl.apps.svc"
 
 tikv_importer_branch="release-5.0"
 default_target_branch="release-6.5"
@@ -49,7 +52,7 @@ set -o nounset
 
 # See https://misc.flogisoft.com/bash/tip_colors_and_formatting.
 color-green() { # Green
-	echo -e "\x1B[1;32m${*}\x1B[0m"
+    echo -e "\x1B[1;32m${*}\x1B[0m"
 }
 
 function download() {
@@ -64,15 +67,39 @@ function download() {
     wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "${file_path}" "${url}"
 }
 
+function download_from_oci() {
+    local org_and_repo=$1
+    local grep_pattern=$2
+    local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+
+    # TODO: remove --insecure after the certificate issue is fixed
+    local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
+
+    for file in $file_list; do
+        # TODO: remove --no-check-certificate after the certificate issue is fixed
+        echo "download file: ${download_api}${file}"
+        wget --no-check-certificate -q "${download_api}${file}" -O "tmp/$file"
+        
+        # if download successfully, extract the file
+        if [ $? -eq 0 ]; then
+            echo "Extracting $file..."
+            tar -xzf "tmp/$file" -C "third_bin"
+        else
+            echo "Failed to download $file"
+        fi
+    done
+}
+
 function main() { 
     rm -rf third_bin
     rm -rf tmp
     mkdir third_bin
     mkdir tmp
-    download "$pd_download_url" "pd-server.tar.gz" "tmp/pd-server.tar.gz"
-    tar -xz -C third_bin 'bin/*' -f tmp/pd-server.tar.gz && mv third_bin/bin/* third_bin/
-    download "$tikv_download_url" "tikv-server.tar.gz" "tmp/tikv-server.tar.gz"
-    tar -xz -C third_bin 'bin/*' -f tmp/tikv-server.tar.gz && mv third_bin/bin/* third_bin/
+
+    download_from_oci "tikv/pd" 'pd-v[^"]*.tar.gz'
+    download_from_oci "tikv/tikv" 'tikv-v[^"]*.tar.gz'
+
     download "$tiflash_download_url" "tiflash.tar.gz" "tmp/tiflash.tar.gz"
     tar -xz -C third_bin -f tmp/tiflash.tar.gz
     mv third_bin/tiflash third_bin/_tiflash

@@ -60,10 +60,11 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || go build -o bin/tidb-server ./tidb-server'
                     }
-                    script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', "release-6.5-fips", REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', "release-6.5-fips", REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
-                    }
+                    sh label: 'download artifacts', script: """
+                        chmod +x ../scripts/pingcap/tidb/release-6.5-fips/pingcap_download_artifacts.sh
+                        ${WORKSPACE}/scripts/pingcap/tidb/release-6.5-fips/pingcap_download_artifacts.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        ls -alh ./bin/
+                    """
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
