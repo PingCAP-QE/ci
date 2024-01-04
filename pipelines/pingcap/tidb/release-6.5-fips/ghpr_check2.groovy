@@ -63,6 +63,7 @@ pipeline {
                     sh label: 'download artifacts', script: """
                         chmod +x ../scripts/pingcap/tidb/release-6.5-fips/pingcap_download_artifacts.sh
                         ${WORKSPACE}/scripts/pingcap/tidb/release-6.5-fips/pingcap_download_artifacts.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        mv third_bin/* bin/
                         ls -alh ./bin/
                     """
                     // cache it for other pods
