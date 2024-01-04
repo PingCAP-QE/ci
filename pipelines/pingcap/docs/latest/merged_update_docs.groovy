@@ -5,7 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/docs'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/docs/latest/pod-merged_update_docs.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -80,11 +79,9 @@ pipeline {
                         // sh label: 'Upload pdf', script: """#!/usr/bin/env bash
                         //     if [ "${REFS.base_ref}" = "master" ]; then
                         //         python3 scripts/upload.py output.pdf tidb-dev-en-manual.pdf;
-                        //     elif [ "${REFS.base_ref}" = "release-7.1" ]; then
+                        //     elif [ "${REFS.base_ref}" = "release-7.5" ]; then
                         //         python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud; scripts/generate_cloud_pdf.sh;
                         //         python3 scripts/upload.py output_cloud.pdf tidbcloud-en-manual.pdf;
-                        //         python3 scripts/upload.py output.pdf tidb-v7.1-en-manual.pdf;
-                        //     elif [ "${REFS.base_ref}" = "release-7.5" ]; then
                         //         python3 scripts/upload.py output.pdf tidb-stable-en-manual.pdf;
                         //     elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
                         //         python3 scripts/upload.py output.pdf tidb-v${REFS.base_ref##*-}-en-manual.pdf;
