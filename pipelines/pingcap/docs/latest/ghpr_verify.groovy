@@ -5,7 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/docs'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/docs/latest/pod-pull_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -14,7 +13,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
+            defaultContainer 'runner'
         }
     }
     environment {
@@ -71,9 +70,9 @@ pipeline {
                                     sh """
                                     git config --global --add safe.directory '*'
                                     """
-                                    sh """
+                                    sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
-                                    python3 check-file-encoding.py $(git diff-tree --name-only --no-commit-id -r upstream/${TARGET_BRANCH}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-file-encoding.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -86,9 +85,9 @@ pipeline {
                                     sh """
                                     git config --global --add safe.directory '*'
                                     """
-                                    sh """
+                                    sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-conflicts.py
-                                    python3 check-conflicts.py $(git diff-tree --name-only --no-commit-id -r upstream/${TARGET_BRANCH}..HEAD -- '*.md' '*.yml' '*.yaml')
+                                    python3 check-conflicts.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' '*.yml' '*.yaml')
                                     """
                                 }
                             }
@@ -101,8 +100,8 @@ pipeline {
                                     sh """
                                     git config --global --add safe.directory '*'
                                     """
-                                    sh """
-                                    markdownlint $(git diff-tree --name-only --no-commit-id -r upstream/${TARGET_BRANCH}..HEAD -- '*.md' ':(exclude).github/*')
+                                    sh """#!/usr/bin/env bash
+                                    markdownlint \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -115,9 +114,9 @@ pipeline {
                                     sh """
                                     git config --global --add safe.directory '*'
                                     """
-                                    sh """
+                                    sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-control-char.py
-                                    python3 check-control-char.py $(git diff-tree --name-only --no-commit-id -r upstream/${TARGET_BRANCH}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-control-char.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -130,9 +129,9 @@ pipeline {
                                     sh """
                                     git config --global --add safe.directory '*'
                                     """
-                                    sh """
+                                    sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-tags.py
-                                    python3 check-tags.py $(git diff-tree --name-only --no-commit-id -r upstream/${TARGET_BRANCH}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-tags.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -145,9 +144,9 @@ pipeline {
                                     sh """
                                     git config --global --add safe.directory '*'
                                     """
-                                    sh """
+                                    sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-manual-line-breaks.py
-                                    python3 check-manual-line-breaks.py $(git diff-tree --name-only --no-commit-id -r upstream/${TARGET_BRANCH}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-manual-line-breaks.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
