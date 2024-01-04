@@ -55,14 +55,22 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) {
-                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tics.tar.gz src-tics.tar.gz"
+                                ) { 
+                                    sh "rm -rf ./*"
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
                                     ls -alh
-                                    chown 1000:1000 src-tics.tar.gz
+                                    chown 1000:1000 src-tiflash.tar.gz
+                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
+                                    ls -alh
                                     """
                                 }
                             }
+                            sh """
+                            git config --global --add safe.directory "*"
+                            git version
+                            git status
+                            """
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
