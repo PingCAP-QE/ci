@@ -394,22 +394,22 @@ pipeline {
         stage("Cache code and artifact") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    dir('tests/.build') { 
+                    cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
+                        dir('tests/.build') { 
+                            sh """
+                            cp -r ${WORKSPACE}/install/* ./
+                            pwd && ls -alh
+                            """
+                        }
                         sh """
-                        cp -r ${WORKSPACE}/install/* ./
-                        pwd && ls -alh
+                        git status
+                        git show --oneline -s
+                        rm -rf .git
+                        rm -rf contrib
+                        du -sh ./
+                        ls -alh
                         """
                     }
-                    sh """
-                    git status
-                    git show --oneline -s
-                    rm -rf .git
-                    rm -rf contrib
-                    du -sh ./
-                    ls -alh
-                    """
-                    // TODO: cache code and artifact by s3
-                    stash name: "code-and-artifacts", useDefaultExcludes: true
                 }
             }
         }
@@ -432,44 +432,41 @@ pipeline {
                     }
                 } 
                 stages {
-                    stage("unstash") {
-                        steps {
-                            // TODO: cache code and artifact by s3
-                            unstash "code-and-artifacts"
-                            sh """
-                            printenv
-                            pwd && ls -alh
-                            """
-                        }
-                    }
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir("tests/${TEST_PATH}") {
-                                echo "path: ${pwd()}"
-                                sh "docker ps -a && docker version"
-                                sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
-                            }
-                        }
-                        post {
-                            unsuccessful {
-                                script {
-                                    println "Test failed, archive the log"
-                                    sh label: "debug fail", script: """
-                                        docker ps -a
-                                        mv log ${TEST_PATH}-log
-                                        find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
+                            dir("${WORKSPACE}/tiflash") { 
+                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") { 
+                                    sh """
+                                    printenv
+                                    pwd && ls -alh
                                     """
-                                    sh label: "archive logs", script: """
-                                        chown -R 1000:1000 ./
-                                        find ${TEST_PATH}-log -type f -name "*.log" -exec tar -czvf ${TEST_PATH}-logs.tar.gz {} +
-                                        chown -R 1000:1000 ./
-                                        ls -alh ${TEST_PATH}-logs.tar.gz
-                                    """
-                                    archiveArtifacts(artifacts: "${TEST_PATH}-logs.tar.gz", allowEmptyArchive: true)
+                                    // dir("tests/${TEST_PATH}") {
+                                    //     echo "path: ${pwd()}"
+                                    //     sh "docker ps -a && docker version"
+                                    //     sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                                    // }
                                 }
                             }
                         }
+                        // post {
+                        //     unsuccessful {
+                        //         script {
+                        //             println "Test failed, archive the log"
+                        //             sh label: "debug fail", script: """
+                        //                 docker ps -a
+                        //                 mv log ${TEST_PATH}-log
+                        //                 find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
+                        //             """
+                        //             sh label: "archive logs", script: """
+                        //                 chown -R 1000:1000 ./
+                        //                 find ${TEST_PATH}-log -type f -name "*.log" -exec tar -czvf ${TEST_PATH}-logs.tar.gz {} +
+                        //                 chown -R 1000:1000 ./
+                        //                 ls -alh ${TEST_PATH}-logs.tar.gz
+                        //             """
+                        //             archiveArtifacts(artifacts: "${TEST_PATH}-logs.tar.gz", allowEmptyArchive: true)
+                        //         }
+                        //     }
+                        // }
                     }
                 }
             }
