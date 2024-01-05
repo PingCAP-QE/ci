@@ -119,9 +119,28 @@ spec:
                 echo "image: $Image"
                 echo "image on gcr: $ImageForGcr"
             }
-
         }
+        stage('build by sub pipeline'){
+            when{expression{params.Product == "tidb-dashboard"}}
+            steps{
+                script{
+                    def  paramsBuild = [
+                                    string(name: "GitRef", value: params.GitRef),
+                                    string(name: "ReleaseTag", value: params.Version),
+                                    [$class: 'BooleanParameterValue', name: 'IsDevbuild', value: true],
+                                    string(name: "BinaryPrefix", value: "builds/devbuild/$BUILD_NUMBER"),
+                                    string(name: "DockerImg", value: Image),
+                                    string(name: "BuildEnv", value: params.BuildEnv),
+                    ]
+                    build job: "build-tidb-dashboard",
+                                    wait: true,
+                                    parameters: paramsBuild
+                }
+            }
+        }
+
         stage('multi-arch build'){
+            when{expression{params.Product != "tidb-dashboard"}}
             matrix{
                 axes{
                     axis{
@@ -231,6 +250,7 @@ spec:
             }
         }
         stage("manifest multi-platform docker"){
+            when{expression{params.Product != "tidb-dashboard"}}
             steps{
                 script{
                 def paramsManifest = [
