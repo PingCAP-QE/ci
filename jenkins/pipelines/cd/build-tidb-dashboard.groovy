@@ -115,7 +115,7 @@ spec:
     args: ["sleep", "infinity"]
 '''
 
-def BinaryPrefix = "builds/tidb-dashboard/${params.ReleaseTag}/"
+def BinaryPrefix = "builds/tidb-dashboard/${params.ReleaseTag}"
 def DockerImg = "hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}"
 
 pipeline {
@@ -248,7 +248,7 @@ pipeline {
                         ]
                         sh 'export PATH=$GOROOT/bin:/usr/local/bin:$PATH:/opt/homebrew/bin; make package'
                         sh """
-                            tar -cvzf tidb-dashboard-darwin-amd64.tar.gz -C bin/darwin-amd64 tidb-dashboard
+                            tar -cvzf tidb-dashboard-darwin-amd64.tar.gz -C bin/ tidb-dashboard
                             sha256sum tidb-dashboard-darwin-amd64.tar.gz | cut -d ' ' -f 1 >tidb-dashboard-darwin-amd64.tar.gz.sha256
                             curl -F ${BinaryPrefix}/tidb-dashboard-darwin-amd64.tar.gz=@tidb-dashboard-darwin-amd64.tar.gz http://fileserver.pingcap.net/upload
                             curl -F ${BinaryPrefix}/tidb-dashboard-darwin-amd64.tar.gz.sha256=@tidb-dashboard-darwin-amd64.tar.gz.sha256 http://fileserver.pingcap.net/upload
@@ -275,7 +275,7 @@ pipeline {
                         ]
                         sh 'export PATH=$GOROOT/bin:/usr/local/bin:$PATH:/opt/homebrew/bin; make package'
                         sh """
-                            tar -cvzf tidb-dashboard-darwin-arm64.tar.gz -C bin/darwin-arm64 tidb-dashboard
+                            tar -cvzf tidb-dashboard-darwin-arm64.tar.gz -C bin/ tidb-dashboard
                             sha256sum tidb-dashboard-darwin-arm64.tar.gz | cut -d ' ' -f 1 >tidb-dashboard-darwin-arm64.tar.gz.sha256
                             curl -F ${BinaryPrefix}/tidb-dashboard-darwin-arm64.tar.gz=@tidb-dashboard-darwin-arm64.tar.gz http://fileserver.pingcap.net/upload
                             curl -F ${BinaryPrefix}/tidb-dashboard-darwin-arm64.tar.gz.sha256=@tidb-dashboard-darwin-arm64.tar.gz.sha256 http://fileserver.pingcap.net/upload
