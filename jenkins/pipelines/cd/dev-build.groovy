@@ -127,9 +127,9 @@ spec:
                     def  paramsBuild = [
                                     string(name: "GitRef", value: params.GitRef),
                                     string(name: "ReleaseTag", value: params.Version),
-                                    [$class: 'BooleanParameterValue', name: 'IsDevBuild', value: true],
+                                    [$class: 'BooleanParameterValue', name: 'IsDevbuild', value: true],
                                     string(name: "BinaryPrefix", value: "builds/devbuild/$BUILD_NUMBER"),
-                                    string(name: "DockerImag", value: Image),
+                                    string(name: "DockerImg", value: Image),
                                     string(name: "BuildEnv", value: params.BuildEnv),
                     ]
                     build job: "build-tidb-dashboard",
