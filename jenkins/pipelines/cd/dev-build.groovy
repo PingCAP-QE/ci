@@ -132,7 +132,7 @@ spec:
                                     string(name: "DockerImag", value: Image),
                                     string(name: "BuildEnv", value: params.BuildEnv),
                     ]
-                    build job: "build_tidb_dashboard",
+                    build job: "build-tidb-dashboard",
                                     wait: true,
                                     parameters: paramsBuild
                 }
