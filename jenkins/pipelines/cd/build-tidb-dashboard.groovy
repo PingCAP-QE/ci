@@ -115,7 +115,7 @@ spec:
     args: ["sleep", "infinity"]
 '''
 
-def BinaryPrefix = "builds/tidb-dashboard/${params.ReleaseTag}/"
+def BinaryPrefix = "builds/tidb-dashboard/${params.ReleaseTag}"
 def DockerImg = "hub.pingcap.net/rc/tidb-dashboard:${params.ReleaseTag}"
 
 pipeline {
