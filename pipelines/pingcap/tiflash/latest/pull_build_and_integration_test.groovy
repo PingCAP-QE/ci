@@ -440,33 +440,33 @@ pipeline {
                                     printenv
                                     pwd && ls -alh
                                     """
-                                    // dir("tests/${TEST_PATH}") {
-                                    //     echo "path: ${pwd()}"
-                                    //     sh "docker ps -a && docker version"
-                                    //     sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
-                                    // }
+                                    dir("tests/${TEST_PATH}") {
+                                        echo "path: ${pwd()}"
+                                        sh "docker ps -a && docker version"
+                                        sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                                    }
                                 }
                             }
                         }
-                        // post {
-                        //     unsuccessful {
-                        //         script {
-                        //             println "Test failed, archive the log"
-                        //             sh label: "debug fail", script: """
-                        //                 docker ps -a
-                        //                 mv log ${TEST_PATH}-log
-                        //                 find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
-                        //             """
-                        //             sh label: "archive logs", script: """
-                        //                 chown -R 1000:1000 ./
-                        //                 find ${TEST_PATH}-log -type f -name "*.log" -exec tar -czvf ${TEST_PATH}-logs.tar.gz {} +
-                        //                 chown -R 1000:1000 ./
-                        //                 ls -alh ${TEST_PATH}-logs.tar.gz
-                        //             """
-                        //             archiveArtifacts(artifacts: "${TEST_PATH}-logs.tar.gz", allowEmptyArchive: true)
-                        //         }
-                        //     }
-                        // }
+                        post {
+                            unsuccessful {
+                                script {
+                                    println "Test failed, archive the log"
+                                    sh label: "debug fail", script: """
+                                        docker ps -a
+                                        mv log ${TEST_PATH}-log
+                                        find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
+                                    """
+                                    sh label: "archive logs", script: """
+                                        chown -R 1000:1000 ./
+                                        find ${TEST_PATH}-log -type f -name "*.log" -exec tar -czvf ${TEST_PATH}-logs.tar.gz {} +
+                                        chown -R 1000:1000 ./
+                                        ls -alh ${TEST_PATH}-logs.tar.gz
+                                    """
+                                    archiveArtifacts(artifacts: "${TEST_PATH}-logs.tar.gz", allowEmptyArchive: true)
+                                }
+                            }
+                        }
                     }
                 }
             }
