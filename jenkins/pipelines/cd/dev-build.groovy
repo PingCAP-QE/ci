@@ -124,8 +124,9 @@ spec:
             when{expression{params.Product == "tidb-dashboard"}}
             steps{
                 script{
+                    def simpleGitRef = params.GitRef.replaceFirst('(^branch/)|(^tag/)','')
                     def  paramsBuild = [
-                                    string(name: "GitRef", value: params.GitRef),
+                                    string(name: "GitRef", value: simpleGitRef),
                                     string(name: "ReleaseTag", value: params.Version),
                                     [$class: 'BooleanParameterValue', name: 'IsDevbuild', value: true],
                                     string(name: "BinaryPrefix", value: "builds/devbuild/$BUILD_NUMBER"),
