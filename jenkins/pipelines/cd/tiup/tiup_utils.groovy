@@ -15,8 +15,8 @@ def install_tiup(bin_dir,private_key) {
 
 def install_tiup_without_key(bin_dir) {
     sh """
-    wget -q ${TIUP_MIRROR}/tiup-v1.13.0-linux-amd64.tar.gz
-    tar -zxf tiup-v1.13.0-linux-amd64.tar.gz -C ${bin_dir}
+    wget -qO tiup-linux-amd64.tar.gz ${TIUP_MIRROR}/tiup-v1.13.0-linux-amd64.tar.gz
+    tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
     chmod 755 ${bin_dir}/tiup
     rm -rf ~/.tiup
     mkdir -p ~/.tiup/bin
