@@ -3,7 +3,7 @@ if(DEBUG_MODE == "true"){
 }
 def install_tiup = { bin_dir ->
     sh """
-    wget -q https://tiup-mirrors.pingcap.com/tiup-linux-amd64.tar.gz
+    wget -qO tiup-linux-amd64.tar.gz https://tiup-mirrors.pingcap.com/tiup-v1.13.0-linux-amd64.tar.gz
     tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
     chmod 755 ${bin_dir}/tiup
     rm -rf ~/.tiup
