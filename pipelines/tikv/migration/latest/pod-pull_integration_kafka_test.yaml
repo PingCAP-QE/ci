@@ -49,16 +49,22 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
-      tty: true
+    - args:
+        - cat
+      image: hub.pingcap.net/jenkins/golang-tini:1.21
+      imagePullPolicy: Always
+      name: golang
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          cpu: "2"
+          memory: 12Gi
         limits:
-          memory: 8Gi
           cpu: "4"
+          memory: 16Gi
+      tty: true
+      volumeMounts:
+        - mountPath: /tmp
+          name: volume-0
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
@@ -66,13 +72,9 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+  volumes:
+    - emptyDir: {}
+      name: volume-0
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
