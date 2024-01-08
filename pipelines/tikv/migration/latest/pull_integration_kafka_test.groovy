@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_kafka_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -98,7 +98,7 @@ pipeline {
                                cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
-                                        ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
+                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
                                     """
                                }
                             }
