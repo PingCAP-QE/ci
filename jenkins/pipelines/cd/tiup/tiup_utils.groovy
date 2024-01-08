@@ -1,7 +1,7 @@
 def install_tiup(bin_dir,private_key) {
     sh """
-    wget -q https://tiup-mirrors.pingcap.com/tiup-v1.13.0-linux-amd64.tar.gz
-    sudo tar -zxf tiup-v1.13.0-linux-amd64.tar.gz -C ${bin_dir}
+    wget -qO tiup-linux-amd64.tar.gz https://tiup-mirrors.pingcap.com/tiup-v1.13.0-linux-amd64.tar.gz
+    sudo tar -zxf tiup-linux-amd64.tar.gz -C ${bin_dir}
     sudo chmod 755 ${bin_dir}/tiup
     rm -rf ~/.tiup
     mkdir -p /home/jenkins/.tiup/bin/
