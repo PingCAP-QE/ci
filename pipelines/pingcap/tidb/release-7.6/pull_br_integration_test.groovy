@@ -72,7 +72,7 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
                         sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                             chmod +x br/tests/*.sh
-                            ./br/tests/run_group.sh others
+                            ./br/tests/run_group_br_tests.sh others
                         """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -115,7 +115,7 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
-                                        ./br/tests/run_group.sh ${TEST_GROUP}
+                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
