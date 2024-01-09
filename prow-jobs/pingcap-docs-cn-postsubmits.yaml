@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 postsubmits:
   pingcap/docs:
-    - name: pingcap/docs-cn/merged_update_docs
+    - name: pingcap/docs-cn/merged_update_docs_cn
       agent: jenkins
       decorate: false # need add this.
       context: docs-cn/merged-ci
