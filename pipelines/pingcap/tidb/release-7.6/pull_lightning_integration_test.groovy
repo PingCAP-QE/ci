@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.5/pod-pull_lightning_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.6/pod-pull_lightning_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -59,7 +59,7 @@ pipeline {
                     retry(2) {
                         sh label: "download third_party", script: """
                             chmod +x ../tidb/br/tests/*.sh
-                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh ${REFS.base_ref}
+                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh release-7.6
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
