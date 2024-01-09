@@ -83,7 +83,7 @@ pipeline {
                     }
                     stage('check git conflicts') {
                         steps {
-                            dir('docs') {
+                            dir('docs-cn') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
@@ -101,7 +101,7 @@ pipeline {
                     }
                     stage('Lint edited files') {
                         steps {
-                            dir('docs') {
+                            dir('docs-cn') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
@@ -118,7 +118,7 @@ pipeline {
                     }
                     stage('Check control characters') {
                         steps {
-                            dir('docs') {
+                            dir('docs-cn') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
@@ -136,7 +136,7 @@ pipeline {
                     }
                     stage('Check unclosed tags') {
                         steps {
-                            dir('docs') {
+                            dir('docs-cn') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
@@ -154,7 +154,7 @@ pipeline {
                     }
                     stage('Check manual line breaks') {
                         steps {
-                            dir('docs') {
+                            dir('docs-cn') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
