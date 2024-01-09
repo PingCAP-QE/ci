@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/docs/merged_update_docs') {
+pipelineJob('pingcap/docs-cn/merged_update_docs_cn') {
     logRotator {
         daysToKeep(30)
     }
