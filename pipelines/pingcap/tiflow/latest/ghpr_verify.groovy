@@ -88,16 +88,14 @@ pipeline {
                             success {
                                 dir('tiflow') {
                                     script {
-                                        script {
-                                            def testConfigs = [
-                                                dm_unit_test_in_verify_ci: [flags: "unit,dm", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
-                                                unit_test_in_verify_ci: [flags: "unit,cdc", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
-                                                engine_unit_test_in_verify_ci: [flags: "unit,engine", coverage_file: "/tmp/engine_test/cov.unit_test.out"]
-                                            ]
-                                            def config = testConfigs[TEST_CMD]
-                                            if (config && config.coverage_file) {
-                                                prow.uploadCoverageToCodecov(REFS, config.flags, config.coverage_file)
-                                            }
+                                        def testConfigs = [
+                                            dm_unit_test_in_verify_ci: [flags: "unit,dm", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
+                                            unit_test_in_verify_ci: [flags: "unit,cdc", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
+                                            engine_unit_test_in_verify_ci: [flags: "unit,engine", coverage_file: "/tmp/engine_test/cov.unit_test.out"]
+                                        ]
+                                        def config = testConfigs[TEST_CMD]
+                                        if (config && config.coverage_file) {
+                                            prow.uploadCoverageToCodecov(REFS, config.flags, config.coverage_file)
                                         }
                                     }
                                 }
@@ -109,5 +107,6 @@ pipeline {
                     }
                 }
             }
+        }
     }
 }
