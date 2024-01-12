@@ -189,6 +189,7 @@ pipeline {
                                             namespace K8S_NAMESPACE
                                         }
                                     }
+                                    environment {GIT_COMMIT = "$GitHash";}
                                     steps{ dir("operator"){
                                         checkout changelog: false, poll: false, scm: [
                                                 $class           : 'GitSCM',
@@ -206,6 +207,7 @@ pipeline {
                                     }}
                                 }
                                 stage("amd64"){
+                                    environment {GIT_COMMIT = "$GitHash";}
                                     steps {
                                         sh """git status
                                         printenv ENABLE_FIPS
