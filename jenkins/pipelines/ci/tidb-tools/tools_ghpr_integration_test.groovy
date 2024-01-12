@@ -140,7 +140,7 @@ catchError {
                 def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
                 def dumpling_sha1 = tidb_sha1
 
-                sh label: "download binaries", script: """"
+                sh label: "download binaries", script: """
                 wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "tikv-server.tar.gz" "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
                 tar -xz 'bin/*' -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
                 wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "pd-server.tar.gz" "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
