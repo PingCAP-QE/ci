@@ -83,21 +83,6 @@ pipeline {
                             }
                         }
                         post {
-                            success {
-                                dir('tiflow') {
-                                    script {
-                                        def testConfigs = [
-                                            dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
-                                            unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
-                                            engine_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/engine_test/cov.unit_test.out"]
-                                        ]
-                                        def config = testConfigs[TEST_CMD]
-                                        if (config && config.coverage_file) {
-                                            prow.uploadCoverageToCodecov(REFS, config.flags, config.coverage_file)
-                                        }
-                                    }
-                                }
-                            }
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)  
                             }
