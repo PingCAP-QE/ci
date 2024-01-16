@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiproxy/merged_integration_prisma_test') {
+pipelineJob('pingcap/tiproxy/pull_integration_nodejs_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -18,7 +18,7 @@ pipelineJob('pingcap/tiproxy/merged_integration_prisma_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiproxy/latest/merged_integration_prisma_test.groovy")
+            scriptPath("pipelines/pingcap/tiproxy/latest/pull_integration_nodejs_test.groovy")
             scm {
                 git{
                     remote {

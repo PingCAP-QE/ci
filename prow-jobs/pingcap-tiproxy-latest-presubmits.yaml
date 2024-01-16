@@ -88,15 +88,15 @@ presubmits:
       rerun_command: "/test integration-ruby-orm-test"
       branches:
         - ^main$
-    - name: pingcap/tiproxy/pull_integration_prisma_test
+    - name: pingcap/tiproxy/pull_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false  
-      context: pull-integration-prisma-test
+      context: pull-integration-nodejs-test
       skip_report: false
       optional: true
-      trigger: "(?m)^/test (?:.*? )?integration-prisma-test(?: .*?)?$"
-      rerun_command: "/test integration-prisma-test"
+      trigger: "(?m)^/test (?:.*? )?integration-nodejs-test(?: .*?)?$"
+      rerun_command: "/test integration-nodejs-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/pull_integration_python_orm_test
@@ -108,17 +108,6 @@ presubmits:
       optional: true
       trigger: "(?m)^/test (?:.*? )?integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test integration-python-orm-test"
-      branches:
-        - ^main$
-    - name: pingcap/tiproxy/pull_integration_sequelize_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false  
-      context: pull-integration-sequelize-test
-      skip_report: false
-      optional: true
-      trigger: "(?m)^/test (?:.*? )?integration-sequelize-test(?: .*?)?$"
-      rerun_command: "/test integration-sequelize-test"
       branches:
         - ^main$
     - name: pingcap/tiproxy/pull_sqllogic_test

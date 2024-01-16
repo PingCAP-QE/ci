@@ -1,11 +1,11 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_integration_prisma_test.yaml'
+final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-merged_integration_nodejs_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -21,7 +21,6 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -29,6 +28,9 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    ls -l /dev/null
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
                 container(name: 'net-tool') {
@@ -52,7 +54,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutV2('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "master", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkoutV2('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "master", "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -86,14 +88,14 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CMDS'
-                        values 'make deploy-prismatest ARGS="-x"'
+                        values 'make deploy-prismatest ARGS="-x"', 'make deploy-typeormtest ARGS="-x"', 'make deploy-sequelizetest ARGS="-x"'
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'nodejs'
+                        yamlFile POD_TEMPLATE_FILE
                     }
                 } 
                 stages {
