@@ -51,10 +51,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutV2('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "master", REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkoutV2('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "master", "", GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -64,10 +64,10 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tiproxy') {
-                    sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
+                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
                         sh label: 'prepare thirdparty binary', script: """
                         chmod +x download_binary.sh
@@ -102,17 +102,12 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         make deploy-mysqltest ARGS="-b -x -c y -s tikv -p ${PART}"
                                     """
                                 }
-                            }
-                        }
-                        post{
-                            always {
-                                junit(testResults: "**/result.xml")
                             }
                         }
                     }
