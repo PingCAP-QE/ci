@@ -64,12 +64,12 @@ stage("Cover") {
                 export FAIL_POINT=1
                 export ROCKSDB_SYS_SSE=1
                 export CARGO_INCREMENTAL=0
-                export RUSTFLAGS="-Zinstrument-coverage"
+                export RUSTFLAGS="-C instrument-coverage"
 
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
 
-                env RUSTFLAGS="-Zinstrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test || true
+                env RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test
                 """
 
                 sh label: 'Post-build: Generating coverage', script: """
