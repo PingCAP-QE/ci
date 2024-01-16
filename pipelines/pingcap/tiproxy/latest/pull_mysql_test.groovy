@@ -67,7 +67,7 @@ pipeline {
                     sh label: 'tiproxy', script: 'ls bin/tiproxy || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
                         sh label: 'prepare thirdparty binary', script: """
                         chmod +x download_binary.sh
@@ -102,7 +102,7 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         make deploy-mysqltest ARGS="-b -x -c y -s tikv -p ${PART}"
