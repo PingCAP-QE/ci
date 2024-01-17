@@ -1,23 +1,19 @@
 apiVersion: v1
 kind: Pod
 spec:
-  securityContext:
-    fsGroup: 1000
   containers:
     - name: runner
       image: "hub.pingcap.net/tiflash/tiflash-llvm13-amd64:v20231214"
       command:
-        - "/bin/bash"
-        - "-c"
         - "cat"
       tty: true
       resources:
         requests:
-          memory: 32Gi
-          cpu: "12"
+          memory: "32Gi"
+          cpu: "16000m"
         limits:
-          memory: 32Gi
-          cpu: "12"
+          memory: "32Gi"
+          cpu: "16000m"
       volumeMounts:
       - mountPath: "/home/jenkins/agent/rust"
         name: "volume-0"
@@ -39,6 +35,9 @@ spec:
         readOnly: false
       - mountPath: "/tmp-memfs"
         name: "volume-7"
+        readOnly: false
+      - mountPath: "/home/jenkins"
+        name: "volume-8"
         readOnly: false
     - name: jnlp
       image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
@@ -70,6 +69,9 @@ spec:
         readOnly: false
       - mountPath: "/tmp-memfs"
         name: "volume-7"
+        readOnly: false
+      - mountPath: "/home/jenkins"
+        name: "volume-8"
         readOnly: false
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
@@ -119,6 +121,8 @@ spec:
     - name: "volume-7"
       emptyDir:
         medium: Memory
+    - name: "volume-8"
+      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -128,7 +132,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"

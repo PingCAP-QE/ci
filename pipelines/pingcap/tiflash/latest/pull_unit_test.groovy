@@ -8,9 +8,11 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final PARALLELISM = 16
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
+
 
 pipeline {
     agent {
@@ -310,7 +312,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                 sh """
-                    cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel 12
+                    cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel ${PARALLELISM}
                     """
                     sh """
                     cp '${WORKSPACE}/build/dbms/gtests_dbms' '${WORKSPACE}/install/tiflash/'
@@ -385,7 +387,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
-                    parallelism=12
+                    parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests
                     export TIFLASH_TEMP_DIR=/tmp-memfs/tiflash-tests
