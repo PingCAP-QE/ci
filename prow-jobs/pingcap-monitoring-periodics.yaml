@@ -31,7 +31,8 @@ periodics:
               printenv
               go run ./cmd/monitoring.go --tag $TARGET --config monitoring.yaml --token $(cat /etc/github/token)
               git add monitor-snapshot/$TARGET
-              if git diff --cached --exit-code --name-status; then
+              # should ignore the file: monitor-snapshot/$TARGET/ansible-monitor.tar.gz, it will be different in every compressing. 
+              if git diff --cached --exit-code --name-status monitor-snapshot/$TARGET/operator; then
                 echo "🤷 No changes happened."
                 exit 0
               fi
