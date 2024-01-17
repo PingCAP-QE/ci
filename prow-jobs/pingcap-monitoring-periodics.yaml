@@ -2,7 +2,7 @@
 periodics:
   - name: periodic-update-pingcap-monitoring
     decorate: true # need add this.
-    cron: "0 * * * *" # @hourly
+    cron: "*/5 * * * *" # @hourly
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
       - org: pingcap
