@@ -14,7 +14,6 @@ periodics:
       containers:
         - name: check
           image: golang:1.21.6
-          command: [bash, -ce]
           env:
             - name: TARGET
               value: master
@@ -25,13 +24,14 @@ periodics:
           volumeMounts:
             - name: github-token
               mountPath: /etc/github
-              readOnly: true              
+              readOnly: true          
+          command: [bash, -ceo, pipefail]
           args: &args
             - |
               printenv
-              go run ./cmd/monitoring.go --tag=$TARGET --config monitoring.yaml
+              go run ./cmd/monitoring.go --tag $TARGET --config monitoring.yaml --token $(cat /etc/github/token)
               git add monitor-snapshot/$TARGET
-              if git diff  --exit-code --name-status; then
+              if git diff --cached --exit-code --name-status; then
                 echo "🤷 No changes happened."
                 exit 0
               fi
@@ -57,6 +57,7 @@ periodics:
               git checkout -b "$head_branch"
               commit_msg="chore(monitor-snapshot/master): update files from upstreams"
               git commit -m "$commit_msg"
+              git remote add origin https://github.com/pingcap/monitoring.git
               git remote -v
               git push --set-upstream origin "$head_branch"
 
