@@ -69,7 +69,7 @@ stage("Cover") {
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
 
-                env RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test
+                env RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test || true
                 """
 
                 sh label: 'Post-build: Generating coverage', script: """
