@@ -14,7 +14,6 @@ periodics:
       containers:
         - name: check
           image: golang:1.21.6
-          command: [bash, -ce]
           env:
             - name: TARGET
               value: master
@@ -25,11 +24,12 @@ periodics:
           volumeMounts:
             - name: github-token
               mountPath: /etc/github
-              readOnly: true              
+              readOnly: true          
+          command: [bash, -ceo, pipefail]    
           args: &args
             - |
               printenv
-              go run ./cmd/monitoring.go --tag=$TARGET --config monitoring.yaml
+              go run ./cmd/monitoring.go --tag $TARGET --config monitoring.yaml --token $(cat /etc/github/token)
               git add monitor-snapshot/$TARGET
               if git diff  --exit-code --name-status; then
                 echo "🤷 No changes happened."
