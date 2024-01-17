@@ -106,7 +106,6 @@ periodics:
                 exit 0
               fi
 
-              # commit and push the changes
               git config user.email "ti-community-prow-bot@tidb.io"
               git config user.name  "ti-chi-bot"
               
