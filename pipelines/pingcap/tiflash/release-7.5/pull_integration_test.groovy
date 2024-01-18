@@ -96,6 +96,7 @@ pipeline {
                     steps {
                     script { 
                         dir("tiflash") {
+                            // TODO: need to find default backup cache for branch which just created
                             sh label: "copy ccache if exist", script: """
                             ccache_tar_file="/home/jenkins/agent/ccache/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
