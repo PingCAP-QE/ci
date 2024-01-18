@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master branches
+// should triggerd for release-6.1 branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
@@ -45,7 +45,7 @@ pipeline {
                 container(name: 'net-tool') {
                     sh 'dig github.com'
                     script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                        currentbuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
                     }
                 }
             }
