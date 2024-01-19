@@ -16,7 +16,7 @@ pipeline {
         }
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
     }
     stages {
         stage('Checkout') {
