@@ -279,6 +279,11 @@ def checkoutStage(repo_path, checkout_target) {
                 """
             }
             checkoutTiFlash(checkout_target, true)
+            sh """
+            git version
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib/tiflash-proxy
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash
+            """
         }
         sh label: "Print build information", script: """
         set +x
@@ -604,6 +609,10 @@ def cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready) 
     """
     dir(build_dir) {
         sh """
+            git version
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib/tiflash-proxy
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash
+
             cmake '${repo_path}' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                 -G '${generator}' \\
                 -DENABLE_FAILPOINTS=${params.ENABLE_FAILPOINTS} \\

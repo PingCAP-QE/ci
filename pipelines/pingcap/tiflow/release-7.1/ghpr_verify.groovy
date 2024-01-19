@@ -72,8 +72,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         environment { 
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
+                            CODECOV_TOKEN = credentials('codecov-token-tiflow')  
                         }
                         steps {
                             dir('tiflow') {
@@ -91,7 +90,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

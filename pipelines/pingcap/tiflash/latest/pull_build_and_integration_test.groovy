@@ -55,14 +55,22 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) {
-                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tics.tar.gz src-tics.tar.gz"
+                                ) { 
+                                    sh "rm -rf ./*"
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
                                     ls -alh
-                                    chown 1000:1000 src-tics.tar.gz
+                                    chown 1000:1000 src-tiflash.tar.gz
+                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
+                                    ls -alh
                                     """
                                 }
                             }
+                            sh """
+                            git config --global --add safe.directory "*"
+                            git version
+                            git status
+                            """
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
@@ -386,22 +394,22 @@ pipeline {
         stage("Cache code and artifact") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    dir('tests/.build') { 
+                    cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
+                        dir('tests/.build') { 
+                            sh """
+                            cp -r ${WORKSPACE}/install/* ./
+                            pwd && ls -alh
+                            """
+                        }
                         sh """
-                        cp -r ${WORKSPACE}/install/* ./
-                        pwd && ls -alh
+                        git status
+                        git show --oneline -s
+                        rm -rf .git
+                        rm -rf contrib
+                        du -sh ./
+                        ls -alh
                         """
                     }
-                    sh """
-                    git status
-                    git show --oneline -s
-                    rm -rf .git
-                    rm -rf contrib
-                    du -sh ./
-                    ls -alh
-                    """
-                    // TODO: cache code and artifact by s3
-                    stash name: "code-and-artifacts", useDefaultExcludes: true
                 }
             }
         }
@@ -424,23 +432,20 @@ pipeline {
                     }
                 } 
                 stages {
-                    stage("unstash") {
-                        steps {
-                            // TODO: cache code and artifact by s3
-                            unstash "code-and-artifacts"
-                            sh """
-                            printenv
-                            pwd && ls -alh
-                            """
-                        }
-                    }
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir("tests/${TEST_PATH}") {
-                                echo "path: ${pwd()}"
-                                sh "docker ps -a && docker version"
-                                sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                            dir("${WORKSPACE}/tiflash") { 
+                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") { 
+                                    sh """
+                                    printenv
+                                    pwd && ls -alh
+                                    """
+                                    dir("tests/${TEST_PATH}") {
+                                        echo "path: ${pwd()}"
+                                        sh "docker ps -a && docker version"
+                                        sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                                    }
+                                }
                             }
                         }
                         post {

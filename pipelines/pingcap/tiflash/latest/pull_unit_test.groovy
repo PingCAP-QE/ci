@@ -8,9 +8,11 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final PARALLELISM = 16
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
+
 
 pipeline {
     agent {
@@ -53,14 +55,22 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) {
-                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tics.tar.gz src-tics.tar.gz"
+                                ) { 
+                                    sh "rm -rf ./*"
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
                                     ls -alh
-                                    chown 1000:1000 src-tics.tar.gz
+                                    chown 1000:1000 src-tiflash.tar.gz
+                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
+                                    ls -alh
                                     """
                                 }
                             }
+                            sh """
+                            git config --global --add safe.directory "*"
+                            git version
+                            git status
+                            """
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
@@ -302,7 +312,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                 sh """
-                    cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel 12
+                    cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel ${PARALLELISM}
                     """
                     sh """
                     cp '${WORKSPACE}/build/dbms/gtests_dbms' '${WORKSPACE}/install/tiflash/'
@@ -377,7 +387,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
-                    parallelism=12
+                    parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests
                     export TIFLASH_TEMP_DIR=/tmp-memfs/tiflash-tests

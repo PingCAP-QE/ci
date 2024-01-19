@@ -98,7 +98,7 @@ pipeline {
                                cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
-                                        ./tests/integration_tests/run_group.sh ${TEST_GROUP}
+                                        ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
                                     """
                                }
                             }

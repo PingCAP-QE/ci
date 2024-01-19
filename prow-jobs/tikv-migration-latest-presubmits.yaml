@@ -10,6 +10,19 @@ presubmits:
       rerun_command: "/test pull-integration-test"
       branches:
         - ^main$
+        - ^cdc-release-.*$
+        - ^br-release-.*$
+    - name: tikv/migration/pull_integration_kafka_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      context: pull-integration-kafka-test
+      trigger: "(?m)^/test (?:.*? )?pull-integration-kafka-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-kafka-test"
+      branches:
+        - ^main$
+        - ^cdc-release-.*$
+        - ^br-release-.*$
     - name: tikv/migration/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -19,3 +32,5 @@ presubmits:
       rerun_command: "/test pull-unit-test"
       branches:
         - ^main$
+        - ^cdc-release-.*$
+        - ^br-release-.*$
