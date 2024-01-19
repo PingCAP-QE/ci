@@ -55,6 +55,21 @@ pipeline {
                 }
             }
         }
+        stage('Prepare') {
+            steps {
+                dir('check-scripts') {
+                    cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") { 
+                        sh label: 'Prepare', script: """
+                            wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
+                            wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-conflicts.py
+                            wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-control-char.py
+                            wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-tags.py
+                            wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-manual-line-breaks.py
+                        """
+                    }
+                }
+            }
+        }
         stage('Tests') {
             matrix {
                 axes {
@@ -75,23 +90,27 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 20, unit: 'MINUTES') }
                         steps {
-                            dir('tidb-test') {
-                                dir('docs-cn') {
-                                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                        sh """
-                                        git config --global --add safe.directory '*'
-                                        """
-                                        // TODO: remove this debug lines
-                                        sh """
-                                        git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                        """
-                                        sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
-                                        wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
-
-                                        diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                        ${CHECK_CMD} \$diff_docs_files
-                                        """
-                                    }
+                            dir('check-scripts') { 
+                                cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") {
+                                    sh """
+                                    ls -alh
+                                    """
+                                }
+                            }
+                            dir('docs-cn') {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
+                                    sh """
+                                    git config --global --add safe.directory '*'
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
+                                    """
+                                    sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
+                                    cp -r ../check-scripts/* ./
+                                    diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    ${CHECK_CMD} \$diff_docs_files
+                                    """
                                 }
                             }
                         }
