@@ -1,0 +1,16 @@
+presubmits:
+  pingcap/docs:
+    - name: pingcap/docs/pull-verify
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false # need change this after test pass.
+      skip_report: true # need change this after test pass.
+      optional: true # need change this after test pass.
+      context: wip/jenkins-docs/verify # need change this after test pass.
+      trigger: "(?m)^/debug (?:.*? )?verify(?: .*?)?$" # need change this after test pass.
+      rerun_command: "/debug verify"
+      branches:
+        - ^master$
+        - ^release-6\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-7\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-8\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
