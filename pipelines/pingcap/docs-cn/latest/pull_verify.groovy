@@ -35,6 +35,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
                 }
             }
         }
@@ -52,9 +55,15 @@ pipeline {
                 }
             }
         }
-        stage('Tests') { 
-            stages {
-                // TODO: check whether the agent need configured in each stage
+        stage('Tests') {
+            matrix {
+                axes {
+                    axis {
+                        name 'CHECK_CMD'
+                        values "python3 check-file-encoding.py", "python3 check-conflicts.py", "markdownlint",
+                            "python3 check-control-char.py", "python3 check-tags.py", "python3 check-manual-line-breaks.py"
+                    }
+                }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
@@ -62,116 +71,27 @@ pipeline {
                         defaultContainer 'runner'
                     }
                 }
-                parallel {
-                    stage('check file encoding') {
+                stages {
+                    stage("Test") {
+                        options { timeout(time: 20, unit: 'MINUTES') }
                         steps {
-                            dir('docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
-                                    git config --global --add safe.directory '*'
-                                    """
-                                    // TODO: remove this debug lines
-                                    sh """
-                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                    sh """#!/usr/bin/env bash
-                                    wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
-                                    python3 check-file-encoding.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    stage('check git conflicts') {
-                        steps {
-                            dir('docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
-                                    git config --global --add safe.directory '*'
-                                    """
-                                    // TODO: remove this debug lines
-                                    sh """
-                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                    sh """#!/usr/bin/env bash
-                                    wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-conflicts.py
-                                    python3 check-conflicts.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' '*.yml' '*.yaml')
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    stage('Lint edited files') {
-                        steps {
-                            dir('docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
-                                    git config --global --add safe.directory '*'
-                                    """
-                                    // TODO: remove this debug lines
-                                    sh """
-                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                    sh """#!/usr/bin/env bash
-                                    markdownlint $(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    stage('Check control characters') {
-                        steps {
-                            dir('docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
-                                    git config --global --add safe.directory '*'
-                                    """
-                                    // TODO: remove this debug lines
-                                    sh """
-                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                    sh """#!/usr/bin/env bash
-                                    wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-control-char.py
-                                    python3 check-control-char.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    stage('Check unclosed tags') {
-                        steps {
-                            dir('docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
-                                    git config --global --add safe.directory '*'
-                                    """
-                                    // TODO: remove this debug lines
-                                    sh """
-                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                    sh """#!/usr/bin/env bash
-                                    wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-tags.py
-                                    python3 check-tags.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    stage('Check manual line breaks') {
-                        steps {
-                            dir('docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
-                                    git config --global --add safe.directory '*'
-                                    """
-                                    // TODO: remove this debug lines
-                                    sh """
-                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                    """
-                                    sh """#!/usr/bin/env bash
-                                    wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-manual-line-breaks.py
-                                    python3 check-manual-line-breaks.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                    """
+                            dir('tidb-test') {
+                                dir('docs-cn') {
+                                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
+                                        sh """
+                                        git config --global --add safe.directory '*'
+                                        """
+                                        // TODO: remove this debug lines
+                                        sh """
+                                        git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
+                                        """
+                                        sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
+                                        wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
+
+                                        diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                        ${CHECK_CMD} \$diff_docs_files
+                                        """
+                                    }
                                 }
                             }
                         }
