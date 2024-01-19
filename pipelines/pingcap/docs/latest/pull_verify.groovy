@@ -57,8 +57,8 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('docs') {
-                    container(name: 'net-tool') {
+                dir('check-scripts') {
+                    cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") { 
                         sh label: 'Prepare', script: """
                             wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
                             wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-conflicts.py
@@ -91,21 +91,27 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 20, unit: 'MINUTES') }
                         steps {
-                            dir('tidb-test') {
-                                dir('docs') {
-                                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                        sh """
-                                        git config --global --add safe.directory '*'
-                                        """
-                                        // TODO: remove this debug lines
-                                        sh """
-                                        git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
-                                        """
-                                        sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
-                                        diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                        ${CHECK_CMD} \$diff_docs_files
-                                        """
-                                    }
+                            dir('check-scripts') { 
+                                cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") {
+                                    sh """
+                                    ls -alh
+                                    """
+                                }
+                            }
+                            dir('docs') {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
+                                    sh """
+                                    git config --global --add safe.directory '*'
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
+                                    """
+                                    sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
+                                    cp -r ../check-scripts/* ./
+                                    diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    ${CHECK_CMD} \$diff_docs_files
+                                    """
                                 }
                             }
                         }
