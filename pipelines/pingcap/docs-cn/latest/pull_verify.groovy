@@ -69,13 +69,14 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
-                                    # TODO: check whether the git config is needed
-                                    git remote add upstream https://github.com/pingcap/docs-cn.git
-                                    git fetch upstream
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                     sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
-                                    python3 check-file-encoding.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-file-encoding.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -87,13 +88,14 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
-                                    # TODO: check whether the git config is needed
-                                    git remote add upstream https://github.com/pingcap/docs-cn.git
-                                    git fetch upstream
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                     sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-conflicts.py
-                                    python3 check-conflicts.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' '*.yml' '*.yaml')
+                                    python3 check-conflicts.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' '*.yml' '*.yaml')
                                     """
                                 }
                             }
@@ -105,12 +107,13 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
-                                    # TODO: check whether the git config is needed
-                                    git remote add upstream https://github.com/pingcap/docs-cn.git
-                                    git fetch upstream
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                     sh """#!/usr/bin/env bash
-                                    markdownlint $(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    markdownlint $(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -122,13 +125,14 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
-                                    # TODO: check whether the git config is needed
-                                    git remote add upstream https://github.com/pingcap/docs-cn.git
-                                    git fetch upstream
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                     sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-control-char.py
-                                    python3 check-control-char.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
+                                    python3 check-control-char.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                 }
                             }
@@ -140,13 +144,14 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
-                                    # TODO: check whether the git config is needed
-                                    git remote add upstream https://github.com/pingcap/docs-cn.git
-                                    git fetch upstream
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                     sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-tags.py
-                                    python3 check-tags.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-tags.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
@@ -158,13 +163,14 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh """
                                     git config --global --add safe.directory '*'
-                                    # TODO: check whether the git config is needed
-                                    git remote add upstream https://github.com/pingcap/docs-cn.git
-                                    git fetch upstream
+                                    """
+                                    // TODO: remove this debug lines
+                                    sh """
+                                    git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*'
                                     """
                                     sh """#!/usr/bin/env bash
                                     wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-manual-line-breaks.py
-                                    python3 check-manual-line-breaks.py \$(git diff-tree --name-only --no-commit-id -r upstream/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    python3 check-manual-line-breaks.py \$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
                                     """
                                 }
                             }
