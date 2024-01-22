@@ -139,7 +139,7 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         environment { 
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
@@ -149,8 +149,10 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
+                                        ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
+                                        chmod +x ../scripts/pingcap/tiflow/release-6.5/cdc_run_group.sh
+                                        cp ../scripts/pingcap/tiflow/release-6.5/cdc_run_group.sh tests/integration_tests/
+                                        ./tests/integration_tests/cdc_run_group.sh mysql ${TEST_GROUP}
                                     """
                                 }
                             }
