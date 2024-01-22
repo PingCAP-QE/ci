@@ -1,6 +1,6 @@
 presubmits:
   pingcap/docs:
-    - name: pingcap/docs/pull-verify
+    - name: pingcap/docs/pull_verify
       agent: jenkins
       decorate: false # need add this.
       always_run: false # need change this after test pass.
