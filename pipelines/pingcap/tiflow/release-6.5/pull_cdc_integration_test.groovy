@@ -149,10 +149,8 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
-                                        chmod +x ../scripts/pingcap/tiflow/release-6.5/cdc_run_group.sh
-                                        cp ../scripts/pingcap/tiflow/release-6.5/cdc_run_group.sh tests/integration_tests/
-                                        ./tests/integration_tests/cdc_run_group.sh mysql ${TEST_GROUP}
+                                        chmod +x ./tests/integration_tests/run_group.sh
+                                        ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
                                     """
                                 }
                             }
