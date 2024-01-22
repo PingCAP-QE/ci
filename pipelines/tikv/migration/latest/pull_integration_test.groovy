@@ -103,6 +103,16 @@ pipeline {
                                }
                             }
                         }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /tmp/tikv_cdc_test/
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tikv_cdc_test/ -maxdepth 2 -type f -name "*.log")
+                                    ls -alh log-${TEST_GROUP}.tar.gz
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
+                            }
+                        }
                     }
                 }
             }
