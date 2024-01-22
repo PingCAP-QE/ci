@@ -96,11 +96,33 @@ pipeline {
                         steps {
                             dir('migration') {
                                cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
+                                    container("kafka") {
+                                        timeout(time: 6, unit: 'MINUTES') {
+                                            sh label: "Waiting for kafka ready", script: """
+                                                echo "Waiting for zookeeper to be ready..."
+                                                while ! nc -z localhost 2181; do sleep 10; done
+                                                echo "Waiting for kafka to be ready..."
+                                                while ! nc -z localhost 9092; do sleep 10; done
+                                                echo "Waiting for kafka-broker to be ready..."
+                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                            """
+                                        }
+                                    }
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
                                         ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
                                     """
                                }
+                            }
+                        }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /tmp/tikv_cdc_test/
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tikv_cdc_test/ -type f -name "*.log")    
+                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
                         }
                     }
