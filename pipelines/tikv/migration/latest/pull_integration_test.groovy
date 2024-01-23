@@ -37,6 +37,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
                 }
             }
         }
@@ -95,7 +98,8 @@ pipeline {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
+                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") { 
+                                    sh "printenv" 
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
                                         ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
