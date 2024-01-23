@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tiflow/release-6.0/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: jenkins-ticdc/verify
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"

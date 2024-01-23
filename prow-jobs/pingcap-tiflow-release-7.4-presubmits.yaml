@@ -5,7 +5,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       skip_report: false
@@ -17,7 +17,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       skip_report: false
@@ -29,7 +29,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
       skip_report: false
@@ -41,7 +41,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       skip_report: false
@@ -53,7 +53,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-compatibility-test
       skip_report: false
@@ -65,7 +65,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-integration-test
       skip_report: false
@@ -77,7 +77,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-engine-integration-test
       skip_report: false
@@ -88,7 +88,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.4/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.md|\\.png|\\.jpeg|\\.jpg|\\.gif|\\.pdf|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: jenkins-ticdc/verify 
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
