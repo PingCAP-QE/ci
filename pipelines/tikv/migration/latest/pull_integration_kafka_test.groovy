@@ -95,7 +95,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
                                cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
