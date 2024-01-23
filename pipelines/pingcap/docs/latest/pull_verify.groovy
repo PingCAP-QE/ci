@@ -29,7 +29,7 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    go env
+                    node -v
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -44,7 +44,10 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("docs") {
+                dir("git-docs") {
+                    sh label: "set git config", script: """
+                    git config --global --add safe.directory '*'
+                    """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -98,10 +101,13 @@ pipeline {
                                     """
                                 }
                             }
-                            dir('docs') {
+                            dir('git-docs') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
-                                    sh """
+                                    sh label: "set git config", script: """
                                     git config --global --add safe.directory '*'
+                                    git rev-parse --show-toplevel
+                                    git status -s .
+                                    git log --format="%h %B" --oneline -n 3
                                     """
                                     // TODO: remove this debug lines
                                     sh """
@@ -110,6 +116,11 @@ pipeline {
                                     sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
                                     cp -r ../check-scripts/* ./
                                     diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    
+                                    if [[ "${CHECK_CMD}" == "markdownlint" ]]; then
+                                        npm install -g markdownlint-cli@0.17.0
+                                    fi
+                                    
                                     ${CHECK_CMD} \$diff_docs_files
                                     """
                                 }
