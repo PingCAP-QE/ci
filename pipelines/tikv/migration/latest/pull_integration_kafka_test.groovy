@@ -21,7 +21,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
