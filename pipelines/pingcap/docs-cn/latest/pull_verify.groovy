@@ -115,6 +115,11 @@ pipeline {
                                     sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
                                     cp -r ../check-scripts/* ./
                                     diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
+                                    
+                                    if [[ "${CHECK_CMD}" == "markdownlint" ]]; then
+                                        npm install -g markdownlint-cli@0.17.0
+                                    fi
+
                                     ${CHECK_CMD} \$diff_docs_files
                                     """
                                 }
