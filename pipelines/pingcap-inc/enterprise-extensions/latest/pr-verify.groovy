@@ -53,7 +53,7 @@ pipeline {
         stage('Check') {
             steps {
                 container('golang') {
-                    sh script: 'make gogenerate check bazel_lint -C tidb'
+                    sh script: 'make gogenerate check bazel_build -C tidb'
                 }
             }
         }
