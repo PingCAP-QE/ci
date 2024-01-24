@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiflash/pull_build_and_integration_test') {
+pipelineJob('pingcap/tiflash/pull_integration_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -18,7 +18,7 @@ pipelineJob('pingcap/tiflash/pull_build_and_integration_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/latest/pull_build_and_integration_test.groovy")
+            scriptPath("pipelines/pingcap/tiflash/latest/pull_integration_test.groovy")
             scm {
                 git{
                     remote {
