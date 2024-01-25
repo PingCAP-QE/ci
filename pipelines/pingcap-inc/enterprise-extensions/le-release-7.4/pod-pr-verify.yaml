@@ -5,19 +5,14 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12120230809"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go12020230220"
       securityContext:
         privileged: true
       tty: true
       resources:
         limits:
-          memory: 64Gi
-          cpu: "16"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
+          memory: 32Gi
+          cpu: "8"
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
@@ -30,6 +25,8 @@ spec:
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -69,6 +66,9 @@ spec:
       emptyDir: {}
     - name: bazel-out-merged
       emptyDir: {}
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
     - name: bazel-rc
       secret:
         secretName: bazel
@@ -100,3 +100,7 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
