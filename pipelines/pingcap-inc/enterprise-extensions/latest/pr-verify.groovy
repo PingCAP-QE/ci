@@ -43,7 +43,12 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, '')
+                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
+                                sh """
+                                git rev-parse --show-toplevel
+                                git status -s .
+                                git log --format="%h %B" --oneline -n 3
+                                """
                             }
                         }
                     }
@@ -51,7 +56,12 @@ pipeline {
                 dir('tidb/pkg/extension/enterprise') {
                     retry(2) {
                         script {
-                            prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)                                        
+                            prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                            sh """
+                            git rev-parse --show-toplevel
+                            git status -s .
+                            git log --format="%h %B" --oneline -n 3
+                            """                                            
                         }
                     }
                 }
