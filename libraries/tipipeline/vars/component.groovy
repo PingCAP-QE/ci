@@ -13,7 +13,7 @@ def computeBranchFromPR(String keyInComment, String prTargetBranch, String prCom
     final featureBranchReg = /^feature[\/_].*/
 
     // the components that will created the patch release branch when version released: release-X.Y.Z
-    final componentsSupportPatchReleaseBranch = ['tidb-test']
+    final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
 
     def componentBranch = prTargetBranch
     // example pr tilte : "feat: add new feature | tidb=pr/123"
