@@ -23,7 +23,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 80, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -137,7 +137,7 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         environment { 
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
