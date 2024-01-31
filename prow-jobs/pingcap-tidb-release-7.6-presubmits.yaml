@@ -10,6 +10,7 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^feature/release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-7.6/ghpr_check
       agent: jenkins
       decorate: false # need add this.
