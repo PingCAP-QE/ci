@@ -201,6 +201,6 @@ def setPRDescription(refs) {
             println("No pull request information available.")
         }
     } catch (Exception e) {
-        println("Failed to set PR description: ${e.message}")
+        println("Failed to set PR description: ${e.message}. Please ignore it. 🤷")
     }
 }
