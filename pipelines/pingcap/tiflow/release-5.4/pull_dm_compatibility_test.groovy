@@ -39,6 +39,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
