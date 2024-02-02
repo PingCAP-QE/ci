@@ -6,6 +6,7 @@ interface prTimeline {
   repo: string;
   number: number;
   retested: boolean;
+  holded: boolean;
   raisedAt?: Date;
   reviewStartedAt?: Date;
   acceptedAt?: Date;
@@ -50,6 +51,7 @@ WHERE repo_name = '${repo}'
   let prAcceptedEvent;
   let prMergedEvent;
   let retestHappend = false;
+  let holdedHappend = false;
   for (const e of events) {
     switch (e.event_type) {
       case "PullRequestEvent":
@@ -66,24 +68,38 @@ WHERE repo_name = '${repo}'
         break;
       case "IssueCommentEvent":
         if (
-          (e.labels as string[]).includes("lgtm") &&
-          e.labels.includes("approved") &&
-          !e.labels.some((l: string) => l.match("^do-not-merge/"))
+          !(e.actor_login as string).includes("bot") &&
+          e.actor_login !== e.creator_user_login
+        ) {
+          prReviewStartedEvent ||= e;
+        }
+
+        if (
+          (e.labels.includes("lgtm") && e.labels.includes("approved")) ||
+          (e.labels.includes("status/can-merge") &&
+            e.labels.some((l: string) => l.match(`^status/LGT\\d+$`)))
         ) {
           prAcceptedEvent ||= e;
+
+          if (
+            e.labels.includes("do-not-merge/hold") ||
+            (e.body as string).match("^/hold")
+          ) {
+            holdedHappend = true;
+          }
           if (
             (e.body as string).match(
-              `^/(test\\s+\\w+|retest|retest-required)`,
+              `^/(test\\s+\\w+|retest|retest-required|merge|run-\\w+|test-\\w+)`,
             )
           ) {
             retestHappend = true;
           }
         }
         if (
-          !(e.actor_login as string).includes("bot") &&
-          e.actor_login !== e.creator_user_login
+          (e.body as string).match(`^/(merge)`) && prAcceptedEvent &&
+          !e.labels.includes("status/can-merge")
         ) {
-          prReviewStartedEvent ||= e;
+          retestHappend = true;
         }
         break;
       default:
@@ -95,6 +111,7 @@ WHERE repo_name = '${repo}'
     repo: repo,
     number: prNum,
     retested: retestHappend,
+    holded: holdedHappend,
   } as prTimeline;
 
   if (prRaisedEvent) {
@@ -143,6 +160,7 @@ async function main() {
       "accepted",
       "merged",
       "retested",
+      "holded",
     ].join(
       ",",
     ),
@@ -169,6 +187,7 @@ async function main() {
           (timeline.mergedAt.getTime() - timeline.acceptedAt.getTime()) / 60000,
         ), // minutes
         timeline.retested,
+        timeline.holded,
       ];
       console.log(row.join(","));
     }
