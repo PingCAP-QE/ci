@@ -191,3 +191,12 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
         fi
     """
 }
+
+// print PR info on pipeline run description.
+def setPRDescription(refs) {
+    try {
+        currentBuild.description = "PR #${refs.pulls[0].number}: ${refs.pulls[0].title} ${refs.pulls[0].link}"
+    } catch (Exception e) {
+        println("Failed to set PR description: ${e.message}")
+    }
+}
