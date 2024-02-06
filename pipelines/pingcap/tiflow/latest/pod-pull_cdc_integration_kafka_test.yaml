@@ -118,6 +118,43 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
+    - name: mysql
+      image: quay.io/debezium/example-mysql:2.4
+      imagePullPolicy: Always 
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ""
+        - name: MYSQL_USER
+          value: mysqluser
+        - name: MYSQL_PASSWORD
+          value: mysqlpw
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "yes"
+      ports:
+        - containerPort: 3310
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
+    - name: connect
+      image: quay.io/debezium/connect:2.4
+      ports:
+        - containerPort: 8083
+      env:
+        - name: BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+        - name: GROUP_ID
+          value: "1"
+        - name: CONFIG_STORAGE_TOPIC
+          value: "my_connect_configs"
+        - name: OFFSET_STORAGE_TOPIC
+          value: "my_connect_offsets"
+        - name: STATUS_STORAGE_TOPIC
+          value: "my_connect_statuses"
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
   volumes:
     - emptyDir: {}
       name: volume-0
