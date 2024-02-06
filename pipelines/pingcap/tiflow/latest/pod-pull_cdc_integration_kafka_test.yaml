@@ -115,9 +115,9 @@ spec:
       image: hub.pingcap.net/jenkins/python3-requests:latest
       tty: true
       resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+        requests:
+          cpu: 200m
+          memory: 4Gi
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
       imagePullPolicy: IfNotPresent
