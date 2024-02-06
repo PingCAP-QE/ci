@@ -133,9 +133,9 @@ spec:
         - name: MYSQL_TCP_PORT
           value: "3310"
       resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+        requests:
+          cpu: 200m
+          memory: 4Gi
     - name: connect
       image: quay.io/debezium/connect:2.4
       env:
