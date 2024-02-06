@@ -130,16 +130,14 @@ spec:
           value: mysqlpw
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "yes"
-      ports:
-        - containerPort: 3310
+        - name: MYSQL_TCP_PORT
+          value: "3310"
       resources:
         limits:
           memory: 256Mi
           cpu: 100m
     - name: connect
       image: quay.io/debezium/connect:2.4
-      ports:
-        - containerPort: 8083
       env:
         - name: BOOTSTRAP_SERVERS
           value: "kafka:9092"
