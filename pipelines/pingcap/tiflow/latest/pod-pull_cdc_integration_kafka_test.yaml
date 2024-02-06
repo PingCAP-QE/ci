@@ -140,7 +140,7 @@ spec:
       image: quay.io/debezium/connect:2.4
       env:
         - name: BOOTSTRAP_SERVERS
-          value: "kafka:9092"
+          value: "127.0.0.1:9092"
         - name: GROUP_ID
           value: "1"
         - name: CONFIG_STORAGE_TOPIC
