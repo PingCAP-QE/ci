@@ -120,7 +120,7 @@ spec:
           cpu: 100m
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
-      imagePullPolicy: Always 
+      imagePullPolicy: IfNotPresent
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: ""
