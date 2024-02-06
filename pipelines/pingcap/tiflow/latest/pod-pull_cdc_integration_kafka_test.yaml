@@ -150,9 +150,9 @@ spec:
         - name: STATUS_STORAGE_TOPIC
           value: "my_connect_statuses"
       resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+        requests:
+          cpu: 200m
+          memory: 4Gi
   volumes:
     - emptyDir: {}
       name: volume-0
