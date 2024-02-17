@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_build
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
@@ -13,7 +13,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_check
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
@@ -22,7 +22,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
@@ -31,7 +31,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
@@ -40,7 +40,7 @@ presubmits:
     - name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
@@ -136,7 +136,7 @@ presubmits:
     - name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-integration-ddl-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
@@ -168,7 +168,7 @@ presubmits:
     - name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-mysql-client-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
