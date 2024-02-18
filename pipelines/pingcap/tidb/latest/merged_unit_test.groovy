@@ -42,9 +42,10 @@ pipeline {
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
+                        script {
+                            git.setSshKey(GIT_CREDENTIALS_ID)
+                            retry(2) {
+                                prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             }
                         }
                     }
@@ -52,7 +53,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 90, unit: 'MINUTES') }
             environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir('tidb') {
