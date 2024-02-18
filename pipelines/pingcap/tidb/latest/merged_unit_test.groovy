@@ -53,7 +53,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 90, unit: 'MINUTES') }
             environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir('tidb') {
