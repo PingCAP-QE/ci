@@ -88,10 +88,6 @@ pipeline {
                         name 'PART'
                         values '1', '2', '3', '4'
                     }
-                    axis {
-                        name 'CACHE_ENABLED'
-                        values '0', "1"
-                    }
                 }
                 agent{
                     kubernetes {
@@ -120,13 +116,12 @@ pipeline {
                                     ls -alh bin/
                                 """
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                                    sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                    sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh 
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                         bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                         export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
-                                        export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"
                                         ./test.sh -blacklist=1 -part=${PART}
