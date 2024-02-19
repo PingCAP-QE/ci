@@ -10,7 +10,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12120230809"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go122020240219"
       tty: true
       resources:
         requests:

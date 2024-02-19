@@ -5,7 +5,7 @@ spec:
     runAsUser: 0
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12120230809"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go122020240219"
       securityContext:
         privileged: true
       tty: true
