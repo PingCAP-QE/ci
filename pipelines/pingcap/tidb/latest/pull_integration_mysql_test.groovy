@@ -98,10 +98,6 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name 'CACHE_ENABLED'
-                        values '0', "1"
-                    }
-                    axis {
                         name 'TEST_PART'
                         values '1', "2", "3", "4"
                     }
@@ -130,18 +126,16 @@ pipeline {
                                         ./bin/pd-server -V
                                     """
                                     container("golang") {
-                                        sh label: "test_store=${TEST_STORE} cache_enabled=${CACHE_ENABLED} test_part=${TEST_PART}", script: """#!/usr/bin/env bash
+                                        sh label: "test_store=${TEST_STORE} test_part=${TEST_PART}", script: """#!/usr/bin/env bash
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                                 bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"
                                                 cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
                                             else
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export CACHE_ENABLED=${CACHE_ENABLED}
                                                 export TIDB_TEST_STORE_NAME="unistore"
                                                 cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
                                             fi
@@ -152,7 +146,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
