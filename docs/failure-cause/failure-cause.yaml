@@ -4,16 +4,16 @@ failure_cause:
     categories: <failure_categories>
     comment: <failure_body_example>
     indications:
-      - type: Build_Log_Indication
+      - type: build_log_indication
         pattern: <A regular expression to find in the build log.>
-      - type: Multi_line_Build_Log_Indication
+      - type: multi_line_build_log_indication
         pattern: <A regular expression to find in the build log.>
   - name: "bazel task fail"
     description: "failed in bazel  task"
     categories: product_bug
     comment: 'bazel task fail'
     indications:
-      - type: Build_Log_Indication
+      - type: build_log_indication
         pattern: '.*FAILED:\s*\b\w+\b did NOT complete successfully'
   - name: "kubernetes client exception"
     description: "pod connection exception"
