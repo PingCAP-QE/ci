@@ -1,0 +1,31 @@
+failure_cause:
+  - name: <failure_name>
+    description: <failure_description>
+    categories: <failure_categories>
+    comment: <failure_body_example>
+    indications:
+      - type: Build_Log_Indication
+        pattern: <A regular expression to find in the build log.>
+      - type: Multi_line_Build_Log_Indication
+        pattern: <A regular expression to find in the build log.>
+  - name: "bazel task fail"
+    description: "failed in bazel  task"
+    categories: product_bug
+    comment: 'bazel task fail'
+    indications:
+      - type: Build_Log_Indication
+        pattern: '.*FAILED:\s*\b\w+\b did NOT complete successfully'
+  - name: "kubernetes client exception"
+    description: "pod connection exception"
+    categories: agent
+    comment: 'KubernetesClientException'
+    indications:
+      - type: build_log_indication
+        pattern: '.*Failed\s+.*io\.fabric8\.kubernetes\.client\.KubernetesClientException.*'
+  - name: "git commit not found"
+    description: "git commit not found"
+    categories: git
+    comment: 'pr forced or branch delted my cause this'
+    indications:
+      - type: build_log_indication
+        pattern: "^ERROR:\\s*Couldn't find any revision to build\\b.*\\bVerify the repository and branch configuration for this job\\b"
