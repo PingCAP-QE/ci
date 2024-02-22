@@ -90,10 +90,7 @@ pipeline {
                                 echo "build binary for previous version"
                                 git fetch origin ${REFS.base_ref}:local
                                 git checkout local
-                                # git rev-parse HEAD
-                                # revert this later
-                                git checkout e51f517655ed7f27035721c35760b99ff698c82d
-                                git status
+                                git rev-parse HEAD
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
