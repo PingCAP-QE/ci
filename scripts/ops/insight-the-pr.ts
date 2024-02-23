@@ -1,6 +1,12 @@
+import * as flags from "https://deno.land/std@0.201.0/flags/mod.ts";
+
 const GHE_QUERY_URL =
   "https://play.clickhouse.com/?add_http_cors_header=1&default_format=JSONCompact&max_result_rows=1000&max_result_bytes=10000000&result_overflow_mode=break";
 const GHE_QEURY_AUTHORIZATION = "Basic cGxheTo="; // just username, empty password, it's public service.
+
+interface cliParams {
+  date_range: string; // example: '"2023-09-01" AND "2023-09-08"'
+}
 
 interface prTimeline {
   repo: string;
@@ -13,7 +19,11 @@ interface prTimeline {
   mergedAt?: Date;
 }
 
-async function prMergedList(repo: string, baseRef: string) {
+async function prMergedList(
+  repo: string,
+  baseRef: string,
+  mergedDateRage: string,
+) {
   const querySQL = `
   SELECT repo_name,    
       base_ref,
@@ -22,7 +32,7 @@ async function prMergedList(repo: string, baseRef: string) {
   FROM github_events
   WHERE repo_name = '${repo}'
       AND base_ref = '${baseRef}'
-      AND merged_at >= '2024-01-01 00:00:00'
+      AND merged_at BETWEEN ${mergedDateRage}
       AND event_type = 'PullRequestEvent'
       AND action = 'closed'
       AND merged_by != ''
@@ -83,6 +93,8 @@ WHERE repo_name = '${repo}'
 
           if (
             e.labels.includes("do-not-merge/hold") ||
+            e.labels.includes("do-not-merge/needs-triage-completed") ||
+            e.labels.includes("do-not-merge/cherry-pick-not-approved") ||
             (e.body as string).match("^/hold")
           ) {
             holdedHappend = true;
@@ -147,24 +159,12 @@ async function gheSqlQuery(querySQL: string) {
   );
 }
 
-async function main() {
-  const repo = "pingcap/tidb";
-  const baseRef = "master";
-  const prList = await prMergedList(repo, baseRef);
-  console.log(
-    [
-      "repo",
-      "pr",
-      "merged_at",
-      "pickup",
-      "accepted",
-      "merged",
-      "retested",
-      "holded",
-    ].join(
-      ",",
-    ),
-  );
+async function repoPRStateTimeInfos(
+  repo: string,
+  baseRef: string,
+  dateRange: string,
+) {
+  const prList = await prMergedList(repo, baseRef, dateRange);
   for await (const prNum of prList) {
     const timeline = await prTimeline(repo, prNum);
     if (
@@ -191,6 +191,42 @@ async function main() {
       ];
       console.log(row.join(","));
     }
+  }
+}
+
+async function main() {
+  const cliArgs = flags.parse(Deno.args) as cliParams;
+  if (!cliArgs.date_range) {
+    console.error("the script need date_range option");
+    Deno.exit(-1);
+  }
+
+  const repos = [
+    "pingcap/tidb",
+    "pingcap/tiflow",
+    "pigncap/tiflash",
+    "tikv/tikv",
+    "tikv/pd",
+  ];
+  const baseRef = "master";
+
+  console.log(
+    [
+      "repo",
+      "pr",
+      "merged_at",
+      "pickup",
+      "accepted",
+      "merged",
+      "retested",
+      "holded",
+    ].join(
+      ",",
+    ),
+  );
+
+  for (const repo of repos) {
+    await repoPRStateTimeInfos(repo, baseRef, cliArgs.date_range);
   }
 }
 
