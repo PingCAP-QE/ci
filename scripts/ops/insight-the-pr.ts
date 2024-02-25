@@ -85,6 +85,14 @@ WHERE repo_name = '${repo}'
         }
 
         if (
+          (e.body as string).includes(
+            "This pull request has been accepted and is ready to merge",
+          )
+        ) {
+          prAcceptedEvent ||= e;
+        }
+
+        if (
           (e.labels.includes("lgtm") && e.labels.includes("approved")) ||
           (e.labels.includes("status/can-merge") &&
             e.labels.some((l: string) => l.match(`^status/LGT\\d+$`)))
@@ -102,13 +110,13 @@ WHERE repo_name = '${repo}'
           if (
             (e.body as string).match(
               `^/(test\\s+\\w+|retest|retest-required|merge|run-\\w+|test-\\w+)`,
-            )
+            ) && !prMergedEvent
           ) {
             retestHappend = true;
           }
         }
         if (
-          (e.body as string).match(`^/(merge)`) && prAcceptedEvent &&
+          prAcceptedEvent && (e.body as string).match(`^/(merge)`) &&
           !e.labels.includes("status/can-merge")
         ) {
           retestHappend = true;
@@ -161,10 +169,8 @@ async function gheSqlQuery(querySQL: string) {
 
 async function repoPRStateTimeInfos(
   repo: string,
-  baseRef: string,
-  dateRange: string,
+  prList: number[],
 ) {
-  const prList = await prMergedList(repo, baseRef, dateRange);
   for await (const prNum of prList) {
     const timeline = await prTimeline(repo, prNum);
     if (
@@ -226,7 +232,8 @@ async function main() {
   );
 
   for (const repo of repos) {
-    await repoPRStateTimeInfos(repo, baseRef, cliArgs.date_range);
+    const prList = await prMergedList(repo, baseRef, cliArgs.date_range);
+    await repoPRStateTimeInfos(repo, prList);
   }
 }
 
