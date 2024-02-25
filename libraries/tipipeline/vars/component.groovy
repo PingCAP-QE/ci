@@ -13,7 +13,7 @@ def computeBranchFromPR(String keyInComment, String prTargetBranch, String prCom
     final featureBranchReg = /^feature[\/_].*/
 
     // the components that will created the patch release branch when version released: release-X.Y.Z
-    final componentsSupportPatchReleaseBranch = ['tidb-test']
+    final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
 
     def componentBranch = prTargetBranch
     // example pr tilte : "feat: add new feature | tidb=pr/123"
@@ -193,16 +193,27 @@ def fetchAndExtractArtifact(serverUrl, keyInComment, prTargetBranch, prCommentBo
 def getPrDiffFiles(fullRepoName, prId, credentialsId) {
     withCredentials([string(credentialsId: "${credentialsId}", variable: 'token')]) { 
         def apiUrl = "https://api.github.com/repos/${fullRepoName}/pulls/${prId}/files"
-        def response = httpRequest(url: apiUrl, contentType: 'APPLICATION_JSON', 
-            httpMode: 'GET', customHeaders:[[name:'Authorization', value:"token $token", maskValue: true]])
-        if (response.status != 200) {
-            error("Failed to retrieve diff files from GitHub API: ${response.status} ${response.content}")
-            return []
+        def allFiles = []
+        def page = 1
+        while (true) {
+            def pagedUrl = apiUrl + "?page=${page}&per_page=100"
+            def response = httpRequest(url: pagedUrl, contentType: 'APPLICATION_JSON', 
+                httpMode: 'GET', customHeaders: [[name: 'Authorization', value: "token $token", maskValue: true]])
+            if (response.status != 200) {
+                error("Failed to retrieve diff files from GitHub API: ${response.status} ${response.content}")
+                return []
+            }
+            def files = new groovy.json.JsonSlurper().parseText(response.content)
+            if (files.size() == 0) {
+                break
+            }
+            allFiles.addAll(files.collect { it.filename })
+            page++
         }
-        def files = new groovy.json.JsonSlurper().parseText(response.content)
-        return files.collect { it.filename }
+        return allFiles
     }
 }
+
 
 /**
  * If all files matches the pattern, return true

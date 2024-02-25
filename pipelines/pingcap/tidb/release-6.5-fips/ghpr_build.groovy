@@ -37,6 +37,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
@@ -97,44 +100,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Build plugins") {
-                    steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
-                        }
-                        dir('enterprise-plugin/whitelist') {
-                            sh label: 'build plugin whitelist', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
-                        dir('enterprise-plugin/audit') {
-                            sh label: 'build plugin: audit', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
-                    }
-                }
-            }
-        }
-        stage("Test plugin") {
-            steps {
-                sh label: 'build tidb-server', script: 'make server -C tidb'
-                sh label: 'Test plugins', script: '''
-                  rm -rf /tmp/tidb
-                  rm -rf plugin-so
-                  mkdir -p plugin-so
-
-                  cp enterprise-plugin/audit/audit-1.so ./plugin-so/
-                  cp enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
-                  ./tidb/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
-
-                  sleep 30
-                  ps aux | grep tidb-server
-                  cat /tmp/loading-plugin.log
-                  killall -9 -r tidb-server
-                '''
             }
         }
     }

@@ -5,25 +5,28 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: hub.pingcap.net/ee/ci/base:v20230810-go1.21.0
-      imagePullPolicy: Always
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go12020230220"
       securityContext:
         privileged: true
       tty: true
       resources:
         limits:
-          memory: "32Gi"
-          cpu: "16"
-      env:
-        - name: GOPATH
-          value: /share/.go
-        - name: GOCACHE
-          value: /share/.cache/go-build
+          memory: 32Gi
+          cpu: "8"
       volumeMounts:
+        - mountPath: /home/jenkins/.tidb/tmp
+          name: bazel-out-merged
+        - name: bazel-out-lower
+          subPath: tidb/go1.19.2
+          mountPath: /bazel-out-lower
+        - name: bazel-out-overlay
+          mountPath: /bazel-out-overlay
         - name: gocache
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -35,6 +38,20 @@ spec:
             command:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 100m
   volumes:
     - name: gopathcache
       persistentVolumeClaim:
@@ -42,9 +59,19 @@ spec:
     - name: gocache
       persistentVolumeClaim:
         claimName: gocache
+    - name: bazel-out-lower
+      persistentVolumeClaim:
+        claimName: bazel-out-data
+    - name: bazel-out-overlay
+      emptyDir: {}
+    - name: bazel-out-merged
+      emptyDir: {}
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
     - name: bazel-rc
-      configMap:
-        name: bazel
+      secret:
+        secretName: bazel
     - name: containerinfo
       downwardAPI:
         items:
@@ -73,3 +100,7 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
