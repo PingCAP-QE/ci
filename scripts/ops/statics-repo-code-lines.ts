@@ -119,6 +119,7 @@ async function main() {
   ];
   const branches = [
     "master",
+    "release-7.6",
     "release-7.5",
     "release-7.4",
     "release-7.3",
