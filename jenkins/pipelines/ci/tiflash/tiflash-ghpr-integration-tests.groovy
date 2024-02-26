@@ -19,7 +19,7 @@ def runTest(label, name, path, tidb_branch) {
         nodeSelector: "kubernetes.io/arch=amd64",
         instanceCap: 15,
         containers: [
-            containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
+            containerTemplate(name: 'dockerd', image: 'docker:20.10.24-dind', privileged: true,
                     resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                     resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
