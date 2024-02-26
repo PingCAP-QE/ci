@@ -1,11 +1,20 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
 postsubmits:
   pingcap/tiproxy:
-    - name: pingcap/tiproxy/merged_integration_prisma_test
+    - name: pingcap/tiproxy/merged_mysql_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: merged-integration-prisma-test # need change this.
+      context: merged-mysql-test # need change this.
+      max_concurrency: 1
+      skip_report: false
+      branches:
+        - ^main$
+    - name: pingcap/tiproxy/merged_integration_nodejs_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: merged-integration-nodejs-test # need change this.
       max_concurrency: 1
       skip_report: false
       branches:
@@ -15,15 +24,6 @@ postsubmits:
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-python-orm-test # need change this.
-      max_concurrency: 1
-      skip_report: false
-      branches:
-        - ^main$
-    - name: pingcap/tiproxy/merged_integration_sequelize_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: merged-integration-sequelize-test # need change this.
       max_concurrency: 1
       skip_report: false
       branches:

@@ -68,7 +68,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -126,7 +126,7 @@ pipeline {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     container("golang") {
                                         sh label: "prepare", script: """
                                             git rev-parse HEAD
@@ -147,7 +147,7 @@ pipeline {
                                         """
                                     }
                                     sh label: "prepare image", script: """
-                                        TIDB_CLUSTER_BRANCH=${REFS.base_ref}
+                                        TIDB_CLUSTER_BRANCH=release-7.4
                                         TIDB_TEST_TAG=nightly
 
                                         docker pull hub.pingcap.net/tiflow/minio:latest

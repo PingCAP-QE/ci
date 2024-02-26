@@ -8,7 +8,7 @@ BAZEL_FLAKY_SUMMARY_FILE="bazel-flaky-summaries.log"
 # parse bazel go test case index log
 # param $1 file path
 function parse_bazel_go_test_index_log() {
-    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|(====================( Test output for //|=+))"
+    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|(====================( Test output for //|=+)|WARNING: DATA RACE|testing.go:[0-9]+: race detected during execution of test)"
     local logPath="$1"
     grep --color -nE "$indexReg" "$logPath" >"$DEFAULT_GO_TEST_INDEX_FILE"
 }
@@ -28,6 +28,10 @@ function parse_bazel_target_output_log() {
             append="$append.timeout"
         elif grep -E "^--- FAIL" "$saveFlag.log" >/dev/null; then
             append="$append.fail"
+            if grep -E "testing.go:[0-9]+: race detected during execution of test" "$saveFlag.log" >/dev/null; then
+                append="$append.race"
+            fi
+
         elif grep -E "(---|===) (PASS|FAIL|RUN)" "$saveFlag.log" | grep -oE "\bTest\w+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
             append="$append.fatal"
         fi
@@ -80,14 +84,25 @@ function parse_bazel_go_test_new_flaky_cases() {
                         grep "^\s*1\b" |
                         grep -Eo "\bTest\w+"
                 ))
-                if [ "${#newFlakyCases[@]}" -gt 0 ]; then
-                    ##### add into result json file.
-                    local caseJqArray
-                    caseJqArray=$(printf ',"%s"' "${newFlakyCases[@]}")
-                    caseJqArray=${caseJqArray:1}
 
-                    jq ".\"$target\".new_flaky |= (. + [${caseJqArray}] | unique)" \
-                        "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+                ##### add into result json file.
+                if [ "${#newFlakyCases[@]}" -gt 0 ]; then
+                    for c in "${newFlakyCases[@]}"; do
+                        local caseRunStartLine=$(grep -E "=== RUN\s*${c}$" "$DEFAULT_GO_TEST_INDEX_FILE" | cut -d ":" -f 1)
+                        local caseRunEndLine=$(grep -E "(--- FAIL):\s*${c}\b.*$" "$DEFAULT_GO_TEST_INDEX_FILE" | cut -d ":" -f 1)
+                        local failReason="unknow"
+
+                        # failed reason: race detected.
+                        if sed -n "/^${caseRunStartLine}:/,/^${caseRunEndLine}:/p" "$DEFAULT_GO_TEST_INDEX_FILE" | grep "race detected during execution of test" >/dev/null; then
+                            echo "race detected case: ${c}"
+                            failReason="race"
+                        else
+                            echo "new flaky case: ${c}"
+                        fi
+
+                        jq ".\"$target\".new_flaky |= (. + [{\"name\":\"${c}\",\"reason\":\"${failReason}\"}] | unique)" \
+                            "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+                    done
                 fi
             done
         done

@@ -37,13 +37,16 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
                             retry(2) {
@@ -60,6 +63,19 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh script: 'make gogenerate check integrationtest'
+                }
+            }
+            post {
+                unsuccessful {
+                    dir("tidb") {
+                        sh label: "archive log", script: """
+                        logs_dir='test_logs'
+                        mkdir -p \${logs_dir}
+                        mv tests/integrationtest/integration-test.out \${logs_dir} || true
+                        tar -czvf \${logs_dir}.tar.gz \${logs_dir} || true
+                        """
+                        archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
+                    }
                 }
             }
         }

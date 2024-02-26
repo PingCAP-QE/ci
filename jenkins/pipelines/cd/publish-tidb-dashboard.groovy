@@ -27,16 +27,16 @@ pipeline {
             steps{
                 sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON  /root/.tiup/keys/private.json'
                 sh """
-                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/linux-amd64.tar.gz
-                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/linux-arm64.tar.gz
-                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/darwin-amd64.tar.gz
-                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/darwin-arm64.tar.gz
+                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/tidb-dashboard-linux-amd64.tar.gz
+                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/tidb-dashboard-linux-arm64.tar.gz
+                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/tidb-dashboard-darwin-amd64.tar.gz
+                    curl -O http://fileserver.pingcap.net/download/builds/tidb-dashboard/${params.ReleaseTag}/tidb-dashboard-darwin-arm64.tar.gz
                    """
                 sh """
-                    tiup mirror publish tidb-dashboard ${ReleaseTag} linux-amd64.tar.gz tidb-dashboard --os=linux --arch=amd64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
-                    tiup mirror publish tidb-dashboard ${ReleaseTag} linux-arm64.tar.gz tidb-dashboard --os=linux --arch=arm64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
-                    tiup mirror publish tidb-dashboard ${ReleaseTag} darwin-amd64.tar.gz tidb-dashboard --os=darwin --arch=amd64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
-                    tiup mirror publish tidb-dashboard ${ReleaseTag} darwin-arm64.tar.gz tidb-dashboard --os=darwin --arch=arm64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
+                    tiup mirror publish tidb-dashboard ${ReleaseTag} tidb-dashboard-linux-amd64.tar.gz tidb-dashboard --os=linux --arch=amd64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
+                    tiup mirror publish tidb-dashboard ${ReleaseTag} tidb-dashboard-linux-arm64.tar.gz tidb-dashboard --os=linux --arch=arm64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
+                    tiup mirror publish tidb-dashboard ${ReleaseTag} tidb-dashboard-darwin-amd64.tar.gz tidb-dashboard --os=darwin --arch=amd64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
+                    tiup mirror publish tidb-dashboard ${ReleaseTag} tidb-dashboard-darwin-arm64.tar.gz tidb-dashboard --os=darwin --arch=arm64 --desc='TiDB Dashboard is a Web UI for monitoring, diagnosing, and managing the TiDB cluster'
                    """
             }
         }

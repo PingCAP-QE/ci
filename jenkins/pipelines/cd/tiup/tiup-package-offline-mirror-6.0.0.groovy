@@ -6,7 +6,7 @@ if (DEBUG_MODE == "true") {
 
 }
 
-lts_versions = ["v6.1","v6.5","v7.1"]
+lts_versions = ["v6.1","v6.5","v7.1","v7.5","v8.1"]
 
 def is_lts_version = { version ->
     for (lts_version in lts_versions) {
@@ -36,13 +36,17 @@ def clone_server_package = { arch, dst ->
     if (VERSION>="v6.6.0"){
         dashboard_package =  " --tidb-dashboard $VERSION"
     }
+    def tiproxy_package = ""
+    if (VERSION>="v7.6.0"){
+        tiproxy_package =  " --tiproxy latest"
+    }
     sh """
     tiup mirror set https://tiup-mirrors.pingcap.com
     tiup mirror clone $dst --os linux --arch ${arch} --tidb $VERSION --tikv $VERSION \
     --tiflash $VERSION --pd $VERSION --ctl $VERSION --grafana $VERSION --alertmanager latest \
     --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
     --tiup latest --cluster latest  --insight latest --diag latest --influxdb latest \
-    --playground latest $dashboard_package
+    --playground latest $dashboard_package $tiproxy_package
     """
 }
 
@@ -50,29 +54,33 @@ def clone_toolkit_package = { arch, dst ->
     // Add some monitor tools to the toolkit package for offline mirror >= v6.1.1
     // TODO: which package is server, --cluster latest?
     // issue : https://github.com/PingCAP-QE/ci/issues/1256
-    importer_cmd = ""
+    def pkgs_deprecate_v75 = "" // components that deprecate since 7.5
     if (release_tag < "v7.5.0"){
-        importer_cmd = "--tikv-importer v4.0.2"
+        pkgs_deprecate_v75 = "--tikv-importer v4.0.2 --spark latest --tispark latest"
+    }
+    def amd64_pkg = ""
+    if (arch == "amd64"){
+        amd64_pkg = "--PCC latest --package latest"
     }
     if (release_tag >= "v6.1.1") {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
-        tiup mirror clone $dst --os linux --arch ${arch} ${importer_cmd} --pd-recover $VERSION \
+        tiup mirror clone $dst --os linux --arch ${arch} ${pkgs_deprecate_v75} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
-        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
+        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
         --grafana $VERSION --alertmanager latest \
         --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
-        --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
-        --PCC latest --pump $VERSION --drainer $VERSION --server latest
+        --bench latest --errdoc latest --dba latest \
+        $amd64_pkg --pump $VERSION --drainer $VERSION --server latest
         """
     } else {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
-        tiup mirror clone $dst --os linux --arch ${arch} ${importer_cmd} --pd-recover $VERSION \
+        tiup mirror clone $dst --os linux --arch ${arch} ${pkgs_deprecate_v75} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
-        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION --spark latest \
-        --tispark latest --package latest  --bench latest --errdoc latest --dba latest \
-        --PCC latest --pump $VERSION --drainer $VERSION 
+        --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
+        --bench latest --errdoc latest --dba latest \
+        $amd64_pkg --pump $VERSION --drainer $VERSION 
         """
     }
 }
@@ -217,14 +225,14 @@ def package_tools = { plat, arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag_actual}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag_actual}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag_actual}/${br_hash}/centos7/br-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.21-linux-${arch}.tar.gz
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
         tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
-        tar xf etcd-v3.3.10-linux-${arch}.tar.gz
+        tar xf etcd-v3.4.21-linux-${arch}.tar.gz
 
         
         cp bin/binlogctl ${toolkit_dir}/
@@ -232,7 +240,7 @@ def package_tools = { plat, arch ->
         cp bin/reparo ${toolkit_dir}/
         cp bin/arbiter ${toolkit_dir}/
         cp bin/tidb-lightning-ctl ${toolkit_dir}/
-        cp etcd-v3.3.10-linux-${arch}/etcdctl ${toolkit_dir}/
+        cp etcd-v3.4.21-linux-${arch}/etcdctl ${toolkit_dir}/
         
         ${mydumper_cmd}
 

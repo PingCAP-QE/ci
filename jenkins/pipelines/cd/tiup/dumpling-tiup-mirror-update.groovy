@@ -1,4 +1,3 @@
-def tiup_desc = ""
 def desc = "Dumpling is a CLI tool that helps you dump MySQL/TiDB data"
 
 def dumpling_sha1, tarball_name, dir_name

@@ -19,7 +19,7 @@ def runTest(label, name, path, tidb_branch) {
         nodeSelector: "kubernetes.io/arch=amd64",
         instanceCap: 15,
         containers: [
-            containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
+            containerTemplate(name: 'dockerd', image: 'docker:20.10.24-dind', privileged: true,
                     resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
                     resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
@@ -43,10 +43,18 @@ def runTest(label, name, path, tidb_branch) {
                                 echo "path: ${pwd()}"
                                 sh "TAG=${ghprbActualCommit} BRANCH=${tidb_branch} ./run.sh"
                             } catch (e) {
-                                sh "mv log ${name}-log"
-                                sh "find ${name}-log -name '*.log' | xargs tail -n 500"
-                                sh "docker ps -a"
-                                archiveArtifacts(artifacts: "${name}-log/**/*.log", allowEmptyArchive: true)
+                                sh label: "debug fail", script: """
+                                docker ps -a
+                                mv log ${name}-log
+                                find ${name}-log -name '*.log' | xargs tail -n 500
+                                """
+                                sh label: "archive logs", script: """
+                                chown -R 1000:1000 ./
+                                find ${name}-log -type f -name "*.log" -exec tar -czvf ${name}-logs.tar.gz {} +
+                                chown -R 1000:1000 ./
+                                ls -alh ${name}-logs.tar.gz
+                                """
+                                archiveArtifacts(artifacts: "${name}-logs.tar.gz", allowEmptyArchive: true)
                                 throw e
                             }
                         }

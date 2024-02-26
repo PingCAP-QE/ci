@@ -11,7 +11,7 @@ SELECT repo,
     min(timecost_ms) as min_timecost,
     avg(timecost_ms) as avg_timecost,
     max(timecost_ms) as max_timecost
-FROM tiinsight_problem_case_runs
+FROM problem_case_runs
 WHERE (
       report_time BETWEEN ${dateRange}
       AND flaky = FALSE
@@ -31,7 +31,7 @@ LIMIT 10
 `;
 
 const queryCaseRunSQL = (dateRange: string) => `
-Select * from tiinsight_problem_case_runs
+Select * from problem_case_runs
 where (
   report_time BETWEEN ${dateRange}
   AND flaky = FALSE
@@ -125,7 +125,9 @@ function caseFolder(suite_name: string) {
 
 // Refs:
 // - github rest api: https://docs.github.com/en/rest/issues?apiVersion=2022-11-28
-async function run({db, date_range, github_pat, timecost_threshold }: cliParams) {
+async function run(
+  { db, date_range, github_pat, timecost_threshold }: cliParams,
+) {
   const dbClient = await new Client().connect(db);
 
   // 1. 过滤出这段时间 执行慢的 用例。
@@ -168,7 +170,7 @@ async function run({db, date_range, github_pat, timecost_threshold }: cliParams)
     // 2.1 检索已有的 issue
     const existedIssue = issues.find((issue) => {
       return issue.title.includes(run.case_name) &&
-        issue.title.toLowerCase().match(`slow`)
+        issue.title.toLowerCase().match(`slow`);
     });
     if (existedIssue) {
       // 2.1.1 如果有则追加评论。
@@ -181,6 +183,7 @@ async function run({db, date_range, github_pat, timecost_threshold }: cliParams)
       console.info("❓ existed:", existedIssue.html_url);
       await octokit.rest.issues.createComment(commentPayload);
     } else {
+      console.debug("skip created.");
       // 2.1.2 没有则创建。
       const createRet = await octokit.rest.issues.create({
         owner: "pingcap",
@@ -210,7 +213,7 @@ async function main() {
   }
   if (cliArgs.date_range === "") {
     cliArgs.date_range =
-      "date(date_add(now(6), INTERVAL -7 day)) AND date(date_add(now(6), INTERVAL 1 day))";
+      "TIMESTAMP(date_add(now(6), INTERVAL -7 day)) AND TIMESTAMP(date_add(now(6), INTERVAL 1 day))";
   }
 
   await run(cliArgs);
@@ -220,9 +223,9 @@ async function main() {
 // Example:
 // deno run --allow-all me.ts \
 //  --github_pat <github token> \
-//  --date_range '"2023-09-01" AND "2023-09-08"' \
+//  --date_range 'TIMESTAMP("2023-09-01") AND TIMESTAMP("2023-09-08")' \
 //  --timecost_threshold 100000 \
-//  --db.host localhost \
+//  --db.hostname localhost \
 //  --db.port 3306 \
 //  --db.db <database name> \
 //  --db.username <db user> \

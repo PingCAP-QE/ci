@@ -1,101 +1,56 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   pingcap/tidb:
-    - name: pull-notify-when-compatibility-sections-changed
-      decorate: true # need add this.
-      decoration_config:
-        skip_cloning: true
-      skip_report: true
-      optional: true
-      run_if_changed: "^(session/bootstrap\\.go|sessionctx/variable/(sysvar|session|tidb_vars)\\.go|config/(config\\.go|config\\.toml\\.example)|br/tidb-lightning\\.toml|parser/parser\\.y)$"
-      branches:
-        - ^master$
-      spec:
-        nodeSelector:
-          kubernetes.io/arch: amd64
-        containers:
-          - name: check
-            image: denoland/deno:1.35.1
-            command: [bash, -exec]
-            args:
-              - |
-                deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/notify-by-lark.ts \
-                  --title="TiDB pull request configuration change notify" \
-                  --message="Configuration or variable section file changes are detected, please review and check it." \
-                  --to_emails=yu.dong@pingcap.com \
-                  --to_emails=eason.n@pingcap.com \
-                  --to_emails=wuhui.zuo@pingcap.com \
-                  --to_emails=lifu.wu@pingcap.com \
-                  --links="https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${PULL_NUMBER}"
-            env:
-              - name: LARK_APP_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: chatops-lark
-                    key: app-id
-              - name: LARK_APP_SECRET
-                valueFrom:
-                  secretKeyRef:
-                    name: chatops-lark
-                    key: app-secret
-            resources:
-              limits:
-                memory: 1Gi
-                cpu: "500m"
     - name: pingcap/tidb/ghpr_build
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_check
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
       branches:
         - ^master$
-        - ^feature[_/].+
     - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
@@ -105,7 +60,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-copr-test
+      optional: true
+      context: pull-integration-copr-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
@@ -115,7 +71,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-jdbc-test
+      optional: true
+      context: pull-integration-jdbc-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
@@ -125,8 +82,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-e2e-test
       optional: true
+      context: pull-e2e-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
@@ -137,16 +94,29 @@ presubmits:
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
+      optional: true
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
+      branches:
+        - ^master$
+    - name: pingcap/tidb/pull_lightning_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-lightning-integration-test
+      always_run: false
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-lightning-integration-test"
       branches:
         - ^master$
     - name: pingcap/tidb/pull_common_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-common-test
+      optional: true
+      context: pull-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
@@ -156,7 +126,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-integration-common-test
+      optional: true
+      context: pull-integration-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
@@ -165,8 +136,8 @@ presubmits:
     - name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      context: wip/pull-integration-ddl-test
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-integration-ddl-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
@@ -176,7 +147,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-sqllogic-test
+      optional: true
+      context: pull-sqllogic-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
@@ -186,7 +158,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      context: wip/pull-tiflash-test
+      optional: true
+      context: pull-tiflash-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
@@ -195,7 +168,7 @@ presubmits:
     - name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-mysql-client-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
@@ -206,10 +179,10 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
+      optional: true
       context: pull-integration-nodejs-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
       rerun_command: "/test pull-integration-nodejs-test"
       branches:
         - ^master$
-

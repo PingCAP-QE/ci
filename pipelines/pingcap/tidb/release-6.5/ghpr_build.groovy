@@ -36,15 +36,18 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
         stage('Checkout') {
-            parallel {   
+            parallel {
                 stage('tidb') {
                     steps {
-                        dir('tidb') {
-                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        dir(REFS.repo) {
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                                 retry(2) {
                                     script {
                                         prow.checkoutRefs(REFS)
@@ -57,7 +60,7 @@ pipeline {
                 stage("enterprise-plugin") {
                     steps {
                         dir("enterprise-plugin") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
+                            cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
                                         component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
@@ -75,7 +78,7 @@ pipeline {
                     stages {
                         stage("Build"){
                             steps {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     sh """
                                     sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                                     git diff .
@@ -88,11 +91,8 @@ pipeline {
                                 // TODO: statics and report logic should not put in pipelines.
                                 // Instead should only send a cloud event to a external service.
                                 always {
-                                    dir("tidb") {
-                                        archiveArtifacts(
-                                            artifacts: 'importer.log,tidb-server-check.log',
-                                            allowEmptyArchive: true,
-                                        )
+                                    dir(REFS.repo) {
+                                        archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
                                     }            
                                 }
                             }
@@ -147,6 +147,25 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
+        stage("Test plugin") {
+            steps {
+                sh label: 'build tidb-server', script: 'make server -C tidb'
+                sh label: 'Test plugins', script: '''
+                  rm -rf /tmp/tidb
+                  rm -rf plugin-so
+                  mkdir -p plugin-so
+
+                  cp enterprise-plugin/audit/audit-1.so ./plugin-so/
+                  cp enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
+                  ./tidb/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
+
+                  sleep 30
+                  ps aux | grep tidb-server
+                  cat /tmp/loading-plugin.log
+                  killall -9 -r tidb-server
+                '''
             }
         }
     }

@@ -10,12 +10,9 @@ spec:
         privileged: true
       tty: true
       resources:
-        requests:
-          memory: 8Gi
-          cpu: "4"
         limits:
-          memory: 24Gi
-          cpu: "8"
+          memory: 64Gi
+          cpu: "16"
       # env:
       #   - name: GOPATH
       #     value: /share/.go
@@ -27,7 +24,7 @@ spec:
         - name: gopathcache
           mountPath: /share/.go
     - name: net-tool
-      image: wbitt/network-multitool
+      image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:

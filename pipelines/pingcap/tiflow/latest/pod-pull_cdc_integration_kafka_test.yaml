@@ -105,7 +105,7 @@ spec:
         - mountPath: /tmp
           name: volume-0
     - name: net-tool
-      image: wbitt/network-multitool
+      image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:
@@ -115,9 +115,44 @@ spec:
       image: hub.pingcap.net/jenkins/python3-requests:latest
       tty: true
       resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+        requests:
+          cpu: 200m
+          memory: 4Gi
+    - name: mysql
+      image: quay.io/debezium/example-mysql:2.4
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ""
+        - name: MYSQL_USER
+          value: mysqluser
+        - name: MYSQL_PASSWORD
+          value: mysqlpw
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        - name: MYSQL_TCP_PORT
+          value: "3310"
+      resources:
+        requests:
+          cpu: 200m
+          memory: 4Gi
+    - name: connect
+      image: quay.io/debezium/connect:2.4
+      env:
+        - name: BOOTSTRAP_SERVERS
+          value: "127.0.0.1:9092"
+        - name: GROUP_ID
+          value: "1"
+        - name: CONFIG_STORAGE_TOPIC
+          value: "my_connect_configs"
+        - name: OFFSET_STORAGE_TOPIC
+          value: "my_connect_offsets"
+        - name: STATUS_STORAGE_TOPIC
+          value: "my_connect_statuses"
+      resources:
+        requests:
+          cpu: 200m
+          memory: 4Gi
   volumes:
     - emptyDir: {}
       name: volume-0

@@ -37,6 +37,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
@@ -66,7 +69,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -83,7 +86,7 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-7.5 && ls -alh ./bin
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
                             ./bin/tidb-server -V
@@ -93,7 +96,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
@@ -115,7 +118,7 @@ pipeline {
                             which ./bin/dm-test-tools/check_worker_online
                         """
                     }
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -161,7 +164,7 @@ pipeline {
                             }
 
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
                                     timeout(time: 10, unit: 'MINUTES') {
                                         sh label: "wait mysql ready", script: """
                                             pwd && ls -alh

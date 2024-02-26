@@ -71,7 +71,7 @@ def run_with_pod(Closure body) {
     def label = POD_LABEL
     def cloud = "kubernetes"
     def namespace = "jenkins-tidb"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def jnlp_docker_image = "jenkins/inbound-agent:3148.v532a_7e715ee3-10"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -134,25 +134,45 @@ catchError {
 
                 // tikv
                 def tikv_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz | tar xz"
                 // pd
                 def pd_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz | tar xz"
                 // tidb
                 def tidb_sha1 = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1").trim()
-                sh "curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz | tar xz"
+                def dumpling_sha1 = tidb_sha1
+
+                sh label: "download binaries", script: """
+                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "tikv-server.tar.gz" "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
+                tar -xz 'bin/*' -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
+                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "pd-server.tar.gz" "${FILE_SERVER_URL}/download/builds/pingcap/pd/${pd_sha1}/centos7/pd-server.tar.gz"
+                tar -xz 'bin/*' -f pd-server.tar.gz && rm -rf pd-server.tar.gz
+                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "tidb-server.tar.gz" "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
+                tar -xz 'bin/*' -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
+                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "dumpling.tar.gz" "${FILE_SERVER_URL}/download/builds/pingcap/dumpling/${dumpling_sha1}/centos7/dumpling.tar.gz"
+                tar -xz 'bin/dumpling' -f dumpling.tar.gz && rm -rf dumpling.tar.gz
+                which bin/tikv-server
+                which bin/pd-server
+                which bin/tidb-server
+                which bin/dumpling
+                which bin/importer
+                ls -alh bin/
+                """
 
                 // tools
-                sh "curl https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz"
-                sh "mv tidb-enterprise-tools-nightly-linux-amd64/bin/importer bin/"
-                sh "mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/"
-                sh "mv tidb-enterprise-tools-nightly-linux-amd64/bin/mydumper bin/"
-                sh "rm -r tidb-enterprise-tools-nightly-linux-amd64"
-
+                sh label: "download enterprise-tools-nightly", script: """
+                curl https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz
+                mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
+                rm -r tidb-enterprise-tools-nightly-linux-amd64
+                """
                 stash includes: "bin/**", name: "binaries"
-
-                sh "ls -l ./"
-                sh "ls -l ./bin"
+                sh label: "show binaries", script: """
+                ls -alh ./
+                ls -alh ./bin/
+                chmod +x bin/*
+                ./bin/dumpling --version
+                ./bin/tikv-server -V
+                ./bin/pd-server -V
+                ./bin/tidb-server -V
+                """
             }
         }
     }

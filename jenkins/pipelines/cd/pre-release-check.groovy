@@ -23,7 +23,7 @@ properties([
 def task = "pre-release-check"
 def check_image = { comps, edition, registry, project ->
     podTemplate(name: task, label: task, instanceCap: 5, idleMinutes: 120, nodeSelector: "kubernetes.io/arch=amd64", containers: [
-            containerTemplate(name: 'dockerd', image: 'docker:20-dind', privileged: true, command:'dockerd --host=tcp://localhost:2375'),
+            containerTemplate(name: 'dockerd', image: 'hub.pingcap.net/jenkins/docker:20.10.14-dind', privileged: true, command:'dockerd --host=tcp://localhost:2375'),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/release-checker:master', alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),

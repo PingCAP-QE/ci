@@ -41,8 +41,8 @@ pipeline {
         }
         stage('Checkout') {
             steps {
-                dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                dir(REFS.repo) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
                             retry(2) {
@@ -56,7 +56,7 @@ pipeline {
         stage('Test') {
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
@@ -65,43 +65,35 @@ pipeline {
                 }
             }
             post {
-                 success {
-                    dir("tidb") {
+                success {
+                    dir(REFS.repo) {
                         script {
                             prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
                         }
                     }
                 }
                 always {
-                    sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                    container('deno') {
-                        sh label: "Report flaky test case results", script: """
-                            deno run --allow-all http://fileserver.pingcap.net/download/ci/scripts/plugins/report-flaky-cases-v20230821.ts \
-                                --repo=${REFS.org}/${REFS.repo} \
-                                --branch=${REFS.base_ref} \
-                                --build_url=\${BUILD_URL} \
-                                --caseDataFile=bazel-go-test-problem-cases.json || true
-                        """
-                    }
-                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                    dir('tidb') {
-                        // archive test report to Jenkins.
+                    dir(REFS.repo) {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                        archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
                     }
+
+                    sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                    sh label: 'Send event to cloudevents server', script: """
+                        curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
+                        --header "ce-id: \$(uuidgen)" \
+                        --header "ce-source: \${JENKINS_URL}" \
+                        --header 'ce-type: test-case-run-report' \
+                        --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
+                        --header 'ce-branch: ${REFS.base_ref}' \
+                        --header "ce-buildurl: \${BUILD_URL}" \
+                        --header 'ce-specversion: 1.0' \
+                        --header 'content-type: application/json; charset=UTF-8' \
+                        --data @bazel-go-test-problem-cases.json || true
+                    """
+                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
             }
-        }
-    }
-    post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh """
-                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
-                    bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" || true
-                """
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }

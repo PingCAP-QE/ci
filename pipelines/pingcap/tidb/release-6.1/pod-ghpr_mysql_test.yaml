@@ -27,7 +27,7 @@ spec:
         - name: gopathcache
           mountPath: /share/.go
     - name: net-tool
-      image: wbitt/network-multitool
+      image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:

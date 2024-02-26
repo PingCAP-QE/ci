@@ -35,13 +35,16 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -54,7 +57,7 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     script {
@@ -62,7 +65,7 @@ pipeline {
                          component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
                     }
                     // cache it for other pods
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
                             mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
@@ -105,7 +108,7 @@ pipeline {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
@@ -125,9 +128,18 @@ pipeline {
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
                             }
-                            failure {
-                                dir("checks-collation-enabled") {
-                                    archiveArtifacts(artifacts: 'pd*.log, tikv*.log, integration-test.out', allowEmptyArchive: true)
+                            unsuccessful {
+                                dir("tidb") {
+                                    sh label: "archive log", script: """
+                                    str="$SCRIPT_AND_ARGS"
+                                    logs_dir="logs_\${str// /_}"
+                                    mkdir -p \${logs_dir}
+                                    mv pd*.log \${logs_dir} || true
+                                    mv tikv*.log \${logs_dir} || true
+                                    mv tests/integrationtest/integration-test.out \${logs_dir} || true
+                                    tar -czvf \${logs_dir}.tar.gz \${logs_dir} || true
+                                    """
+                                    archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
                             }
                         }

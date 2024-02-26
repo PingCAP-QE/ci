@@ -36,6 +36,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
@@ -43,7 +46,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -72,12 +75,11 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         environment { 
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
+                            CODECOV_TOKEN = credentials('codecov-token-tiflow')  
                         }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh label: "${TEST_CMD}", script: """
                                         make ${TEST_CMD}
                                     """
@@ -91,7 +93,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

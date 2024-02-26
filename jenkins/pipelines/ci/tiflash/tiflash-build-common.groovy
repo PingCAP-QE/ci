@@ -130,7 +130,12 @@ def getBuildTarget() {
     }
 
     if (params.BUILD_TESTS) {
-        targets = "bench_dbms gtests_dbms gtests_libcommon gtests_libdaemon ${targets}"
+        targets = "gtests_dbms gtests_libcommon gtests_libdaemon ${targets}"
+
+        // Only build bench binary for the master branch
+        if (params.TARGET_BRANCH == "master") {
+            targets = "bench_dbms ${targets}"
+        }
     }
 
     if (params.BUILD_PAGE_TOOLS) {
@@ -266,6 +271,7 @@ def checkoutStage(repo_path, checkout_target) {
             def cache_path = "/home/jenkins/agent/ci-cached-code-daily/src-tics.tar.gz"
             if (fileExists(cache_path)) {
                 sh label: "Get code from nfs to reduce clone time", script: """
+                pwd && ls -alh
                 cp -R ${cache_path}  ./
                 tar -xzf ${cache_path} --strip-components=1
                 rm -f src-tics.tar.gz
@@ -273,6 +279,11 @@ def checkoutStage(repo_path, checkout_target) {
                 """
             }
             checkoutTiFlash(checkout_target, true)
+            sh """
+            git version
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib/tiflash-proxy
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash
+            """
         }
         sh label: "Print build information", script: """
         set +x
@@ -598,6 +609,10 @@ def cmakeConfigureTiFlash(repo_path, build_dir, install_dir, proxy_cache_ready) 
     """
     dir(build_dir) {
         sh """
+            git version
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash/contrib/tiflash-proxy
+            git config --global --add safe.directory /home/jenkins/agent/workspace/tiflash-build-common/tiflash
+
             cmake '${repo_path}' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                 -G '${generator}' \\
                 -DENABLE_FAILPOINTS=${params.ENABLE_FAILPOINTS} \\
@@ -941,7 +956,9 @@ def run_with_pod(Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    nfsVolume(mountPath: '/home/jenkins/agent/ci-cached-code-daily', serverAddress: "${NFS_SERVER_ADDRESS}",
+                        serverPath: '/data/nvme1n1/nfs/git', readOnly: true),
                     ],
     ) {
         node(label) {
@@ -960,6 +977,15 @@ run_with_pod {
         def error_msg = ""
         try {
             dir(repo_path) {
+                sh label: "copy code cache", script: """#!/usr/bin/env bash
+                if [[ -f /home/jenkins/agent/ci-cached-code-daily/src-tiflash-without-submodule.tar.gz ]]; then
+                    cp -R /home/jenkins/agent/ci-cached-code-daily/src-tiflash-without-submodule.tar.gz ./
+                    tar -xzf src-tiflash-without-submodule.tar.gz --strip-components=1
+                    rm -f src-tiflash-without-submodule.tar.gz
+                    chown -R 1000:1000 ./
+                    git status -s
+                fi
+                """
                 checkoutTiFlash(checkout_target, false)
             }
             dispatchRunEnv(repo_path) {

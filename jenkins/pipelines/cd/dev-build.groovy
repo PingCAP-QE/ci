@@ -1,4 +1,7 @@
-final RepoDict = ["tidb":"tidb", "pd":"pd", "tiflash":"tics", "tikv":"tikv", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", "ticdc":"tiflow", "dm":"tiflow", "tidb-binlog":"tidb-binlog", "tidb-tools":"tidb-tools"]
+final RepoDict = ["tiflash":"tics", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", 
+    "ticdc":"tiflow", "dm":"tiflow", "drainer":"tidb-binlog", "pump":"tidb-binlog"]
+final ProductForBuildMapping = ["tiflash":"tics", "tidb-lightning":"br", "drainer":"tidb-binlog", "pump":"tidb-binlog"]
+final DockerMapping = ["drainer":"tidb-binlog", "pump":"tidb-binlog"]
 final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
 def GitHash = ''
@@ -14,12 +17,22 @@ def PipelineEndAt = ''
 
 def RepoForBuild = ''
 def ProductForBuild = ''
+def ProductForDocker = ''
 def NeedEnterprisePlugin = false
 def PrintedVersion = ''
 
 
-def get_dockerfile_url(arch){
-    def fileName = Product
+def get_dockerfile_url={arch ->
+    def fileName = ProductForDocker
+    if (params.ProductDockerfile){
+        return params.ProductDockerfile
+    }
+    if (params.ProductBaseImg){
+        if (Product == "tidb" && Edition == "enterprise") {
+            fileName = fileName + '-enterprise'
+        }
+        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
+    }
     if (Version>='v6.6.0'){
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = fileName + '-enterprise'
@@ -34,18 +47,6 @@ def get_dockerfile_url(arch){
 }
 pipeline{
     agent none
-    parameters {
-        choice(name: 'Product', choices : ["tidb", "tikv", "pd", "tiflash", "br", "dumpling", "tidb-lightning", "ticdc", "dm","tidb-binlog", "tidb-tools"], description: 'the product to build, eg. tidb/tikv/pd')
-        string(name: 'GitRef', description: 'the git tag or commit or branch or pull/id of repo')
-        string(name: 'Version', description: 'important, the version for cli --version and profile choosing, eg. v6.5.0')
-        choice(name: 'Edition', choices : ["community", "enterprise"])
-        string(name: 'PluginGitRef', description: 'the git commit for enterprise plugin, only in enterprise tidb', defaultValue: "master")
-        string(name: 'GithubRepo', description: 'the github repo,just ignore unless in forked repo, eg pingcap/tidb', defaultValue: '')
-        booleanParam(name: 'IsPushGCR', description: 'whether push gcr')
-        booleanParam(name: 'IsHotfix', description: 'is it a hotfix build', defaultValue: false)
-        string(name: 'Features', description: 'comma seperated features to build with', defaultValue: '')
-        string(name: 'TiBuildID', description: 'the id of tibuild object, just leave empty if you do not know')
-    }
     stages{
         stage('prepare'){
             agent{
@@ -64,7 +65,7 @@ spec:
             environment {GHTOKEN = credentials('github-token-gethash')}
             steps{
                 script{
-                    RepoForBuild = RepoDict[Product]
+                    RepoForBuild = RepoDict.getOrDefault(Product, Product)
                     def hash_repo = params.GithubRepo ? params.GithubRepo : RepoForBuild
                     GitHash = sh(returnStdout: true, script: "python /gethash.py -repo=$hash_repo -version=$GitRef").trim()
                     assert GitHash.length() == 40 : "invalid GitRef: $GitRef, returned hash is $GitHash"
@@ -91,23 +92,21 @@ spec:
                     BinPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-linux-arm64.tar.gz"
                     BinBuildPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
                     BinBuildPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
-                    ProductForBuild = Product
-                    if (ProductForBuild == "tiflash"){
-                        ProductForBuild = "tics"
-                    }
-                    if (Product == "tidb-lightning"){
-                        ProductForBuild = "br"
-                    }
+                    ProductForBuild = ProductForBuildMapping.getOrDefault(Product, Product)
+                    ProductForDocker = DockerMapping.getOrDefault(Product, Product)
                     def date = new Date()
                     PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
-                    Image = "hub.pingcap.net/devbuild/$Product:$Version-$BUILD_NUMBER"
-                    ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version-$BUILD_NUMBER-dev"
+                    Image = "hub.pingcap.net/devbuild/$ProductForDocker:$Version-$BUILD_NUMBER"
+                    if (params.TargetImg!=""){
+                        Image = params.TargetImg
+                    }
+                    ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
-                        Image = "hub.pingcap.net/qa/$Product:$Version-$BUILD_NUMBER"
+                        Image = "hub.pingcap.net/qa/$ProductForDocker:$Version-$BUILD_NUMBER"
                         if (params.Features != ""){
                             error "hotfix artifact but with extra features"
                         }
-                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$Product:$Version"
+                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version"
                         BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
                         BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
                         PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
@@ -120,9 +119,29 @@ spec:
                 echo "image: $Image"
                 echo "image on gcr: $ImageForGcr"
             }
-
         }
+        stage('build by sub pipeline'){
+            when{expression{params.Product == "tidb-dashboard"}}
+            steps{
+                script{
+                    def simpleGitRef = params.GitRef.replaceFirst('(^branch/)|(^tag/)','')
+                    def  paramsBuild = [
+                                    string(name: "GitRef", value: simpleGitRef),
+                                    string(name: "ReleaseTag", value: params.Version),
+                                    [$class: 'BooleanParameterValue', name: 'IsDevbuild', value: true],
+                                    string(name: "BinaryPrefix", value: "builds/devbuild/$BUILD_NUMBER"),
+                                    string(name: "DockerImg", value: Image),
+                                    string(name: "BuildEnv", value: params.BuildEnv),
+                    ]
+                    build job: "build-tidb-dashboard",
+                                    wait: true,
+                                    parameters: paramsBuild
+                }
+            }
+        }
+
         stage('multi-arch build'){
+            when{expression{params.Product != "tidb-dashboard"}}
             matrix{
                 axes{
                     axis{
@@ -146,6 +165,8 @@ spec:
                                     string(name: "GIT_PR", value: GitPR),
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "GITHUB_REPO", value: params.GithubRepo),
+                                    string(name: "BUILD_ENV", value: params.BuildEnv),
+                                    string(name: "BUILDER_IMG", value: params.BuilderImg),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                     [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: params.Features.contains('failpoint')],
@@ -216,6 +237,7 @@ spec:
                                     string(name: "PRODUCT", value: ProductForBuild),
                                     string(name: "RELEASE_TAG", value: Version),
                                     string(name: "DOCKERFILE", value: get_dockerfile_url(arch)),
+                                    string(name: "BASE_IMG", value: params.ProductBaseImg),
                                     string(name: "RELEASE_DOCKER_IMAGES", value: "$Image-$arch"),
                                 ]
                                 echo "$paramsDocker"
@@ -229,6 +251,7 @@ spec:
             }
         }
         stage("manifest multi-platform docker"){
+            when{expression{params.Product != "tidb-dashboard"}}
             steps{
                 script{
                 def paramsManifest = [

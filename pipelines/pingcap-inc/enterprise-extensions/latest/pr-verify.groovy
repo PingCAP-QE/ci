@@ -13,29 +13,55 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
         }
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
     }
     stages {
+        stage('Debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
+                }
+            }
+        }
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", filter: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, '')
+                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
+                                sh """
+                                git rev-parse --show-toplevel
+                                git status -s .
+                                git log --format="%h %B" --oneline -n 3
+                                """
                             }
                         }
                     }
                 }
                 dir('tidb/pkg/extension/enterprise') {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)                                        
-                            }
+                    retry(2) {
+                        script {
+                            prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                            sh """
+                            git rev-parse --show-toplevel
+                            git status -s .
+                            git log --format="%h %B" --oneline -n 3
+                            """                                            
                         }
                     }
                 }
@@ -47,7 +73,7 @@ pipeline {
                     sh '''
                         git config --global --add safe.directory $(pwd)
                         git config --global --add safe.directory $(pwd)/tidb
-                        git config --global --add safe.directory $(pwd)/tidb/extension/enterprise
+                        git config --global --add safe.directory $(pwd)/tidb/pkg/extension/enterprise
                     '''
                 }
             }
@@ -55,7 +81,7 @@ pipeline {
         stage('Check') {
             steps {
                 container('golang') {
-                    sh script: 'make gogenerate check integrationtest -C tidb'
+                    sh script: 'make gogenerate check bazel_build -C tidb'
                 }
             }
         }

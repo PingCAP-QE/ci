@@ -4,7 +4,6 @@
 * @TIDB_VERSION
 */
 
-def tiup_desc = ""
 def dm_master_desc = "dm-master component of Data Migration Platform"
 def dm_worker_desc = "dm-worker component of Data Migration Platform"
 def dmctl_desc = "dmctl component of Data Migration Platform"

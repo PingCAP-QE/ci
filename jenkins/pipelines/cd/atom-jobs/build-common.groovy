@@ -14,88 +14,6 @@
 * @USE_TIFLASH_RUST_CACHE(string:use rust code cache, for tiflash only, Optional)
 */
 
-properties([
-        parameters([
-                choice(
-                        choices: ['arm64', 'amd64'],
-                        name: 'ARCH'
-                ),
-                choice(
-                        choices: ['linux', 'darwin'],
-                        name: 'OS'
-                ),
-                choice(
-                        choices: ['community', 'enterprise'],
-                        name: 'EDITION'
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'OUTPUT_BINARY',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'REPO',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'PRODUCT',
-                        trim: true,
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'GIT_HASH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'GIT_PR',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'RELEASE_TAG',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TARGET_BRANCH',
-                        trim: true
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'TIDB_HASH',
-                        trim: true
-                ),
-                string(
-                         defaultValue: '',
-                         name: 'GITHUB_REPO',
-                         trim: true
-                ),
-                booleanParam(
-                        defaultValue: true,
-                        name: 'FORCE_REBUILD'
-                ),
-                booleanParam(
-                        name: 'FAILPOINT',
-                        defaultValue: false
-                ),
-                booleanParam(
-                        name: 'NEED_SOURCE_CODE',
-                        defaultValue: false
-                ),
-                string(
-                        defaultValue: '',
-                        name: 'USE_TIFLASH_RUST_CACHE',
-                        trim: true                        
-                ),
-                booleanParam(
-                        name: 'TIFLASH_DEBUG',
-                        defaultValue: false
-                ),
-    ])
-])
 
 taskStartTimeInMillis = System.currentTimeMillis()
 taskFinishTimeInMillis = System.currentTimeMillis()
@@ -242,10 +160,10 @@ if (params.PRODUCT == "tikv" || params.PRODUCT == "importer") {
 }
 if (params.PRODUCT == "tics") {
     nodeLabel = "build_tiflash"
-    containerLabel = "tiflash"
+    containerLabel = "tiflash-llvm"
     if (params.ARCH == "arm64" && params.OS == "linux"){
         nodeLabel = "tiflash_build_arm"
-        containerLabel = "tiflash"
+        containerLabel = "tiflash-llvm"
     }
 }
 if (params.ARCH == "arm64" && params.OS == "linux" && !useArmPodTemplate && params.PRODUCT != "tics") {
@@ -288,35 +206,21 @@ if (params.GIT_PR.length() >= 1) {
    specRef = "+refs/pull/${GIT_PR}/*:refs/remotes/origin/pr/${GIT_PR}/*"
 }
 def checkoutCode() {
-    def repoDailyCache = "/nfs/cache/git/src-${REPO}.tar.gz"
-    if (fileExists(repoDailyCache)) {
-        println "get code from nfs to reduce clone time"
+    try{
+        def codeCacheInFileserverUrl = "cicd/daily-cache-code/src-${REPO}.tar.gz"
+        println "get code from fileserver to reduce clone time"
+        println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
+        download_fileserver(codeCacheInFileserverUrl, "src-${REPO}.tar.gz")
         sh """
-        cp -R ${repoDailyCache}  ./
-        tar -xzf ${repoDailyCache} --strip-components=1
+        tar -xzf src-${REPO}.tar.gz --strip-components=1
         rm -f src-${REPO}.tar.gz
         rm -rf ./*
         """
-        sh "chown -R 1000:1000 ./"
-    } else {
-        def codeCacheInFileserverUrl = "${FILE_SERVER_URL}/download/cicd/daily-cache-code/src-${REPO}.tar.gz"
-        def cacheExisted = sh(returnStatus: true, script: """
-            if curl --output /dev/null --silent --head --fail ${codeCacheInFileserverUrl}; then exit 0; else exit 1; fi
-            """)
-        if (cacheExisted == 0) {
-            println "get code from fileserver to reduce clone time"
-            println "codeCacheInFileserverUrl=${codeCacheInFileserverUrl}"
-            sh """
-            wget -c --tries 3 --no-verbose ${codeCacheInFileserverUrl}
-            tar -xzf src-${REPO}.tar.gz --strip-components=1
-            rm -f src-${REPO}.tar.gz
-            rm -rf ./*
-            """
-        } else {
-            println "get code from github"
-        }
+    }catch(err){
+        echo "Caught: ${err}"
+        println "get code from github"
     }
-    retry(3) { 
+    retry(3) {
         checkout changelog: false, poll: true,
                         scm: [$class: 'GitSCM', branches: [[name: "${GIT_HASH}"]], doGenerateSubmoduleConfigurations: false,
                             extensions: [[$class: 'CheckoutOption', timeout: 30],
@@ -328,7 +232,7 @@ def checkoutCode() {
                                                 refspec      : specRef,
                                                 url          : repo]]]
     }
-
+    sh "git config --global --add safe.directory '*'"
     sh 'test -z "$(git status --porcelain)"'
     if(params.PRODUCT == 'enterprise-plugin'){
         sh """
@@ -455,6 +359,7 @@ if [ ${EDITION} == 'enterprise' ]; then
 fi;
 if [ ${failpoint} == 'true' ]; then
     export WITH_RACE=1
+    export FAILPOINT=1
     make failpoint-enable
 fi;
 make
@@ -549,7 +454,7 @@ fi;
 mv LICENSE ${TARGET}/
 
 # start from v6.0.0(include v6.0.0), dm-ansible is removed, link https://github.com/pingcap/tiflow/pull/4917
-# dm-master and dm-worker tiup package also need those config file even for version >=6.0.0
+# dm-master and dm-worker tiup pkg also need those config file even for version >=6.0.0
 #  1. dm-master/conf/dm_worker.rules.yml
 #  2. dm-master/scripts/DM-Monitor-Professional.json
 #  3. dm-master/scripts/DM-Monitor-Standard.json
@@ -659,6 +564,7 @@ cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tics"] = """
+git config --global --add safe.directory '*'
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
@@ -742,7 +648,7 @@ if [ ${EDITION} == 'enterprise' ]; then
     export TIKV_EDITION=Enterprise
     export ROCKSDB_SYS_SSE=0
 fi;
-if [ ${OS} == 'linux' ]; then
+if [ ${OS} == 'linux' ] && [ "${BUILDER_IMG}"x == ''x ]; then
     echo using gcc 8
     source /opt/rh/devtoolset-8/enable
 fi;
@@ -837,33 +743,65 @@ cp audit/audit-1.so.md5 ${TARGET}/bin
 cp audit/audit-1.so ${TARGET}/bin
 """
 
+def usePod(){
+    return OS=="linux"
+}
+
+def upload_fileserver(local, remote){
+    if(usePod()){
+        container("ks3util"){
+            withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+                sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f $local ks3://ee-fileserver/download/${remote}"
+            }
+        }
+    }else{
+        withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+            sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f $local ks3://ee-fileserver/download/${remote}"
+        }
+    }
+}
+
+def download_fileserver(remote, local){
+    if(usePod()){
+        container("ks3util"){
+            withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+                sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${remote} $local"
+            }
+        }
+    }else{
+        withCredentials([file(credentialsId: 'ks3util-secret-config', variable: 'KS3UTIL_CONF')]) {
+            sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${remote} $local"
+        }
+    }
+}
+
 def packageBinary() {
     // 是否和代码一起打包，可以手动设置 NEED_SOURCE_CODE=true
     if (params.NEED_SOURCE_CODE) {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
         """
     //  pd,tidb,tidb-test 非release版本，和代码一起打包
     } else if ((PRODUCT == "pd" || PRODUCT == "tidb" || PRODUCT == "tidb-test" ) && RELEASE_TAG.length() < 1) {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
         """
     } else if (PRODUCT == "tiem") {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
         """
     } else {
         sh """
+        WORKDIR=\$(pwd)
         cd ${TARGET}
-        tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
-        sha256sum ${TARGET}.tar.gz | cut -d ' ' -f 1 >${TARGET}.tar.gz.sha256
-        curl -F ${OUTPUT_BINARY}.sha256=@${TARGET}.tar.gz.sha256 ${FILE_SERVER_URL}/upload
+        tar  -czvf \$WORKDIR/${TARGET}.tar.gz *
+        cd \$WORKDIR
         """
     }
+    sh "sha256sum ${TARGET}.tar.gz | cut -d ' ' -f 1 >${TARGET}.tar.gz.sha256"
+    // replace curl -F ${OUTPUT_BINARY}=@${TARGET}.tar.gz ${FILE_SERVER_URL}/upload
+    upload_fileserver("${TARGET}.tar.gz", OUTPUT_BINARY)
+    upload_fileserver("${TARGET}.tar.gz.sha256", "${OUTPUT_BINARY}.sha256")
 }
 
 def release(product, label) {
@@ -885,30 +823,33 @@ def release(product, label) {
                 image_tag_suffix = config.image_tag_suffix
             }
             label = "tiflash-llvm${image_tag_suffix}".replaceAll('\\.', '-')
+        }else if (fileExists('release-centos7/Makefile') && params.OS != "darwin"){
+            label = "tiflash"
         }
     }
 
     if (label != '') {
         container(label) {
-            withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-                compileStartTimeInMillis = System.currentTimeMillis()
-                sh buildsh[product]
-                compileFinishTimeInMillis = System.currentTimeMillis()
-            }
-            uploadStartTimeInMillis = System.currentTimeMillis()
-            packageBinary()
-            uploadFinishTimeInMillis = System.currentTimeMillis()
+            do_release(product)
         }
     } else {
-        withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
-            compileStartTimeInMillis = System.currentTimeMillis()
-            sh buildsh[product]
-            compileFinishTimeInMillis = System.currentTimeMillis()
-        }
-        uploadStartTimeInMillis = System.currentTimeMillis()
-        packageBinary()
-        uploadFinishTimeInMillis = System.currentTimeMillis()
+        do_release(product)
     }
+}
+
+def do_release(product){
+    withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+        compileStartTimeInMillis = System.currentTimeMillis()
+        def cmd = buildsh[product]
+        if (params.BUILD_ENV){
+            cmd = "export ${params.BUILD_ENV};\n"+cmd
+        }
+        sh cmd
+        compileFinishTimeInMillis = System.currentTimeMillis()
+    }
+    uploadStartTimeInMillis = System.currentTimeMillis()
+    packageBinary()
+    uploadFinishTimeInMillis = System.currentTimeMillis()
 }
 
 def run_with_arm_go_pod(Closure body) {
@@ -938,10 +879,20 @@ def run_with_arm_go_pod(Closure body) {
     if (PRODUCT == "tikv"){
         arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
     }
+    run_with_pod(arm_go_pod_image, body)
+}
+
+def run_with_pod(String builder, Closure body) {
     def cloud = "kubernetes"
-    def nodeSelector = "kubernetes.io/arch=arm64"
+    def nodeSelector = "kubernetes.io/arch=${params.ARCH}"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-cd"
+    def builderRequestCpu="4"
+    def buidlerRequestMemory="8Gi"
+    if (PRODUCT in ["tikv", "tiflash","tics"] ){
+        builderRequestCpu="16"
+        buidlerRequestMemory="32Gi"
+    }
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -949,11 +900,16 @@ def run_with_arm_go_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'builder', alwaysPullImage: true,
-                            image: "${arm_go_pod_image}", ttyEnabled: true,
-                            resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                            image: "${builder}", ttyEnabled: true,
+                            resourceRequestCpu: builderRequestCpu, resourceRequestMemory: buidlerRequestMemory,
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+                    ),
+                    containerTemplate(
+                            name: 'ks3util', alwaysPullImage: true,
+                            image: "hub.pingcap.net/jenkins/ks3util:v2.4.2", ttyEnabled: true,
+                            command: '/bin/sh -c', args: 'cat',
+                            resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
                     ),
             ],
             volumes: [
@@ -973,7 +929,14 @@ def run_with_arm_go_pod(Closure body) {
 try {
     stage("Build ${PRODUCT}") {
         if (!ifFileCacheExists()) { 
-            if (useArmPodTemplate) {
+            if (params.BUILDER_IMG && params.OS=="linux"){
+                run_with_pod(params.BUILDER_IMG,{
+                        dir("go/src/github.com/pingcap/${PRODUCT}") {
+                        deleteDir()
+                        release(PRODUCT, 'builder')
+                    }
+                })
+            }else if (useArmPodTemplate) {
                 run_with_arm_go_pod{
                     dir("go/src/github.com/pingcap/${PRODUCT}") {
                         deleteDir()

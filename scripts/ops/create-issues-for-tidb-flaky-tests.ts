@@ -8,7 +8,7 @@ SELECT repo,
     suite_name,
     case_name,
     count(*) AS count
-FROM tiinsight_problem_case_runs
+FROM problem_case_runs
 WHERE (
       report_time BETWEEN ${dateRange}
       AND flaky = TRUE
@@ -27,7 +27,7 @@ LIMIT 10
 `;
 
 const queryCaseRunSQL = (dateRange: string) => `
-Select * from tiinsight_problem_case_runs
+Select * from problem_case_runs
 where (
   report_time BETWEEN ${dateRange}
   AND flaky = TRUE
@@ -186,7 +186,7 @@ async function main() {
   const cliArgs = flags.parse(Deno.args) as cliParams;
   if (cliArgs.date_range === "") {
     cliArgs.date_range =
-      "date(date_add(now(6), INTERVAL -7 day)) AND date(date_add(now(6), INTERVAL 1 day))";
+      "TIMESTAMP(date_add(now(6), INTERVAL -7 day)) AND TIMESTAMP(date_add(now(6), INTERVAL 1 day))";
   }
 
   await run(cliArgs);
@@ -196,8 +196,8 @@ async function main() {
 // Example:
 // deno run --allow-all me.ts \
 //  --github_pat <github token> \
-//  --date_range '"2023-09-01" AND "2023-09-08"' \
-//  --db.host localhost \
+//  --date_range 'TIMESTAMP("2023-09-01") AND TIMESTAMP("2023-09-08")' \
+//  --db.hostname localhost \
 //  --db.port 3306 \
 //  --db.db <database name> \
 //  --db.username <db user> \

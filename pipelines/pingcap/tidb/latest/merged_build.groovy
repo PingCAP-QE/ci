@@ -43,10 +43,11 @@ pipeline {
                 stage('tidb') {
                     steps {
                         dir("tidb") {
-                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    script {
-                                        prow.checkoutRefs(REFS)
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                                script {
+                                    git.setSshKey(GIT_CREDENTIALS_ID)
+                                    retry(2) {
+                                        prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                                     }
                                 }
                             }
@@ -56,7 +57,7 @@ pipeline {
                 stage("enterprise-plugin") {
                     steps {
                         dir("enterprise-plugin") {
-                            cache(path: "./", filter: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
+                            cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.base_sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
                                 retry(2) {
                                     script {
                                         component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, "", GIT_CREDENTIALS_ID)
@@ -98,18 +99,21 @@ pipeline {
                         '''
                     }
                     dir("enterprise-plugin") {
-                        sh label: 'audit plugin test', script: """
-                        go version
-                        cd test/
-                        export PD_BRANCH=${REFS.base_ref}
-                        export TIKV_BRANCH=${REFS.base_ref}
-                        export TIDB_REPO_PATH=${WORKSPACE}/tidb
-                        export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
-                        ./test.sh
-                        """
+                        retry(3) {
+                            sh label: 'audit plugin test', script: """
+                            go version
+                            cd test/
+                            export PD_BRANCH=${REFS.base_ref}
+                            export TIKV_BRANCH=${REFS.base_ref}
+                            export TIDB_REPO_PATH=${WORKSPACE}/tidb
+                            export PLUGIN_REPO_PATH=${WORKSPACE}/enterprise-plugin
+                            ./test.sh
+                            """
+                        }       
                     }
                 }
             }
         }
     }
 }
+

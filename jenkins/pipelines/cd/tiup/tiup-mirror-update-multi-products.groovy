@@ -20,7 +20,7 @@
 
 // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
 final TIUP_VERSION = 'v1.8.1'
-final ETCDCTL_VERSION = 'v3.3.10'
+final ETCDCTL_VERSION = 'v3.4.21'
 
 def get_hash = { hash_or_branch, repo ->
     if (DEBUG_MODE == "true") {
@@ -39,7 +39,6 @@ def tidb_desc = "TiDB is an open source distributed HTAP database compatible wit
 def tikv_desc = "Distributed transactional key-value database, originally created to complement TiDB"
 def pd_desc = "PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster"
 def ctl_desc = "TiDB controller suite"
-def binlog_desc = ""
 def pump_desc = "The pump componet of TiDB binlog service"
 def drainer_desc = "The drainer componet of TiDB binlog service"
 def pd_recover_desc = "PD Recover is a disaster recovery tool of PD, used to recover the PD cluster which cannot start or provide services normally"
@@ -82,43 +81,40 @@ def unpack = { name, os, arch ->
 def pack = { name, version, os, arch ->
     sh """
     mkdir -p ctls
+    mkdir -p package
     """
 
     if (name == "tidb") {
         sh """
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tidb_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tidb_desc}"
         """
     } else if (name == "tikv") {
         sh """
         mv bin/${name}-ctl ctls/
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${tikv_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${tikv_desc}"
         """
     } else if (name == "pd") {
         sh """
         mv bin/${name}-ctl ctls/
-        tiup package ${name}-server -C bin --name=${name} --release=${version} --entry=${name}-server --os=${os} --arch=${arch} --desc="${pd_desc}"
+        tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name}-server --arch ${arch} --os ${os} --desc="${pd_desc}"
-        tiup package ${name}-recover -C bin --name=${name}-recover --release=${version} --entry=${name}-recover --os=${os} --arch=${arch} --desc="${pd_recover_desc}"
+        tar -C bin -czvf package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover
         tiup mirror publish ${name}-recover ${tidb_version} package/${name}-recover-${version}-${os}-${arch}.tar.gz ${name}-recover --arch ${arch} --os ${os} --desc="${pd_recover_desc}"
         """
     } else if (name == 'tidb-binlog') {
         sh """
-        tiup package pump -C bin --hide --name=pump --release=${version} --entry=pump --os=${os} --arch=${arch} --desc="${pump_desc}"
+        tar -C bin -czvf package/pump-${version}-${os}-${arch}.tar.gz pump
         tiup mirror publish pump ${tidb_version} package/pump-${version}-${os}-${arch}.tar.gz pump --arch ${arch} --os ${os} --desc="${pump_desc}"
-        tiup package drainer -C bin --hide --name=drainer --release=${version} --entry=drainer --os=${os} --arch=${arch} --desc="${drainer_desc}"
+        tar -C bin -czvf package/drainer-${version}-${os}-${arch}.tar.gz drainer
         tiup mirror publish drainer ${tidb_version} package/drainer-${version}-${os}-${arch}.tar.gz drainer --arch ${arch} --os ${os} --desc="${drainer_desc}"
         mv bin/binlogctl ctls/
         """
     } else if (name == "tidb-ctl") {
-        sh """
-        mv bin/${name} ctls/
-        """
+        sh "mv bin/${name} ctls/"
     } else if (name == "dm") {
-        sh """
-        [ -d package ] || mkdir package
-        """
+        sh "[ -d package ] || mkdir package"
         // release version <= v6.0.0 exists dir dm-ansible and monitoring
         if (RELEASE_TAG != "nightly" && RELEASE_TAG >= "v5.3.0" && RELEASE_TAG <= "v6.0.0") {
             sh """
@@ -202,11 +198,11 @@ def pack = { name, version, os, arch ->
         """
     } else {
         sh """
-	if(TIUP_ENV=="prod"){
-		tiup package ${name} -C bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-	}else{
-		tiup package ${name} -C ${name}-${version}-${os}-${arch}/bin --hide --name=${name} --release=${version} --entry=${name} --os=${os} --arch=${arch} --desc=""
-	}
+        if(TIUP_ENV=="prod"){
+            tar -C bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}
+        }else{
+            tar -C ${name}-${version}-${os}-${arch}/bin -czvf package/${name}-${version}-${os}-${arch}.tar.gz ${name}
+        }
         tiup mirror publish ${name} ${tidb_version} package/${name}-${version}-${os}-${arch}.tar.gz ${name} --arch ${arch} --os ${os} --desc=""
         """
     }
@@ -273,8 +269,8 @@ def update_ctl = { version, os, arch ->
     curl -L http://fileserver.pingcap.net/download/tiup/releases/${TIUP_VERSION}/tiup-${TIUP_VERSION}-${os}-${arch}.tar.gz | tar -C tiup/components/ctl -xz bin/tiup-ctl
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
     curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-${ETCDCTL_VERSION}-${os}-${arch}.tar.gz | tar xz
-    mv etcd-v3.3.10-${os}-${arch}/etcdctl ctls/
-    tiup package \$(ls ctls) -C ctls --name=ctl --release=${version} --entry=ctl --os=${os} --arch=${arch} --desc="${ctl_desc}"
+    mv etcd-v3.4.21-${os}-${arch}/etcdctl ctls/
+    tar -C ctls -czvf package/ctl-${version}-${os}-${arch}.tar.gz \$(ls ctls)
     tiup mirror publish ctl ${tidb_version} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
     rm -rf ctls
     """
@@ -331,8 +327,8 @@ node("build_go1130") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
                 if (RELEASE_TAG == "nightly") {
-                    tag = "v7.5.0-alpha"
-                    RELEASE_TAG = "v7.5.0-alpha"
+                    tag = "v8.0.0-alpha"
+                    RELEASE_TAG = "v8.0.0-alpha"
                 } else {
                     tag = RELEASE_TAG
                 }
@@ -382,7 +378,7 @@ node("build_go1130") {
                 println "tiflash_sha1: ${tiflash_sha1}"
             }
 
-            if (RELEASE_TAG == "v7.5.0-alpha") {
+            if (RELEASE_TAG == "v8.0.0-alpha") {
                 stage("Get version info when nightly") {
                     dir("tidb") {
                         // sh"""
@@ -390,7 +386,7 @@ node("build_go1130") {
                         // tar xf tidb-server.tar.gz
                         // """
                         // tidb_version = sh(returnStdout: true, script: "./bin/tidb-server -V | awk 'NR==1{print \$NF}' | sed -r 's/(^[^-]*).*/\\1/'").trim()
-                        tidb_version = "v7.5.0-alpha"
+                        tidb_version = "v8.0.0-alpha"
                         time = sh(returnStdout: true, script: "date '+%Y%m%d'").trim()
                         tidb_version = "${tidb_version}-nightly-${time}"
                         RELEASE_BRANCH = "master"

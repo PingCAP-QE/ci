@@ -7,7 +7,7 @@ postsubmits:
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/e2e-test
       max_concurrency: 1
-      skip_report: false
+      skip_report: true
       branches:
         - ^master$
     - name: pingcap/tidb/merged_common_test
@@ -43,7 +43,7 @@ postsubmits:
       context: ci/integration-jdbc-test
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       max_concurrency: 1
-      skip_report: false
+      skip_report: true
       branches:
         - ^master$
     - name: pingcap/tidb/merged_integration_mysql_test
@@ -61,7 +61,7 @@ postsubmits:
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/sqllogic-test
       max_concurrency: 1
-      skip_report: false
+      skip_report: true
       branches:
         - ^master$
     - name: pingcap/tidb/merged_integration_copr_test
@@ -111,7 +111,8 @@ postsubmits:
     - name: pingcap/tidb/merged_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
-      context: wip/integration-nodejs-test
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: ci/integration-nodejs-test
       max_concurrency: 1
       skip_report: true
       branches:

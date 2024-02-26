@@ -39,7 +39,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -48,7 +48,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
@@ -61,21 +61,30 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_python_orm_test/rev-${BUILD_TAG}") {
-                        container("golang") {
+                    container("golang") {
+                        retry(3) {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
                             chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                             ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
+                            mv third_bin/tikv-server bin/
+                            mv third_bin/pd-server bin/
+                            rm -rf bin/bin
                             ls -alh bin/
                             """
                         }
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh label: 'cache tidb-test', script: """#!/usr/bin/env bash
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp -r ../tidb/bin/* bin/ && chmod +x bin/*
+                        ./bin/pd-server -V
+                        ./bin/tikv-server -V
+                        ./bin/tidb-server -V
+                        """
                     }
                 }
             }
@@ -103,41 +112,25 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: "binary/pingcap/tidb/merged_integration_python_orm_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
-                                    sh label: 'tikv-server', script: 'ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V'
-                                    sh label: 'pd-server', script: 'ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V'  
-                                }
-                            }
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
                                     """
                                     container("python") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/bin/bash
+                                        sh label: "test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
                                             set -- \${TEST_PARAMS}
                                             TEST_DIR=\$1
                                             TEST_SCRIPT=\$2
                                             echo "TEST_DIR=\${TEST_DIR}"
                                             echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            fi
+   
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIDB_TEST_STORE_NAME="unistore"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                         """
                                     }
                                 }
@@ -152,7 +145,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

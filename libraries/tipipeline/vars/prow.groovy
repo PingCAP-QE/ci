@@ -191,3 +191,16 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
         fi
     """
 }
+
+// print PR info on pipeline run description.
+def setPRDescription(refs) {
+    try {
+        if (refs.pulls && refs.pulls.size() > 0) {
+            currentBuild.description = "PR #${refs.pulls[0].number}: ${refs.pulls[0].title} ${refs.pulls[0].link}"
+        } else {
+            println("No pull request information available.")
+        }
+    } catch (Exception e) {
+        println("Failed to set PR description: ${e.message}. Please ignore it. 🤷")
+    }
+}

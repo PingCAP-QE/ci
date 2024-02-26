@@ -76,10 +76,10 @@ node("master") {
 
 
 def run_with_pod(Closure body) {
-    def label = POD_LABE
+    def label = POD_LABEL
     def cloud = "kubernetes-ksyun"
     def namespace = "jenkins-tidb-mergeci"
-    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
+    def jnlp_docker_image = "jenkins/inbound-agent:3148.v532a_7e715ee3-10"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,

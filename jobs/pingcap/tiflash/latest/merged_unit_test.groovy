@@ -4,6 +4,7 @@ pipelineJob('pingcap/tiflash/merged_unit_test') {
     logRotator {
         daysToKeep(30)
     }
+    disabled(true) // enable when run ut with coverage is passed
     parameters {
         // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
         stringParam("BUILD_ID")

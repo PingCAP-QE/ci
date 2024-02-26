@@ -1,7 +1,7 @@
 pullId = params.get("ghprbPullId")
 commit = params.get("ghprbActualCommit")
 
-toolchain = "https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain"
+toolchain = "https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml"
 common_features = "encryption,portable"
 x86_features = "jemalloc,sse"
 arm_features = "jemalloc"
@@ -70,8 +70,8 @@ def checkout() {
                     git submodule update
 
                     # sync rust-toolchain with TiKV
-                    curl ${toolchain} > ./rust-toolchain
-                    cat ./rust-toolchain
+                    curl ${toolchain} > ./rust-toolchain.toml
+                    cat ./rust-toolchain.toml
                 """
             }
             stash includes: "rust-rocksdb/**", name: "rust-rocksdb", useDefaultExcludes: false

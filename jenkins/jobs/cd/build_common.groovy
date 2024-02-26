@@ -96,6 +96,14 @@ pipelineJob('build-common') {
             defaultValue('')
             trim(true)
         }
+        stringParam {
+            name('BUILD_ENV')
+            defaultValue('')
+        }
+        stringParam {
+            name('BUILDER_IMG')
+            defaultValue('')
+        }
         booleanParam {
             name('TIFLASH_DEBUG')
             defaultValue(false)

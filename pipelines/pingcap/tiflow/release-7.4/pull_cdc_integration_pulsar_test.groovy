@@ -65,7 +65,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -82,7 +82,7 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh release-7.4 && ls -alh ./bin
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
@@ -95,7 +95,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) { 
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) { 
                         // build cdc, pulsar_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -107,7 +107,7 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") { 
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -139,7 +139,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     // TODO: currently we encounter some issue when using pulsar container to run shell script
                                     // so we comment out this part now.
                                     // container("pulsar") {

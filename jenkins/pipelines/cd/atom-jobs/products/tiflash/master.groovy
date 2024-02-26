@@ -95,6 +95,7 @@ def doBuild = {
                                         refspec      : specRef,
                                         url          : "git@github.com:pingcap/tiflash.git"]]
                     ]
+            sh "git config --global --add safe.directory '*'"
             sh 'test -z "$(git status --porcelain)"'
             }
         }
@@ -221,7 +222,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: builder
-    image: hub.pingcap.net/jenkins/tiflash-builder
+    image: hub.pingcap.net/ee/ci/release-build-base-tiflash:v20231106
     volumeMounts:
     - name: ccache
       mountPath: "/var/cache/ccache"
@@ -285,7 +286,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: builder
-    image: hub.pingcap.net/jenkins/tiflash-builder
+    image: hub.pingcap.net/ee/ci/release-build-base-tiflash:v20231106
     volumeMounts:
     - name: ccache
       mountPath: "/var/cache/ccache"
@@ -305,10 +306,10 @@ spec:
     command: ['sleep', '3600000']
     resources:
       requests:
-        memory: "32Gi"
+        memory: "40Gi"
         cpu: "16"
       limits:
-        memory: "32Gi"
+        memory: "40Gi"
         cpu: "16"
   nodeSelector:
     kubernetes.io/arch: arm64

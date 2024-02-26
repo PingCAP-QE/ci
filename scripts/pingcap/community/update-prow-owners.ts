@@ -3,9 +3,24 @@ import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
 import { dirname } from "https://deno.land/std@0.190.0/path/mod.ts";
 import { Octokit } from "npm:/octokit@3.1.0";
 
+/**
+ * Ref:
+ * - github api with octokit.js: https://octokit.github.io/rest.js/v20
+ */
+
 const HEAD_REF = `bot/update-owners-${Date.now()}`;
 const COMMIT_MESSAGE = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
 const PR_TITLE = "OWNERS: Auto Sync OWNERS files from community membership";
+const PR_BODY = `
+### Check List
+
+Tests <!-- At least one of them must be included. -->
+
+- [x] No need to test
+  > - [x] I checked and no code files have been changed.
+  > <!-- Or your custom  "No need to test" reasons -->
+
+`;
 
 type CommunityMember = string | {
   name: string;
@@ -484,6 +499,7 @@ async function createUpdateFilePR(
     owner,
     repo: repository,
     title: PR_TITLE,
+    body: PR_BODY,
     head: HEAD_REF,
     base: baseRef,
     draft,
@@ -603,11 +619,17 @@ async function main(
     }),
   );
 
+  // Wait a minute after the pull requests created: let the approve plugin dealing firstly.
+  await new Promise((resolve) => setTimeout(resolve, 60000));
+
   // Post deal the pull requests.
   await Promise.all(
     Array.from(pullRequests).map(async (pullRequest, index) => {
       // Introduce a delay between API requests to avoid rate limit errors
-      const delay = 5000 * index; // Adjust the delay time according to your needs
+      // Also we need wait some seconds when only one pull request created to
+      //  avoid conflicts with prow plugins on label operations.
+      // Adjust the delay time according to your needs.
+      const delay = 5000 * index;
       await new Promise((resolve) => setTimeout(resolve, delay));
       const { owner, repo, num } = pullRequest;
       console.info(

@@ -34,7 +34,8 @@ def release_one_amd64(repo,hash) {
             string(name: "GIT_HASH", value: hash),
             string(name: "TARGET_BRANCH", value: ghprbTargetBranch),
             string(name: "GIT_PR", value: ghprbPullId),
-
+            string(name: "BUILD_ENV", value: ''),
+            string(name: "BUILDER_IMG", value: ''),
             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
     ]
     echo("default build params: ${paramsBuild}")

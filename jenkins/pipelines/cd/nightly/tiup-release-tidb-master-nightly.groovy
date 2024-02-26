@@ -30,12 +30,28 @@ ng_monitoring_sha1 = ""
 String PRODUCED_VERSION
 
 
+def fetch_hash_version(repo, version){
+    def to_sleep = false
+    retry(3){
+        if (to_sleep){
+            sleep(time:61,unit:"SECONDS")
+        }else{
+            to_sleep = true
+        }
+        return sh(returnStdout: true, script: "python /gethash.py -repo=${repo} -version=${version}").trim()
+    }
+}
+
+def fetch_hash={repo->
+    return fetch_hash_version(repo, RELEASE_BRANCH)
+}
+
 retry(2) {
     try {
         timeout(600) {
-            RELEASE_TAG = "v7.5.0-alpha"
-            node("build_go1130") {
-                container("golang") {
+            RELEASE_TAG = "v8.0.0-alpha"
+            node("gethash") {
+                container("gethash") {
                     def ws = pwd()
                     deleteDir()
 
@@ -45,18 +61,18 @@ retry(2) {
                     }
 
                     stage("Get hash") {
-                        sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-
-                        tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        tikv_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tikv -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        tidb_binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        tidb_tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        tiflash_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tics -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        cdc_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        dm_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tiflow -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        tidb_ctl_githash = sh(returnStdout: true, script: "python gethash.py -repo=tidb-ctl -source=github -version=${RELEASE_BRANCH} -s=${FILE_SERVER_URL}").trim()
-                        ng_monitoring_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=ng-monitoring -source=github -version=main -s=${FILE_SERVER_URL}").trim()
+                        withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {
+                            tidb_sha1 = fetch_hash("tidb")
+                            tikv_sha1 = fetch_hash("tikv")
+                            pd_sha1 = fetch_hash("pd")
+                            tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+                            tidb_tools_sha1 = fetch_hash("tidb-tools")
+                            tiflash_sha1 = fetch_hash("tiflash")
+                            cdc_sha1 = fetch_hash("tiflow")
+                            dm_sha1 = fetch_hash("tiflow")
+                            tidb_ctl_githash = fetch_hash("tidb-ctl")
+                            ng_monitoring_sha1 = fetch_hash_version("ng-monitoring", "main")
+                        }
                         println "tidb hash: ${tidb_sha1}\ntikv hash: ${tikv_sha1}\npd hash: ${pd_sha1}\ntiflash hash:${tiflash_sha1}"
                         println "tiflow hash:${cdc_sha1}\ntidb-ctl hash:${tidb_ctl_githash}\nng_monitoring hash:${ng_monitoring_sha1}"
 
@@ -218,16 +234,52 @@ retry(2) {
                 parallel builds
             }
 
-            RELEASE_TAG = "nightly"
 
-            stage("TiUP build") {
-                def job = build job: "tiup-mirror-online-ga",
+            stage("Publish"){
+                def NIGHTLY_RELEASE_TAG = 'nightly'
+                jobs = [:]
+                jobs["tiup"] = {
+                    def job = build job: "tiup-mirror-online-ga",
                         wait: true,
                         parameters: [
-                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: RELEASE_TAG],
+                                [$class: 'StringParameterValue', name: 'RELEASE_TAG', value: NIGHTLY_RELEASE_TAG],
                                 [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "prod"],
                         ]
-                PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
+                    PRODUCED_VERSION = job.getBuildVariables().PRODUCED_VERSION
+                }
+                jobs["docker"] = {
+                    build job: "community-docker-multi-products",
+                        parameters: [
+                            string(name: 'RELEASE_BRANCH', value: 'master'),
+                            string(name: 'RELEASE_TAG', value: RELEASE_TAG),
+                            booleanParam(name: 'FORCE_REBUILD', value: false),
+                            booleanParam(name: 'NEED_DEBUG_IMAGE', value: false),
+                            string(name: 'TIDB_HASH', value: tidb_sha1),
+                            string(name: 'TIKV_HASH', value: tikv_sha1),
+                            string(name: 'PD_HASH', value: pd_sha1),
+                            string(name: 'TIFLASH_HASH', value: tiflash_sha1),
+                            string(name: 'NG_MONITORING_HASH', value: ng_monitoring_sha1),
+                            string(name: 'TIDB_BINLOG_HASH', value: tidb_binlog_sha1),
+                            string(name: 'TICDC_HASH', value: cdc_sha1),
+                            string(name: 'IMAGE_TAG', value: NIGHTLY_RELEASE_TAG),
+                            string(name: 'HUB_PROJECT', value: 'qa'),
+                            booleanParam(name: 'NEED_FAILPOINT', value: false)
+                        ]
+                    def syncs = [:]
+                    for (_product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
+                            "tidb-lightning", "tidb-monitor-initializer", "tiflash", "tikv"]){
+                        def product = _product //fix bug in closure
+                        syncs["sync image ${product}"] = {
+                            build job: 'jenkins-image-syncer',
+                                parameters: [
+                                        string(name: 'SOURCE_IMAGE', value: "hub.pingcap.net/qa/${product}:${NIGHTLY_RELEASE_TAG}"),
+                                        string(name: 'TARGET_IMAGE', value: "docker.io/pingcap/${product}:${NIGHTLY_RELEASE_TAG}")
+                                ]
+                        }
+                    }
+                    parallel syncs
+                }
+                parallel jobs
             }
 
             stage("Tiup nightly test") {

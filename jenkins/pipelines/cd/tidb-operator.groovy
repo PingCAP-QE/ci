@@ -8,8 +8,7 @@ def EnableE2E = false
 
 
 
-final CHART_ITEMS = 'tidb-operator tidb-cluster tidb-backup tidb-drainer tidb-lightning tikv-importer'
-final TOOLS_BUILD_DIR = 'output/tkctl'
+final CHART_ITEMS = 'tidb-operator tidb-drainer tidb-lightning'
 final CHARTS_BUILD_DIR = 'output/chart'
 final K8S_CLUSTER = "kubernetes"
 final K8S_NAMESPACE="jenkins-cd"
@@ -66,6 +65,28 @@ spec:
   nodeSelector:
     kubernetes.io/arch: amd64
 '''
+final goBuildArmYaml = '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: builder
+    image: hub.pingcap.net/jenkins/centos7_golang-1.21-arm64:latest
+    args: ["sleep", "infinity"]
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "32Gi"
+        cpu: "16"
+  tolerations:
+  - effect: NoSchedule
+    key: tidb-operator
+    operator: Exists
+  nodeSelector:
+    kubernetes.io/arch: arm64
+'''
 final dockerSyncYaml = '''
 apiVersion: v1
 kind: Pod
@@ -103,6 +124,7 @@ pipeline {
         string(name: 'GitRef', defaultValue: 'master', description: 'branch or commit hash')
         string(name: 'ReleaseTag', defaultValue: 'test', description: 'empty means the same with GitRef')
         booleanParam(name: 'BrFederation', defaultValue: false, description: 'whether release BR federation manager')
+        booleanParam(name: 'FIPS', defaultValue: false, description: 'whether to enable fips')
     }
     stages {
         stage("PARAMS") {
@@ -111,6 +133,9 @@ pipeline {
                     ReleaseTag = params.ReleaseTag
                     if (!ReleaseTag) {
                         ReleaseTag = params.GitRef
+                    }
+                    if(params.FIPS.toBoolean()){
+                        ReleaseTag = ReleaseTag+"-fips"
                     }
                     PushPublic = true
                     BrFederation = params.BrFederation.toBoolean()
@@ -149,33 +174,46 @@ pipeline {
                             }
                         }
                         stage("bin") {
-                            environment {GIT_COMMIT = "$GitHash"; GOPROXY = "http://goproxy.pingcap.net,https://proxy.golang.org,direct" }
-                            steps {
-                                sh """set -eux
-                                    go mod download
-                                    git checkout -- go.sum
-                                    """
-                                sh "git status"
-                                sh "GOOS=linux GOARCH=arm64 make build"
-                                sh "GOOS=linux GOARCH=amd64 make build"
-                                // todo only x86
-                                sh "GOOS=linux GOARCH=amd64 make debug-build"
-
-                                script {
-                                    sh "mkdir -p ${TOOLS_BUILD_DIR}"
-                                    for (OS in ["linux", "darwin", "windows"]) {
-                                        for (ARCH in ["amd64", "arm64"]) {
-                                            if ("$OS/$ARCH" == "windows/arm64") {
-                                                // unsupported platform
-                                                continue
-                                            }
-                                            sh """
-                                            TKCTL_CLI_PACKAGE="tkctl-${OS}-${ARCH}-${ReleaseTag}"
-                                            GOOS=${OS} GOARCH=${ARCH} make cli
-                                            tar -czf ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.tgz tkctl
-                                            sha256sum ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.tgz > ${TOOLS_BUILD_DIR}/\${TKCTL_CLI_PACKAGE}.sha256
-                                            """
+                            environment {
+                                GIT_COMMIT = "$GitHash";
+                                GOPROXY = "http://goproxy.pingcap.net,https://proxy.golang.org,direct";
+                                ENABLE_FIPS = "${params.FIPS.toBoolean()?1:0}";
+                            }
+                            stages{
+                                stage("arm64"){
+                                    agent {
+                                        kubernetes {
+                                            yaml goBuildArmYaml
+                                            defaultContainer 'builder'
+                                            cloud K8S_CLUSTER
+                                            namespace K8S_NAMESPACE
                                         }
+                                    }
+                                    environment {GIT_COMMIT = "$GitHash";}
+                                    steps{ dir("operator"){
+                                        checkout changelog: false, poll: false, scm: [
+                                                $class           : 'GitSCM',
+                                                branches         : [[name: params.GitRef]],
+                                                userRemoteConfigs: [[
+                                                                            refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pull/*',
+                                                                            url    : 'https://github.com/pingcap/tidb-operator.git',
+                                                                    ]]
+                                        ]
+                                        sh """git status
+                                        printenv ENABLE_FIPS
+                                        ls -al .
+                                        make build"""
+                                        stash name: "arm-bin", includes: "images/"
+                                    }}
+                                }
+                                stage("amd64"){
+                                    environment {GIT_COMMIT = "$GitHash";}
+                                    steps {
+                                        sh """git status
+                                        printenv ENABLE_FIPS
+                                        make build"""
+                                        unstash "arm-bin"
+                                        sh "ls -Rl images/"
                                     }
                                 }
                             }
@@ -200,7 +238,7 @@ pipeline {
                         stage("charts") {
                             steps {
                                 sh """
-                        	mkdir ${CHARTS_BUILD_DIR}
+                        	mkdir -p ${CHARTS_BUILD_DIR}
 				for chartItem in ${CHART_ITEMS}
 				do
 					chartPrefixName=\$chartItem-${ReleaseTag}
@@ -233,7 +271,7 @@ pipeline {
                         }
                         stage("stash") {
                             steps {
-                                stash name: "bin", includes: "Makefile,tests/images/e2e/bin/,images/,${TOOLS_BUILD_DIR}/,${CHARTS_BUILD_DIR}/,misc/images/"
+                                stash name: "bin", includes: "Makefile,tests/images/e2e/bin/,images/,${CHARTS_BUILD_DIR}/,misc/images/"
                             }
                         }
                     }
@@ -288,7 +326,7 @@ pipeline {
                             // todo only x86
                             steps {
                                 script {
-                                    ["debug-launcher", "tidb-control", "tidb-debug"].each {
+                                    ["tidb-control"].each {
                                         sh """
                                            docker buildx build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from hub.pingcap.net/rc/${it} --platform=linux/amd64 --push -t hub.pingcap.net/rc/${it}:${ReleaseTag} misc/images/${it}
                                            """
@@ -311,9 +349,8 @@ pipeline {
             }
             steps {
                 unstash "bin"
-                println("these images to publish are hub.pingcap.net/rc/[debug-launcher, tidb-control, tidb-debug, tidb-operator, tidb-backup-manager]:$ReleaseTag")
+                println("these images to publish are hub.pingcap.net/rc/[tidb-control, tidb-operator, tidb-backup-manager]:$ReleaseTag")
                 println("the charts to publish are in workspace $CHARTS_BUILD_DIR")
-                println("the tools to publish are in workspace $TOOLS_BUILD_DIR")
                 input("continue?")
             }
         }
@@ -335,7 +372,7 @@ pipeline {
                                 axes {
                                     axis {
                                         name 'component'
-                                        values 'debug-launcher', 'tidb-control', 'tidb-debug', 'tidb-operator', 'tidb-backup-manager'
+                                        values 'tidb-control', 'tidb-operator', 'tidb-backup-manager'
                                     }
                                 }
                                 stages {
@@ -471,29 +508,6 @@ pipeline {
                                     }
                                     sh "cat index.yaml"
                                     sh "upload_qiniu.py index.yaml index.yaml"
-                                }
-                            }
-                        }
-                        stage("tkcli") {
-                            environment {
-                                QINIU_BUCKET_NAME = "tidb";
-                            }
-                            steps {
-                                script {
-                                    for (OS in ["linux", "darwin", "windows"]) {
-                                        for (ARCH in ["amd64", "arm64"]) {
-                                            if ("$OS/$ARCH" == "windows/arm64") {
-                                                // unsupported platform
-                                                continue
-                                            }
-                                            sh """
-                                                TKCTL_CLI_PACKAGE="tkctl-${OS}-${ARCH}-${ReleaseTag}"
-                                                cd ${TOOLS_BUILD_DIR}
-                                                upload_qiniu.py \${TKCTL_CLI_PACKAGE}.tgz \${TKCTL_CLI_PACKAGE}.tgz
-                                                upload_qiniu.py \${TKCTL_CLI_PACKAGE}.sha256 \${TKCTL_CLI_PACKAGE}.sha256
-                                               """
-                                        }
-                                    }
                                 }
                             }
                         }

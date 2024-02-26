@@ -1,4 +1,6 @@
-pipelineJob('tiproxy-docker') {
+pipelineJob('tiproxy-docker') {    
+    disabled(true)
+    description('[Deprecated] it will automatic build and publish with new CD flows')
     definition {
         cpsScm {
             lightweight(true)

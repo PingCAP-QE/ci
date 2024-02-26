@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_unit_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -36,6 +37,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
                 }
             }
         }
@@ -43,28 +47,18 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("migration") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}", restoreKeys: ['git/tikv/migration/rev-']) {
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                                script {
+                                    prow.checkoutRefs(REFS)
+                                }
+                            }
                         }
-                    }
+                        sh """
+                        git rev-parse --show-toplevel
+                        git status
+                        git status -s .
+                        """
                 }
             }
         }
@@ -73,9 +67,9 @@ pipeline {
             environment { TIKV_MIGRATION_CODECOV_TOKEN = credentials('codecov-token-tikv-migration') }
             steps {
                 dir('migration') {
-                    sh """
-                        cd cdc/
-                        make unit_test_in_verify_ci
+                    sh """#!/usr/bin/env bash
+                    cd cdc/
+                    make unit_test_in_verify_ci
                     """
                 }
             }
@@ -83,7 +77,7 @@ pipeline {
                 always {
                     junit(testResults: "**/cdc-junit-report.xml")
                 }
-            }      
+            }
         }
     }
 }

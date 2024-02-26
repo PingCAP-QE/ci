@@ -24,7 +24,7 @@ pipelineJob('devbuild') {
     parameters {
         choiceParam {
             name('Product')
-            choices(['tidb', 'tikv', 'pd', 'tiflash', 'br', 'dumpling', 'tidb-lightning', 'ticdc', 'dm', 'tidb-binlog', 'tidb-tools'])
+            choices(['tidb', 'tikv', 'pd', 'tiflash', 'br', 'dumpling', 'tidb-lightning', 'ticdc', 'dm', 'tidb-binlog', 'tidb-tools', 'ng-monitoring', 'tidb-dashboard', 'drainer', 'pump'])
             description('the product to build, e.g., tidb/tikv/pd')
         }
         stringParam {
@@ -45,6 +45,26 @@ pipelineJob('devbuild') {
             defaultValue('master')
         }
         stringParam {
+            name('BuildEnv')
+            description('optional environment var during build')
+            defaultValue('')
+        }
+        stringParam {
+            name('ProductDockerfile')
+            description('optional product dockerfile')
+            defaultValue('')
+        }
+        stringParam {
+            name('ProductBaseImg')
+            description('optional product base image')
+            defaultValue('')
+        }
+        stringParam {
+            name('BuilderImg')
+            description('optional builder image')
+            defaultValue('')
+        }
+        stringParam {
             name('GithubRepo')
             description('the GitHub repo, just ignore unless in a forked repo, e.g., pingcap/tidb')
             defaultValue('')
@@ -61,6 +81,11 @@ pipelineJob('devbuild') {
         stringParam {
             name('Features')
             description('comma-separated features to build with')
+            defaultValue('')
+        }
+        stringParam {
+            name('TargetImg')
+            description('optional target image path')
             defaultValue('')
         }
         stringParam {

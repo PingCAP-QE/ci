@@ -1,0 +1,50 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Periodic
+periodics:
+  - name: periodic-daily-tidb-unit-test
+    cluster: gcp-prow-ksyun
+    decorate: true # need add this.
+    cron: "0 */6 * * *" # every 6 hour, change to "0 0 * * *" for daily after test.
+    skip_report: true
+    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
+    - org: pingcap
+      repo: tidb
+      base_ref: master
+      skip_submodules: true
+      clone_depth: 1
+    spec:
+      containers:
+        - name: check
+          image: hub.pingcap.net/ee/ci/base:v20230810-go1.21
+          command: [bash, -ce]
+          args:
+            - |
+              git log -1
+              make gotest_in_verify_ci
+              wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+              chmod +x codecov
+              ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out
+          env:
+            - name: GO_PROXY
+              value: http://goproxy.pingcap.net,direct
+            - name: CODECOV_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: tidb
+                  name: codecov-token
+          resources:
+            limits:
+              memory: 32Gi
+              cpu: "16"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"

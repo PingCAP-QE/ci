@@ -5,14 +5,14 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920230111"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go11920231127"
       securityContext:
         privileged: true
       tty: true
       resources:
         limits:
-          memory: 32Gi
-          cpu: "8"
+          memory: 64Gi
+          cpu: "16"
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
@@ -39,7 +39,7 @@ spec:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
     - name: net-tool
-      image: wbitt/network-multitool
+      image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:

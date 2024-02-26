@@ -80,7 +80,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.4") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.21")
-            return "go1.20"
+            return "go1.21"
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.0") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.20")
@@ -372,23 +372,23 @@ try {
             def md5path_audit = "builds/pingcap/tidb-plugins/${env.BRANCH_NAME}/centos7/audit-1.so.md5"
 
             container("golang") {
-                dir("go/src/github.com/pingcap-inc/enterprise-plugin") {
+                dir("go/src/github.com/pingcap/enterprise-plugin") {
                     println plugin_branch
-                    git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap-inc/enterprise-plugin.git", branch: plugin_branch
+                    git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/enterprise-plugin.git", branch: plugin_branch
                 }
-                dir("go/src/github.com/pingcap-inc/enterprise-plugin/whitelist") {
+                dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
                         sh """
                         go mod tidy
-                        GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/whitelist
+                        GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/whitelist
                         md5sum whitelist-1.so > whitelist-1.so.md5
                         curl -F ${md5path_whitelist}=@whitelist-1.so.md5 ${FILE_SERVER_URL}/upload
                         curl -F ${filepath_whitelist}=@whitelist-1.so ${FILE_SERVER_URL}/upload
                         """
                 }
-                dir("go/src/github.com/pingcap-inc/enterprise-plugin/audit") {
+                dir("go/src/github.com/pingcap/enterprise-plugin/audit") {
                     sh """
                     go mod tidy
-                    GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap-inc/enterprise-plugin/audit
+                    GOPATH=${ws}/go ${ws}/go/src/github.com/pingcap/tidb-build-plugin/cmd/pluginpkg/pluginpkg  -pkg-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit -out-dir ${ws}/go/src/github.com/pingcap/enterprise-plugin/audit
                     md5sum audit-1.so > audit-1.so.md5
                     curl -F ${md5path_audit}=@audit-1.so.md5 ${FILE_SERVER_URL}/upload
                     curl -F ${filepath_audit}=@audit-1.so ${FILE_SERVER_URL}/upload

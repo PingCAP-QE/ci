@@ -24,7 +24,7 @@ pipelineJob('grafana-tiup-mirror-update') {
         stringParam('VERSION', '7.5.11', 'the grafana version')
         stringParam('RELEASE_TAG', 'nightly', 'the tidb version')
         stringParam('RELEASE_BRANCH', 'master', 'target branch')
-        stringParam('TIDB_VERSION', '', 'tiup package version')
+        stringParam('TIDB_VERSION', '', 'tiup pkg version')
         stringParam('TIUP_MIRRORS', 'http://172.16.5.134:8987', 'tiup mirror')
     }
 }

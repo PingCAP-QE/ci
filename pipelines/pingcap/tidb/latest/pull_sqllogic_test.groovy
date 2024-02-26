@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -18,7 +18,6 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        CI = "1"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -44,7 +43,7 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -53,7 +52,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
@@ -66,16 +65,18 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'pull-sqllogic-test')) {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        }
+                    container("golang") {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
-                        sh 'cd sqllogic_test && ./build.sh'
+                    cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh label: 'prepare tidb-test', script: """
+                            touch ws-${BUILD_TAG}
+                            cd sqllogic_test && ./build.sh
+                            cp ${WORKSPACE}/tidb/bin/tidb-server ./
+                            chmod +x tidb-server && ./tidb-server -V
+                        """
                     }
                 }
             }
@@ -107,32 +108,26 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'pull-sqllogic-test')) {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'   
-                                }
-                            }
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/tidb-server sqllogic_test/
+                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                    sh label: "print version", script: """
                                         ls -alh sqllogic_test/
+                                        ./sqllogic_test/tidb-server -V
                                     """
                                     container("golang") {
-                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
                                             cd sqllogic_test/
                                             env
                                             ulimit -n
                                             sed -i '3i\\set -x' test.sh
+
                                             path_array=(${TEST_PATH_STRING})
                                             for path in \${path_array[@]}; do
                                                 echo "test path: \${path}"
-                                                SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                                TIDB_PARALLELISM=8 \
-                                                TIDB_SERVER_PATH=`pwd`/tidb-server \
-                                                CACHE_ENABLED=${CACHE_ENABLED} \
+                                                export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
+                                                export TIDB_PARALLELISM=8
+                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
+                                                export CACHE_ENABLED="${CACHE_ENABLED}"
                                                 ./test.sh
                                             done
                                         """
@@ -142,7 +137,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
         stage('TestsGroup2') {
             matrix {
@@ -169,32 +164,26 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", filter: '**/*', key: prow.getCacheKey('binary', REFS, 'pull-sqllogic-test')) {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'   
-                                }
-                            }
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/tidb-server sqllogic_test/
+                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                    sh label: "print version", script: """
                                         ls -alh sqllogic_test/
+                                        ./sqllogic_test/tidb-server -V
                                     """
                                     container("golang") {
-                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
                                             cd sqllogic_test/
                                             env
                                             ulimit -n
                                             sed -i '3i\\set -x' test.sh
+
                                             path_array=(${TEST_PATH_STRING})
                                             for path in \${path_array[@]}; do
                                                 echo "test path: \${path}"
-                                                SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                                TIDB_PARALLELISM=8 \
-                                                TIDB_SERVER_PATH=`pwd`/tidb-server \
-                                                CACHE_ENABLED=${CACHE_ENABLED} \
+                                                export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
+                                                export TIDB_PARALLELISM=8
+                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
+                                                export CACHE_ENABLED="${CACHE_ENABLED}"
                                                 ./test.sh
                                             done
                                         """
@@ -204,7 +193,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

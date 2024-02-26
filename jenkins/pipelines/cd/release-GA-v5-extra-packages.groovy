@@ -88,8 +88,8 @@ catchError {
                 }
 
                 dir('etcd') {
-                    sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-amd64.tar.gz | tar xz"
-                    sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.3.10-linux-arm64.tar.gz | tar xz"
+                    sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.21-linux-amd64.tar.gz | tar xz"
+                    sh "curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.21-linux-arm64.tar.gz | tar xz"
                 }
             }
 
@@ -106,7 +106,7 @@ catchError {
                            cp ${ws}/centos7/bin/tidb-server ./bin
                            cp ${ws}/centos7/bin/tikv-ctl ./bin
                            cp ${ws}/centos7/bin/tikv-server ./bin
-                           cp ${ws}/etcd/etcd-v3.3.10-linux-amd64/etcdctl ./bin
+                           cp ${ws}/etcd/etcd-v3.4.21-linux-amd64/etcdctl ./bin
                            cp ${ws}/centos7/bin/pump ./bin
                            cp ${ws}/centos7/bin/drainer ./bin
                            cp ${ws}/centos7/bin/reparo ./bin
@@ -155,7 +155,7 @@ catchError {
                            cp ${ws}/arm/bin/tidb-server ./bin
                            cp ${ws}/arm/bin/tikv-ctl ./bin
                            cp ${ws}/arm/bin/tikv-server ./bin
-                           cp ${ws}/etcd/etcd-v3.3.10-linux-arm64/etcdctl ./bin
+                           cp ${ws}/etcd/etcd-v3.4.21-linux-arm64/etcdctl ./bin
                            cp ${ws}/arm/bin/pump ./bin
                            cp ${ws}/arm/bin/drainer ./bin
                            cp ${ws}/arm/bin/reparo ./bin

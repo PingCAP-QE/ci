@@ -43,7 +43,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS)
@@ -52,7 +52,7 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", filter: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
                                 component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
@@ -70,7 +70,8 @@ pipeline {
                         sh label: 'download binary', script: """
                         chmod +x \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
                         \${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                        mv third_bin/* bin/
+                        mv third_bin/tikv-server bin/
+                        mv third_bin/pd-server bin/
                         ls -alh bin/
                         ./bin/pd-server -V
                         ./bin/tikv-server -V
@@ -79,7 +80,7 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'cache tidb-test', script: """
                         touch ws-${BUILD_TAG}
                         mkdir -p bin
@@ -115,7 +116,7 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", filter: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
                                     ls -alh bin/
                                     ./bin/pd-server -V
@@ -123,8 +124,7 @@ pipeline {
                                     ./bin/tidb-server -V
                                     """
                                     container("golang") {
-                                        sh label: "test_store=${TEST_STORE} test_dir=${TEST_DIR}", script: """
-                                            #!/usr/bin/env bash
+                                        sh label: "test_store=${TEST_STORE} test_dir=${TEST_DIR}", script: """#!/usr/bin/env bash
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                                 bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
@@ -151,7 +151,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

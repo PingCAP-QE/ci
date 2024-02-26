@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent {
@@ -20,7 +21,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
@@ -36,6 +37,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
                 }
             }
         }
@@ -43,27 +47,17 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("migration") {
-                    cache(path: "./", filter: '**/*', key: "git/tikv/migration/rev-${ghprbActualCommit}", restoreKeys: ['git/tikv/migration/rev-']) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
-                            checkout(
-                                changelog: false,
-                                poll: false,
-                                scm: [
-                                    $class: 'GitSCM', branches: [[name: ghprbActualCommit]],
-                                    doGenerateSubmoduleConfigurations: false,
-                                    extensions: [
-                                        [$class: 'PruneStaleBranch'],
-                                        [$class: 'CleanBeforeCheckout'],
-                                        [$class: 'CloneOption', timeout: 15],
-                                    ],
-                                    submoduleCfg: [],
-                                    userRemoteConfigs: [[
-                                        refspec: "+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*",
-                                        url: "https://github.com/${GIT_FULL_REPO_NAME}.git",
-                                    ]],
-                                ]
-                            )
+                            script {
+                                prow.checkoutRefs(REFS)
+                            }
                         }
+                        sh """
+                        git rev-parse --show-toplevel
+                        git status
+                        git status -s .
+                        """
                     }
                 }
             }
@@ -71,9 +65,9 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('migration') {
-                    cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
+                    cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
                         container("golang") {
-                            sh label: 'integration test prepare', script: """
+                            sh label: 'integration test prepare', script: """#!/usr/bin/env bash
                             cd cdc/
                             make prepare_test_binaries 
                             make check_third_party_binary 
@@ -101,20 +95,31 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", filter: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
-                                    sh label: "TEST_GROUP ${TEST_GROUP}",script: """
+                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") { 
+                                    sh "printenv" 
+                                    sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
-                                        ./tests/integration_tests/run_group.sh ${TEST_GROUP}
+                                        ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
                                     """
                                }
                             }
                         }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /tmp/tikv_cdc_test/
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tikv_cdc_test/ -maxdepth 2 -type f -name "*.log")
+                                    ls -alh log-${TEST_GROUP}.tar.gz
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
+                            }
+                        }
                     }
                 }
-            }        
+            }
         }
     }
 }
