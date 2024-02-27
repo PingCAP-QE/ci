@@ -8,11 +8,12 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - pingcap-community-postsubmits.yaml
-      - pingcap-docs-latest-presubmits.yaml
       - pingcap-docs-cn-latest-presubmits.yaml
+      - pingcap-docs-latest-presubmits.yaml
       - pingcap-inc-enterprise-extensions-postsubmits.yaml
       - pingcap-inc-enterprise-extensions-presubmits.yaml
       - pingcap-monitoring-periodics.yaml
+      - pingcap-ng-monitoring-postsubmits.yaml      
       - pingcap-qe-ci-presubmits.yaml
       - pingcap-tidb-engine-ext-latest-presubmits.yaml
       - pingcap-tidb-engine-release-6.1-latest-presubmits.yaml
