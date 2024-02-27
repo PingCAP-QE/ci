@@ -1,16 +1,14 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
 postsubmits:
-  pingcap-inc/enterprise-extensions:
-    - name: push-update-submodule-in-tidb
+  pingcap/ng-monitoring:
+    - name: update-submodule-main-branch
       decorate: true
       decoration_config:
         skip_cloning: true
       skip_report: true
       max_concurrency: 1
       branches:
-        - master
-        - ^release-7\.[5-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^release-[8-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^main$
       spec:
         containers:
           - name: main
@@ -19,12 +17,12 @@ postsubmits:
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
-              - --repository=tidb
+              - --repository=monitoring
+              - --base_ref=main
               - --sub_owner=$(REPO_OWNER)
               - --sub_repository=$(REPO_NAME)
               - --base_ref=$(PULL_BASE_REF)
-              - --sub_ref=$(PULL_BASE_REF)
-              - --path=pkg/extension/enterprise # new path
+              - --path=ng-monitoring
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
@@ -37,15 +35,15 @@ postsubmits:
                 memory: 1Gi
               requests:
                 cpu: "1"
-                memory: 1Gi
-    - name: push-update-submodule-in-tidb-le-release-7.4
+                memory: 1Gi  
+    - name: update-submodule-release-branches
       decorate: true
       decoration_config:
         skip_cloning: true
       skip_report: true
       max_concurrency: 1
       branches:
-        - ^release-7\.[1-4](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-[0-9]+[.][0-9]+$
       spec:
         containers:
           - name: main
@@ -54,12 +52,12 @@ postsubmits:
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
-              - --repository=tidb
+              - --repository=monitoring
               - --sub_owner=$(REPO_OWNER)
               - --sub_repository=$(REPO_NAME)
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
-              - --path=extension/enterprise # old path
+              - --path=ng-monitoring
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:

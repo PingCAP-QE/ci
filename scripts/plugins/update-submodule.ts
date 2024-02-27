@@ -2,14 +2,34 @@ import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
 import { Octokit } from "npm:/octokit@3.1.0";
 
 const HEAD_REF = `bot/update-submodule-${Date.now()}`;
-const COMMIT_MESSAGE = `[SKIP-CI] update submodule exterprise-extensions
+const DELAY_SECONDS_BEFORE_CREATE_PR = 5;
+const DELAY_SECONDS_BEFORE_DEAL_PR = 5;
+
+interface cliArgs {
+  owner: string;
+  repository: string;
+
+  base_ref: string;
+  sub_owner: string;
+  sub_repository: string;
+  sub_ref: string;
+  path: string;
+  github_private_token: string;
+  draft: boolean;
+}
+
+function newCommitMsg(submodulePath: string) {
+  return `[SKIP-CI] update submodule ${submodulePath}
 
 skip-checks: true
 `;
-const PR_DESCRIPTION = `
+}
+
+function newPRDescription(submodulePath: string) {
+  return `
 ### What problem does this PR solve?
 
-Problem Summary: update submodule exterprise-extensions
+Problem Summary: update submodule ${submodulePath}
 
 ### What changed and how does it work?
 
@@ -51,20 +71,6 @@ None
 \`\`\`
 
 `;
-const DELAY_SECONDS_BEFORE_CREATE_PR = 5;
-const DELAY_SECONDS_BEFORE_DEAL_PR = 5;
-
-interface cliArgs {
-  owner: string;
-  repository: string;
-
-  base_ref: string;
-  sub_owner: string;
-  sub_repository: string;
-  sub_ref: string;
-  path: string;
-  github_private_token: string;
-  draft: boolean;
 }
 
 async function createUpdateSubModulePR(
@@ -126,7 +132,7 @@ async function createUpdateSubModulePR(
   const { data: newCommitData } = await octokit.rest.git.createCommit({
     owner,
     repo: repository,
-    message: COMMIT_MESSAGE,
+    message: newCommitMsg(path),
     tree: treeData.sha,
     parents: [headData.object.sha],
   });
@@ -151,7 +157,7 @@ async function createUpdateSubModulePR(
     owner,
     repo: repository,
     title: `${path}: update submodule`,
-    body: PR_DESCRIPTION,
+    body: newPRDescription(path),
     head: HEAD_REF,
     base: baseRef,
     draft,
@@ -162,11 +168,6 @@ async function createUpdateSubModulePR(
 
   return pr;
 }
-
-// Wait a moment, let's other plugins run firstly.
-await new Promise((resolve) =>
-  setTimeout(resolve, DELAY_SECONDS_BEFORE_DEAL_PR * 1000)
-);
 
 async function postDealPR(
   octokit: Octokit,
@@ -227,6 +228,12 @@ async function main(args: cliArgs) {
   console.info(
     `🫧 Post dealing for pull request: ${owner}/${repository}/${pullRequest.number} ...`,
   );
+
+  // Wait a moment, let's other plugins run firstly.
+  await new Promise((resolve) =>
+    setTimeout(resolve, DELAY_SECONDS_BEFORE_DEAL_PR * 1000)
+  );
+
   await postDealPR(
     octokit,
     owner,
