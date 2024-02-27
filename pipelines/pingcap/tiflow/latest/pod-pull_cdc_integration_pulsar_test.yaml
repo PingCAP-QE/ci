@@ -5,27 +5,15 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:pulsar-test"
       tty: true
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 16Gi
+          cpu: "8"
         limits:
           memory: 16Gi
-          cpu: "6"
-    - name: pulsar
-      image: "apachepulsar/pulsar:2.10.4"
-      imagePullPolicy: IfNotPresent
-      tty: true
-      resources:
-        requests:
-          memory: 4Gi
-          cpu: "4"
-        limits:
-          memory: 6Gi
-          cpu: "6"
-      command: ["bin/pulsar", "standalone"]
+          cpu: "8"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
