@@ -23,6 +23,9 @@ postsubmits:
               - --sub_repository=$(REPO_NAME)
               - --base_ref=$(PULL_BASE_REF)
               - --path=ng-monitoring
+              - --add_labels=lgtm
+              - --add_labels=approved
+              - --add_labels=skip-issue-check
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
@@ -35,7 +38,7 @@ postsubmits:
                 memory: 1Gi
               requests:
                 cpu: "1"
-                memory: 1Gi  
+                memory: 1Gi
     - name: update-submodule-release-branches
       decorate: true
       decoration_config:
@@ -58,6 +61,9 @@ postsubmits:
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=ng-monitoring
+              - --add_labels=lgtm
+              - --add_labels=approved
+              - --add_labels=skip-issue-check
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
