@@ -16,6 +16,7 @@ interface cliArgs {
   path: string;
   github_private_token: string;
   draft: boolean;
+  add_labels: string[]; // labels to add in post dealing.
 }
 
 function newCommitMsg(submodulePath: string) {
@@ -86,8 +87,14 @@ async function createUpdateSubModulePR(
 ) {
   // Get target branch's git commit SHA.
   console.debug("-----");
-  console.debug(owner, repository, subOwner, subRepository);
-  console.log(baseRef, subRef);
+  console.debug({
+    owner,
+    repository,
+    subOwner,
+    subRepository,
+    baseRef,
+    subRef,
+  });
 
   const { data } = await octokit.rest.git.getRef({
     owner,
@@ -174,6 +181,7 @@ async function postDealPR(
   owner: string,
   repo: string,
   prNumber: number,
+  toAddLabels: string[],
 ) {
   // add "/release-note-none" comment.
   await octokit.rest.issues.createComment({
@@ -183,11 +191,6 @@ async function postDealPR(
     body: "/release-note-none",
   }).catch((error: any) => console.error("Error creating comment:", error));
 
-  // add "skip-issue-check", "lgtm" labels:
-  const toAddLabels = ["skip-issue-check", "lgtm"];
-  if (repo.startsWith("docs")) {
-    toAddLabels.push("translation/no-need");
-  }
   await octokit.rest.issues.addLabels({
     owner,
     repo,
@@ -208,6 +211,7 @@ async function main(args: cliArgs) {
     path,
     github_private_token,
     draft,
+    add_labels: addLabels,
   } = args;
   // Create a new Octokit instance using the provided token
   const octokit = new Octokit({ auth: github_private_token });
@@ -239,6 +243,7 @@ async function main(args: cliArgs) {
     owner,
     repository,
     pullRequest.number,
+    addLabels,
   );
   console.info(
     `✅ Post done for pull request: ${owner}/${repository}/${pullRequest.number} ...`,
@@ -258,7 +263,9 @@ async function main(args: cliArgs) {
  * --path <submodule path in repo>
  * --github_private_token <github private token>
  * --draft, optional.
+ * --add_labels <label>
  */
-const args = flags.parse<cliArgs>(Deno.args);
+const args = flags.parse<cliArgs>(Deno.args, {
+  collect: ["add_labels"] as never[],
+});
 await main(args);
-Deno.exit(0);

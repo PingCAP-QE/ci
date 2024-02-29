@@ -25,6 +25,8 @@ postsubmits:
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=pkg/extension/enterprise # new path
+              - --add_label=lgtm
+              - --add_label=skip-issue-check
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
@@ -60,6 +62,8 @@ postsubmits:
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=extension/enterprise # old path
+              - --add_label=lgtm
+              - --add_label=skip-issue-check              
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
