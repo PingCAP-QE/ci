@@ -638,6 +638,33 @@ rm -rf ${TARGET}/build-release || true
 """
 
 buildsh["tikv"] = """
+CONFIG_PATH=\$HOME/.cargo/config
+
+CONFIG_CONTENT="
+[source.crates-io]
+registry = 'https://github.com/rust-lang/crates.io-index'
+replace-with = 'tuna'
+
+[source.tuna]
+registry = 'https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git'
+"
+
+CARGO_DIR=\$(dirname "\$CONFIG_PATH")
+if [ ! -d "\$CARGO_DIR" ]; then
+  mkdir -p "\$CARGO_DIR"
+fi
+
+if [ -f "\$CONFIG_PATH" ]; then
+  echo "Existing configuration:"
+  cat "\$CONFIG_PATH"
+fi
+
+echo "Overwriting with new configuration..."
+echo -e "\$CONFIG_CONTENT" >"\$CONFIG_PATH"
+
+echo "New configuration:"
+cat "\$CONFIG_PATH"
+
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
