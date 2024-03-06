@@ -53,6 +53,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/blackbox_exporter.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/node.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/grafana/kafka.json || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiproxy/main/pkg/metrics/grafana/tiproxy_summary.json || true; \
     if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
         wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/grafana/lightning.json || true; \
         wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/grafana/br.json || true; \
