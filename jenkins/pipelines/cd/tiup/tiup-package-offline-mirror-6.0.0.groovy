@@ -225,14 +225,14 @@ def package_tools = { plat, arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag_actual}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag_actual}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag_actual}/${br_hash}/centos7/br-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.21-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.30-linux-${arch}.tar.gz
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
         tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
-        tar xf etcd-v3.4.21-linux-${arch}.tar.gz
+        tar xf etcd-v3.4.30-linux-${arch}.tar.gz
 
         
         cp bin/binlogctl ${toolkit_dir}/
@@ -240,7 +240,7 @@ def package_tools = { plat, arch ->
         cp bin/reparo ${toolkit_dir}/
         cp bin/arbiter ${toolkit_dir}/
         cp bin/tidb-lightning-ctl ${toolkit_dir}/
-        cp etcd-v3.4.21-linux-${arch}/etcdctl ${toolkit_dir}/
+        cp etcd-v3.4.30-linux-${arch}/etcdctl ${toolkit_dir}/
         
         ${mydumper_cmd}
 
