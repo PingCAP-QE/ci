@@ -58,6 +58,9 @@ pipeline {
                     git clone --depth 1  --branch master https://github.com/tikv/tikv.git .
                     git status
                     git show --oneline -s
+                    cd \$HOME/tikv-src
+                    git fetch origin master
+                    git checkout -f origin/master
                     """
                 }
             }
