@@ -116,12 +116,6 @@ pipeline {
                                 python3 gen_test_binary_json.py
                                 cat test-binaries.json
                             """
-                            // sh label: 'Post build artifact', script: """
-                            //     cd \$HOME/tikv-src
-                            //     tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
-                            //     ls -alh test-artifacts.tar.gz
-                            // """
-                            // stash name: 'test-artifacts', includes: 'test-artifacts.tar.gz'
                         }
                     }
                 }
@@ -132,7 +126,6 @@ pipeline {
                 options { timeout(time: 30, unit: 'MINUTES') }
                 steps {
                     dir('tikv') {
-                        // unstash 'test-artifacts'
                         sh """
                         cd \$HOME/tikv-src
                         ls -alh
