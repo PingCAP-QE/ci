@@ -65,96 +65,93 @@ pipeline {
                 }
             }
         }
-        stage('Prepare') {
-            stage('lint') {
-                steps {
-                    dir("tikv") {
-                        retry(2) {
-                            sh label: 'Run lint: format', script: """
-                                cd \$HOME/tikv-src
-                                export RUSTFLAGS=-Dwarnings
-                                make format
-                                git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
-                            """
-                            sh label: 'Run lint: clippy', script: """
-                                cd \$HOME/tikv-src
-                                export RUSTFLAGS=-Dwarnings
-                                export FAIL_POINT=1
-                                export ROCKSDB_SYS_SSE=1
-                                export RUST_BACKTRACE=1
-                                export LOG_LEVEL=INFO
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                                make clippy || (echo Please fix the clippy error; exit 1)
-                            """
-                        }
-                    }
-                }
-            }
-            stage('build') {
-                steps {
-                    dir("tikv") {
-                        retry(2) {
-                            sh label: 'Build test artifact', script: """
-                                cd \$HOME/tikv-src
-                                export RUSTFLAGS=-Dwarnings
-                                export FAIL_POINT=1
-                                export ROCKSDB_SYS_SSE=1
-                                export RUST_BACKTRACE=1
-                                export LOG_LEVEL=INFO
-                                export CARGO_INCREMENTAL=0
-                                export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
-                                echo using gcc 8
-                                source /opt/rh/devtoolset-8/enable
-                                set -o pipefail
 
-                                # Build and generate a list of binaries
-                                CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
-                                # Cargo metadata
-                                cargo metadata --format-version 1 > test-metadata.json
-                                cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
-                                python3 gen_test_binary_json.py
-                                cat test-binaries.json
-                            """
-                        }
+        stage('lint') {
+            steps {
+                dir("tikv") {
+                    retry(2) {
+                        sh label: 'Run lint: format', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            make format
+                            git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
+                        """
+                        sh label: 'Run lint: clippy', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            make clippy || (echo Please fix the clippy error; exit 1)
+                        """
                     }
                 }
             }
         }
-        stages {
-            stage("Test") {
-                options { timeout(time: 30, unit: 'MINUTES') }
-                steps {
-                    dir('tikv') {
-                        sh """
-                        cd \$HOME/tikv-src
-                        ls -alh
-                        export RUSTFLAGS=-Dwarnings
-                        export FAIL_POINT=1
-                        export RUST_BACKTRACE=1
-                        export MALLOC_CONF=prof:true,prof_active:false
-                        export CI=1  # TODO: remove this
-                        export LOG_FILE=$WORKSPACE/tikv/target/my_test.log
+        stage('build') {
+            steps {
+                dir("tikv") {
+                    retry(2) {
+                        sh label: 'Build test artifact', script: """
+                            cd \$HOME/tikv-src
+                            export RUSTFLAGS=-Dwarnings
+                            export FAIL_POINT=1
+                            export ROCKSDB_SYS_SSE=1
+                            export RUST_BACKTRACE=1
+                            export LOG_LEVEL=INFO
+                            export CARGO_INCREMENTAL=0
+                            export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
+                            set -o pipefail
 
-                        if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json ${EXTRA_NEXTEST_ARGS}; then
-                            echo "test pass"
-                        else
-                            # test failed
-                            gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
-                            exit 1
-                        fi
+                            # Build and generate a list of binaries
+                            CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
+                            # Cargo metadata
+                            cargo metadata --format-version 1 > test-metadata.json
+                            cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
+                            python3 gen_test_binary_json.py
+                            cat test-binaries.json
                         """
                     }
                 }
-                post {
-                    failure {
-                        sh label: "collect logs", script: """
-                            ls \$WORKSPACE/tikv/target/
-                            tar -cvzf log-ut.tar.gz \$(find $WORKSPACE/tikv/target/ -type f -name "*.log")    
-                            ls -alh  log-ut.tar.gz  
-                        """
-                        archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
-                    }
+            }
+        }
+        stage("Test") {
+            options { timeout(time: 30, unit: 'MINUTES') }
+            steps {
+                dir('tikv') {
+                    sh """
+                    cd \$HOME/tikv-src
+                    ls -alh
+                    export RUSTFLAGS=-Dwarnings
+                    export FAIL_POINT=1
+                    export RUST_BACKTRACE=1
+                    export MALLOC_CONF=prof:true,prof_active:false
+                    export CI=1  # TODO: remove this
+                    export LOG_FILE=$WORKSPACE/tikv/target/my_test.log
+
+                    if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json ${EXTRA_NEXTEST_ARGS}; then
+                        echo "test pass"
+                    else
+                        # test failed
+                        gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                        exit 1
+                    fi
+                    """
+                }
+            }
+            post {
+                failure {
+                    sh label: "collect logs", script: """
+                        ls \$WORKSPACE/tikv/target/
+                        tar -cvzf log-ut.tar.gz \$(find $WORKSPACE/tikv/target/ -type f -name "*.log")    
+                        ls -alh  log-ut.tar.gz  
+                    """
+                    archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
                 }
             }
         }
