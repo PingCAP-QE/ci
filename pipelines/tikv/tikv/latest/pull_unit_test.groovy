@@ -109,6 +109,9 @@ pipeline {
                                 CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
                                 # Cargo metadata
                                 cargo metadata --format-version 1 > test-metadata.json
+                                cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
+                                python3 gen_test_binary_json.py
+                                cat test-binaries.json
                             """
                             // sh label: 'Post build artifact', script: """
                             //     cd \$HOME/tikv-src
@@ -121,14 +124,14 @@ pipeline {
                 }
             }
         }
-
         stages {
             stage("Test") {
-                options { timeout(time: 15, unit: 'MINUTES') }
+                options { timeout(time: 30, unit: 'MINUTES') }
                 steps {
                     dir('tikv') {
                         // unstash 'test-artifacts'
                         sh """
+                        cd \$HOME/tikv-src
                         ls -alh
                         export RUSTFLAGS=-Dwarnings
                         export FAIL_POINT=1
