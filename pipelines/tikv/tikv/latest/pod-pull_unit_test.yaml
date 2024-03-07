@@ -9,11 +9,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "6"
+          memory: 16Gi
+          cpu: "8"
         limits:
-          memory: 8Gi
-          cpu: "6"
+          memory: 16Gi
+          cpu: "8"
       volumeMounts:
       - mountPath: "/home/jenkins/agent/memvolume"
         name: "volume-memory"
