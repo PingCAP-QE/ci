@@ -638,33 +638,6 @@ rm -rf ${TARGET}/build-release || true
 """
 
 buildsh["tikv"] = """
-CONFIG_PATH=\$HOME/.cargo/config
-
-CONFIG_CONTENT="
-[source.crates-io]
-registry = 'https://github.com/rust-lang/crates.io-index'
-replace-with = 'tuna'
-
-[source.tuna]
-registry = 'https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git'
-"
-
-CARGO_DIR=\$(dirname "\$CONFIG_PATH")
-if [ ! -d "\$CARGO_DIR" ]; then
-  mkdir -p "\$CARGO_DIR"
-fi
-
-if [ -f "\$CONFIG_PATH" ]; then
-  echo "Existing configuration:"
-  cat "\$CONFIG_PATH"
-fi
-
-echo "Overwriting with new configuration..."
-echo -e "\$CONFIG_CONTENT" >"\$CONFIG_PATH"
-
-echo "New configuration:"
-cat "\$CONFIG_PATH"
-
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
@@ -920,6 +893,12 @@ def run_with_pod(String builder, Closure body) {
         builderRequestCpu="16"
         buidlerRequestMemory="32Gi"
     }
+    def cargo_pvc = ""
+    if (ARCH == 'arm64'){
+        cargo_pvc = 'cargo-home-linux-arm64'
+    }else if (ARCH == 'amd64') {
+        cargo_pvc = 'cargo-home-linux-amd64'
+    }
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -930,7 +909,10 @@ def run_with_pod(String builder, Closure body) {
                             image: "${builder}", ttyEnabled: true,
                             resourceRequestCpu: builderRequestCpu, resourceRequestMemory: buidlerRequestMemory,
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            envVars: [
+                                containerEnvVar(key: 'GOPATH', value: '/go'), 
+                                containerEnvVar(key: 'CARGO_HOME', value: '/var/cache/cargohome')
+                            ],
                     ),
                     containerTemplate(
                             name: 'ks3util', alwaysPullImage: true,
@@ -941,7 +923,8 @@ def run_with_pod(String builder, Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    persistentVolumeClaim(mountPath:'/var/cache/cargohome', claimName: cargo_pvc)
                     ],
     ) {
         node(label) {
