@@ -16,7 +16,10 @@ pipeline{
             defaultContainer 'regctl'
         }
     }
-    options { retry(3) }
+    options { 
+      skipDefaultCheckout true
+      retry(3)
+    }
     stages{
       stage("login gcr") {
         environment { HUB = credentials('gcr-registry-key') }
