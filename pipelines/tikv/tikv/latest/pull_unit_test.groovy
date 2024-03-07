@@ -154,8 +154,8 @@ pipeline {
                     failure {
                         sh label: "collect logs", script: """
                             ls \$WORKSPACE/tikv/target/
-                            tar -cvzf log-${CHUNK_SUFFIC}.tar.gz \$(find $WORKSPACE/tikv/target/ -type f -name "*.log")    
-                            ls -alh  log-${CHUNK_SUFFIC}.tar.gz  
+                            tar -cvzf log-ut.tar.gz \$(find $WORKSPACE/tikv/target/ -type f -name "*.log")    
+                            ls -alh  log-ut.tar.gz  
                         """
                         archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
                     }
