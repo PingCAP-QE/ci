@@ -96,6 +96,136 @@ def checkoutV2(gitUrl, keyInComment, prTargetBranch, prCommentBody, credentialsI
     )
 }
 
+
+// default fetch targetBranch
+// if title contains | tidb-test=pr/xxx，fetch tidb-test from pr/xxx (with merge base branch)
+// for single PR: support pr title specify tidb-test=release-x.y or tidb-test=commit-hash or tidb-test=pr/xxx
+// for multi PR: support pr title specify tidb-test=pr/xxx or not specify tidb-test
+def checkoutSupportBatch(gitUrl, keyInComment, prTargetBranch, prCommentBody, refs, credentialsId="", trunkBranch="master", timeout=5) {
+    def tidbTestRefs = [] // List of tidb-test refs PR:123, PR:456
+    boolean branchOrCommitSpecified = false // Flag to check if a branch or commit is specified in any PR title
+
+    refs.pulls.each { pull ->
+        def componentBranch = computeBranchFromPR(keyInComment, prTargetBranch, pull.title,  trunkBranch)
+        if (componentBranch.startsWith("pr/")) {
+            tidbTestRefs.add("PR:${componentBranch}") // Add as PR reference
+        } else {
+            // some PR title contains a branch or commit
+            if ( prTargetBranch != componentBranch) {
+                branchOrCommitSpecified = true
+                tidbTestRefs.add("Branch:${componentBranch}") // Add as branch reference specified in PR title
+            }
+        }
+    }
+    
+    if (tidbTestRefs.isEmpty()) {
+        echo "No tidb-test refs specified, defaulting to base branch ${prTargetBranch} of tidb-test."
+        checkoutSingle(gitUrl, prTargetBranch, prTargetBranch, credentialsId)
+    } else if (tidbTestRefs.size() == 1 && tidbTestRefs[0].startsWith("Branch:")) {
+        // default branch or specific branch
+        // Single PR with branch specified
+        echo "Single PR with tidb-test branch specified: ${prTargetBranch}"
+        def branch = tidbTestRefs[0].split(":")[1]
+        checkoutSingle(gitUrl, prTargetBranch, branch, credentialsId)
+    // if tidbTestRefs size > 1 and any of tidbTestRefs start with branch , then error and exit
+    } else if (tidbTestRefs.size() > 1 && branchOrCommitSpecified) {
+        echo "Error: Specifying a tidb-test branch is not supported for multiple tidb PRs."
+        throw new Exception("Error: Specifying a tidb-test branch is not supported for multiple tidb PRs batch.")
+    } else {
+        // multi PR specified PR (notice: for batch merge with specific branch is not supported)
+        // single PR with specified PR 
+        checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefs.collect { it.split(":")[1] } as List, credentialsId)
+    }
+}
+
+def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeout=5) {
+    def refSpec = "+refs/heads/*:refs/remotes/origin/*"
+    checkout(
+        changelog: false,
+        poll: true,
+        scm: [
+            $class: 'GitSCM',
+            branches: [[name: branchOrCommit]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+                [$class: 'PruneStaleBranch'],
+                [$class: 'CleanBeforeCheckout'],
+                [$class: 'CloneOption', timeout: timeout],
+            ], 
+            submoduleCfg: [],
+            userRemoteConfigs: [[
+                credentialsId: credentialsId,
+                refspec: refSpec,
+                url: gitUrl,
+            ]]
+        ]
+    )
+}
+
+def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentialsId) {
+    // iterate over tidbTestRefs and checkout all pr with pre-merge
+    sshagent(credentials: [credentialsId]) { 
+        sh label: 'Know hosts', script: """#!/usr/bin/env bash
+            [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+            ssh-keyscan -t rsa,dsa github.com >> ~/.ssh/known_hosts
+        """
+        sh(label: 'checkout', script: """#!/usr/bin/env bash
+            set -e
+            git --version
+            git init
+            git rev-parse --resolve-git-dir .git
+
+            # Configure git to enable non-interactive operation
+            git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
+            # Add the original repository as a remote if it hasn't been added
+            git config remote.origin.url ${gitUrl}
+            git config core.sparsecheckout true
+
+            # reset & clean
+            git reset --hard
+            git clean -ffdx
+
+            # fetch and checkout target branch
+            refSpec="+refs/heads/${prTargetBranch}:refs/remotes/origin/${prTargetBranch}"
+            git fetch --force --verbose --prune --prune-tags -- ${gitUrl} \${refSpec}
+            git checkout -f origin/${prTargetBranch}
+            echo "🧾 HEAD info:"
+            git rev-parse HEAD^{commit}
+            git log -n 3 --oneline
+
+            # iterate over tidbTestRefsList, then checkout pr and merge into base branch
+            for ref in ${tidbTestRefsList}; do
+                echo "🔍 fetch \${ref} and merge into ${prTargetBranch} branch"
+                prNumber=\$(echo "\${ref}" | sed 's/[^0-9]*//g')
+                refSpec="+refs/pull/\${prNumber}/head:refs/remotes/origin/pr/\${prNumber}/head"
+                git fetch --force --verbose --prune --prune-tags -- ${gitUrl} \${refSpec}
+
+                # Merge the PR into the target branch
+                # --no-edit uses the default commit message without launching an editor
+                # If there is a merge conflict, the "||" part will execute
+                echo "🔀 Merge \${ref} into ${prTargetBranch}"
+                git merge  origin/pr/\${prNumber}/head --no-edit --no-ff || {
+                    echo "ERROR: Merge conflict detected. Exiting with error."
+                    exit 1
+                }
+
+                echo "🧾 Merge result:"
+                git rev-parse HEAD^{commit}
+                git log -n 3 --oneline
+                echo "✅ Merge pr/\${prNumber} to base branch 🎉"
+            done
+
+            git clean -ffdx
+            git rev-parse --show-toplevel
+            git status -s .
+
+            echo "✅ ~~~~~ All done. ~~~~~~"
+            """
+        )
+    }
+}
+
+
 // default fetch targetBranch
 // if title contains | tidb=pr/xxx，fetch tidb from pr/xxx (with merge base branch)
 def checkoutWithMergeBase(gitUrl, keyInComment, prTargetBranch, prCommentBody, trunkBranch="master", timeout=5, credentialsId="") {
