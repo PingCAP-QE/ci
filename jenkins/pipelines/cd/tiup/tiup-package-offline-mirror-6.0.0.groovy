@@ -60,7 +60,7 @@ def clone_toolkit_package = { arch, dst ->
     }
     def amd64_pkg = ""
     if (arch == "amd64"){
-        amd64_pkg = "--PCC latest --package latest"
+        amd64_pkg = "--package latest"
     }
     if (release_tag >= "v6.1.1") {
         sh """
@@ -70,7 +70,7 @@ def clone_toolkit_package = { arch, dst ->
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
         --grafana $VERSION --alertmanager latest \
         --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
-        --bench latest --errdoc latest --dba latest \
+        --bench latest --errdoc latest --dba latest --PCC latest \
         $amd64_pkg --pump $VERSION --drainer $VERSION --server latest
         """
     } else {
@@ -79,7 +79,7 @@ def clone_toolkit_package = { arch, dst ->
         tiup mirror clone $dst --os linux --arch ${arch} ${pkgs_deprecate_v75} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
-        --bench latest --errdoc latest --dba latest \
+        --bench latest --errdoc latest --dba latest --PCC latest \
         $amd64_pkg --pump $VERSION --drainer $VERSION 
         """
     }
