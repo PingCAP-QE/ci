@@ -1,0 +1,35 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+postsubmits:
+  pingcap/tidb:
+    - name: auto-handle-tidb-test-pr
+      decorate: true
+      decoration_config:
+        skip_cloning: true
+      skip_report: true
+      optional: true
+      max_concurrency: 3
+      branches:
+        - master
+      spec:
+        containers:
+          - name: main
+            image: denoland/deno:1.41.0
+            command: [python3, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py]
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+              - name: WEBHOOK_URL
+                valueFrom:
+                  secretKeyRef:
+                    key: tidb-test-notify-url
+                    name: feishu-webhook
+            resources:
+              limits:
+                cpu: "1"
+                memory: 1Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi
