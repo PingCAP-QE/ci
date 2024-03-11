@@ -13,7 +13,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.41.0
+            image: python:3.9-slim
             command: [python3, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py]
             env:
               - name: GITHUB_API_TOKEN
