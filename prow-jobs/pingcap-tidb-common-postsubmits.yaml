@@ -13,8 +13,14 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: xr09/python-requests:3.10
-            command: [python3, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py]
+            image: purelind/python3-requests:3.9.18-slim
+            command: [bash, -ce]
+            args:
+              - |
+                curl -L -O https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py
+                echo $PULL_BASE_SHA
+                echo $PULL_BASE_REF
+                python3 auto-handle-tidb-test-pr.py
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
@@ -33,5 +39,3 @@ postsubmits:
               requests:
                 cpu: "500m"
                 memory: 1Gi
-
-

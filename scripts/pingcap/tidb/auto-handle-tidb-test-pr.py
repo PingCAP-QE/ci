@@ -71,6 +71,7 @@ def merge_pr(repo, pr_number):
 
 
 def send_alert(message):
+    print(message)
     card_content = {
       "config": {
         "wide_screen_mode": True
@@ -157,19 +158,19 @@ def main():
     if tidb_test_pr_info['base']['ref'] != base_ref:
         # require tidb pr and tidb-test pr owns the same base branch
         send_alert(f"base branch of tidb-test PR [#{tidb_test_pr_number}](https://github.com/{tidb_test_repo}/pull/{tidb_test_pr_number}) is **{tidb_test_pr_info['base']['ref']}**, but expected **{base_ref}**\n\n"
-                   f"tidb PR: **{tidb_pr_info['title']}**[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n")
+                   f"tidb PR: ** {tidb_pr_info['title']} **[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n")
         exit(1)
 
     if tidb_test_pr_info['state'] != 'open':
         send_alert(f"tidb-test PR [#{tidb_test_pr_number}](https://github.com/{tidb_test_repo}/pull/{tidb_test_pr_number}) is not open, current state is {tidb_test_pr_info['state']}\n\n"
-                   f"tidb PR: **{tidb_pr_info['title']}**[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n"
+                   f"tidb PR: ** {tidb_pr_info['title']} **[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n"
                    f"target branch: **{base_ref}**")
         exit(1)
 
     comment = f'The dependent TiDB PR https://github.com/{tidb_repo}/pull/{tidb_pr_number} has been merged. The bot is merging this PR.'
     if comment_pr(tidb_test_repo, tidb_test_pr_number, comment) and merge_pr(tidb_test_repo, tidb_test_pr_number):
         success_message = (f"tidb-test PR 自动合并成功\n\n\ntidb-test PR [#{tidb_test_pr_number}](https://github.com/{tidb_test_repo}/pull/{tidb_test_pr_number})\n"
-                           f"tidb PR: **{tidb_pr_info['title']}**[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n"
+                           f"tidb PR: ** {tidb_pr_info['title']} **[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n"
                            f"target branch: **{base_ref}**")
         send_success_notify(success_message)
     else:
