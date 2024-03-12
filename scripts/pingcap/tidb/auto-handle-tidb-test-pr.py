@@ -12,8 +12,8 @@ HEADERS = {
 }
 NOTIFY_URL = os.environ.get("WEBHOOK_URL")
 
-base_sha = os.environ.get('base_sha')
-base_ref = os.environ.get("base_ref")
+base_sha = os.environ.get('PULL_BASE_SHA')
+base_ref = os.environ.get("PULL_BASE_REF")
 tidb_repo = "pingcap/tidb"
 tidb_test_repo = "PingCAP-QE/tidb-test"
 
@@ -152,7 +152,7 @@ def main():
     if tidb_test_pr_number == -1:
         print("no tidb-test PR specified")
         exit(0)
-        
+
     tidb_test_pr_info = get_pr_info(tidb_test_repo, tidb_test_pr_number)
     if tidb_test_pr_info['base']['ref'] != base_ref:
         # require tidb pr and tidb-test pr owns the same base branch
