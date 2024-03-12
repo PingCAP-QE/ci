@@ -13,7 +13,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: python:3.9-slim
+            image: hub.pingcap.net/jenkins/python3-requests:latest
             command: [python3, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py]
             env:
               - name: GITHUB_API_TOKEN
@@ -33,3 +33,12 @@ postsubmits:
               requests:
                 cpu: "1"
                 memory: 1Gi
+              affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
