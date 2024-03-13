@@ -1,19 +1,21 @@
 apiVersion: v1
 kind: Pod
 spec:
-  securityContext:
-    fsGroup: 1000
   containers:
     - name: runner
       image: "hub.pingcap.net/jenkins/tikv-cached-master:latest"
       tty: true
+      command:
+        - "/bin/sh"
+        - "-c"
+      args:
+        - "cat"
       resources:
         requests:
-          memory: 32Gi
-          cpu: "16"
-        limits:
-          memory: 40Gi
-          cpu: "16"
+          memory: 8Gi
+          cpu: "6"
+      securityContext:
+        privileged: true
       volumeMounts:
       - mountPath: "/home/jenkins/agent/memvolume"
         name: "volume-memory"
