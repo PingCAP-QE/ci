@@ -10,6 +10,10 @@ postsubmits:
       max_concurrency: 3
       branches:
         - master
+        - release-6.1
+        - release-6.5
+        - release-7.1
+        - release-7.5
       spec:
         containers:
           - name: main
