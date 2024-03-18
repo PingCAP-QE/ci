@@ -12,7 +12,8 @@ spec:
           memory: 12Gi
           cpu: "4"
         limits:
-          memory: 1
+          memory: 16Gi
+          cpu: "6"
       volumeMounts:
         - name: gocache
           mountPath: /share/.cache/go-build
@@ -24,13 +25,6 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
           cpu: 100m
   volumes:
     - name: gopathcache
