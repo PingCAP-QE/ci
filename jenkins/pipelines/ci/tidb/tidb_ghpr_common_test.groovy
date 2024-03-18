@@ -397,7 +397,7 @@ try {
                                     set -e
                                     
                                     unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                    if [[ "${test_dir}" = "mysql_test" ]] && [[ "${ghprbTargetBranch}" =~ ^(master)|^release-7.*|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?\$ ]]; then 
+                                    if [[ "${test_dir}" = "mysql_test" ]] && [[ "${ghprbTargetBranch}" =~ ^(master)|^release-[7-9].*|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?\$ ]]; then 
                                         echo "current branch: ${ghprbTargetBranch}"
                                         echo "run mysql-test on master branch and branch >= release-6.2 in blacklist-mode"
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
