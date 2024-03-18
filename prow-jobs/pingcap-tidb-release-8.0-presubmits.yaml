@@ -1,0 +1,70 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/tidb:
+    - name: pingcap/tidb/release-8.0/ghpr_build
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: idc-jenkins-ci-tidb/build
+      trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
+      rerun_command: "/test build"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.0/ghpr_check
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: idc-jenkins-ci-tidb/check_dev
+      trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
+      rerun_command: "/test check-dev"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.0/ghpr_check2
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: idc-jenkins-ci-tidb/check_dev_2
+      trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
+      rerun_command: "/test check-dev2"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.0/ghpr_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: idc-jenkins-ci-tidb/mysql-test
+      trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
+      rerun_command: "/test mysql-test"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.0/ghpr_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: idc-jenkins-ci-tidb/unit-test
+      trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
+      rerun_command: "/test unit-test"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.0/pull_br_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-br-integration-test
+      always_run: false
+      optional: true
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-br-integration-test"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.0/pull_lightning_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-lightning-integration-test
+      always_run: false
+      optional: true
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-lightning-integration-test"
+      branches:
+        - ^release-8\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?$
