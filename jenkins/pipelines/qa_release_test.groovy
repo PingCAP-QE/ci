@@ -40,15 +40,15 @@ catchError {
         stage("Prepare") {
             container('toolkit') {
                 if (release_info.release_branch != "release-3.0") {
-                    sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.release_branch}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.release_branch}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-check/pr/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/${release_info.release_branch}/${release_info.pd_commit}/centos7/pd-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/pr/${release_info.pd_commit}/centos7/done --content done"
-                    sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb-lightning/optimization/${params.VERSION}/${release_info.lightning_commit}/centos7/br-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/tidb-lightning.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/br/${release_info.release_branch}/${release_info.lightning_commit}/centos7/br.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb-lightning/pr/${release_info.lightning_commit}/centos7/done --content done"
-                    sh "inv upload --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/tikv-server.tar.gz  --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/tikv-server.tar.gz  --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${release_info.release_branch}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/tikv/pr/${release_info.tikv_commit}/centos7/done --content done"
 
 
@@ -57,11 +57,11 @@ catchError {
                     sh "inv upload --dst refs/pingcap/tikv/${release_info.tikv_commit}/sha1 --content ${release_info.tikv_commit}"
                     sh "inv upload --dst refs/pingcap/pd/${release_info.pd_commit}/sha1 --content ${release_info.pd_commit}"
                     // 上传集成测试流水线需要的产物路径
-                    sh "inv upload --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/optimization/${params.VERSION}/${release_info.tidb_commit}/centos7/tidb-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/tidb/${release_info.release_branch}/${release_info.tidb_commit}/centos7/tidb-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/tidb/${release_info.tidb_commit}/${release_info.tidb_commit}/centos7/done --content done"
-                    sh "inv upload --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${params.VERSION}/${release_info.pd_commit}/centos7/pd-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/pd-server.tar.gz --remote ${FILE_SERVER_URL}/download/builds/pingcap/pd/${release_info.release_branch}/${release_info.pd_commit}/centos7/pd-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/pd/${release_info.pd_commit}/${release_info.pd_commit}/centos7/done --content done"
-                    sh "inv upload --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/optimization/${params.VERSION}/${release_info.tikv_commit}/centos7/tikv-linux-amd64.tar.gz"
+                    sh "inv upload --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz --remote  ${FILE_SERVER_URL}/download/builds/pingcap/tikv/${release_info.release_branch}/${release_info.tikv_commit}/centos7/tikv-server.tar.gz"
                     sh "inv upload --dst builds/pingcap/tikv/${release_info.tikv_commit}/${release_info.tikv_commit}/centos7/done --content done"
 
 
@@ -81,7 +81,6 @@ catchError {
                     for (int i = 0; i < release_info.tidb_old_commits.size(); i++) {
                         sh "inv upload --dst builds/download/refs/pingcap/tidb/${release_info.tidb_old_commits[i]}/sha1 --content ${release_info.tidb_old_commits[i]}"
                     }
-                } else {
                 }
             }
         }
