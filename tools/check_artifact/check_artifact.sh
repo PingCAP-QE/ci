@@ -15,7 +15,9 @@ function record_failure(){
 for com in tidb tikv tiflash pd ctl grafana prometheus pd-recover tidb-lightning dumpling cdc dm-worker dm-master dmctl br grafana prometheus pump drainer ;
 do
     echo "check tiup $com:$VERSION"
-    tiup list $com | grep $VERSION | grep "darwin/amd64,darwin/arm64,linux/amd64,linux/arm64"
+    platforms=$(tiup list $com | grep $VERSION)
+    echo $platforms
+    echo $platforms | grep "darwin/amd64" | grep "darwin/arm64" | grep "linux/amd64" |grep -q "linux/arm64"
     record_failure $?
 done
 
