@@ -12,7 +12,7 @@ function record_failure(){
 }
 
 # check tiup
-for com in tidb tikv tiflash pd ctl grafana prometheus pd-recover tidb-lightning dumpling cdc dm-worker dm-master dmctl br grafana prometheus pump drainer ;
+for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'grafana' 'pd' 'pd-recover' 'prometheus' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' ;
 do
     echo "check tiup $com:$VERSION"
     platforms=$(tiup list $com | grep $VERSION)
@@ -22,13 +22,24 @@ do
 done
 
 # check docker
-for com in "dumpling" "br" "ticdc" "tidb-binlog" "tiflash" "tidb" "tikv" "pd" "dm" "tidb-lightning" "tidb-monitor-initializer" "ng-monitoring";
+for com in 'br' 'dm' 'dumpling' 'ng-monitoring' 'pd' 'ticdc' 'tidb' 'tidb-binlog' 'tidb-lightning' 'tidb-monitor-initializer' 'tiflash' 'tikv' ;
 do
     echo "check docker $com:$VERSION"
     oras manifest fetch hub.pingcap.net/qa/$com:$VERSION | grep -q 'application/vnd.docker.distribution.manifest.list'
     record_failure $?
     echo "check docker enterprise $com:$VERSION"
     oras manifest fetch hub.pingcap.net/qa/$com-enterprise:$VERSION | grep -q 'application/vnd.docker.distribution.manifest.list'
+    record_failure $?
+    echo "check gcr $com:$VERSION"
+    oras manifest fetch gcr.io/pingcap-public/dbaas/$com:$VERSION | grep -q 'application/vnd.docker.distribution.manifest.list'
+    record_failure $?
+done
+
+# check failpoint
+for com in 'pd' 'tidb' 'tikv';
+do
+    echo "check docker failpoint $com:$VERSION-failpoint"
+    oras manifest fetch hub.pingcap.net/qa/$com:$VERSION-failpoint | grep -q 'application/vnd.docker.distribution.manifest'
     record_failure $?
 done
 
