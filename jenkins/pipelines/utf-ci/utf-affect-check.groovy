@@ -71,5 +71,5 @@ def run(label, image, Closure main) {
 }
 
 catchError {
-    run('utf-jira-field', 'hub.pingcap.net/chenpeng/sync-version:latest') { main() }
+    run('utf-jira-field', 'hub.pingcap.net/qa/utf-sync-version:latest') { main() }
 }
