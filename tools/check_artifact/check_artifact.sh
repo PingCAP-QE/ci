@@ -15,7 +15,7 @@ function record_failure(){
 }
 
 # check tiup
-for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'grafana' 'pd' 'pd-recover' 'prometheus' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' ;
+for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'grafana' 'pd' 'pd-recover' 'prometheus' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard';
 do
     echo "check tiup $com:$VERSION"
     platforms=$(tiup list $com | grep $VERSION)
