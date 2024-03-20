@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tidb_ghpr_integration_br_test') {
     logRotator {
-        daysToKeep(90)
+        daysToKeep(30)
     }
     parameters {
         stringParam("ghprbActualCommit")
@@ -24,14 +24,8 @@ pipelineJob('tidb_ghpr_integration_br_test') {
                     whitelist('')
                     orgslist('pingcap')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('^(release-)?5\\.[0-4]\\d*(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?6\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
-                    }
-                    blackListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^(release-)?5\\.[3-4]\\d*(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?6\\.[1|5]\\d*(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?4\\.\\d+(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[5]\\.[0-4](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -79,10 +73,16 @@ pipelineJob('tidb_ghpr_integration_br_test') {
             scm {
                 git{
                     remote {
-                        url('git@github.com:PingCAP-QE/ci.git')
-                        credentials('github-sre-bot-ssh')
+                        url('https://github.com/PingCAP-QE/ci.git')
                     }
                     branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        }
+                    }
                 }
             }
         }
