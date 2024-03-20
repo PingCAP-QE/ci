@@ -395,7 +395,35 @@ catchError {
                                             envVar(key: 'DOWNSTREAM_DB_PORT', value: '3306'),
                                             envVar(key: 'USE_FLAT_MESSAGE', value: 'true'),
                                     ]
-                            )
+                            ),
+                            containerTemplate(
+                                    name: 'mysql',
+                                    image: "quay.io/debezium/example-mysql:2.4",
+                                    resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
+                                    ttyEnabled: true,
+                                    alwaysPullImage: false,
+                                    envVars: [
+                                            envVar(key: 'MYSQL_ROOT_PASSWORD', value: ''),
+                                            envVar(key: 'MYSQL_USER', value: 'mysqluser'),
+                                            envVar(key: 'MYSQL_PASSWORD', value: 'mysqlpw'),
+                                            envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'yes'),
+                                            envVar(key: 'MYSQL_TCP_PORT', value: '3310'),
+                                    ]
+                            ),
+                            containerTemplate(
+                                    name: 'connect',
+                                    image: "quay.io/debezium/connect:2.4",
+                                    resourceRequestCpu: '200m', resourceRequestMemory: '4Gi',
+                                    ttyEnabled: true,
+                                    alwaysPullImage: false,
+                                    envVars: [
+                                            envVar(key: 'BOOTSTRAP_SERVERS', value: "127.0.0.1:9092"),
+                                            envVar(key: 'GROUP_ID', value: '1'),
+                                            envVar(key: 'CONFIG_STORAGE_TOPIC', value: 'my_connect_configs'),
+                                            envVar(key: 'OFFSET_STORAGE_TOPIC', value: 'my_connect_offsets'),
+                                            envVar(key: 'STATUS_STORAGE_TOPIC', value: 'my_connect_statuses'),
+                                    ]
+                            ),
                     ],
                     volumes: [
                             emptyDirVolume(mountPath: '/tmp', memory: true),
