@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tikv_ghpr_integration_common_test') {
+    disabled(true)
     logRotator {
         daysToKeep(60)
         numToKeep(500)
@@ -84,10 +85,16 @@ pipelineJob('tikv_ghpr_integration_common_test') {
             scm {
                 git{
                     remote {
-                        url('git@github.com:PingCAP-QE/ci.git')
-                        credentials('github-sre-bot-ssh')
+                        url('https://github.com/PingCAP-QE/ci.git')
                     }
                     branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        }
+                    }
                 }
             }
         }
