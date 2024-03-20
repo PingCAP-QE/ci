@@ -82,7 +82,8 @@ pipelineJob('tikv_ghpr_integration_cdc_test') {
         cpsScm {
             lightweight(true)
             scriptPath('jenkins/pipelines/ci/tikv/tikv_ghpr_integration_cdc_test.groovy')
-            git{
+            scm {
+                git{
                     remote {
                         url('https://github.com/PingCAP-QE/ci.git')
                     }
@@ -95,6 +96,7 @@ pipelineJob('tikv_ghpr_integration_cdc_test') {
                         }
                     }
                 }
+            }
         }
     }
 }
