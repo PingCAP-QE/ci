@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pd_ghpr_build') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -22,11 +23,9 @@ pipelineJob('pd_ghpr_build') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist("")
                     orgslist("pingcap")
-                    blackListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^feature[_|/].*') }
-                        ghprbBranch { branch('^(release-)?6\\.[5-9]\\d*(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?7\\.[0-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                    whiteListTargetBranches {
+                        ghprbBranch { branch('^(release-)?4\\.\\d+(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[5]\\.[0-4](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
