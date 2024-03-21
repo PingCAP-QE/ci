@@ -24,9 +24,8 @@ pipelineJob('tidb_ghpr_common_test') {
                     whitelist('')
                     orgslist('pingcap')
                     whiteListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('^(release-)?5\\.[0-4]\\d*(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?4\\.\\d+(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[5]\\.[0-4](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -74,10 +73,16 @@ pipelineJob('tidb_ghpr_common_test') {
             scm {
                 git{
                     remote {
-                        url('git@github.com:PingCAP-QE/ci.git')
-                        credentials('github-sre-bot-ssh')
+                        url('https://github.com/PingCAP-QE/ci.git')
                     }
                     branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        }
+                    }
                 }
             }
         }

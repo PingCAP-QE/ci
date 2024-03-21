@@ -77,7 +77,7 @@ def runUTFPy(args) {
 
     podTemplate(cloud: "kubernetes-ng", name: "utf-one-shot", namespace: "jenkins-qa", label: "utf-one-shot", instanceCap: 5, idleMinutes: 60, nodeSelector: "kubernetes.io/arch=amd64",
     containers: [
-        containerTemplate(name: 'python', image: 'hub.pingcap.net/chenpeng/sync-version:latest', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'python', image: 'hub.pingcap.net/qa/utf-sync-version:latest', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) { node("utf-one-shot") { dir("automated-tests") { main(tag, "pr/"+params.ghprbPullId, params.ghprbPullId) } } }
 }
 

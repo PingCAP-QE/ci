@@ -18,10 +18,60 @@ periodics:
           command: [bash, -ce]
           args:
             - |
-              make ut
+              git log -1
+              COMMIT_SHA=$(git rev-parse HEAD)
+              TIMEZONES=(
+                  "Pacific/Honolulu"     # UTC -10:00
+                  "America/Anchorage"    # UTC -09:00
+                  "America/Los_Angeles"  # UTC -08:00
+                  "America/Phoenix"      # UTC -07:00
+                  "America/Chicago"      # UTC -06:00
+                  "America/New_York"     # UTC -05:00
+                  "America/Caracas"      # UTC -04:30
+                  "America/Argentina/Buenos_Aires" # UTC -03:00
+                  "America/St_Johns"     # UTC -02:30
+                  "Atlantic/Azores"      # UTC -01:00
+                  "Europe/London"        # UTC±00:00
+                  "Europe/Paris"         # UTC +01:00
+                  "Africa/Cairo"         # UTC +02:00
+                  "Asia/Jerusalem"       # UTC +03:00
+                  "Asia/Tehran"          # UTC +03:30
+                  "Asia/Dubai"           # UTC +04:00
+                  "Asia/Kabul"           # UTC +04:30
+                  "Asia/Karachi"         # UTC +05:00
+                  "Asia/Kolkata"         # UTC +05:30
+                  "Asia/Kathmandu"       # UTC +05:45
+                  "Asia/Dhaka"           # UTC +06:00
+                  "Asia/Rangoon"         # UTC +06:30
+                  "Asia/Jakarta"         # UTC +07:00
+                  "Asia/Hong_Kong"       # UTC +08:00
+                  "Asia/Tokyo"           # UTC +09:00
+                  "Australia/Adelaide"   # UTC +09:30
+                  "Australia/Brisbane"   # UTC +10:00
+                  "Australia/Lord_Howe"  # UTC +10:30
+                  "Pacific/Noumea"       # UTC +11:00
+                  "Pacific/Norfolk"      # UTC +11:30
+                  "Pacific/Tarawa"       # UTC +12:00
+                  "Pacific/Chatham"      # UTC +12:45
+                  "Pacific/Apia"         # UTC +13:00
+                  "Pacific/Kiritimati"   # UTC +14:00
+              )
+              RANDOM_TZ=${TIMEZONES[$RANDOM % ${#TIMEZONES[@]}]}
+              export TZ=$RANDOM_TZ
+              echo $TZ
+              echo ""
+              make gotest_in_verify_ci
+              wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+              chmod +x codecov
+              ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out --sha ${COMMIT_SHA} --slug pingcap/tidb
           env:
             - name: GO_PROXY
               value: http://goproxy.pingcap.net,direct
+            - name: CODECOV_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: tidb
+                  name: codecov-token
           resources:
             limits:
               memory: 32Gi

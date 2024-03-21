@@ -133,3 +133,11 @@ postsubmits:
       skip_report: true
       branches:
         - ^master$
+    - name: pingcap/tidb/merged_integration_lightning_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: wip/integration-lightning-test
+      max_concurrency: 1
+      skip_report: true
+      branches:
+        - ^master$

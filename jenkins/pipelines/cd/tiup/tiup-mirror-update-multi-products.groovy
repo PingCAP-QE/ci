@@ -20,7 +20,7 @@
 
 // tiup-ctl 一般不会变更，可以固定使用 v1.8.1 版本
 final TIUP_VERSION = 'v1.8.1'
-final ETCDCTL_VERSION = 'v3.4.21'
+final ETCDCTL_VERSION = 'v3.4.30'
 
 def get_hash = { hash_or_branch, repo ->
     if (DEBUG_MODE == "true") {
@@ -269,7 +269,7 @@ def update_ctl = { version, os, arch ->
     curl -L http://fileserver.pingcap.net/download/tiup/releases/${TIUP_VERSION}/tiup-${TIUP_VERSION}-${os}-${arch}.tar.gz | tar -C tiup/components/ctl -xz bin/tiup-ctl
     mv tiup/components/ctl/bin/tiup-ctl ctls/ctl
     curl -L ${FILE_SERVER_URL}/download/pingcap/etcd-${ETCDCTL_VERSION}-${os}-${arch}.tar.gz | tar xz
-    mv etcd-v3.4.21-${os}-${arch}/etcdctl ctls/
+    mv etcd-v3.4.30-${os}-${arch}/etcdctl ctls/
     tar -C ctls -czvf package/ctl-${version}-${os}-${arch}.tar.gz \$(ls ctls)
     tiup mirror publish ctl ${tidb_version} package/ctl-${version}-${os}-${arch}.tar.gz ctl --arch ${arch} --os ${os} --desc="${ctl_desc}"
     rm -rf ctls
@@ -327,8 +327,8 @@ node("build_go1130") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 
                 if (RELEASE_TAG == "nightly") {
-                    tag = "v7.6.0-alpha"
-                    RELEASE_TAG = "v7.6.0-alpha"
+                    tag = "v8.0.0-alpha"
+                    RELEASE_TAG = "v8.0.0-alpha"
                 } else {
                     tag = RELEASE_TAG
                 }
@@ -378,7 +378,7 @@ node("build_go1130") {
                 println "tiflash_sha1: ${tiflash_sha1}"
             }
 
-            if (RELEASE_TAG == "v7.6.0-alpha") {
+            if (RELEASE_TAG == "v8.0.0-alpha") {
                 stage("Get version info when nightly") {
                     dir("tidb") {
                         // sh"""
@@ -386,7 +386,7 @@ node("build_go1130") {
                         // tar xf tidb-server.tar.gz
                         // """
                         // tidb_version = sh(returnStdout: true, script: "./bin/tidb-server -V | awk 'NR==1{print \$NF}' | sed -r 's/(^[^-]*).*/\\1/'").trim()
-                        tidb_version = "v7.6.0-alpha"
+                        tidb_version = "v8.0.0-alpha"
                         time = sh(returnStdout: true, script: "date '+%Y%m%d'").trim()
                         tidb_version = "${tidb_version}-nightly-${time}"
                         RELEASE_BRANCH = "master"

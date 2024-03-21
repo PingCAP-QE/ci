@@ -11,6 +11,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-8\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -22,6 +23,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-8\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/pull_integration_realcluster_test
       agent: jenkins
       decorate: false # need add this.

@@ -58,6 +58,10 @@ def clone_toolkit_package = { arch, dst ->
     if (release_tag < "v7.5.0"){
         pkgs_deprecate_v75 = "--tikv-importer v4.0.2 --spark latest --tispark latest"
     }
+    def amd64_pkg = ""
+    if (arch == "amd64"){
+        amd64_pkg = "--package latest"
+    }
     if (release_tag >= "v6.1.1") {
         sh """
         tiup mirror set https://tiup-mirrors.pingcap.com
@@ -66,8 +70,8 @@ def clone_toolkit_package = { arch, dst ->
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
         --grafana $VERSION --alertmanager latest \
         --blackbox_exporter latest --prometheus $VERSION --node_exporter latest \
-        --package latest  --bench latest --errdoc latest --dba latest \
-        --PCC latest --pump $VERSION --drainer $VERSION --server latest
+        --bench latest --errdoc latest --dba latest --PCC latest \
+        $amd64_pkg --pump $VERSION --drainer $VERSION --server latest
         """
     } else {
         sh """
@@ -75,8 +79,8 @@ def clone_toolkit_package = { arch, dst ->
         tiup mirror clone $dst --os linux --arch ${arch} ${pkgs_deprecate_v75} --pd-recover $VERSION \
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
-        --package latest  --bench latest --errdoc latest --dba latest \
-        --PCC latest --pump $VERSION --drainer $VERSION 
+        --bench latest --errdoc latest --dba latest --PCC latest \
+        $amd64_pkg --pump $VERSION --drainer $VERSION 
         """
     }
 }
@@ -221,14 +225,14 @@ def package_tools = { plat, arch ->
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/pd/optimization/${release_tag_actual}/${pd_hash}/centos7/pd-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/tidb-tools/optimization/${release_tag_actual}/${tools_hash}/centos7/tidb-tools-linux-${arch}.tar.gz
         wget -qnc ${FILE_SERVER_URL}/download/builds/pingcap/br/optimization/${release_tag_actual}/${br_hash}/centos7/br-linux-${arch}.tar.gz
-        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.21-linux-${arch}.tar.gz
+        wget -qnc ${FILE_SERVER_URL}/download/pingcap/etcd-v3.4.30-linux-${arch}.tar.gz
 
 
         tar xf tidb-binlog-linux-${arch}.tar.gz
         tar xf pd-linux-${arch}.tar.gz
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
-        tar xf etcd-v3.4.21-linux-${arch}.tar.gz
+        tar xf etcd-v3.4.30-linux-${arch}.tar.gz
 
         
         cp bin/binlogctl ${toolkit_dir}/
@@ -236,7 +240,7 @@ def package_tools = { plat, arch ->
         cp bin/reparo ${toolkit_dir}/
         cp bin/arbiter ${toolkit_dir}/
         cp bin/tidb-lightning-ctl ${toolkit_dir}/
-        cp etcd-v3.4.21-linux-${arch}/etcdctl ${toolkit_dir}/
+        cp etcd-v3.4.30-linux-${arch}/etcdctl ${toolkit_dir}/
         
         ${mydumper_cmd}
 

@@ -79,7 +79,7 @@ pipeline {
                     }
 
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                    sh label: 'Send event to cloudevents server', script: """
+                    sh label: 'Send event to cloudevents server', script: """timeout 10 \
                         curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
                         --header "ce-id: \$(uuidgen)" \
                         --header "ce-source: \${JENKINS_URL}" \

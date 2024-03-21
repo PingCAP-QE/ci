@@ -893,6 +893,12 @@ def run_with_pod(String builder, Closure body) {
         builderRequestCpu="16"
         buidlerRequestMemory="32Gi"
     }
+    def cargo_pvc = ""
+    if (ARCH == 'arm64'){
+        cargo_pvc = 'cargo-home-linux-arm64'
+    }else if (ARCH == 'amd64') {
+        cargo_pvc = 'cargo-home-linux-amd64'
+    }
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -903,7 +909,10 @@ def run_with_pod(String builder, Closure body) {
                             image: "${builder}", ttyEnabled: true,
                             resourceRequestCpu: builderRequestCpu, resourceRequestMemory: buidlerRequestMemory,
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
+                            envVars: [
+                                containerEnvVar(key: 'GOPATH', value: '/go'), 
+                                containerEnvVar(key: 'CARGO_HOME', value: '/var/cache/cargohome')
+                            ],
                     ),
                     containerTemplate(
                             name: 'ks3util', alwaysPullImage: true,
@@ -914,7 +923,8 @@ def run_with_pod(String builder, Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false)
+                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
+                    persistentVolumeClaim(mountPath:'/var/cache/cargohome', claimName: cargo_pvc)
                     ],
     ) {
         node(label) {

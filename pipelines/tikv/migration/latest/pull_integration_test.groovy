@@ -21,7 +21,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
@@ -37,6 +37,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
                 }
             }
         }
@@ -92,15 +95,26 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {  
+                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") { 
+                                    sh "printenv" 
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
-                                        ./tests/integration_tests/run_group.sh ${TEST_GROUP}
+                                        ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
                                     """
                                }
+                            }
+                        }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /tmp/tikv_cdc_test/
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tikv_cdc_test/ -maxdepth 2 -type f -name "*.log")
+                                    ls -alh log-${TEST_GROUP}.tar.gz
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                         }
                     }

@@ -100,10 +100,16 @@ pipelineJob('tiflash-ghpr-build') {
             scm {
                 git{
                     remote {
-                        url('git@github.com:PingCAP-QE/ci.git')
-                        credentials('github-sre-bot-ssh')
+                        url('https://github.com/PingCAP-QE/ci.git')
                     }
                     branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        }
+                    }
                 }
             }
         }

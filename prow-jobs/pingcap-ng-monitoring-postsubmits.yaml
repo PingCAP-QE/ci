@@ -1,0 +1,79 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+postsubmits:
+  pingcap/ng-monitoring:
+    - name: update-submodule-main-branch
+      decorate: true
+      decoration_config:
+        skip_cloning: true
+      skip_report: true
+      max_concurrency: 1
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: denoland/deno:1.41.0
+            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
+            args:
+              - --github_private_token=$(GITHUB_API_TOKEN)
+              - --owner=pingcap
+              - --repository=monitoring
+              - --base_ref=main
+              - --sub_owner=$(REPO_OWNER)
+              - --sub_repository=$(REPO_NAME)
+              - --base_ref=$(PULL_BASE_REF)
+              - --path=ng-monitoring
+              - --add_labels=lgtm
+              - --add_labels=approved
+              - --add_labels=skip-issue-check
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            resources:
+              limits:
+                cpu: "1"
+                memory: 1Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi
+    - name: update-submodule-release-branches
+      decorate: true
+      decoration_config:
+        skip_cloning: true
+      skip_report: true
+      max_concurrency: 1
+      branches:
+        - ^release-[0-9]+[.][0-9]+$
+      spec:
+        containers:
+          - name: main
+            image: denoland/deno:1.41.0
+            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
+            args:
+              - --github_private_token=$(GITHUB_API_TOKEN)
+              - --owner=pingcap
+              - --repository=monitoring
+              - --sub_owner=$(REPO_OWNER)
+              - --sub_repository=$(REPO_NAME)
+              - --base_ref=$(PULL_BASE_REF)
+              - --sub_ref=$(PULL_BASE_REF)
+              - --path=ng-monitoring
+              - --add_labels=lgtm
+              - --add_labels=approved
+              - --add_labels=skip-issue-check
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            resources:
+              limits:
+                cpu: "1"
+                memory: 1Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi

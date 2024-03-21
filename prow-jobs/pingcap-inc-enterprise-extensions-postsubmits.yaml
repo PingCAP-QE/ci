@@ -14,8 +14,8 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.38.4
-            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap-inc/enterprise-extensions/update-submodule-in-tidb.ts]
+            image: denoland/deno:1.41.0
+            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
@@ -25,6 +25,8 @@ postsubmits:
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=pkg/extension/enterprise # new path
+              - --add_labels=lgtm
+              - --add_labels=skip-issue-check
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
@@ -49,8 +51,8 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.38.4
-            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap-inc/enterprise-extensions/update-submodule-in-tidb.ts]
+            image: denoland/deno:1.41.0
+            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
@@ -60,6 +62,8 @@ postsubmits:
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=extension/enterprise # old path
+              - --add_labels=lgtm
+              - --add_labels=skip-issue-check              
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:

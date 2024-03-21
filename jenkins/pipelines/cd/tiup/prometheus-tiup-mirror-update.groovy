@@ -2,7 +2,11 @@ def name="ng-monitoring"
 def ng_monitoring_sha1
 
 def download = { version, os, arch ->
-    if (os == "darwin" && arch == "arm64") {
+    if (version >= "2.49.1"){
+        sh """
+        wget -qnc "https://github.com/prometheus/prometheus/releases/download/v${version}/prometheus-${version}.${os}-${arch}.tar.gz"
+        """
+    } else if (os == "darwin" && arch == "arm64") {
         sh """
         curl -O ${FILE_SERVER_URL}/download/pingcap/prometheus-${version}.${os}-${arch}.tar.gz
         """
@@ -92,7 +96,8 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/blacker.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/bypass.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/kafka.rules.yml || true; \
-    wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/node.rules.yml || true;
+    wget -qnc https://raw.githubusercontent.com/pingcap/monitoring/master/platform-monitoring/ansible/rule/node.rules.yml || true; \
+    wget -qnc https://raw.githubusercontent.com/pingcap/tiproxy/main/pkg/metrics/alertmanager/tiproxy.rules.yml || true;
 
 
     cd ..
@@ -180,11 +185,17 @@ run_with_pod {
                 }
             }
         }
-
-        if (RELEASE_TAG >="v5.3.0" || RELEASE_TAG =="nightly" ) {
+        if (RELEASE_TAG >="v8.0.0" || RELEASE_TAG =="nightly" ){
+            VERSION = "2.49.1"
+        }else if (RELEASE_TAG >="v5.3.0" ) {
             VERSION = "2.27.1"
         }
-
+        def MAC_ARM_VER = ""
+        if (RELEASE_TAG >="v8.0.0" || RELEASE_TAG =="nightly" ){
+            MAC_ARM_VER = "2.49.1"
+        }else if (RELEASE_TAG >="v5.1.0"){
+            MAC_ARM_VER = "2.28.1"
+        }
         if (params.ARCH_X86) {
             stage("linux/amd64"){
                 update VERSION, "linux", "amd64"
@@ -201,10 +212,10 @@ run_with_pod {
             }
         }
         if (params.ARCH_MAC_ARM) {
-            if (RELEASE_TAG >="v5.1.0" || RELEASE_TAG =="nightly") {
+            if (MAC_ARM_VER) {
                 stage("darwin/arm64"){
                     // prometheus did not provide the binary we need so we upgrade it.
-                    update "2.28.1", "darwin", "arm64"
+                    update MAC_ARM_VER, "darwin", "arm64"
                 }
             }
         }

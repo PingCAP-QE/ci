@@ -67,7 +67,7 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-jdbc-test") {
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
                         sh label: 'prepare thirdparty binary', script: """
                         chmod +x download_binary.sh
@@ -104,7 +104,7 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-jdbc-test") {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     container("java") {
                                         sh label: "test_cmds=${TEST_CMDS} ", script: """
                                             #!/usr/bin/env bash
