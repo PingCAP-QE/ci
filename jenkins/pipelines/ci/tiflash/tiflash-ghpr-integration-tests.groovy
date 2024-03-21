@@ -19,9 +19,13 @@ def runTest(label, name, path, tidb_branch) {
         nodeSelector: "kubernetes.io/arch=amd64",
         instanceCap: 15,
         containers: [
-            containerTemplate(name: 'dockerd', image: 'docker:18.09.6-dind', privileged: true,
+            containerTemplate(name: 'dockerd', image: 'docker:20.10.24-dind', privileged: true,
                     resourceRequestCpu: '5000m', resourceRequestMemory: '10Gi',
-                    resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi'),
+                    resourceLimitCpu: '16000m', resourceLimitMemory: '32Gi',
+                    envVars: [
+                            envVar(key: 'DOCKER_TLS_CERTDIR', value: ''),
+                            envVar(key: 'DOCKER_REGISTRY_MIRROR', value: 'https://registry-mirror.pingcap.net/'),
+                    ]),
             containerTemplate(name: 'docker', image: 'hub.pingcap.net/jenkins/docker:build-essential-java',
                     alwaysPullImage: true, envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')], ttyEnabled: true, command: 'cat')],
         volumes: [
@@ -41,6 +45,19 @@ def runTest(label, name, path, tidb_branch) {
                         container("docker") {
                             try {
                                 echo "path: ${pwd()}"
+                                sh """
+                                echo "wait docker daemon ready ..."
+                                while true; do
+                                    if docker version &> /dev/null; then
+                                        echo "Docker daemon ready."
+                                        break
+                                    else
+                                        echo "Docker daemon not ready, wait..."
+                                        sleep 2
+                                    fi
+                                done
+                                docker version
+                                """
                                 sh "TAG=${ghprbActualCommit} BRANCH=${tidb_branch} ./run.sh"
                             } catch (e) {
                                 sh label: "debug fail", script: """

@@ -38,6 +38,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
@@ -140,16 +143,6 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    // TODO: currently we encounter some issue when using pulsar container to run shell script
-                                    // so we comment out this part now.
-                                    // container("pulsar") {
-                                    //     timeout(time: 6, unit: 'MINUTES') {
-                                    //         sh label: "Waiting for pulsar ready", script: """
-                                    //             echo "Waiting for pulsar to be ready..."
-                                    //             while ! nc -z localhost 6650; do sleep 10; done
-                                    //         """
-                                    //     }
-                                    // }
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                         chmod +x ./tests/integration_tests/run_group.sh

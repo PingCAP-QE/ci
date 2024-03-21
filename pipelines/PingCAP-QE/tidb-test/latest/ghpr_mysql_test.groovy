@@ -83,10 +83,6 @@ pipeline {
                         name 'PART'
                         values '1', '2', '3', '4'
                     }
-                    axis {
-                        name 'CACHE_ENABLED'
-                        values '0', "1"
-                    }
                 }
                 agent{
                     kubernetes {
@@ -105,9 +101,8 @@ pipeline {
                             }
                             dir('tidb-test/mysql_test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                                    sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                    sh label: "part ${PART}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                    export CACHE_ENABLED=${CACHE_ENABLED}
                                     export TIDB_TEST_STORE_NAME="unistore"
                                     ./test.sh -backlist=1 -part=${PART}
                                     """

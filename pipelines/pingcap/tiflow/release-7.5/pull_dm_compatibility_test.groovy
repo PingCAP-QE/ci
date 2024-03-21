@@ -38,6 +38,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        prow.setPRDescription(REFS)
+                    }
                 }
             }
         }
@@ -142,7 +145,7 @@ pipeline {
                     sh label: "collect logs", script: """
                         ls /tmp/dm_test
                         tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
-                        ls -alh  log..tar.gz  
+                        ls -alh  log.tar.gz  
                     """
                     archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
                 }

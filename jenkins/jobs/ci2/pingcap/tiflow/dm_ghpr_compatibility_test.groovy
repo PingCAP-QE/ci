@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('dm_ghpr_compatibility_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -23,12 +24,7 @@ pipelineJob('dm_ghpr_compatibility_test') {
                     whitelist("")
                     orgslist("pingcap")
                     whiteListTargetBranches {
-                        ghprbBranch { branch('^(release-)?[6]\\.[0-9](\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?[7]\\.0(\\.\\d+)?(\\-.*)?$') }
-                    }
-                    blackListTargetBranches {
-                        ghprbBranch { branch('^(release-)?6\\.[1|5]\\d*(\\.\\d+)?(\\-.*)?$') }
-                        ghprbBranch { branch('^(release-)?5\\.[3|4]\\d*(\\.\\d+)?(\\-.*)?$') }
+                        ghprbBranch { branch('^(release-)?[5]\\.[0-2](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex

@@ -39,7 +39,7 @@ try {
                         git checkout -f ${ghprbActualCommit}
                         echo using gcc 8
                         source /opt/rh/devtoolset-8/enable
-                        ENABLE_FEATURES="test-engines-panic cloud-aws nortcheck" NO_DEFAULT_TEST_ENGINES=1 NO_CLOUD=1 make clippy
+                        ENABLE_FEATURES="test-engines-panic nortcheck" NO_DEFAULT_TEST_ENGINES=1 make clippy
                     """
                 }
             }
