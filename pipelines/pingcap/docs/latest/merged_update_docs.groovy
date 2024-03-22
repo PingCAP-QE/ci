@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'pingcap/docs'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/docs/latest/pod-merged_update_docs.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+
 pipeline {
     agent {
         kubernetes {
@@ -29,7 +30,7 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    go env
+                    python3 -V
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -42,10 +43,15 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("docs") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
+                    container(name: 'node') {
+                        sh label: "set git config", script: """
+                        git config --global --add safe.directory '*'
+                        """
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                            retry(2) {
+                                script {
+                                    prow.checkoutRefs(REFS)
+                                }
                             }
                         }
                     }
@@ -54,18 +60,18 @@ pipeline {
         }
         stage('Build pdf') {
             options { timeout(time: 30, unit: 'MINUTES') }
-            environment { 
-                AWS_ACCESS_KEY = credentials('docs-cn-aws-ak') 
-                AWS_SECRET_KEY = credentials('docs-cn-aws-sk')
-                AWS_REGION = credentials('docs-cn-aws-region')
-                AWS_BUCKET_NAME = credentials('docs-cn-aws-bn')
-                QINIU_ACCESS_KEY = credentials('docs-cn-qiniu-ak')
-                QINIU_SECRET_KEY = credentials('docs-cn-qiniu-sk')
-                QINIU_BUCKET_NAME = credentials('docs-cn-qiniu-bn')
-            }
+
             steps {
                 dir("docs") {
-                    container(name: 'runner') {
+                    withCredentials([
+                        string(credentialsId: 'docs-cn-aws-ak', variable: 'AWS_ACCESS_KEY'),
+                        string(credentialsId: 'docs-cn-aws-sk', variable: 'AWS_SECRET_KEY'),
+                        string(credentialsId: 'docs-cn-aws-region', variable: 'AWS_REGION'),
+                        string(credentialsId: 'docs-cn-aws-bn', variable: 'AWS_BUCKET_NAME')
+                        string(credentialsId: 'docs-cn-qiniu-ak', variable: 'QINIU_ACCESS_KEY'),
+                        string(credentialsId: 'docs-cn-qiniu-sk', variable: 'QINIU_SECRET_KEY'),
+                        string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME'),
+                    ]){ 
                         // TODO: pre-install python3 packages(boto3, awscli) in the docker image
                         sh label: 'Build pdf', script: """#!/usr/bin/env bash
                             sudo pip3 install boto3
