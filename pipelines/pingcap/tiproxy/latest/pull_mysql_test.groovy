@@ -105,7 +105,7 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
-                                        make deploy-mysqltest ARGS="-b -x -c y -s tikv -p ${PART}"
+                                        make deploy-mysqltest ARGS="-b -x y -s tikv -p ${PART}"
                                     """
                                 }
                             }
