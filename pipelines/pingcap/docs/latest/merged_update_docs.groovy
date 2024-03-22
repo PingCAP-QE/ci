@@ -67,10 +67,10 @@ pipeline {
                         string(credentialsId: 'docs-cn-aws-ak', variable: 'AWS_ACCESS_KEY'),
                         string(credentialsId: 'docs-cn-aws-sk', variable: 'AWS_SECRET_KEY'),
                         string(credentialsId: 'docs-cn-aws-region', variable: 'AWS_REGION'),
-                        string(credentialsId: 'docs-cn-aws-bn', variable: 'AWS_BUCKET_NAME')
+                        string(credentialsId: 'docs-cn-aws-bn', variable: 'AWS_BUCKET_NAME'),
                         string(credentialsId: 'docs-cn-qiniu-ak', variable: 'QINIU_ACCESS_KEY'),
                         string(credentialsId: 'docs-cn-qiniu-sk', variable: 'QINIU_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME'),
+                        string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME')
                     ]){ 
                         // TODO: pre-install python3 packages(boto3, awscli) in the docker image
                         sh label: 'Build pdf', script: """#!/usr/bin/env bash
