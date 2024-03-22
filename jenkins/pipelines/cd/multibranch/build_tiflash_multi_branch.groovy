@@ -197,18 +197,7 @@ stage('Summary') {
                     "Build Link: https://cd.pingcap.net/blue/organizations/jenkins/build_tiflash_multi_branch/detail/master/${env.BUILD_NUMBER}/pipeline\\n" +
                     "Job Page: https://cd.pingcap.net/blue/organizations/jenkins/build_tiflash_multi_branch/activity/"
             print feishumsg
-            node("master") {
-                withCredentials([string(credentialsId: 'tiflash-regression-lark-channel-hook', variable: 'TOKEN')]) {
-                    sh """
-                      curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
-                      -d '{
-                        "msg_type": "text",
-                        "content": {
-                          "text": "$feishumsg"
-                        }
-                      }'
-                    """
-                }                
+            node("master") {              
                 withCredentials([string(credentialsId: 'tiflash-lark-channel-patrol-hook', variable: 'TOKEN')]) {
                     sh """
                       curl -X POST ${TOKEN} -H 'Content-Type: application/json' \
