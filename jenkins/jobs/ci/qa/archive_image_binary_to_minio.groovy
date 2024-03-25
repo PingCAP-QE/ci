@@ -56,7 +56,7 @@ pipelineJob('archive-image-binary-to-minio') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("jenkins/pipelines/ci/qa/archive-image-binary-to-minio.groovy")
+            scriptPath("jenkins/pipelines/qa/archive-image-binary-to-minio.groovy")
             scm {
                 git{
                     remote {
