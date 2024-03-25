@@ -18,7 +18,7 @@ function gather_results() {
     # check tiup
     for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'grafana' 'pd' 'pd-recover' 'prometheus' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
         echo "🚧 check tiup $com:$VERSION"
-        platforms=$(tiup list $com | grep $VERSION)
+        platforms=$(tiup list $com | grep -E "^$VERSION\b\s+")
         echo $platforms
         echo $platforms | grep "darwin/amd64" | grep "darwin/arm64" | grep "linux/amd64" | grep -q "linux/arm64"
         record_failure $?
@@ -32,13 +32,10 @@ function gather_results() {
         pingcap/monitoring/package \
         pingcap/ng-monitoring/package \
         pingcap/tidb-binlog/package \
-        pingcap/tidb-ctl/package \
         pingcap/tidb-dashboard/package \
-        pingcap/tidb-tools/package \
         pingcap/tidb/package \
         pingcap/tiflash/package \
         pingcap/tiflow/package \
-        pingcap/tiproxy/package \
         tikv/pd/package \
         tikv/tikv/package; do
         for platform in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
