@@ -38,11 +38,10 @@ def set_tiup_mirror(mirror):
 
 def uninstall_component(component, version):
     try:
-        # TODO: Add --all flag to uninstall all versions or uninstall specific version
-        subprocess.run(["tiup", "uninstall", f"{component}:{version}"], check=True)
-    except subprocess.CalledProcessError:
-        print(f"Failed to uninstall component {component}:{version}.")
-        exit(1)
+        subprocess.run(["tiup", "uninstall", f"{component}:{version}"], check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        error_message = e.stderr.strip()
+        print(f"Failed to uninstall component {component}:{version}. Error: {error_message}")
 
 
 def check_tiup_component_exists(component, version, is_tiup_staging):

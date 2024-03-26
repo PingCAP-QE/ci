@@ -113,6 +113,8 @@ pipeline {
                                 python3 -m venv .venv
                                 source .venv/bin/activate
                                 pip install -r requirements.txt
+                                export PATH=\$PATH:\$HOME/.tiup/bin
+                                which tiup
                                 python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
                             """
                         }
@@ -136,6 +138,8 @@ pipeline {
                                 python3 -m venv .venv
                                 source .venv/bin/activate
                                 pip install -r requirements.txt
+                                export PATH=\$PATH:\$HOME/.tiup/bin
+                                which tiup
                                 python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
                             """
                         }
