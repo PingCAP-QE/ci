@@ -107,8 +107,12 @@ pipeline {
                             deleteDir()
                             sh """
                                 hostname
+                                ifconfig | grep 172
                                 git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
                                 cd scripts/ops/release-check-version
+                                python3 -m venv .venv
+                                source .venv/bin/activate
+                                pip install -r requirements.txt
                                 python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
                             """
                         }
@@ -126,8 +130,12 @@ pipeline {
                             deleteDir()
                             sh """
                                 hostname
+                                ifconfig | grep 172
                                 git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
                                 cd scripts/ops/release-check-version
+                                python3 -m venv .venv
+                                source .venv/bin/activate
+                                pip install -r requirements.txt
                                 python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
                             """
                         }
