@@ -94,7 +94,44 @@ pipeline {
                         }
                     }
                 }
-
+                stage('linux/amd64 tiup') {
+                    agent {
+                        kubernetes {
+                            yaml podYaml
+                            defaultContainer 'check'
+                            nodeSelector "kubernetes.io/arch=amd64"
+                        }
+                    }
+                    steps {
+                        dir("release-check-version") {
+                            script {
+                                sh """
+                                cd /app
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
+                                """
+                            }
+                        }
+                    }
+                }
+                stage('linux/arm64 tiup') {
+                    agent {
+                        kubernetes {
+                            yaml podYaml
+                            defaultContainer 'check'
+                            nodeSelector "kubernetes.io/arch=arm64"
+                        }
+                    }
+                    steps {
+                        dir("release-check-version") {
+                            script {
+                                sh """
+                                cd /app
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
+                                """
+                            }
+                        }
+                    }
+                }
 
                 stage('darwin/arm64 tiup') {
                     agent {
@@ -115,7 +152,7 @@ pipeline {
                                 pip install -r requirements.txt
                                 export PATH=\$PATH:\$HOME/.tiup/bin
                                 which tiup
-                                python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                             """
                         }
                         
@@ -140,7 +177,7 @@ pipeline {
                                 pip install -r requirements.txt
                                 export PATH=\$PATH:\$HOME/.tiup/bin
                                 which tiup
-                                python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}" 
                             """
                         }
                     }
