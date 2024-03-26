@@ -94,6 +94,45 @@ pipeline {
                         }
                     }
                 }
+
+
+                stage('darwin/arm64 tiup') {
+                    agent {
+                        node {
+                            label 'darwin && arm64'
+                        }
+                    }
+                    steps {
+                        dir("release-check-tiup") {  
+                            deleteDir()
+                            sh """
+                                hostname
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
+                                python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
+                            """
+                        }
+                        
+                    }
+                }
+                stage('darwin/amd64 tiup') {
+                    agent {
+                        node {
+                            label 'darwin && amd64'
+                        }
+                    }
+                    steps {
+                        dir("release-check-tiup") { 
+                            deleteDir()
+                            sh """
+                                hostname
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
+                                python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
+                            """
+                        }
+                    }
+                }
             }
         }
     }
