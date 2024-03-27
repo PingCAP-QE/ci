@@ -8,7 +8,7 @@ final GIT_FULL_REPO_NAME = 'tikv/tikv'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/latest/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final EXTRA_NEXTEST_ARGS = "-j 16"
+final EXTRA_NEXTEST_ARGS = "-j 8"
 
 
 pipeline {
@@ -17,11 +17,12 @@ pipeline {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
-            workspaceVolume emptyDirWorkspaceVolume(memory: true)
+            // workspaceVolume emptyDirWorkspaceVolume(memory: true)
         }
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        TIKV_TEST_MEMORY_DISK_MOUNT_POINT = "/home/jenkins/agent/memvolume"
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
@@ -54,6 +55,12 @@ pipeline {
                             }
                         }
                     }
+                    sh """
+                        ls -alh
+                        ln -s \$HOME/tikv-target ${WORKSPACE}/tikv/target
+                        pwd && ls -alh
+                    """
+                    
                 }
             }
         }
@@ -62,13 +69,11 @@ pipeline {
                 dir("tikv") {
                     retry(2) {
                         sh label: 'Run lint: format', script: """
-                            cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             make format
                             git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
                         """
                         sh label: 'Run lint: clippy', script: """
-                            cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export ROCKSDB_SYS_SSE=1
@@ -87,7 +92,6 @@ pipeline {
                 dir("tikv") {
                     retry(2) {
                         sh label: 'Build test artifact', script: """
-                            cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export ROCKSDB_SYS_SSE=1
@@ -117,19 +121,21 @@ pipeline {
             steps {
                 dir('tikv') {
                     sh """
-                    cd \$HOME/tikv-src
-                    ls -alh
-                    ls -alh /home/jenkins/tikv-src/
-                    ls -alh /home/jenkins/tikv-src/target/debug/deps/
-
                     export RUSTFLAGS=-Dwarnings
                     export FAIL_POINT=1
                     export RUST_BACKTRACE=1
                     export MALLOC_CONF=prof:true,prof_active:false
-                    export CI=1  # TODO: remove this
-                    export LOG_FILE=/home/jenkins/tikv-src/target/my_test.log
+                    # export CI=1  # TODO: remove this
+                    export LOG_FILE=/home/jenkins/tikv/target/my_test.log
 
-                    if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json ${EXTRA_NEXTEST_ARGS}; then
+                    if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:1/2 ${EXTRA_NEXTEST_ARGS}; then
+                        echo "test pass"
+                    else
+                        # test failed
+                        gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                        exit 1
+                    fi
+                    if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:2/2 ${EXTRA_NEXTEST_ARGS}; then
                         echo "test pass"
                     else
                         # test failed
@@ -142,8 +148,8 @@ pipeline {
             post {
                 failure {
                     sh label: "collect logs", script: """
-                        ls /home/jenkins/tikv-src/target/
-                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")    
+                        ls /home/jenkins/tikv/target/
+                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv/target/ -type f -name "*.log")    
                         ls -alh  log-ut.tar.gz  
                     """
                     archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
