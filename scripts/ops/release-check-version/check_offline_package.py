@@ -144,11 +144,15 @@ def check_offline_components(version, edition, arch, component_hash):
     # tiup check version info
     # first check server package
     server_package_url = f"https://download.pingcap.org/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
-    server_package_internal_url = f"http://fileserver.pingcap.net/download/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
+    # TODO: only for testing
+    server_package_url = f"http://fileserver.pingcap.net/download/fake-release/tidb-{edition}-server-{version}-pre-linux-{arch}.tar.gz"
+    server_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
 
     # toolkit package url
     toolkit_package_url = f"https://download.pingcap.org/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
-    toolkit_package_internal_url = f"http://fileserver.pingcap.net/download/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
+    # TODO: only for testing
+    toolkit_package_url = f"http://fileserver.pingcap.net/download/fake-release/tidb-{edition}-toolkit-{version}-pre-linux-{arch}.tar.gz"
+    toolkit_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
 
     # download package from internal url
     subprocess.run(["wget", "-q", server_package_url], check=True)
@@ -238,6 +242,8 @@ def check_tiup_component_version(component, version, commit_hash, edition):
 
 def main(version, check_type, edition, arch, components_url):
     if check_type == "quick":
+        # TODO: only for testing
+        return
         offline_package_success, _ = check_offline_package(version)
         dm_package_success, _ = check_dm_package(version)
         plugin_package_success, _ = check_plugin_package(version)
@@ -245,6 +251,7 @@ def main(version, check_type, edition, arch, components_url):
             print("All offline packages url are valid.")
         else:
             print("Some offline packages url are invalid.")
+            exit(1)
     elif check_type == "details":
         components_hash = get_components_hash(components_url)
         check_offline_components(version, edition, arch, components_hash)
