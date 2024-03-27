@@ -1,4 +1,3 @@
-
 import subprocess
 import argparse
 from check_info import check_version
@@ -22,7 +21,9 @@ def is_url_valid(url):
 def install_tiup():
     # TODO: check if tiup is already installed
     try:
-        subprocess.run(["curl", "--proto", "=https", "--tlsv1.2", "-sSf", "https://tiup-mirrors.pingcap.com/install.sh", "|", "sh"], check=True)
+        subprocess.run(
+            ["curl", "--proto", "=https", "--tlsv1.2", "-sSf", "https://tiup-mirrors.pingcap.com/install.sh", "|",
+             "sh"], check=True)
     except subprocess.CalledProcessError:
         print("Failed to install TiUP.")
         exit(1)
@@ -94,7 +95,7 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
     if is_tiup_staging:
         tiup_mirror = "http://tiup.pingcap.net:8988"
     set_tiup_mirror(tiup_mirror)
-    subprocess.run(["tiup", "mirror", "show"],  capture_output=True, text=True, check=True)
+    subprocess.run(["tiup", "mirror", "show"], capture_output=True, text=True, check=True)
 
     for tiup_component in tiup_components:
         print(f"Checking version info for {tiup_component}")
@@ -103,13 +104,18 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
             result = subprocess.run(
                 ["tiup", f"{tiup_component}:{version}", version_command], capture_output=True, text=True, check=True)
             # 假设成功执行命令返回非空结果即为有效
-            if result.stdout.strip():
-                print(f"Version info ({tiup_component}):\n{result.stdout.strip()}")
-                version_check_passed = check_version(result.stdout.strip(), expected_version, expected_edition,
+            # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
+            if result.stdout.strip() or result.stderr.strip():
+                version_info = result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
+                print(f"Version info ({tiup_component}):\n{version_info}")
+                version_check_passed = check_version(version_info, expected_version, expected_edition,
                                                      expected_commit_hash,
-                                                     check_version=COMPONENT_META[component]["version_check"]["version"],
-                                                     check_edition=COMPONENT_META[component]["version_check"]["edition"],
-                                                     check_commit_hash=COMPONENT_META[component]["version_check"]["git_commit_hash"])
+                                                     check_version=COMPONENT_META[component]["version_check"][
+                                                         "version"],
+                                                     check_edition=COMPONENT_META[component]["version_check"][
+                                                         "edition"],
+                                                     check_commit_hash=COMPONENT_META[component]["version_check"][
+                                                         "git_commit_hash"])
                 if not version_check_passed:
                     exit(1)
             else:
@@ -120,7 +126,7 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
             raise Exception("Failed to check version info")
 
 
-def main(component, version, commit_hash,is_tiup_staging):
+def main(component, version, commit_hash, is_tiup_staging):
     # Check if the tiup component exists
     all_tiup_packages_exist = check_tiup_component_exists(component, version, is_tiup_staging)
     if all_tiup_packages_exist:
@@ -134,7 +140,7 @@ def main(component, version, commit_hash,is_tiup_staging):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Check Docker Image Version")
+    parser = argparse.ArgumentParser(description="Check TiUP component Version")
     parser.add_argument("component", type=str, help="tiup component name(e.g., tidb)")
     parser.add_argument("version", type=str, help="version to check")
     parser.add_argument("--commit_hash", type=str, help="binary commit hash")

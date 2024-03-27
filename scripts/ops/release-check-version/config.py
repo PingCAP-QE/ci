@@ -1,4 +1,3 @@
-
 COMPONENT_META = {
     "pd": {
         "entrypoints": ["/pd-server"],
@@ -88,11 +87,12 @@ COMPONENT_META = {
             "git_commit_hash": True
         }
     },
+    # TODO: tiup dmctl:v7.5.1 -V, all output default to stderr, need to fix
     "dm": {
         "entrypoints": ["/dm-master", "/dm-worker", "/dmctl"],
         "version_cmd": "-V",
         "image_name": "dm",
-        "tiup_components": ["dm-master", "dm-worker", "dmctl"],
+        "tiup_components": ["dm-master", "dm-worker", "dmctl"],  # TODO: add dmctl
         "version_check": {
             "version": True,
             "edition": False,
@@ -123,7 +123,7 @@ COMPONENT_META = {
     },
     "tidb-dashboard": {
         "entrypoints": ["/tidb-dashboard"],
-        "version_cmd": "-V",
+        "version_cmd": "--version",
         "image_name": "tidb-dashboard",
         "tiup_components": ["tidb-dashboard"],
         "version_check": {
@@ -131,10 +131,42 @@ COMPONENT_META = {
             "edition": False,
             "git_commit_hash": True
         }
+    },
+    "grafana": {
+        "entrypoints": [],
+        "version_cmd": "",
+        "image_name": "grafana",
+        "tiup_components": ["grafana"],
+        "version_check": {
+            "version": False,
+            "edition": False,
+            "git_commit_hash": False
+        }
+    },
+    "prometheus": {
+        "entrypoints": [],
+        "version_cmd": "",
+        "image_name": "prometheus",
+        "tiup_components": ["prometheus"],
+        "version_check": {
+            "version": False,
+            "edition": False,
+            "git_commit_hash": False
+        }
+    },
+    "ctl": {
+        "entrypoints": [],
+        "version_cmd": "-V",
+        "image_name": "",
+        "tiup_components": ["ctl"],
+        "version_check": {
+            "version": True,
+            "edition": False,
+            "git_commit_hash": True
+        }
     }
     # TODO: how to check the image tidb-monitor-initializer?
 }
-
 
 TIUP_PACKAGE_DEFAULT_EDITION = "Community"
 TIUP_MIRRORS = {
