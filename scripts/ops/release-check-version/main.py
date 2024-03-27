@@ -3,7 +3,7 @@ import json
 import os
 import subprocess
 import requests
-
+from config import COMPONENT_META
 
 
 def load_components():
@@ -27,13 +27,20 @@ def load_components_from_url(url):
         exit(1)
 
 
-def check_docker_image(component, edition, registry, project, is_rc_build=False):
+def check_docker_image(component_info, edition, registry, project, is_rc_build=False):
+    component = component_info["name"]
+    if not COMPONENT_META[component]["image_name"]:
+        print(f"Image for component {component} is not defined.")
+        return
+    if not COMPONENT_META[component]["image_edition"][edition]:
+        print(f"Image for component {component} does not have {edition} edition.")
+        return
     args = [
         "python3", "check_docker_images.py",
-        component["name"],
-        component["version"],
+        component_info["name"],
+        component_info["version"],
         edition,
-        "--commit_hash", component["commit_hash"],
+        "--commit_hash", component_info["commit_hash"],
         "--registry", registry,
         "--project", project
     ]

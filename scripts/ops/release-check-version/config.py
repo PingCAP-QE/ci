@@ -4,6 +4,10 @@ COMPONENT_META = {
         "version_cmd": "-V",
         "image_name": "pd",
         "tiup_components": ["pd"],
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "version_check": {
             "version": True,
             "edition": True,
@@ -14,6 +18,10 @@ COMPONENT_META = {
         "entrypoints": ["/tikv-server"],
         "version_cmd": "-V",
         "image_name": "tikv",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["tikv"],
         "version_check": {
             "version": True,
@@ -25,6 +33,10 @@ COMPONENT_META = {
         "entrypoints": ["/tidb-server"],
         "version_cmd": "-V",
         "image_name": "tidb",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["tidb"],
         "version_check": {
             "version": True,
@@ -36,6 +48,10 @@ COMPONENT_META = {
         "entrypoints": ["/tiflash/tiflash"],
         "version_cmd": "version",
         "image_name": "tiflash",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["tiflash"],
         "version_check": {
             "version": True,
@@ -47,6 +63,10 @@ COMPONENT_META = {
         "entrypoints": ["/br"],
         "version_cmd": "-V",
         "image_name": "br",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["br"],
         "version_check": {
             "version": True,
@@ -58,6 +78,10 @@ COMPONENT_META = {
         "entrypoints": ["/dumpling"],
         "version_cmd": "-V",
         "image_name": "dumpling",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["dumpling"],
         "version_check": {
             "version": True,
@@ -69,6 +93,10 @@ COMPONENT_META = {
         "entrypoints": ["/pump", "/drainer", "/binlogctl", "/reparo"],
         "version_cmd": "-V",
         "image_name": "tidb-binlog",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["pump", "drainer"],
         "version_check": {
             "version": True,
@@ -80,6 +108,10 @@ COMPONENT_META = {
         "entrypoints": ["/cdc"],
         "version_cmd": "version",
         "image_name": "ticdc",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["cdc"],
         "version_check": {
             "version": True,
@@ -92,6 +124,10 @@ COMPONENT_META = {
         "entrypoints": ["/dm-master", "/dm-worker", "/dmctl"],
         "version_cmd": "-V",
         "image_name": "dm",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["dm-master", "dm-worker", "dmctl"],  # TODO: add dmctl
         "version_check": {
             "version": True,
@@ -100,9 +136,13 @@ COMPONENT_META = {
         }
     },
     "lightning": {
-        "entrypoints": ["/tidb-lightning", "tidb-lightning-ctl"],
+        "entrypoints": ["/tidb-lightning", "/tidb-lightning-ctl"],
         "version_cmd": "-V",
         "image_name": "tidb-lightning",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": ["tidb-lightning"],
         "version_check": {
             "version": True,
@@ -114,6 +154,10 @@ COMPONENT_META = {
         "entrypoints": ["/ng-monitoring-server"],
         "version_cmd": "-V",
         "image_name": "ng-monitoring",
+        "image_edition": {
+            "enterprise": True,
+            "community": True
+        },
         "tiup_components": [],
         "version_check": {
             "version": False,
@@ -125,6 +169,10 @@ COMPONENT_META = {
         "entrypoints": ["/tidb-dashboard"],
         "version_cmd": "--version",
         "image_name": "tidb-dashboard",
+        "image_edition": {
+            "enterprise": False,
+            "community": True
+        },
         "tiup_components": ["tidb-dashboard"],
         "version_check": {
             "version": False,
@@ -135,7 +183,7 @@ COMPONENT_META = {
     "grafana": {
         "entrypoints": [],
         "version_cmd": "",
-        "image_name": "grafana",
+        "image_name": "",
         "tiup_components": ["grafana"],
         "version_check": {
             "version": False,
@@ -146,7 +194,7 @@ COMPONENT_META = {
     "prometheus": {
         "entrypoints": [],
         "version_cmd": "",
-        "image_name": "prometheus",
+        "image_name": "",
         "tiup_components": ["prometheus"],
         "version_check": {
             "version": False,
