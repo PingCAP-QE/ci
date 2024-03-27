@@ -212,6 +212,17 @@ COMPONENT_META = {
             "edition": False,
             "git_commit_hash": True
         }
+    },
+    "enterprise-plugin": {
+        "entrypoints": [],
+        "version_cmd": "",
+        "image_name": "",
+        "tiup_components": [],
+        "version_check": {
+            "version": False,
+            "edition": False,
+            "git_commit_hash": False
+        }
     }
     # TODO: how to check the image tidb-monitor-initializer?
 }

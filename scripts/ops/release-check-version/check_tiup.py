@@ -71,6 +71,9 @@ def check_tiup_component_exists(component, version, is_tiup_staging):
         # https://tiup-mirrors.pingcap.com/tidb-v6.1.0-darwin-arm64.tar.gz
         for os_arch in ["linux-amd64", "darwin-amd64", "linux-arm64", "darwin-arm64"]:
             download_url = f"{tiup_mirror}/{tiup_component}-{version}-{os_arch}.tar.gz"
+            if is_tiup_staging:
+                download_url = f"{tiup_mirror}/{tiup_component}-{version}-pre-{os_arch}.tar.gz"
+            print(download_url)
             if is_url_valid(download_url):
                 single_component_check_detail["exist_check"][os_arch] = True
             else:
@@ -91,6 +94,9 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
     expected_version = version
     expected_edition = TIUP_PACKAGE_DEFAULT_EDITION  # all tiup components are community edition
     expected_commit_hash = commit_hash
+    tiup_check_version = version
+    if is_tiup_staging:
+        tiup_check_version = f"{version}-pre"
     tiup_mirror = "https://tiup-mirrors.pingcap.com"
     if is_tiup_staging:
         tiup_mirror = "http://tiup.pingcap.net:8988"
@@ -99,10 +105,10 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
 
     for tiup_component in tiup_components:
         print(f"Checking version info for {tiup_component}")
-        uninstall_component(tiup_component, version)
+        uninstall_component(tiup_component, tiup_check_version)
         try:
             result = subprocess.run(
-                ["tiup", f"{tiup_component}:{version}", version_command], capture_output=True, text=True, check=True)
+                ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True, check=True)
             # 假设成功执行命令返回非空结果即为有效
             # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
             if result.stdout.strip() or result.stderr.strip():
