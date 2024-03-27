@@ -155,12 +155,13 @@ def check_offline_components(version, edition, arch, component_hash):
     toolkit_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
 
     # download package from internal url
-    # subprocess.run(["wget",  server_package_url], check=True)
-    # subprocess.run(["wget",  toolkit_package_url], check=True)
+    subprocess.run(["wget",  server_package_url], check=True)
+    subprocess.run(["wget",  toolkit_package_url], check=True)
 
     # extract package
-    # subprocess.run(["tar", "xf", f"tidb-{edition}-server-{version}-linux-{arch}.tar.gz"], check=True)
-    # subprocess.run(["tar", "xf", f"tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"], check=True)
+    # TODO: only for testing remove -pre after testing
+    subprocess.run(["tar", "xf", f"tidb-{edition}-server-{version}-pre-linux-{arch}.tar.gz"], check=True)
+    subprocess.run(["tar", "xf", f"tidb-{edition}-toolkit-{version}-pre-linux-{arch}.tar.gz"], check=True)
 
     # set tiup mirror to server offline package dir
     # subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-server-{version}-linux-{arch}"], check=True)
