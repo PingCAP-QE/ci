@@ -3,7 +3,7 @@ FROM python:3.9-slim as base
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y curl wget && \
+    apt-get install -y curl wget git && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir requests
 

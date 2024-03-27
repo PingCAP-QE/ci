@@ -62,10 +62,11 @@ pipeline {
                         dir("release-check-version") {
                             script {
                                 sh """
-                                cd /app
                                 tiup --version
                                 python3 --version
                                 docker version
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
                                 python3 main.py image --components_url="${params.COMPONENT_JSON_URL}"
                                 """
                             }
@@ -84,10 +85,11 @@ pipeline {
                         dir("release-check-version") {
                             script {
                                 sh """
-                                cd /app
                                 tiup --version
                                 python3 --version
                                 docker version
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
                                 python3 main.py image --components_url="${params.COMPONENT_JSON_URL}"
                                 """
                             }
@@ -106,7 +108,8 @@ pipeline {
                         dir("release-check-version") {
                             script {
                                 sh """
-                                cd /app
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
                                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                                 """
                             }
@@ -125,7 +128,8 @@ pipeline {
                         dir("release-check-version") {
                             script {
                                 sh """
-                                cd /app
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
                                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                                 """
                             }
