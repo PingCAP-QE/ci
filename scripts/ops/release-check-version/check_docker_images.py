@@ -28,9 +28,11 @@ def get_image_version_info(full_image_name, component, version, edition, git_com
                 ["docker", "run", "--entrypoint", entrypoint, full_image_name, version_command],
                 capture_output=True, text=True, check=True)
             # 假设成功执行命令返回非空结果即为有效
-            if result.stdout.strip():
-                print(f"Version info ({entrypoint}): {result.stdout.strip()}")
-                version_check_passed = check_version(result.stdout.strip(), expected_version, expected_edition,
+            # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
+            if result.stdout.strip() or result.stderr.strip():
+                version_info = result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
+                print(f"Version info ({entrypoint}): {version_info}")
+                version_check_passed = check_version(version_info, expected_version, expected_edition,
                                                      expected_commit_hash,
                                                      check_version=image_info[component]["version_check"]["version"],
                                                      check_edition=image_info[component]["version_check"]["edition"],
