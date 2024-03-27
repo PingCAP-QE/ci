@@ -151,8 +151,8 @@ def check_offline_components(version, edition, arch, component_hash):
     toolkit_package_internal_url = f"http://fileserver.pingcap.net/download/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
 
     # download package from internal url
-    subprocess.run(["wget", server_package_url], check=True)
-    subprocess.run(["wget", toolkit_package_url], check=True)
+    subprocess.run(["wget", "-q", server_package_url], check=True)
+    subprocess.run(["wget", "-q", toolkit_package_url], check=True)
 
     # extract package
     subprocess.run(["tar", "xf", f"tidb-{edition}-server-{version}-linux-{arch}.tar.gz"], check=True)
