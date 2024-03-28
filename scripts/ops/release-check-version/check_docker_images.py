@@ -54,7 +54,7 @@ def get_image_name(component, version, registry, project, edition, is_rc_build):
         version = f"{version}-pre"
     # notice: only push to gccr.io for enterprise edition
     # example: gcr.io/pingcap-public/dbaas/br:v7.1.4 this is enterprise edition
-    if edition.lower() == "enterprise" and registry != "gccr.io":
+    if edition.lower() == "enterprise" and registry != "gcr.io":
         return f"{registry}/{project}/{image}-enterprise:{version}"
 
     return f"{registry}/{project}/{image}:{version}"
