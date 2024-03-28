@@ -90,9 +90,9 @@ if __name__ == "__main__":
             # for image in components["docker_images"]:
             #     check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
             #     check_docker_image(image, "community", "registry.hub.docker.com", "pingcap")
-            print("checking docker images on gcr.io")
-            for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
+            # print("checking docker images on gcr.io")
+            # for image in components["docker_images"]:
+            #     check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
             print("checking docker images on uhub.service.ucloud.cn")
             for image in components["docker_images"]:
                 check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
