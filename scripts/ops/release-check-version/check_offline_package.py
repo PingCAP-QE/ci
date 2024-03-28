@@ -80,6 +80,8 @@ def check_offline_package(version):
                 public_url = f"https://download.pingcap.org/tidb-{edition}-{package_type}-{version}-linux-{arch}.tar.gz"
                 internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-{package_type}-{version}-linux-{arch}.tar.gz"
 
+                print(public_url)
+                print(internal_url)
                 are_sizes_equal, size = compare_package_sizes(public_url, internal_url)
                 if are_sizes_equal:
                     results.append(f"{edition} {package_type} {version} {arch}: PASS, size: {size}")
@@ -103,6 +105,7 @@ def check_plugin_package(version):
         internal_url = f"http://fileserver.pingcap.net/download/release/enterprise-plugin-{version}-linux-{arch}.tar.gz"
 
         print(public_url)
+        print(internal_url)
         are_size_equal, size = compare_package_sizes(public_url, internal_url)
         if are_size_equal:
             results.append(f"plugin {version} {arch}: PASS, size: {size}")
@@ -124,6 +127,9 @@ def check_dm_package(version):
     for arch in arches:
         public_url = f"https://download.pingcap.org/tidb-dm-{version}-linux-{arch}.tar.gz"
         internal_url = f"http://fileserver.pingcap.net/download/release/tidb-dm-{version}-linux-{arch}.tar.gz"
+
+        print(public_url)
+        print(internal_url)
         are_size_equal, size = compare_package_sizes(public_url, internal_url)
         if are_size_equal:
             results.append(f"dm {version} {arch}: PASS, size: {size}")
