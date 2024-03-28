@@ -138,20 +138,11 @@ def check_dm_package(version):
 
 
 def check_offline_components(version, edition, arch, component_hash):
-    # download package
-    # tar xvf
-    # tiup mirror set
-    # tiup check version info
-    # first check server package
     server_package_url = f"https://download.pingcap.org/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
-    # TODO: only for testing
-    server_package_url = f"http://fileserver.pingcap.net/download/fake-release/tidb-{edition}-server-{version}-pre-linux-{arch}.tar.gz"
     server_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
 
     # toolkit package url
     toolkit_package_url = f"https://download.pingcap.org/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
-    # TODO: only for testing
-    toolkit_package_url = f"http://fileserver.pingcap.net/download/fake-release/tidb-{edition}-toolkit-{version}-pre-linux-{arch}.tar.gz"
     toolkit_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
 
     # download package from internal url
@@ -159,35 +150,29 @@ def check_offline_components(version, edition, arch, component_hash):
     subprocess.run(["wget",  toolkit_package_url], check=True)
 
     # extract package
-    # TODO: only for testing remove -pre after testing
-    subprocess.run(["tar", "xf", f"tidb-{edition}-server-{version}-pre-linux-{arch}.tar.gz"], check=True)
-    subprocess.run(["tar", "xf", f"tidb-{edition}-toolkit-{version}-pre-linux-{arch}.tar.gz"], check=True)
+    subprocess.run(["tar", "xf", f"tidb-{edition}-server-{version}-linux-{arch}.tar.gz"], check=True)
+    subprocess.run(["tar", "xf", f"tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"], check=True)
 
     # set tiup mirror to server offline package dir
-    # subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-server-{version}-linux-{arch}"], check=True)
-    # TODO: only for testing
-    subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-server-{version}-pre-linux-{arch}"], check=True)
+    subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-server-{version}-linux-{arch}"], check=True)
     subprocess.run(["tiup", "uninstall", "--all"], check=True)
     expected_edition = "Enterprise" if edition == "enterprise" else "Community"
-    # for component in ["tidb", "pd", "tikv", "tiflash", "tidb-dashboard"]:
-    #     check_tiup_component_version(component, version, component_hash[component], expected_edition)
-    #
-    # for component in ["ctl", "grafana", "prometheus"]:
-    #     check_tiup_component_exists(component, version)
+
+    for component in ["tidb", "pd", "tikv", "tiflash", "tidb-dashboard"]:
+        check_tiup_component_version(component, version, component_hash[component], expected_edition)
+    for component in ["ctl", "grafana", "prometheus"]:
+        check_tiup_component_exists(component, version)
 
     # set tiup mirror to toolkit offline package dir
-    # subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-toolkit-{version}-linux-{arch}"], check=True)
-    # TODO: only for testing
-    subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-toolkit-{version}-pre-linux-{arch}"], check=True)
+    subprocess.run(["tiup", "mirror", "set", f"tidb-{edition}-toolkit-{version}-linux-{arch}"], check=True)
 
     # clean all tiup components before toolkit check
     subprocess.run(["tiup", "uninstall", "--all"], check=True)
-    # those components will be checked
-    # br & cdc & dmctl & dm-master & dm-worker & drainer & dumpling & grafana & pd-recover & prometheus & pump & tidb-lightning
+    # those components will be checked:
+    # [ br & cdc & dmctl & dm-master & dm-worker & drainer & dumpling & grafana & pd-recover & prometheus & pump & tidb-lightning ]
     for component in ["dumpling", "dm", "br", "ticdc", "binlog", "lightning"]:
-        # TODO how to handle pd-recover
+        # TODO: how to handle pd-recover, pd-recover is build from pd repo, but it is in toolkit package tarball
         check_tiup_component_version(component, version, component_hash[component], expected_edition)
-
     for component in ["grafana", "prometheus"]:
         check_tiup_component_exists(component, version)
 
@@ -198,9 +183,8 @@ def check_tiup_component_exists(component, version):
     for tiup_component in tiup_components:
         print(f"Checking existence for {tiup_component}:{version}")
         try:
-            # TODO: only for testing, remove -pre after testing
             result = subprocess.run(
-                ["tiup", "install", f"{tiup_component}:{version}-pre"], capture_output=True, text=True, check=True)
+                ["tiup", "install", f"{tiup_component}:{version}"], capture_output=True, text=True, check=True)
             if result.returncode == 0:
                 print(f"Install {tiup_component}:{version} successfully")
                 print(f"Check existence for {tiup_component}:{version} successfully")
@@ -216,8 +200,6 @@ def check_tiup_component_version(component, version, commit_hash, edition):
     expected_edition = edition
     expected_commit_hash = commit_hash
     tiup_check_version = version
-    # TODO: only for testing
-    tiup_check_version = f"{version}-pre"
 
     for tiup_component in tiup_components:
         print(f"Checking version info for {tiup_component}")
@@ -227,7 +209,7 @@ def check_tiup_component_version(component, version, commit_hash, edition):
                 ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True, check=True)
             # 假设成功执行命令返回非空结果即为有效
             print(result)
-            # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
+            # Notice: dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
             if result.stdout.strip() or result.stderr.strip():
                 version_info = result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
                 print(f"Version info ({tiup_component}):\n{version_info}")
@@ -251,8 +233,6 @@ def check_tiup_component_version(component, version, commit_hash, edition):
 
 def main(version, check_type, edition, arch, components_url):
     if check_type == "quick":
-        # TODO: only for testing
-        return
         offline_package_success, _ = check_offline_package(version)
         dm_package_success, _ = check_dm_package(version)
         plugin_package_success, _ = check_plugin_package(version)
@@ -269,7 +249,7 @@ def main(version, check_type, edition, arch, components_url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Check offline package.")
     # quick 检查只检查包的存在性，details 检查包的存在性和组件版本信息
-    parser.add_argument("type", choices=['quick', 'details'], help="The type of check to perform.")
+    parser.add_argument("type", choices=['quick', 'details'], help="The type of check to perform. (quick or details), quick check only check the existence of the package, details check the existence of the package and the version information of the components.")
     parser.add_argument("version", type=str, help="The Release Version to check.")
     parser.add_argument("edition", type=str, help="The Edition to check. (community or enterprise)")
     parser.add_argument("arch", type=str, help="The arch to check. (amd64 or arm64)")

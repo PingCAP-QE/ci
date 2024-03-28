@@ -74,6 +74,7 @@ COMPONENT_META = {
             "git_commit_hash": True
         }
     },
+    # TODO: tiup dumpling:v7.5.1 -V, all output default to stderr, need to fix
     "dumpling": {
         "entrypoints": ["/dumpling"],
         "version_cmd": "-V",
@@ -128,7 +129,7 @@ COMPONENT_META = {
             "enterprise": True,
             "community": True
         },
-        "tiup_components": ["dm-master", "dm-worker", "dmctl"],  # TODO: add dmctl
+        "tiup_components": ["dm-master", "dm-worker", "dmctl"],
         "version_check": {
             "version": True,
             "edition": False,
