@@ -84,9 +84,9 @@ if __name__ == "__main__":
         else:
             print("checking docker images on registry.hub.docker.com")
             # TODO: temporarily comment out the check for registry.hub.docker.com
-            # for image in components["docker_images"]:
-            #     check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
-            #     check_docker_image(image, "community", "registry.hub.docker.com", "pingcap")
+            for image in components["docker_images"]:
+                check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
+                check_docker_image(image, "community", "registry.hub.docker.com", "pingcap")
             print("checking docker images on gcr.io")
             for image in components["docker_images"]:
                 check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
