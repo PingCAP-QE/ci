@@ -32,7 +32,10 @@ def check_docker_image(component_info, edition, registry, project, is_rc_build=F
     if not COMPONENT_META[component]["image_name"]:
         print(f"Image for component {component} is not defined.")
         return
-    if not COMPONENT_META[component]["image_edition"][edition]:
+    # components have both enterprise and community edition: tidb & pd & tikv & tiflash
+    # other components only have enterprise edition
+    # example tidb-dashboard only have community edition
+    if not COMPONENT_META[component]["image_edition"][edition] and registry == "registry.hub.docker.com":
         print(f"Image for component {component} does not have {edition} edition.")
         return
     args = [
