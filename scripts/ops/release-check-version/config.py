@@ -169,7 +169,10 @@ COMPONENT_META = {
     "tidb-dashboard": {
         "entrypoints": ["/tidb-dashboard"],
         "version_cmd": "--version",
-        "image_name": "tidb-dashboard",
+        # TODO: temporarily use empty string, need to update
+        # currently, the tidb-dashboard image is not available
+        # "image_name": "tidb-dashboard",
+        "image_name": "",
         "image_edition": {
             "enterprise": False,
             "community": True
