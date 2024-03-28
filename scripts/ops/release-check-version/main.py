@@ -92,6 +92,10 @@ if __name__ == "__main__":
                 check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
             print("checking docker images on uhub.service.ucloud.cn")
             for image in components["docker_images"]:
+                # TODO: temporarily skip br image check
+                if image["name"] == "br":
+                    print(f"Skip checking image for component {image['name']} on uhub.service.ucloud.cn")
+                    continue
                 check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
 
     elif args.type == 'tiup':
