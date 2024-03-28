@@ -65,6 +65,40 @@ def compare_package_sizes(url1, url2):
         return True, size1  # 包存在且大小一致
     return False, None
 
+def get_file_size_v2(url):
+    """获取文件大小，以字节为单位返回。"""
+    response = requests.head(url)
+    if response.status_code != 200:
+        # 如果 HEAD 请求失败，尝试 GET 请求但不下载内容
+        response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        content_length = response.headers.get('Content-Length')
+        if content_length:
+            return int(content_length), True
+    return 0, False
+
+def compare_and_display_package_sizes(url1, url2):
+    """比较两个包的大小，并显示它们的大小以及体积差异（以 MB 显示）。"""
+    size1, exists1 = get_file_size_v2(url1)
+    size2, exists2 = get_file_size_v2(url2)
+
+    if not exists1 or not exists2:
+        return "One or both URLs do not exist."
+
+    # 将大小从字节转换为 MB，并计算差异
+    size1_mb = size1 / (1024 * 1024)
+    size2_mb = size2 / (1024 * 1024)
+    difference_mb = abs(size1_mb - size2_mb)
+
+    max_diff_mb = 30
+    result = {
+        'size1_mb': size1_mb,
+        'size2_mb': size2_mb,
+        'difference_mb': difference_mb,
+        'within_tolerance': difference_mb <= max_diff_mb
+    }
+    return result
+
 
 def check_offline_package(version):
     results = []
