@@ -45,6 +45,8 @@ function tag_oci_artifact_repos() {
     "tikv/pd/package"
     "tikv/tikv/package"
   )
+  platforms=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
+
   # enterprise
   enterprise_repos=(
     "pingcap/tidb/package"
@@ -52,15 +54,15 @@ function tag_oci_artifact_repos() {
     "tikv/pd/package"
     "tikv/tikv/package"
   )
+  enterprise_platforms=("linux_amd64" "linux_arm64")
 
-  platforms=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
   for repo in "${repos[@]}"; do
     for platform in "${platforms[@]}"; do
       tag_oci_repo "$registry/${repo}" "${rc_ver}_${platform}" "${ga_ver}_${platform}" "$force"
     done
   done
   for repo in "${enterprise_repos[@]}"; do
-    for platform in "${platforms[@]}"; do
+    for platform in "${enterprise_platforms[@]}"; do
       tag_oci_repo "$registry/${repo}" "${rc_ver}-enterprise_${platform}" "${ga_ver}-enterprise_${platform}" "$force"
     done
   done
