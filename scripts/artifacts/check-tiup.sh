@@ -23,7 +23,7 @@ function gather_results() {
     : >results.yaml
 
     # check tiup
-    for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'grafana' 'pd' 'pd-recover' 'prometheus' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
+    for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'pd' 'pd-recover' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
         echo "🚧 check tiup $com:$VERSION"
         platforms=$(tiup list $com | grep -E "^$VERSION\b\s+")
         echo $platforms
