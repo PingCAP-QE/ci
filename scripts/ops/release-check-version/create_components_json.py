@@ -6,6 +6,9 @@ import json
 
 
 token = os.environ.get("GITHUB_TOKEN")
+if not token:
+    print("GITHUB_TOKEN is not set.")
+    sys.exit(1)
 headers = {"Authorization": f"token {token}"} if token else {}
 
 
