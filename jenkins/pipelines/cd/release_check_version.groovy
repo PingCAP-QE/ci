@@ -19,6 +19,10 @@ spec:
       value: ""
     - name: DOCKER_HOST
       value: tcp://localhost:2375
+    resources:
+      requests:
+        cpu: 4
+        memory: 8Gi
     securityContext:
       privileged: true
     tty: true
@@ -32,14 +36,20 @@ spec:
 pipeline {
     parameters {
         booleanParam(
-          defaultValue: true,
+          defaultValue: false,
           description: 'Whether this is a release candidate build check',
           name: 'IS_RC_BUILD'
         )
         string(
-            defaultValue: 'https://raw.githubusercontent.com/purelind/test-ci/main/components.json' ,
+            defaultValue: 'https://raw.githubusercontent.com/purelind/test-ci/main/components-v8.0.0.json' ,
             name: 'COMPONENT_JSON_URL', 
             description: 'The URL of the component json file',
+            trim: true
+        )
+        string(
+            defaultValue: 'v8.0.0' ,
+            name: 'VERSION', 
+            description: 'The release version to check',
             trim: true
         )
     }
@@ -65,7 +75,8 @@ pipeline {
                                 tiup --version
                                 python3 --version
                                 docker version
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                docker system info
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 main.py image --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -88,7 +99,8 @@ pipeline {
                                 tiup --version
                                 python3 --version
                                 docker version
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                docker system info
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 main.py image --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -108,7 +120,7 @@ pipeline {
                         dir("release-check-version") {
                             script {
                                 sh """
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -128,7 +140,7 @@ pipeline {
                         dir("release-check-version") {
                             script {
                                 sh """
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -149,7 +161,7 @@ pipeline {
                             sh """
                                 hostname
                                 ifconfig | grep 172
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 -m venv .venv
                                 source .venv/bin/activate
@@ -174,7 +186,7 @@ pipeline {
                             sh """
                                 hostname
                                 ifconfig | grep 172
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 -m venv .venv
                                 source .venv/bin/activate
