@@ -49,7 +49,7 @@ def fetch_hash={repo->
 retry(2) {
     try {
         timeout(600) {
-            RELEASE_TAG = "v8.0.0-alpha"
+            RELEASE_TAG = "v8.1.0-alpha"
             node("gethash") {
                 container("gethash") {
                     def ws = pwd()
