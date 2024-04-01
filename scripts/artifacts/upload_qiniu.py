@@ -1,10 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+# Ref: https://developer.qiniu.com/kodo/1242/python
 import sys
 import os
 from qiniu import Auth, put_file, etag, urlsafe_base64_encode
 import qiniu.config
 
-# set Access Key 和 Secret Key
+# Qiniu Access Key and Secret Key
 access_key = os.environ.get('QINIU_ACCESS_KEY')
 secret_key = os.environ.get('QINIU_SECRET_KEY')
 bucket_name = os.environ.get("QINIU_BUCKET_NAME")

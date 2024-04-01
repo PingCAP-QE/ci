@@ -108,96 +108,96 @@ pipeline {
                         }
                     }
                 }
-                // stage('linux/amd64 tiup') {
-                //     agent {
-                //         kubernetes {
-                //             yaml podYaml
-                //             defaultContainer 'check'
-                //             nodeSelector "kubernetes.io/arch=amd64"
-                //         }
-                //     }
-                //     steps {
-                //         dir("release-check-version") {
-                //             script {
-                //                 sh """
-                //                 git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
-                //                 cd scripts/ops/release-check-version
-                //                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
-                //                 """
-                //             }
-                //         }
-                //     }
-                // }
-                // stage('linux/arm64 tiup') {
-                //     agent {
-                //         kubernetes {
-                //             yaml podYaml
-                //             defaultContainer 'check'
-                //             nodeSelector "kubernetes.io/arch=arm64"
-                //         }
-                //     }
-                //     steps {
-                //         dir("release-check-version") {
-                //             script {
-                //                 sh """
-                //                 git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
-                //                 cd scripts/ops/release-check-version
-                //                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
-                //                 """
-                //             }
-                //         }
-                //     }
-                // }
+                stage('linux/amd64 tiup') {
+                    agent {
+                        kubernetes {
+                            yaml podYaml
+                            defaultContainer 'check'
+                            nodeSelector "kubernetes.io/arch=amd64"
+                        }
+                    }
+                    steps {
+                        dir("release-check-version") {
+                            script {
+                                sh """
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
+                                """
+                            }
+                        }
+                    }
+                }
+                stage('linux/arm64 tiup') {
+                    agent {
+                        kubernetes {
+                            yaml podYaml
+                            defaultContainer 'check'
+                            nodeSelector "kubernetes.io/arch=arm64"
+                        }
+                    }
+                    steps {
+                        dir("release-check-version") {
+                            script {
+                                sh """
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
+                                """
+                            }
+                        }
+                    }
+                }
 
-                // stage('darwin/arm64 tiup') {
-                //     agent {
-                //         node {
-                //             label 'darwin && arm64'
-                //         }
-                //     }
-                //     steps {
-                //         dir("release-check-tiup") {  
-                //             deleteDir()
-                //             sh """
-                //                 hostname
-                //                 ifconfig | grep 172
-                //                 git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
-                //                 cd scripts/ops/release-check-version
-                //                 python3 -m venv .venv
-                //                 source .venv/bin/activate
-                //                 pip install -r requirements.txt
-                //                 export PATH=\$PATH:\$HOME/.tiup/bin
-                //                 which tiup
-                //                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
-                //             """
-                //         }
+                stage('darwin/arm64 tiup') {
+                    agent {
+                        node {
+                            label 'darwin && arm64'
+                        }
+                    }
+                    steps {
+                        dir("release-check-tiup") {  
+                            deleteDir()
+                            sh """
+                                hostname
+                                ifconfig | grep 172
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
+                                python3 -m venv .venv
+                                source .venv/bin/activate
+                                pip install -r requirements.txt
+                                export PATH=\$PATH:\$HOME/.tiup/bin
+                                which tiup
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
+                            """
+                        }
                         
-                //     }
-                // }
-                // stage('darwin/amd64 tiup') {
-                //     agent {
-                //         node {
-                //             label 'darwin && amd64'
-                //         }
-                //     }
-                //     steps {
-                //         dir("release-check-tiup") { 
-                //             deleteDir()
-                //             sh """
-                //                 hostname
-                //                 ifconfig | grep 172
-                //                 git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
-                //                 cd scripts/ops/release-check-version
-                //                 python3 -m venv .venv
-                //                 source .venv/bin/activate
-                //                 pip install -r requirements.txt
-                //                 export PATH=\$PATH:\$HOME/.tiup/bin
-                //                 which tiup
-                //                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}" 
-                //             """
-                //         }
-                //     }
-                // }
+                    }
+                }
+                stage('darwin/amd64 tiup') {
+                    agent {
+                        node {
+                            label 'darwin && amd64'
+                        }
+                    }
+                    steps {
+                        dir("release-check-tiup") { 
+                            deleteDir()
+                            sh """
+                                hostname
+                                ifconfig | grep 172
+                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                cd scripts/ops/release-check-version
+                                python3 -m venv .venv
+                                source .venv/bin/activate
+                                pip install -r requirements.txt
+                                export PATH=\$PATH:\$HOME/.tiup/bin
+                                which tiup
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}" 
+                            """
+                        }
+                    }
+                }
             }
         }
     }
