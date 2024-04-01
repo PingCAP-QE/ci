@@ -47,7 +47,7 @@ pipeline {
                         script {
                             sh """
 
-                            git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                            git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                             cd scripts/ops/release-check-version
                             python3 check_offline_package.py quick ${VERSION} community amd64 --components_url="${params.COMPONENT_JSON_URL}"
                             """
@@ -73,7 +73,7 @@ pipeline {
                                 tiup --version
                                 python3 --version
 
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 check_offline_package.py details ${params.VERSION} community amd64 --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -96,7 +96,7 @@ pipeline {
                                 tiup --version
                                 python3 --version
 
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 check_offline_package.py details ${params.VERSION} community arm64 --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -119,7 +119,7 @@ pipeline {
                                 tiup --version
                                 python3 --version
 
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 check_offline_package.py details ${params.VERSION} enterprise amd64 --components_url="${params.COMPONENT_JSON_URL}"
                                 """
@@ -142,7 +142,7 @@ pipeline {
                                 tiup --version
                                 python3 --version
 
-                                git clone --branch purelind/add-release-check-version --depth 1 https://github.com/purelind/ci-1.git .
+                                git clone --branch main --depth 1 https://github.com/PingCAP-QE/ci.git .
                                 cd scripts/ops/release-check-version
                                 python3 check_offline_package.py details ${params.VERSION} enterprise arm64 --components_url="${params.COMPONENT_JSON_URL}"
                                 """
