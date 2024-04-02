@@ -25,7 +25,7 @@ pipeline {
         TIKV_TEST_MEMORY_DISK_MOUNT_POINT = "/home/jenkins/agent/memvolume"
     }
     options {
-        timeout(time: 45, unit: 'MINUTES')
+        timeout(time: 50, unit: 'MINUTES')
         parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
@@ -35,7 +35,10 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    go env
+                    env
+                    hostname
+                    df -h
+                    free -hm
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -111,6 +114,19 @@ pipeline {
                             cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
                             python gen_test_binary_json.py
                             cat test-binaries.json
+
+                            # archive test artifacts
+                            ls -alh archive-test-binaries
+                            tar -cvf archive-test-binaries.tar archive-test-binaries
+                            ls -alh archive-test-binaries.tar
+                            tar czf test-artifacts.tar.gz test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
+                            ls -alh test-artifacts.tar.gz
+                            mkdir -p /home/jenkins/archives
+                            mv test-artifacts.tar.gz archive-test-binaries.tar /home/jenkins/archives/
+                        """
+                        sh label: 'archive test artifact', script: """
+                            cp test-metadata.json ${WORKSPACE}/tikv/target/
+                            cp test-binaries.json ${WORKSPACE}/tikv/target/
                         """
                     }
                 }
@@ -119,14 +135,35 @@ pipeline {
         stage("Test") {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tikv') {
+                dir('/home/jenkins/agent/tikv-presubmit/unit-test') {
+                    sh label: "clean up", script: """
+                        rm -rf /home/jenkins/tikv-*
+                        ls -alh /home/jenkins/
+                        ln -s `pwd` \$HOME/tikv-src
+                        mkdir -p target/debug
+                        uname -a
+                        df -h
+                        free -hm
+
+                        # prepare test artifacts
+                        cp /home/jenkins/archives/test-artifacts.tar.gz .
+                        cp /home/jenkins/archives/archive-test-binaries.tar .
+                        tar -xf test-artifacts.tar.gz
+                        tar xf archive-test-binaries.tar --strip-components=1
+                        rm -f test-artifacts.tar.gz archive-test-binaries.tar
+                        ls -la
+                        ls -alh target/debug/deps/
+                    """
                     sh """
+                    ls -alh \$HOME/tikv-src
+                    ls -alh /home/jenkins/tikv-src/
+                    ls -alh /home/jenkins/tikv-src/target/debug/deps/
                     export RUSTFLAGS=-Dwarnings
                     export FAIL_POINT=1
                     export RUST_BACKTRACE=1
                     export MALLOC_CONF=prof:true,prof_active:false
                     # export CI=1  # TODO: remove this
-                    export LOG_FILE=/home/jenkins/tikv/target/my_test.log
+                    export LOG_FILE=/home/jenkins/tikv-src/target/my_test.log
 
                     if cargo nextest run -P ci --binaries-metadata test-binaries.json --cargo-metadata test-metadata.json --partition count:1/2 ${EXTRA_NEXTEST_ARGS}; then
                         echo "test pass"
@@ -148,8 +185,8 @@ pipeline {
             post {
                 failure {
                     sh label: "collect logs", script: """
-                        ls /home/jenkins/tikv/target/
-                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv/target/ -type f -name "*.log")    
+                        ls /home/jenkins/tikv-src/target/
+                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")    
                         ls -alh  log-ut.tar.gz  
                     """
                     archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 

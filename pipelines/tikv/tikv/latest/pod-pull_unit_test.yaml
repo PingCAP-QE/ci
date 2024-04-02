@@ -35,9 +35,6 @@ spec:
       medium: ""
     name: "volume-tmp"
   - emptyDir:
-      medium: ""
-    name: "volume-home"
-  - emptyDir:
       medium: Memory
     name: "volume-memory"
   affinity:
