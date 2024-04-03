@@ -58,8 +58,8 @@ pipeline {
                         sh label: "download third_party", script: """#!/usr/bin/env bash
                             rm -rf third_bin/
                             rm -rf bin/
-                            chmod +x ../tidb/br/tests/*.sh
-                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
+                            chmod +x ../tidb/lightning/tests/*.sh
+                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh master
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
@@ -70,12 +70,12 @@ pipeline {
                 }
                 dir('tidb') {
                     sh label: "check all tests added to group", script: """#!/usr/bin/env bash
-                        chmod +x br/tests/*.sh
-                        ./br/tests/run_group_lightning_tests.sh others
+                        chmod +x lightning/tests/*.sh
+                        ./lightning/tests/run_group_lightning_tests.sh others
                     """
                     sh label: "prepare build", script: """#!/usr/bin/env bash
                         [ -f ./bin/tidb-server ] || make
-                        [ -f ./bin/br.test ] || make build_for_br_integration_test
+                        [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
@@ -110,8 +110,8 @@ pipeline {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") { 
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x br/tests/*.sh
-                                        ./br/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                        chmod +x lightning/tests/*.sh
+                                        ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
                                     """  
                                 }
                             }
@@ -120,8 +120,8 @@ pipeline {
                         post{
                             failure {
                                 sh label: "collect logs", script: """#!/usr/bin/env bash
-                                    ls /tmp/backup_restore_test
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")    
+                                    ls /tmp/lightning_test
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")    
                                     ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
@@ -129,7 +129,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
