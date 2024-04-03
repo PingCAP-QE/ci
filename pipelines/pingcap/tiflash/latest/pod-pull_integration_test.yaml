@@ -49,7 +49,7 @@ spec:
       name: "workspace-volume"
       readOnly: false
   - image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
-    name: "jnlp"
+    name: "jnlp"    #  TODO: remove this default container
     resources:
       requests:
         memory: "256Mi"

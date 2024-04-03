@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm13-amd64:v20231214"
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-17.0.6"
       command:
         - "cat"
       tty: true
@@ -36,7 +36,7 @@ spec:
       - mountPath: "/home/jenkins"
         name: "volume-8"
         readOnly: false
-    - name: jnlp
+    - name: jnlp  # TODO: remove this default container
       image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
       resources:
         requests:
