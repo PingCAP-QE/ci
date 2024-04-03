@@ -50,7 +50,14 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
+                sh """
+                    rm -rf /home/jenkins/tikv-src
+                    mkdir -p /home/jenkins/tikv-src
+                """
                 dir("tikv") {
+                    sh """
+                    cd \$HOME/tikv-src
+                    """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -59,11 +66,9 @@ pipeline {
                         }
                     }
                     sh """
-                        ls -alh
-                        ln -s \$HOME/tikv-target ${WORKSPACE}/tikv/target
+                        ln -s \$HOME/tikv-target `pwd`/target
                         pwd && ls -alh
                     """
-                    
                 }
             }
         }
@@ -72,11 +77,13 @@ pipeline {
                 dir("tikv") {
                     retry(2) {
                         sh label: 'Run lint: format', script: """
+                            cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             make format
                             git diff --quiet || (git diff; echo Please make format and run tests before creating a PR; exit 1)
                         """
                         sh label: 'Run lint: clippy', script: """
+                            cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export ROCKSDB_SYS_SSE=1
@@ -95,6 +102,7 @@ pipeline {
                 dir("tikv") {
                     retry(2) {
                         sh label: 'Build test artifact', script: """
+                            cd \$HOME/tikv-src
                             export RUSTFLAGS=-Dwarnings
                             export FAIL_POINT=1
                             export ROCKSDB_SYS_SSE=1
@@ -123,10 +131,6 @@ pipeline {
                             ls -alh test-artifacts.tar.gz
                             mkdir -p /home/jenkins/archives
                             mv test-artifacts.tar.gz archive-test-binaries.tar /home/jenkins/archives/
-                        """
-                        sh label: 'archive test artifact', script: """
-                            cp test-metadata.json ${WORKSPACE}/tikv/target/
-                            cp test-binaries.json ${WORKSPACE}/tikv/target/
                         """
                     }
                 }
