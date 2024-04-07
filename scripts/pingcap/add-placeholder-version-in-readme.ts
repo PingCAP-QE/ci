@@ -226,7 +226,6 @@ async function main(
   // Create a new Octokit instance using the provided token
   const octokit = new Octokit({ auth: github_private_token });
 
-  // Create or update the `OWNERS` files in each repository.
   console.debug(`🫧 prepare update for repo: ${owner}/${repo}`);
   const pr = await createUpdateFilePR(
     octokit,
