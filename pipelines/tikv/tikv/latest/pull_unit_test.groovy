@@ -52,12 +52,8 @@ pipeline {
             steps {
                 sh """
                     rm -rf /home/jenkins/tikv-src
-                    mkdir -p /home/jenkins/tikv-src
                 """
                 dir("tikv") {
-                    sh """
-                    cd \$HOME/tikv-src
-                    """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -65,11 +61,14 @@ pipeline {
                             }
                         }
                     }
-                    sh """
-                        ln -s \$HOME/tikv-target `pwd`/target
-                        pwd && ls -alh
-                    """
                 }
+                sh """
+                    pwd & ls -alh 
+                    mv ./tikv \$HOME/tikv-src
+                    cd \$HOME/tikv-src
+                    ln -s \$HOME/tikv-target `pwd`/target
+                    pwd && ls -alh
+                """
             }
         }
         stage('lint') {
