@@ -52,12 +52,8 @@ pipeline {
             steps {
                 sh """
                     rm -rf /home/jenkins/tikv-src
-                    mkdir -p /home/jenkins/tikv-src
                 """
                 dir("tikv") {
-                    sh """
-                    cd \$HOME/tikv-src
-                    """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -65,11 +61,14 @@ pipeline {
                             }
                         }
                     }
-                    sh """
-                        ln -s \$HOME/tikv-target `pwd`/target
-                        pwd && ls -alh
-                    """
                 }
+                sh """
+                    pwd & ls -alh 
+                    mv ./tikv \$HOME/tikv-src
+                    cd \$HOME/tikv-src
+                    ln -s \$HOME/tikv-target \$HOME/tikv-src/target
+                    pwd && ls -alh
+                """
             }
         }
         stage('lint') {
@@ -119,7 +118,8 @@ pipeline {
                             CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
                             # Cargo metadata
                             cargo metadata --format-version 1 > test-metadata.json
-                            cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
+                            # cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
+                            wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/tikv/tikv/gen_test_binary_json.py
                             python gen_test_binary_json.py
                             cat test-binaries.json
 
