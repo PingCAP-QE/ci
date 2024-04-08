@@ -104,7 +104,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       context: pull-lightning-integration-test
-      run_if_changed: "lightning/.*"
+      always_run: false
       optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
