@@ -184,6 +184,7 @@ async function postDealPR(
   owner: string,
   repo: string,
   prNumber: number,
+  toAddLabels: string[],
 ) {
   // add "/release-note-none" comment.
   await octokit.rest.issues.createComment({
@@ -194,7 +195,6 @@ async function postDealPR(
   }).catch((error: any) => console.error("Error creating comment:", error));
 
   // add "skip-issue-check", "lgtm", "approved" labels:
-  const toAddLabels = ["skip-issue-check", "lgtm", "approved"];
   await octokit.rest.issues.addLabels({
     owner,
     repo,
@@ -248,7 +248,11 @@ async function main(
   console.info(
     `🫧 Post dealing for pull request: ${owner}/${repo}/${pr!.number} ...`,
   );
-  await postDealPR(octokit, owner, repo, pr!.number);
+  const toAddLabels = ["skip-issue-check", "lgtm", "approved"];
+  if (branch.includes("release-")) {
+    toAddLabels.push("cherry-pick-approved");
+  }
+  await postDealPR(octokit, owner, repo, pr!.number, toAddLabels);
   console.info(
     `✅ Post done for pull request: ${owner}/${repo}/${pr!.number} ...`,
   );
