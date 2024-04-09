@@ -245,10 +245,13 @@ async function main(
   // Wait a minute after the pull requests created: let the approve plugin dealing firstly.
   await new Promise((resolve) => setTimeout(resolve, 60000));
 
-  const { number: num } = pr;
-  console.info(`🫧 Post dealing for pull request: ${owner}/${repo}/${num} ...`);
-  await postDealPR(octokit, owner, repo, num);
-  console.info(`✅ Post done for pull request: ${owner}/${repo}/${num} ...`);
+  console.info(
+    `🫧 Post dealing for pull request: ${owner}/${repo}/${pr!.number} ...`,
+  );
+  await postDealPR(octokit, owner, repo, pr!.number);
+  console.info(
+    `✅ Post done for pull request: ${owner}/${repo}/${pr!.number} ...`,
+  );
 }
 
 // Execute the main function
