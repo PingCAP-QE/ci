@@ -88,14 +88,14 @@ periodics:
         - name: github-token
           secret:
             secretName: github-token
-  - name: periodic-update-pingcap-monitoring-dmr-8.0
+  - name: periodic-update-pingcap-monitoring-lts-8.1
     decorate: true # need add this.
     cron: "0 * * * *" # @hourly
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
       - org: pingcap
         repo: monitoring
-        base_ref: release-8.0
+        base_ref: release-8.1
         skip_submodules: true
         clone_depth: 1
     spec:
@@ -105,7 +105,7 @@ periodics:
           command: [bash, -ce]
           env:
             - name: TARGET
-              value: release-8.0
+              value: release-8.1
           resources:
             limits:
               memory: 4Gi
