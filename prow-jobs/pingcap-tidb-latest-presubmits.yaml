@@ -93,7 +93,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       context: pull-br-integration-test
-      always_run: false
+      run_if_changed: "br/.*"
       optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
