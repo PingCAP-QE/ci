@@ -40,6 +40,7 @@ configMapGenerator:
       - pingcap-tidb-release-7.5-presubmits.yaml
       - pingcap-tidb-release-7.6-presubmits.yaml
       - pingcap-tidb-release-8.0-presubmits.yaml
+      - pingcap-tidb-release-8.1-presubmits.yaml
       - pingcap-tidb-test-latest-presubmits.yaml
       - pingcap-tidb-test-release-6.0-presubmits.yaml
       - pingcap-tidb-test-release-6.1-presubmits.yaml
