@@ -104,7 +104,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       context: pull-lightning-integration-test
-      run_if_changed: "(lightning|br/pkg/checksum|br/pkg/httputil|br/pkg/membuf|br/pkg/pdutil|br/pkg/restore/split|br/pkg/storage)/.*"
+      run_if_changed: "(lightning|br/pkg/(checksum|httputil|membuf|pdutil|restore/split|storage))/.*"
       optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
