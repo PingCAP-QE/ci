@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('qa-release-br-integration-test') {
+pipelineJob('qa/qa-release-br-integration-test') {
     logRotator {
         daysToKeep(30)
     }
@@ -20,7 +20,7 @@ pipelineJob('qa-release-br-integration-test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("jenkins/pipelines/qa/qa-release-br-integration-test.groovy")
+            scriptPath("pipelines/qa/qa-release-br-integration-test.groovy")
             scm {
                 git{
                     remote {
