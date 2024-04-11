@@ -41,7 +41,7 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    checkout changelog: false, poll: false, scm: [
+                    checkout (changelog: false, poll: false, scm: [
                         $class           : 'GitSCM',
                         branches         : [[name: "${params.RELEASE_BRANCH}"]],
                         userRemoteConfigs: [[
@@ -50,6 +50,7 @@ pipeline {
                                              ]],
                         extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'],
                                 [$class: 'CloneOption',shallow: true,depth:   1,timeout: 10]],
+                    ])
                 }
             }
         }
