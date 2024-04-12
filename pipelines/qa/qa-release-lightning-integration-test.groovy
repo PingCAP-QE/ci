@@ -1,6 +1,7 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 // should triggerd for master branches
+@Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
@@ -40,16 +41,11 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    checkout (changelog: false, poll: false, scm: [
-                        $class           : 'GitSCM',
-                        branches         : [[name: "${params.RELEASE_BRANCH}"]],
-                        userRemoteConfigs: [[
-                                                refspec: "+refs/heads/${params.RELEASE_BRANCH}" + ":refs/remotes/origin/${params.RELEASE_BRANCH}",
-                                                url: 'https://github.com/pingcap/tidb.git',
-                                             ]],
-                        extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout'],
-                                [$class: 'CloneOption',shallow: true,depth:   1,timeout: 10]],
-                    ])
+                    retry(2) {
+                        script {
+                            component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', "${params.RELEASE_BRANCH}", '', trunkBranch="${params.RELEASE_BRANCH}", timeout=5, credentialsId="")
+                        }
+                    }
                 }
             }
         }
@@ -107,8 +103,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
