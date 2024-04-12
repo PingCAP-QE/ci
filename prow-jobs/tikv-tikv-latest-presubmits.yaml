@@ -4,11 +4,11 @@ presubmits:
     - name: tikv/tikv/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      optional: true
-      skip_report: true
-      context: wip/pull-unit-test
-      trigger: "(?m)^/debug (?:.*? )?pull-unit-test(?: .*?)?$"
-      rerun_command: "/debug pull-unit-test"
+      always_run: true
+      optional: false
+      skip_report: false
+      context: pull-unit-test
+      trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
+      rerun_command: "/test pull-unit-test"
       branches:
         - ^master$
