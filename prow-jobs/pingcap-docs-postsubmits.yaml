@@ -5,8 +5,8 @@ postsubmits:
       agent: jenkins
       decorate: false # need add this.
       context: docs/merged-ci
-      max_concurrency: 1
-      skip_report: true
+      max_concurrency: 5
+      skip_report: false
       branches:
         - ^master$
         - ^release-[3-4].0$
