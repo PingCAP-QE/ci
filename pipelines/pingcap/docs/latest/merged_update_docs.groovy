@@ -83,6 +83,7 @@ pipeline {
                         """
 
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
+                            target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
                             if [ "${REFS.base_ref}" = "master" ]; then
                                 python3 scripts/upload.py output.pdf tidb-dev-en-manual.pdf;
                             elif [ "${REFS.base_ref}" = "release-7.5" ]; then
@@ -90,7 +91,7 @@ pipeline {
                                 python3 scripts/upload.py output_cloud.pdf tidbcloud-en-manual.pdf;
                                 python3 scripts/upload.py output.pdf tidb-stable-en-manual.pdf;
                             elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
-                                python3 scripts/upload.py output.pdf tidb-v${REFS.base_ref##*-}-en-manual.pdf;
+                                python3 scripts/upload.py output.pdf tidb-v\${target_version}-en-manual.pdf;
                             fi
                         """
                     }
