@@ -36,6 +36,9 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "branch ${REFS.base_ref}: ${REFS.base_sha}"
+                    }
                 }
             }
         }
@@ -81,7 +84,6 @@ pipeline {
                             python3 scripts/merge_by_toc.py
                             scripts/generate_pdf.sh
                         """
-
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
                             target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
                             if [ "${REFS.base_ref}" = "master" ]; then
