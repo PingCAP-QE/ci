@@ -1,8 +1,0 @@
-kind: Pod
-spec:
-  containers:
-  - name: golang
-    image: hub.pingcap.net/jenkins/centos7_golang-1.21-arm64
-    args: ["sleep", "infinity"]
-  nodeSelector:
-    kubernetes.io/arch: arm64
