@@ -1,0 +1,12 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+postsubmits:
+  pingcap/docs-tidb-operator:
+    - name: pingcap/docs-tidb-operator/merged_update
+      agent: jenkins
+      decorate: false # need add this.
+      context: docs-tidb-operator/merged-ci
+      max_concurrency: 5
+      skip_report: true  # change to false after test passed
+      branches:
+        - ^master$
+        - ^release-1\.[2-6]$

@@ -12,6 +12,7 @@ configMapGenerator:
       - pingcap-docs-postsubmits.yaml
       - pingcap-docs-cn-latest-presubmits.yaml
       - pingcap-docs-latest-presubmits.yaml
+      - pingcap-docs-tidb-operator-postsubmits.yaml
       - pingcap-inc-enterprise-extensions-postsubmits.yaml
       - pingcap-inc-enterprise-extensions-presubmits.yaml
       - pingcap-monitoring-periodics.yaml
