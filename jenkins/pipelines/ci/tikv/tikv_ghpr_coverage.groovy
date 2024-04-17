@@ -44,7 +44,9 @@ stage("Cover") {
                     git fetch origin
                     git checkout -f origin/${ghprbTargetBranch}
                     rustup component add llvm-tools-preview
-                    cargo install --locked grcov
+                    # used patched grcov to allow ignore corrupted profile data.
+                    cargo install --locked grcov --git https://github.com/glorv/grcov --branch patched
+                    grcov --version
                 """
 
                 def should_skip = sh (label: 'Check if can skip', script: """
@@ -65,11 +67,13 @@ stage("Cover") {
                 export ROCKSDB_SYS_SSE=1
                 export CARGO_INCREMENTAL=0
                 export RUSTFLAGS="-C instrument-coverage"
+                # use ci profile to enable test retry and timeout.
+                export NEXTEST_PROFILE=ci
 
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
 
-                env RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test || true
+                env RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="tikv-%p-%m.profraw" FAIL_POINT=1 RUST_TEST_THREADS=1 EXTRA_CARGO_ARGS=--no-fail-fast make test_with_nextest || true
                 """
 
                 sh label: 'Post-build: Generating coverage', script: """
