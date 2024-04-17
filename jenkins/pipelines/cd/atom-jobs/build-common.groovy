@@ -564,6 +564,7 @@ cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tics"] = """
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
 git config --global --add safe.directory '*'
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
@@ -638,6 +639,7 @@ rm -rf ${TARGET}/build-release || true
 """
 
 buildsh["tikv"] = """
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
     git tag -f ${RELEASE_TAG} ${GIT_HASH}
