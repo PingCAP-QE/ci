@@ -10,6 +10,7 @@ const FILENAME = "README.md";
 const VERSION_PLACEHOLDER_LINE = "<!-- VERSION_PLACEHOLDER: v{{version}} -->";
 const VERSION_PLACEHOLDER_REGEX = new RegExp(
   `^<!-- VERSION_PLACEHOLDER: v[\\d.]+ -->`,
+  "m",
 );
 const HEAD_REF = `chore/add-placeholder-version-${Date.now()}`;
 const COMMIT_MESSAGE = "[skip ci] update README.md file\n\n\nskip-checks: true";
