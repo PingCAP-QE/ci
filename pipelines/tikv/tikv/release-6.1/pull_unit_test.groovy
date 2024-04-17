@@ -44,7 +44,7 @@ pipeline {
                 container(name: 'net-tool') {
                     sh 'dig github.com'
                     script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                        prow.setPRDescription(REFS)
                     }
                 }
             }
