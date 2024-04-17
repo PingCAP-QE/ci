@@ -12,4 +12,3 @@ presubmits:
       rerun_command: "/debug pull-unit-test"
       branches:
         - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-
