@@ -13,7 +13,7 @@ spec:
       resources:
         requests:
           memory: 32Gi
-          cpu: "16"
+          cpu: "6"
       securityContext:
         privileged: true
       volumeMounts:
