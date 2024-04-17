@@ -564,6 +564,7 @@ cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tics"] = """
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
 git config --global --add safe.directory '*'
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
