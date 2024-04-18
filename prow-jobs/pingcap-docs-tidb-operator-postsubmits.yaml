@@ -6,7 +6,7 @@ postsubmits:
       decorate: false # need add this.
       context: docs-tidb-operator/merged-ci
       max_concurrency: 5
-      skip_report: true  # change to false after test passed
+      skip_report: false
       branches:
         - ^master$
         - ^release-1\.[2-6]$
