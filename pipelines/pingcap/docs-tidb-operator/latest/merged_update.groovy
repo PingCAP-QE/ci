@@ -85,6 +85,7 @@ pipeline {
                         """
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
                             target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
+                            echo "target_version: \${target_version}"
                             if [ "${REFS.base_ref}" = "master" ]; then
                                 python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-dev-en-manual.pdf;
                                 python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-dev-zh-manual.pdf;
