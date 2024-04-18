@@ -83,20 +83,19 @@ pipeline {
                             python3 scripts/merge_by_toc.py en/; python3 scripts/merge_by_toc.py zh/;
                             scripts/generate_pdf.sh
                         """
-                        // TODO: uncomment the following lines after the test is passed
-                        // sh label: 'Upload pdf', script: """#!/usr/bin/env bash
-                        //     target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
-                        //     if [ "${REFS.base_ref}" = "master" ]; then
-                        //         python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-dev-en-manual.pdf;
-                        //         python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-dev-zh-manual.pdf;
-                        //     elif [ "${REFS.base_ref}" = "release-1.5" ]; then
-                        //         python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-stable-en-manual.pdf;
-                        //         python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-stable-zh-manual.pdf;
-                        //     elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
-                        //         python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-v\${target_version}-en-manual.pdf;
-                        //         python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-v\${target_version}-zh-manual.pdf;
-                        //     fi
-                        // """
+                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash
+                            target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
+                            if [ "${REFS.base_ref}" = "master" ]; then
+                                python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-dev-en-manual.pdf;
+                                python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-dev-zh-manual.pdf;
+                            elif [ "${REFS.base_ref}" = "release-1.5" ]; then
+                                python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-stable-en-manual.pdf;
+                                python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-stable-zh-manual.pdf;
+                            elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
+                                python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-v\${target_version}-en-manual.pdf;
+                                python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-v\${target_version}-zh-manual.pdf;
+                            fi
+                        """
                     }
                 } 
             }
