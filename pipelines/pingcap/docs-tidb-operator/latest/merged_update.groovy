@@ -63,7 +63,6 @@ pipeline {
         }
         stage('Build pdf') {
             options { timeout(time: 45, unit: 'MINUTES') }
-
             steps {
                 dir("docs-tidb-operator") {
                     withCredentials([
@@ -80,8 +79,8 @@ pipeline {
                             sudo pip3 install boto3
                             sudo pip3 install awscli
                             printf "%s\n" ${AWS_ACCESS_KEY} ${AWS_SECRET_KEY} ${AWS_REGION} "json" | aws configure
-                            find -name '*.md' | xargs -d '\n' grep -P '\t' && exit 1
-                            python3 scripts/merge_by_toc.py
+                            grep -RP '\t' *  | tee | grep '.md' && exit 1; echo ok
+                            python3 scripts/merge_by_toc.py en/; python3 scripts/merge_by_toc.py zh/;
                             scripts/generate_pdf.sh
                         """
                         // TODO: uncomment the following lines after the test is passed
