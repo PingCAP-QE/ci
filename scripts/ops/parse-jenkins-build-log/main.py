@@ -61,7 +61,7 @@ def get_all_builds(server, job_name):
         if not builds:
             break
         all_builds.extend(builds)
-        # 检查是否已获取所有构建
+        # check if all builds have been fetched
         if builds[-1]['number'] == 1 or len(builds) < next_build_number:
             break
         next_build_number = builds[-1]['number']
