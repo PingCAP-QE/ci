@@ -74,7 +74,7 @@ pipeline {
                         ./br/tests/run_group_br_tests.sh others
                     """
                     sh label: "prepare build", script: """
-                        [ -f ./bin/tidb-server ] || make
+                        [ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)
                         [ -f ./bin/br.test ] || make build_for_br_integration_test
                         ls -alh ./bin
                         ./bin/tidb-server -V
