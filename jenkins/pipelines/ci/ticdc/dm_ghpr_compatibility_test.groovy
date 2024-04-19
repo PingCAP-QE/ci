@@ -11,7 +11,7 @@ if (params.containsKey("release_test")) {
 }
 
 
-def TIDB_BRANCH = "master"
+def TIDB_BRANCH = "${ghprbTargetBranch}"
 def BUILD_NUMBER = "${env.BUILD_NUMBER}"
 
 def PRE_COMMIT = "${ghprbTargetBranch}"
