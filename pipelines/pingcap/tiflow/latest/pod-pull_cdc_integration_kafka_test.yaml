@@ -26,10 +26,10 @@ spec:
       resources:
         requests:
           cpu: "12"
-          memory: 20Gi
+          memory: 32Gi
         limits:
           cpu: "12"
-          memory: 20Gi
+          memory: 32Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
