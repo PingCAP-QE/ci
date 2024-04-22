@@ -9,7 +9,7 @@ spec:
       name: zookeeper
       resources:
         requests:
-          cpu: 200m
+          cpu: 2000m
           memory: 4Gi
         limits:
           cpu: 2000m
@@ -25,11 +25,11 @@ spec:
       name: golang
       resources:
         requests:
-          cpu: "2"
-          memory: 12Gi
+          cpu: "12"
+          memory: 32Gi
         limits:
-          cpu: "4"
-          memory: 16Gi
+          cpu: "12"
+          memory: 32Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -68,11 +68,11 @@ spec:
       name: kafka
       resources:
         requests:
-          cpu: 200m
-          memory: 4Gi
+          cpu: 4000m
+          memory: 6Gi
         limits:
-          cpu: 2000m
-          memory: 4Gi
+          cpu: 4000m
+          memory: 6Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
