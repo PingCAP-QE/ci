@@ -49,23 +49,31 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 120, unit: 'MINUTES') }
+            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                    dir("tiflash") {
+                dir("tiflash") {
+                    retry(2) {
                         script {
-                            cache(path: "./", filter: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, timeout = 10, credentialsId = '', gitBaseUrl = 'https://github.com')
+                            container("util") {
+                                withCredentials(
+                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
+                                ) { 
+                                    sh "rm -rf ./*"
+                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
+                                    sh """
+                                    ls -alh
+                                    chown 1000:1000 src-tiflash.tar.gz
+                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
+                                    ls -alh
+                                    """
                                 }
                             }
-                            cache(path: ".git/modules", filter: '**/*', key: prow.getCacheKey('git', REFS, 'git-modules'), restoreKeys: prow.getRestoreKeys('git', REFS, 'git-modules')) {
-                                    sh ''
-                                    sh """
-                                    git submodule update --init --recursive
-                                    git status
-                                    git show --oneline -s
-                                    """
-                            }
+                            sh """
+                            git config --global --add safe.directory "*"
+                            git version
+                            git status
+                            """
+                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
@@ -75,111 +83,110 @@ pipeline {
                             """
                         }
                     }
+                }
             }
         }
         stage("Prepare tools") {
-            // TODO: need to simplify this part
-            // all tools should be pre-install in docker image
-            parallel {
-            stage("Ccache") {
-                steps {
-                    sh label: "install ccache", script: """
-                        if ! command -v ccache &> /dev/null; then
-                            echo "ccache not found! Installing..."
-                            rpm -Uvh '${dependency_dir}/ccache.x86_64.rpm'
-                        else
-                            echo "ccache is already installed!"
-                        fi
-                    """
+                // TODO: need to simplify this part
+                // all tools should be pre-install in docker image
+                parallel {
+                stage("Ccache") {
+                    steps {
+                        sh label: "install ccache", script: """
+                            if ! command -v ccache &> /dev/null; then
+                                echo "ccache not found! Installing..."
+                                rpm -Uvh '${dependency_dir}/ccache.x86_64.rpm'
+                            else
+                                echo "ccache is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Cmake") {
-                steps { 
-                    sh label: "install cmake3", script: """
-                        if ! command -v cmake &> /dev/null; then
-                            echo "cmake not found! Installing..."
-                            sh ${dependency_dir}/cmake-3.22.3-linux-x86_64.sh --prefix=/usr --skip-license --exclude-subdir
-                        else
-                            echo "cmake is already installed!"
-                        fi
-                    """
+                stage("Cmake") {
+                    steps { 
+                        sh label: "install cmake3", script: """
+                            if ! command -v cmake &> /dev/null; then
+                                echo "cmake not found! Installing..."
+                                sh ${dependency_dir}/cmake-3.22.3-linux-x86_64.sh --prefix=/usr --skip-license --exclude-subdir
+                            else
+                                echo "cmake is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Clang-Format") {
-                steps {
-                    sh label: "install clang-format", script: """
-                        if ! command -v clang-format &> /dev/null; then
-                            echo "clang-format not found! Installing..."
-                            cp '${dependency_dir}/clang-format-12' '/usr/local/bin/clang-format'
-                            chmod +x '/usr/local/bin/clang-format'
-                        else
-                            echo "clang-format is already installed!"
-                        fi
-                    """
+                stage("Clang-Format") {
+                    steps {
+                        sh label: "install clang-format", script: """
+                            if ! command -v clang-format &> /dev/null; then
+                                echo "clang-format not found! Installing..."
+                                cp '${dependency_dir}/clang-format-12' '/usr/local/bin/clang-format'
+                                chmod +x '/usr/local/bin/clang-format'
+                            else
+                                echo "clang-format is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Clang-Format-15") {
-                steps { 
-                    sh label: "install clang-format-15", script: """
-                        if ! command -v clang-format-15 &> /dev/null; then
-                            echo "clang-format-15 not found! Installing..."
-                            cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
-                            chmod +x '/usr/local/bin/clang-format-15'
-                        else
-                            echo "clang-format-15 is already installed!"
-                        fi
-                    """
+                stage("Clang-Format-15") {
+                    steps { 
+                        sh label: "install clang-format-15", script: """
+                            if ! command -v clang-format-15 &> /dev/null; then
+                                echo "clang-format-15 not found! Installing..."
+                                cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
+                                chmod +x '/usr/local/bin/clang-format-15'
+                            else
+                                echo "clang-format-15 is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage( "Clang-Tidy") {
-                steps { 
-                    sh label: "install clang-tidy", script: """
-                        if ! command -v clang-tidy &> /dev/null; then
-                            echo "clang-tidy not found! Installing..."
-                            cp '${dependency_dir}/clang-tidy-12' '/usr/local/bin/clang-tidy'
-                            chmod +x '/usr/local/bin/clang-tidy'
-                            cp '${dependency_dir}/lib64-clang-12-include.tar.gz' '/tmp/lib64-clang-12-include.tar.gz'
-                            cd /tmp && tar zxf lib64-clang-12-include.tar.gz
-                        else
-                            echo "clang-tidy is already installed!"
-                        fi
-                    """
+                stage( "Clang-Tidy") {
+                    steps { 
+                        sh label: "install clang-tidy", script: """
+                            if ! command -v clang-tidy &> /dev/null; then
+                                echo "clang-tidy not found! Installing..."
+                                cp '${dependency_dir}/clang-tidy-12' '/usr/local/bin/clang-tidy'
+                                chmod +x '/usr/local/bin/clang-tidy'
+                                cp '${dependency_dir}/lib64-clang-12-include.tar.gz' '/tmp/lib64-clang-12-include.tar.gz'
+                                cd /tmp && tar zxf lib64-clang-12-include.tar.gz
+                            else
+                                echo "clang-tidy is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            stage("Coverage") {
-                steps {
-                    sh label: "install gcovr", script: """
-                        if ! command -v gcovr &> /dev/null; then
-                            echo "lcov not found! Installing..."
-                            cp '${dependency_dir}/gcovr.tar' '/tmp/'
-                            cd /tmp
-                            tar xvf gcovr.tar && rm -rf gcovr.tar
-                            ln -sf /tmp/gcovr/gcovr /usr/bin/gcovr
-                        else
-                            echo "lcov is already installed!"
-                        fi
-                    """
+                stage("Coverage") {
+                    steps {
+                        sh label: "install gcovr", script: """
+                            if ! command -v gcovr &> /dev/null; then
+                                echo "lcov not found! Installing..."
+                                cp '${dependency_dir}/gcovr.tar' '/tmp/'
+                                cd /tmp
+                                tar xvf gcovr.tar && rm -rf gcovr.tar
+                                ln -sf /tmp/gcovr/gcovr /usr/bin/gcovr
+                            else
+                                echo "lcov is already installed!"
+                            fi
+                        """
+                    }
                 }
-            }
-            }
+                }
         }
-
         stage("Prepare Cache") {
             parallel {
                 stage("Ccache") {
                     steps {
-                    script { 
+                    script {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
-                            pwd
-                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-cov-failpoints.tar"
+                            pwd & ls -alh
+                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
                                 cp -r \$ccache_tar_file ccache.tar
                                 tar -xf ccache.tar
                                 ls -lha /tmp
-                                ls -lha /tmp/.ccache
                             else
                                 echo "ccache not found"
                             fi
@@ -191,7 +198,7 @@ pipeline {
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=false
+                            ccache -o read_only=true
                             ccache -z
                             """
                         }
@@ -201,45 +208,41 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                         script {
-                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/refactor-pipelines/${proxy_commit_hash}-amd64-linux-llvm")
+                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
                             println "proxy_cache_ready: ${proxy_cache_ready}"
-
                             sh label: "copy proxy if exist", script: """
-                            proxy_cache_file="${proxy_cache_dir}/${proxy_commit_hash}-amd64-linux-llvm"
+                            proxy_suffix="amd64-linux-llvm"
+                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
                             if [ -f \$proxy_cache_file ]; then
                                 echo "proxy cache found"
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
-                                cp \$proxy_cache_file  ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                                chmod +x  ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                             else
                                 echo "proxy cache not found"
                             fi
                             """
+                            sh label: "link cargo cache", script: """
+                                mkdir -p ~/.cargo/registry
+                                mkdir -p ~/.cargo/git
+                                mkdir -p /home/jenkins/agent/rust/registry/cache
+                                mkdir -p /home/jenkins/agent/rust/registry/index
+                                mkdir -p /home/jenkins/agent/rust/git/db
+                                mkdir -p /home/jenkins/agent/rust/git/checkouts
+
+                                rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
+                                rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
+                                rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
+                                rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
+
+                                rm -rf ~/.rustup/tmp
+                                rm -rf ~/.rustup/toolchains
+                                mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
+                                mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
+                                ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
+                                ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
+                            """
                         }   
-                    }
-                }
-                stage("Cargo-Cache") {
-                    steps {
-                        sh label: "link cargo cache", script: """
-                            mkdir -p ~/.cargo/registry
-                            mkdir -p ~/.cargo/git
-                            mkdir -p /home/jenkins/agent/rust/registry/cache
-                            mkdir -p /home/jenkins/agent/rust/registry/index
-                            mkdir -p /home/jenkins/agent/rust/git/db
-                            mkdir -p /home/jenkins/agent/rust/git/checkouts
-
-                            rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                            rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                            rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                            rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-
-                            rm -rf ~/.rustup/tmp
-                            rm -rf ~/.rustup/toolchains
-                            mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                            mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-                            ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                            ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
-                        """
                     }
                 }
             }
@@ -248,8 +251,8 @@ pipeline {
             parallel {
                 stage("Cluster Manage") { 
                     steps {
-                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                    echo "cluster_manager is deprecated"
+                        // NOTE: cluster_manager is deprecated since release-6.0 (include)
+                        echo "cluster_manager is deprecated"
                     }
                 }
                 stage("TiFlash Proxy") {
@@ -258,8 +261,7 @@ pipeline {
                             if (proxy_cache_ready) {
                                 echo "skip becuase of cache"
                             } else {
-                                echo "proxy cache not ready"
-                                echo "skip because proxy build is integrated"
+                               echo "skip because proxy build is integrated(llvm)"
                             }
                         }
                     }
@@ -267,11 +269,12 @@ pipeline {
             }
         }
         stage("Configure Project") {
+            // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
                     def toolchain = "llvm"
                     def generator = 'Ninja'
-                    def coverage_flag = "-DTEST_LLVM_COVERAGE=ON"
+                    def coverage_flag = ""
                     def diagnostic_flag = ""
                     def compatible_flag = ""
                     def openssl_root_dir = ""
@@ -310,11 +313,7 @@ pipeline {
         stage("Build TiFlash") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    sh """
-                    cmake --build . --target help || true
-                    cmake --build . --target help | grep page_ctl || true
-                    cmake --build . --target help | grep page_stress_testing || true
-                    cmake --build . --target help | grep gtests_libdaemon || true
+                sh """
                     cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel ${PARALLELISM}
                     """
                     sh """
@@ -329,21 +328,22 @@ pipeline {
                     cp \$target '${WORKSPACE}/install/tiflash/'
                     """
                 }
-                sh """
-                ccache -s
-                ls -lha ${WORKSPACE}/install/tiflash/
-                """
+                dir("${WORKSPACE}/tiflash") {
+                    sh """
+                    ccache -s
+                    ls -lha ${WORKSPACE}/install/tiflash/
+                    """
+                }
             }
         }
+
         stage("Post Build") {
-            failFast true
             parallel {
                 stage("Archive Build Artifacts") {
                     steps {
                         dir("${WORKSPACE}/install") {
                             sh """
                             tar -czf 'tiflash.tar.gz' 'tiflash'
-                            ls -alh
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
                         }
@@ -354,59 +354,33 @@ pipeline {
                         dir("${WORKSPACE}/build") {
                             sh """
                             tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
-                            ls -alh
                             """
                             archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
                         }
                         dir("${WORKSPACE}/tiflash") {
                             sh """
                             tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
-                            ls -alh
                             """
                             archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
                         }
                     }
                 }
-                stage("Update Ccache") {
-                    when {
-                        expression { return update_ccache }
-                    }
-                    steps {
-                        dir("${WORKSPACE}/tiflash") {
-                            sh """
-                            ccache_tar_file="/home/jenkins/agent/ccache/master-merged-unit-test/pagetools-tests-amd64-linux-llvm-debug-master-cov-failpoints.tar"
-                            cd /tmp
-                            rm -rf ccache.tar
-                            tar -cf ccache.tar .ccache
-                            cp ccache.tar \${ccache_tar_file}
-                            cd -
-                            """
-                        }
-                    }
-                }
             }
         }
+
         stage("Unit Test Prepare") {
             steps {
-                sh """
+                sh label: "link unit test dir", script:"
                 ln -sf ${WORKSPACE}/install/tiflash /tiflash
-                """
-                sh """
                 ls -lha ${WORKSPACE}/tiflash
                 ln -sf ${WORKSPACE}/tiflash/tests /tests
                 """
-                dir("${WORKSPACE}/tiflash") {
-                    echo "temp skip here"
-                }
-                dir("${WORKSPACE}/build") {
-                    echo "temp skip here"
-                }
             }
         }
         stage("Run Tests") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    sh """
+                    sh label: "run unit tests", script:"
                     parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests
@@ -419,58 +393,6 @@ pipeline {
                     ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=\${parallelism} /tests/run-gtest.sh
                     """
                 }
-            }
-        }
-
-        stage("Coverage") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    sh """
-                    if ! command -v lcov &> /dev/null; then
-                        echo "lcov not found! Installing..."
-                        rpm -i /home/jenkins/agent/dependency/lcov-1.15-1.noarch.rpm
-                        which lcov
-                        which genhtml
-                    else
-                        echo "lcov is already installed!"
-                    fi
-                    llvm-profdata merge -sparse /tiflash/profile/*.profraw -o /tiflash/profile/merged.profdata
-                    
-                    export LD_LIBRARY_PATH=.
-                    llvm-cov export \\
-                        /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
-                        --format=lcov \\
-                        --instr-profile /tiflash/profile/merged.profdata \\
-                        --ignore-filename-regex "/usr/include/.*" \\
-                        --ignore-filename-regex "/usr/local/.*" \\
-                        --ignore-filename-regex "/usr/lib/.*" \\
-                        --ignore-filename-regex ".*/contrib/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                        > /tiflash/profile/lcov.info
-
-                    mkdir -p /tiflash/report
-                    genhtml /tiflash/profile/lcov.info -o /tiflash/report/ --ignore-errors source
-
-                    llvm-cov show \\
-                        /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
-                        --instr-profile /tiflash/profile/merged.profdata \\
-                        --ignore-filename-regex "/usr/include/.*" \\
-                        --ignore-filename-regex "/usr/local/.*" \\
-                        --ignore-filename-regex "/usr/lib/.*" \\
-                        --ignore-filename-regex ".*/contrib/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Debug/.*" \\
-                        --ignore-filename-regex ".*/dbms/src/Client/.*" \\
-                        > /tiflash/profile/coverage.txt
-
-                    pushd /tiflash
-                        tar -czf coverage-report.tar.gz report
-                        mv coverage-report.tar.gz ${WORKSPACE}
-                    popd
-                    """
-                }
-                archiveArtifacts artifacts: "/tiflash/profile/**", allowEmptyArchive: true
-                archiveArtifacts artifacts: "/tiflash/report/**", allowEmptyArchive: true
             }
         }
     }
