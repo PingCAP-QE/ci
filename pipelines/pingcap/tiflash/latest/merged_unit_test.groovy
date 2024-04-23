@@ -370,7 +370,7 @@ pipeline {
 
         stage("Unit Test Prepare") {
             steps {
-                sh label: "link unit test dir", script:"
+                sh label: "link unit test dir", script: """
                 ln -sf ${WORKSPACE}/install/tiflash /tiflash
                 ls -lha ${WORKSPACE}/tiflash
                 ln -sf ${WORKSPACE}/tiflash/tests /tests
