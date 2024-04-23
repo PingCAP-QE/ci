@@ -326,7 +326,7 @@ def run_unit_test() {
                     mkdir -p ${ws}/go/src/github.com/pingcap/br/
                     cd ${ws}/go/src/github.com/pingcap/br
 
-                    curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test.tar.gz | tar xz
+                    curl -C - --retry 3 ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${ghprbActualCommit}/centos7/br_integration_test_failpoint.tar.gz | tar xz
 
                     ${make_cmd}
 
@@ -400,8 +400,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     sh label: "download build for it", script:  """
                     pwd && ls -alh
                     cd ${ws}/go/src/github.com/pingcap/br
-                    wget -q ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz
-                    tar xzf br_integration_test.tar.gz && rm -rf br_integration_test.tar.gz
+                    wget -q ${FILE_SERVER_URL}/download/builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test_failpoint.tar.gz
+                    tar xzf br_integration_test_failpoint.tar.gz && rm -rf br_integration_test_failpoint.tar.gz
 
                     
                     """
@@ -449,8 +449,8 @@ def run_integration_tests(case_names, tidb, tikv, pd, cdc, importer, tiflashBran
                     """
 
                     // tidb
-                    // we build tidb-server from local, then put it into br_integration_test.tar.gz
-                    // so we can get it from br_integration_test.tar.gz
+                    // we build tidb-server from local, then put it into br_integration_test_failpoint.tar.gz
+                    // so we can get it from br_integration_test_failpoint.tar.gz
                     if (br_not_in_tidb) {
                         echo "br not in tidb"
                         if (params.containsKey("upstream_pr_ci_override_tidb_download_link")) {
@@ -651,13 +651,13 @@ try {
                         deleteDir()
                     }
 
-                    def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test.tar.gz"
+                    def filepath = "builds/pingcap/br/pr/${commit_id}/centos7/br_integration_test_failpoint.tar.gz"
 
                     // This happened after BR merged into TiDB.
                     if (isBRMergedIntoTiDB()) {
                         println "fast checkout tidb repo"
                         git_repo_url = "git@github.com:pingcap/tidb.git"
-                        build_br_cmd = "make build_for_br_integration_test && make server"
+                        build_br_cmd = "make build_for_br_integration_test && make failpoint-enable && make server && make failpoint-disable"
                         // copy code from nfs cache
                         if(fileExists("/home/jenkins/agent/ci-cached-code-daily/src-tidb.tar.gz")){
                             println "copy src-tidb from nfs cache"
@@ -699,8 +699,8 @@ try {
 
                             ${build_br_cmd}
 
-                            tar czf br_integration_test.tar.gz * .[!.]*
-                            curl -F ${filepath}=@br_integration_test.tar.gz ${FILE_SERVER_URL}/upload
+                            tar czf br_integration_test_failpoint.tar.gz * .[!.]*
+                            curl -F ${filepath}=@br_integration_test_failpoint.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
 
