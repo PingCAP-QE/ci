@@ -380,7 +380,7 @@ pipeline {
         stage("Run Tests") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    sh label: "run unit tests", script:"
+                    sh label: "run unit tests", script: """
                     parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests
