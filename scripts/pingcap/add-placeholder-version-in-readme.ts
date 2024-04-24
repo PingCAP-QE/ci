@@ -9,7 +9,7 @@ import { Octokit } from "npm:/octokit@3.1.0";
 const FILENAME = "README.md";
 const VERSION_PLACEHOLDER_LINE = "<!-- VERSION_PLACEHOLDER: v{{version}} -->";
 const VERSION_PLACEHOLDER_REGEX = new RegExp(
-  `^<!-- VERSION_PLACEHOLDER: v[\\d.]+ -->`,
+  `^<!-- VERSION_PLACEHOLDER: v[\\d.]+(-alpha)? -->`,
   "m",
 );
 const HEAD_REF = `chore/add-placeholder-version-${Date.now()}`;
