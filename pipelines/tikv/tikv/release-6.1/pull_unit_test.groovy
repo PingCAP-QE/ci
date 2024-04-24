@@ -5,7 +5,9 @@
 final K8S_NAMESPACE = "jenkins-tikv"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/tikv'
+final KS3_GIT_CREDENTIALS_ID = 'ks3util-config'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/release-6.1/pod-pull_unit_test.yaml'
+final LEGACY_CHUNK_COUNT = 20
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final EXTRA_NEXTEST_ARGS = "-j 8"
@@ -110,32 +112,136 @@ pipeline {
                             export RUST_BACKTRACE=1
                             export LOG_LEVEL=INFO
                             export CARGO_INCREMENTAL=0
-                            export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
                             echo using gcc 8
                             source /opt/rh/devtoolset-8/enable
                             set -e
                             set -o pipefail
+                            test="test"
+                            if grep ci_test Makefile; then
+                                test="ci_test"
+                            fi
+                            if EXTRA_CARGO_ARGS="--no-run --message-format=json" make ci_doc_test test | grep -E '^{.+}\$' > test.json ; then
+                                set +o pipefail
+                            else
+                                if EXTRA_CARGO_ARGS="--no-run --message-format=json" make test | grep -E '^{.+}\$' > test.json ; then
+                                    set +o pipefail
+                                else
+                                    EXTRA_CARGO_ARGS="--no-run" make test
+                                    exit 1
+                                fi
+                            fi
 
+                            wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/tikv/tikv/release-6.1/gen_test_binary.py
+                            python gen_test_binary.py
+
+                            ls -alh archive-test-binaries
+                            tar -cvf archive-test-binaries.tar archive-test-binaries
+                            ls -alh archive-test-binaries.tar
+
+                            chmod a+x test-chunk-*
+                            tar czf test-artifacts.tar.gz test-chunk-* src tests components `ls target/*/deps/*plugin.so 2>/dev/null`
+                            ls -alh test-artifacts.tar.gz
+                            mv archive-test-binaries.tar test-artifacts.tar.gz $WORKSPACE
                         """
+                    }
+                }
+                container("util") {
+                    dir("$WORKSPACE") {
+                        sh """
+                        pwd && ls -alh
+                        """
+                        upload_fileserver("archive-test-binaries.tar", "tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar")
+                        upload_fileserver("test-artifacts.tar.gz", "tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz")
                     }
                 }
             }
         }
         stage("Test") {
-            options { timeout(time: 30, unit: 'MINUTES') }
-            steps {
-                dir('/home/jenkins/agent/tikv-presubmit/unit-test') {
-                    // TODO: add test command (not use nextest in current branch)
+            matrix {
+                axes {
+                    axis {
+                        name 'CHUNK_SUFFIX'
+                        values '1', '2'
+                    }
                 }
-            }
-            post {
-                failure {
-                    sh label: "collect logs", script: """
-                        ls /home/jenkins/tikv-src/target/
-                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")    
-                        ls -alh  log-ut.tar.gz  
-                    """
-                    archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        yamlFile POD_TEMPLATE_FILE
+                        defaultContainer 'runner'
+                        retries 5
+                    }
+                } 
+                stages {
+                    stage("Test") {
+                        steps {
+                            dir('/home/jenkins/agent/tikv-presubmit/unit-test') { 
+                                container("util") { 
+                                    sh label: 'os info', script:"""
+                                    rm -rf /home/jenkins/tikv-*
+                                    ls -alh /home/jenkins/
+                                    ln -s `pwd` \$HOME/tikv-src
+                                    mkdir -p target/debug
+                                    uname -a
+                                    df -h
+                                    free -hm
+                                    """
+                                    download_fileserver("tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
+                                    download_fileserver("tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar", "archive-test-binaries.tar")
+                                    sh """
+                                    ls -alh test-artifacts.tar.gz archive-test-binaries.tar
+                                    tar xf test-artifacts.tar.gz && rm test-artifacts.tar.gz
+                                    tar xf archive-test-binaries.tar --strip-components=1 && rm archive-test-binaries.tar
+                                    ls -la
+                                    ls -alh target/debug/deps/
+                                    chown -R 1000:1000 target/
+                                    """
+                                }
+                                sh label: 'run test', script: """
+                                    ln -sf `pwd` \$HOME/tikv-src
+                                    ls -alh \$HOME/tikv-src
+                                    ls -alh /home/jenkins/tikv-src/
+                                    ls -alh /home/jenkins/tikv-src/target/debug/deps/
+                                    uname -a
+                                    export RUSTFLAGS=-Dwarnings
+                                    export FAIL_POINT=1
+                                    export RUST_BACKTRACE=1
+                                    export MALLOC_CONF=prof:true,prof_active:false
+                                    if [[ ! -f test-chunk-${CHUNK_SUFFIX} ]]; then
+                                        if [[ ${CHUNK_SUFFIX} -eq ${LEGACY_CHUNK_COUNT} ]]; then
+                                            exit
+                                        else
+                                            echo test-chunk-${CHUNK_SUFFIX} not found
+                                            exit 1
+                                        fi
+                                    fi
+                                    CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${CHUNK_SUFFIX} 2>&1 | tee tests.out
+                                    chunk_count=`grep nocapture test-chunk-${CHUNK_SUFFIX} | wc -l`
+                                    ok_count=`grep "test result: ok" tests.out | wc -l`
+
+                                    if [ "\$chunk_count" -eq "\$ok_count" ]; then
+                                        echo "test pass"
+                                    else
+                                        # test failed
+                                        grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
+                                        awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
+                                        gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
+                                        exit 1
+                                    fi
+                                """
+                            }
+                        }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /home/jenkins/tikv-src/target/
+                                    tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")    
+                                    ls -alh  log-ut.tar.gz  
+                                """
+                                archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
+                            }
+                        }
+                    }
                 }
             }
         }
