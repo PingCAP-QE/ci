@@ -81,6 +81,7 @@ configMapGenerator:
       - ti-community-infra-test-infra-presubmits.yaml
       - tikv-migration-latest-presubmits.yaml
       - tikv-tikv-latest-presubmits.yaml
+      - tikv-tikv-release-6.1-presubmits.yaml
       - tikv-tikv-release-6.5-presubmits.yaml
       - tikv-tikv-release-7.1-presubmits.yaml
       - tikv-tikv-release-7.5-presubmits.yaml
