@@ -372,3 +372,19 @@ def patternMatchAnyFile(pattern, files_list) {
 
     return false
 }
+
+def ks3_upload_fileserver(local, remote, credentialsId="ks3util-config"){
+    withCredentials(
+        [file(credentialsId: "${credentialsId}", variable: 'KS3UTIL_CONF')]
+    ) {
+        sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
+    }
+}
+
+def ks3_download_fileserver(remote, local, credentialsId="ks3util-config"){
+    withCredentials(
+        [file(credentialsId: "${credentialsId}", variable: 'KS3UTIL_CONF')]
+    ) {
+        sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
+    }
+}

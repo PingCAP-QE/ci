@@ -150,8 +150,8 @@ pipeline {
                         sh """
                         pwd && ls -alh
                         """
-                        upload_fileserver("archive-test-binaries.tar", "tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar")
-                        upload_fileserver("test-artifacts.tar.gz", "tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz")
+                        component.ks3_upload_fileserver("archive-test-binaries.tar", "tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar")
+                        component.ks3_upload_fileserver("test-artifacts.tar.gz", "tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz")
                     }
                 }
             }
@@ -186,8 +186,8 @@ pipeline {
                                     df -h
                                     free -hm
                                     """
-                                    download_fileserver("tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
-                                    download_fileserver("tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar", "archive-test-binaries.tar")
+                                    component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
+                                    component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar", "archive-test-binaries.tar")
                                     sh """
                                     ls -alh test-artifacts.tar.gz archive-test-binaries.tar
                                     tar xf test-artifacts.tar.gz && rm test-artifacts.tar.gz
