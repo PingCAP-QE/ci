@@ -20,8 +20,8 @@ def score(bin, l):
 
 def write_to(part):
     f = open("test-chunk-%d" % part, 'w')
-    f.write("#/usr/bin/env bash\\n")
-    f.write("set -ex\\n")
+    f.write("#/usr/bin/env bash\n")
+    f.write("set -ex\n")
     return f
 
 # def upload(bin, binary_tmp_path="test-binaries-tmp"):
@@ -73,14 +73,14 @@ scores.sort(key=lambda t: t[0])
 for bin, cases, bin_score in scores:
     move_file(bin)
     if current_chunk_score + bin_score <= chunk_score:
-        writer.write("%s --test --nocapture\\n" % bin)
+        writer.write("%s --test --nocapture\n" % bin)
         current_chunk_score += bin_score
         continue
     batch_cases = list()
     for c in cases:
         c_score = score(bin, c)
         if current_chunk_score + c_score > chunk_score and part < chunk_count and batch_cases:
-            writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+            writer.write("%s --test --nocapture --exact %s\n" % (bin, ' '.join(batch_cases)))
             current_chunk_score = 0
             part += 1
             writer.close()
@@ -89,6 +89,6 @@ for bin, cases, bin_score in scores:
         batch_cases.append(c)
         current_chunk_score += c_score
     if batch_cases:
-        writer.write("%s --test --nocapture --exact %s\\n" % (bin, ' '.join(batch_cases)))
+        writer.write("%s --test --nocapture --exact %s\n" % (bin, ' '.join(batch_cases)))
 
 writer.close()
