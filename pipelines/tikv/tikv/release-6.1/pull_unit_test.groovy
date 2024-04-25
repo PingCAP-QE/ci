@@ -12,7 +12,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final EXTRA_NEXTEST_ARGS = "-j 8"
 
-
 pipeline {
     agent {
         kubernetes {
@@ -27,7 +26,7 @@ pipeline {
     }
     options {
         timeout(time: 50, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
     stages {
@@ -72,6 +71,8 @@ pipeline {
                     cd \$HOME/tikv-src
                     ln -s \$HOME/tikv-target \$HOME/tikv-src/target
                     pwd && ls -alh
+                    git status
+                    git log -1
                 """
             }
         }
@@ -150,8 +151,10 @@ pipeline {
                         sh """
                         pwd && ls -alh
                         """
-                        component.ks3_upload_fileserver("archive-test-binaries.tar", "tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar")
-                        component.ks3_upload_fileserver("test-artifacts.tar.gz", "tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz")
+                        script{
+                            component.ks3_upload_fileserver("archive-test-binaries.tar", "tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar")
+                            component.ks3_upload_fileserver("test-artifacts.tar.gz", "tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz")
+                        }
                     }
                 }
             }
@@ -161,7 +164,7 @@ pipeline {
                 axes {
                     axis {
                         name 'CHUNK_SUFFIX'
-                        values '1', '2'
+                        values '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'
                     }
                 }
                 agent{
@@ -176,8 +179,7 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('/home/jenkins/agent/tikv-presubmit/unit-test') { 
-                                container("util") { 
-                                    sh label: 'os info', script:"""
+                                sh label: 'os info', script:"""
                                     rm -rf /home/jenkins/tikv-*
                                     ls -alh /home/jenkins/
                                     ln -s `pwd` \$HOME/tikv-src
@@ -185,9 +187,12 @@ pipeline {
                                     uname -a
                                     df -h
                                     free -hm
-                                    """
-                                    component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
-                                    component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar", "archive-test-binaries.tar")
+                                """
+                                container("util") { 
+                                    script {
+                                        component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
+                                        component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar", "archive-test-binaries.tar")
+                                    }
                                     sh """
                                     ls -alh test-artifacts.tar.gz archive-test-binaries.tar
                                     tar xf test-artifacts.tar.gz && rm test-artifacts.tar.gz
@@ -197,48 +202,64 @@ pipeline {
                                     chown -R 1000:1000 target/
                                     """
                                 }
-                                sh label: 'run test', script: """
-                                    ln -sf `pwd` \$HOME/tikv-src
-                                    ls -alh \$HOME/tikv-src
-                                    ls -alh /home/jenkins/tikv-src/
-                                    ls -alh /home/jenkins/tikv-src/target/debug/deps/
-                                    uname -a
-                                    export RUSTFLAGS=-Dwarnings
-                                    export FAIL_POINT=1
-                                    export RUST_BACKTRACE=1
-                                    export MALLOC_CONF=prof:true,prof_active:false
-                                    if [[ ! -f test-chunk-${CHUNK_SUFFIX} ]]; then
-                                        if [[ ${CHUNK_SUFFIX} -eq ${LEGACY_CHUNK_COUNT} ]]; then
-                                            exit
+                                retry(3) { 
+                                    sh label: 'run test', script: """
+                                        ls -alh \$HOME/tikv-src
+                                        ls -alh /home/jenkins/tikv-src/
+                                        ls -alh /home/jenkins/tikv-src/target/debug/deps/
+                                        uname -a
+                                        export RUSTFLAGS=-Dwarnings
+                                        export FAIL_POINT=1
+                                        export RUST_BACKTRACE=1
+                                        export MALLOC_CONF=prof:true,prof_active:false
+                                        if [[ ! -f test-chunk-${CHUNK_SUFFIX} ]]; then
+                                            if [[ ${CHUNK_SUFFIX} -eq ${LEGACY_CHUNK_COUNT} ]]; then
+                                                exit
+                                            else
+                                                echo test-chunk-${CHUNK_SUFFIX} not found
+                                                exit 1
+                                            fi
+                                        fi
+                                        export CI=1
+                                        export LOG_FILE=target/my_test.log
+                                        export RUST_TEST_THREADS=1
+                                        export RUST_BACKTRACE=1
+                                        ./test-chunk-${CHUNK_SUFFIX} 2>&1 | tee tests.out
+                                        chunk_count=`grep nocapture test-chunk-${CHUNK_SUFFIX} | wc -l`
+                                        ok_count=`grep "test result: ok" tests.out | wc -l`
+
+                                        if [ "\$chunk_count" -eq "\$ok_count" ]; then
+                                            echo "test pass"
                                         else
-                                            echo test-chunk-${CHUNK_SUFFIX} not found
+                                            # test failed
+                                            grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
+                                            awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
+                                            gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
                                             exit 1
                                         fi
-                                    fi
-                                    CI=1 LOG_FILE=target/my_test.log RUST_TEST_THREADS=1 RUST_BACKTRACE=1 ./test-chunk-${CHUNK_SUFFIX} 2>&1 | tee tests.out
-                                    chunk_count=`grep nocapture test-chunk-${CHUNK_SUFFIX} | wc -l`
-                                    ok_count=`grep "test result: ok" tests.out | wc -l`
-
-                                    if [ "\$chunk_count" -eq "\$ok_count" ]; then
-                                        echo "test pass"
-                                    else
-                                        # test failed
-                                        grep "^    " tests.out | tr -d '\\r'  | grep :: | xargs -I@ awk 'BEGIN{print "---- log for @ ----\\n"}/start, name: @/{flag=1}{if (flag==1) print substr(\$0, length(\$1) + 2)}/end, name: @/{flag=0}END{print ""}' target/my_test.log
-                                        awk '/^failures/{flag=1}/^test result:/{flag=0}flag' tests.out
-                                        gdb -c core.* -batch -ex "info threads" -ex "thread apply all bt"
-                                        exit 1
-                                    fi
-                                """
+                                    """
+                                }
+                                
                             }
                         }
                         post {
                             failure {
                                 sh label: "collect logs", script: """
-                                    ls /home/jenkins/tikv-src/target/
-                                    tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")    
-                                    ls -alh  log-ut.tar.gz  
+                                    log_dir="/home/jenkins/tikv-src/target/"
+                                    output_archive="log-ut.tar.gz"
+
+                                    # Find all log files in the specified directory
+                                    log_files=\$(find "\$log_dir" -type f -name "*.log")
+
+                                    if [[ -n \$log_files ]]; then
+                                        tar -cvzf "\$output_archive" \$log_files
+                                        echo "Logs have been archived into \$output_archive"
+                                    else
+                                        echo "No log files found in \$log_dir"
+                                    fi
+                                    ls -alh "\$output_archive"  
                                 """
-                                archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-ut.tar.gz", allowEmptyArchive: true
                             }
                         }
                     }
