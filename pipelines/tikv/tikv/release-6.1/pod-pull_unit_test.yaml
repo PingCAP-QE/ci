@@ -30,6 +30,16 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
+    - name: util
+      image: hub.pingcap.net/jenkins/ks3util
+      args: ["sleep", "infinity"]
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "500Mi"
+        limits:
+          cpu: "500m"
+          memory: "500Mi"
   volumes:
   - emptyDir:
       medium: ""
