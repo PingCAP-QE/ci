@@ -58,6 +58,9 @@ pipelineJob('tiflash-ghpr-integration-tests') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa')
                     orgslist('pingcap')
+                    blackListTargetBranches {
+                        ghprbBranch { branch('master') }
+                    }
                     // ignore when only those file changed.(
                     //   multi line regex
                     // excludedRegions('.*\\.md')
