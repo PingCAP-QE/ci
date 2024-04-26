@@ -97,6 +97,7 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_importintotest3',
                             'run_real_tikv_tests.sh bazel_importintotest4',
                             'run_real_tikv_tests.sh bazel_pipelineddmltest',
+                            'run_real_tikv_tests.sh bazel_flashbacktest',
                         )
                     }
                 }
