@@ -12,16 +12,16 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.41.0
+            image: denoland/deno:1.42.4
             command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
               - --repository=monitoring
-              - --base_ref=main
+              - --base_ref=master
               - --sub_owner=$(REPO_OWNER)
               - --sub_repository=$(REPO_NAME)
-              - --base_ref=$(PULL_BASE_REF)
+              - --sub_ref=$(PULL_BASE_REF)
               - --path=ng-monitoring
               - --add_labels=lgtm
               - --add_labels=approved
@@ -50,15 +50,15 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.41.0
+            image: denoland/deno:1.42.4
             command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
               - --repository=monitoring
+              - --base_ref=$(PULL_BASE_REF)
               - --sub_owner=$(REPO_OWNER)
               - --sub_repository=$(REPO_NAME)
-              - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=ng-monitoring
               - --add_labels=lgtm
