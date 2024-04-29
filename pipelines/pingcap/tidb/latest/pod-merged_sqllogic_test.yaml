@@ -5,9 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: hub.pingcap.net/jenkins/golang-tini:1.21
-      args:
-        - cat
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
       tty: true
       resources:
         requests:
@@ -32,3 +30,7 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
