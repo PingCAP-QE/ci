@@ -74,8 +74,8 @@ pipeline {
                     // build br.test for integration test
                     // only build binarys if not exist, use the cached binarys if exist
                     sh label: "prepare", script: """
-                        [ -f ./bin/tidb-server ] || make
                         [ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)
+                        [ -f ./bin/br.test ] || make build_for_br_integration_test
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
