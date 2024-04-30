@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-raft-engine-cached-master:stable"
+      image: "hub.pingcap.net/jenkins/tikv-raft-engine-cached:toolchain-stable"
       tty: true
       command:
         - "/bin/sh"
