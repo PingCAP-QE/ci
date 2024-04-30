@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/jenkins/tikv-raft-engine-cached-master:stable"
+      tty: true
+      command:
+        - "/bin/sh"
+        - "-c"
+      args:
+        - "cat"
+      resources:
+        requests:
+          memory: 16Gi
+          cpu: "6"
+        limits:
+          memory: 16Gi
+          cpu: "6"
+      securityContext:
+        privileged: true
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
