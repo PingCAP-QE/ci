@@ -1,10 +1,10 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 postsubmits:
-  pingcap/community:
+  tikv/community:
     - name: create-updating-owners-pr
       decorate: true
       max_concurrency: 1
-      run_if_changed: teams/.*/membership\.json
+      run_if_changed: teams/.*/team\.json
       branches:
         - master
       spec:
@@ -13,16 +13,10 @@ postsubmits:
             image: denoland/deno:1.43.1
             command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts]
             args:
-              - --owner=pingcap
+              - --owner=tikv
               - --github_private_token=$(GITHUB_API_TOKEN)
-              - --inputs=teams/diagnostic/membership.json
-              - --inputs=teams/docs/membership.json
-              - --inputs=teams/tiunimanager/membership.json
-              - --inputs=teams/tidb/membership.json
-              - --inputs=teams/tiflash/membership.json
-              - --inputs=teams/kubernetes/membership.json
-              - --inputs=teams/migration/membership.json
-              - --inputs=teams/bigdata/membership.json
+              - --inputs=teams/pd/team.json
+              - --inputs=teams/tikv/team.json
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
