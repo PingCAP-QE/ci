@@ -9,7 +9,7 @@ postsubmits:
       max_concurrency: 1
       skip_report: false
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/merged_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
@@ -18,7 +18,7 @@ postsubmits:
       max_concurrency: 1
       skip_report: false
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/merged_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
@@ -27,7 +27,7 @@ postsubmits:
       max_concurrency: 1
       skip_report: false
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/merged_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
@@ -36,7 +36,7 @@ postsubmits:
       max_concurrency: 1
       skip_report: false
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/merged_integration_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -45,7 +45,7 @@ postsubmits:
       max_concurrency: 1
       skip_report: false
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/merged_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
@@ -54,4 +54,4 @@ postsubmits:
       max_concurrency: 1
       skip_report: false
       branches:
-        - ^main$
+        - .+

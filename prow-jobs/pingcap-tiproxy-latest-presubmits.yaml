@@ -11,7 +11,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(build|all)(?: .*?)?$"
       rerun_command: "/test build"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/ghpr_check
       agent: jenkins
       decorate: false # need add this.
@@ -22,7 +22,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(check|all)(?: .*?)?$"
       rerun_command: "/test check"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -33,7 +33,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(unit-test|all)(?: .*?)?$"
       rerun_command: "/test unit-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_mysql_connector_test
       agent: jenkins
       decorate: false # need add this.
@@ -45,7 +45,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(mysql-connector-test|all)(?: .*?)?$"
       rerun_command: "/test mysql-connector-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -56,7 +56,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
@@ -67,7 +67,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test integration-jdbc-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_integration_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -77,7 +77,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-common-test(?: .*?)?$"
       rerun_command: "/test integration-common-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_integration_ruby_orm_test
       agent: jenkins
       decorate: false # need add this.
@@ -87,7 +87,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-ruby-orm-test(?: .*?)?$"
       rerun_command: "/test integration-ruby-orm-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
@@ -98,7 +98,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-nodejs-test(?: .*?)?$"
       rerun_command: "/test integration-nodejs-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
@@ -109,7 +109,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test integration-python-orm-test"
       branches:
-        - ^main$
+        - .+
     - name: pingcap/tiproxy/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
@@ -120,4 +120,4 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?sqllogic-test(?: .*?)?$"
       rerun_command: "/test sqllogic-test"
       branches:
-        - ^main$
+        - .+
