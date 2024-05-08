@@ -116,6 +116,53 @@ function tag_oci_image_repos() {
   echo "✅ Taged for images."
 }
 
+# For tiup pkgs
+function publish_tiup_from_oci_artifact_repos() {
+  echo "🚀 Prepare for tiup packages..."
+  local rc_ver="$1"
+  local registry="$2"
+
+  # community
+  repos=(
+    "pingcap/tidb/package"
+    "pingcap/ctl/package"
+    "pingcap/monitoring/package"
+    "pingcap/ng-monitoring/package"
+    "pingcap/tidb-binlog/package"
+    "pingcap/tidb-dashboard/package"
+    "pingcap/tiflash/package"
+    "pingcap/tiflow/package"
+    "tikv/pd/package"
+    "tikv/tikv/package"
+  )
+  platforms=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
+
+  for repo in "${repos[@]}"; do
+    for platform in "${platforms[@]}"; do
+      publish_tiup_oci_repo "$registry/${repo}" "${rc_ver}_${platform}"
+    done
+  done
+
+  echo "✅ Published for tiup packages."
+}
+
+function publish_tiup_oci_repo() {
+  local repo="$1"
+  local tag="$2"
+
+  echo "⬆️ Publish tiup from ${repo}:${tag} ..."
+  tkn -n ee-cd task start publish-tiup-from-oci-artifact \
+    --param artifact-url="${repo}:${tag}" \
+    --param nightly=false \
+    --param tiup-mirror="http://tiup.pingcap.net:8988" \
+    -w name=lock-tiup,claimName=pvc-lock-tiup-staging \
+    -w name=dockerconfig,secret=hub-pingcap-net-ee \
+    -w name=tiup-keys,secret=tiup-credentials-staging \
+    --showlog
+
+  echo "✅ Published tiup from ${repo}:${tag}."
+}
+
 function main() {
   local rc_ver="$1"
   local ga_ver="$2"
@@ -124,6 +171,9 @@ function main() {
 
   tag_oci_artifact_repos "$rc_ver" "$ga_ver" "$registry" "$force"
   tag_oci_image_repos "$rc_ver" "$ga_ver" "$registry" "$force"
+
+  # if you need republish the tiup packages, please uncomment it, and comment above two lines.
+  #publish_tiup_from_oci_artifact_repos "$rc_ver" "$registry"
 }
 
 main "$@"
