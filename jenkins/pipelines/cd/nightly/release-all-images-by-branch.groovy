@@ -215,7 +215,7 @@ def get_dockerfile_url(arch, repo, isDebug){
     }
     def fileName = Product
     if (RELEASE_TAG >='v6.6.0'){
-        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
+        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
     }else{
         if (isDebug){
             return "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/${fileName}"
