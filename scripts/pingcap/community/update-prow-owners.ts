@@ -9,7 +9,12 @@ import { Octokit } from "npm:/octokit@3.1.0";
  */
 
 const HEAD_REF = `bot/update-owners-${Date.now()}`;
-const COMMIT_MESSAGE = "[skip ci] Update OWNERS file\n\n\nskip-checks: true";
+const COMMIT_MESSAGE = `
+[skip ci] Update OWNERS file
+
+skip-checks: true
+Signed-off-by: Ti Chi Robot <ti-community-prow-bot@tidb.io>
+`;
 const PR_TITLE = "OWNERS: Auto Sync OWNERS files from community membership";
 const PR_BODY = `
 ### Check List
