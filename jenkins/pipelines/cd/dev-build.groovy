@@ -27,17 +27,11 @@ def get_dockerfile_url={arch ->
     if (params.ProductDockerfile){
         return params.ProductDockerfile
     }
-    if (params.ProductBaseImg){
-        if (Product == "tidb" && Edition == "enterprise") {
-            fileName = fileName + '-enterprise'
-        }
-        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
-    }
     if (Version>='v6.6.0'){
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = fileName + '-enterprise'
         }
-        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${fileName}.Dockerfile"
+        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
     }else{
         if (Product == "tidb" && Edition == "enterprise") { 
             fileName = "enterprise/${Product}"
