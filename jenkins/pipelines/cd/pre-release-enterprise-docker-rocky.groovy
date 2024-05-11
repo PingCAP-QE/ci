@@ -77,7 +77,7 @@ def get_image_str_for_enterprise(product, arch, tag) {
 def build_tidb_enterprise_image(product, sha1, plugin_hash, arch) {
     def binary = "builds/pingcap/${product}/optimization/${RELEASE_TAG}/${sha1}/centos7/${product}-linux-${arch}-enterprise.tar.gz"
     def plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${product}-enterprise.Dockerfile"
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}-enterprise.Dockerfile"
     def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG)
     def paramsDocker = [
             string(name: "ARCH", value: arch),
@@ -101,7 +101,7 @@ def build_enterprise_image(product, sha1, arch) {
     if (product == "tidb-lightning") {
         binary = "builds/pingcap/br/optimization/${RELEASE_TAG}/${sha1}/centos7/br-linux-${arch}-enterprise.tar.gz"
     }
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${product}.Dockerfile"
+    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/${product}.Dockerfile"
     def repo = product
     def image = get_image_str_for_enterprise(product, arch, RELEASE_TAG)
 
