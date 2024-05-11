@@ -89,6 +89,11 @@ if (PRODUCT == "tics" || PRODUCT == "tiflash" ) {
     }
 }
 
+additionalArgs = ""
+if (params.BASE_IMG) {
+    additionalArgs += " --build-arg BASE_IMG=${params.BASE_IMG}"
+}
+
 // 定义非默认的构建镜像脚本
 buildImgagesh = [:]
 
@@ -97,20 +102,7 @@ cd monitoring/
 mv Dockerfile Dockerfile.bak || true
 curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
 cat Dockerfile
-docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
-"""
-
-buildImgagesh["tics"] = """
-mv Dockerfile Dockerfile.bak || true
-curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
-cat Dockerfile
-if [[ "${RELEASE_TAG}" == "" ]]; then
-    # No release tag, the image may be used in testings
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1 --build-arg BASE_IMG=${params.BASE_IMG}
-else
-    # Release tag provided, do not install test utils
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0 --build-arg BASE_IMG=${params.BASE_IMG}
-fi
+docker build --pull -t ${imagePlaceHolder} . ${additionalArgs}
 """
 
 buildImgagesh["tiflash"] = """
@@ -119,21 +111,20 @@ curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFI
 cat Dockerfile
 if [[ "${RELEASE_TAG}" == "" ]]; then
     # No release tag, the image may be used in testings
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1 --build-arg BASE_IMG=${params.BASE_IMG}
+    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=1 ${additionalArgs}
 else
     # Release tag provided, do not install test utils
-    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0 --build-arg BASE_IMG=${params.BASE_IMG}
+    docker build --pull -t ${imagePlaceHolder} . --build-arg INSTALL_MYSQL=0 ${additionalArgs}
 fi
 """
 
+buildImgagesh["tics"] = buildImgagesh["tiflash"]
 
-buildImgagesh["monitoring"] = """
-docker build --pull -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
-"""
+buildImgagesh["monitoring"] = "docker build --pull -t ${imagePlaceHolder} . ${additionalArgs}"
 
 buildImgagesh["tiem"] = """
 cp /usr/local/go/lib/time/zoneinfo.zip ./
-docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
+docker build --pull -t ${imagePlaceHolder} . ${additionalArgs}
 """
 
 buildImgagesh["tidb"] = """
@@ -151,10 +142,8 @@ fi
 mv Dockerfile Dockerfile.bak || true
 curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
 cat Dockerfile
-docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
+docker build --pull -t ${imagePlaceHolder} . ${additionalArgs}
 """
-
-
 
 def build_image() {
     // 如果构建脚本被定义了，使用定义的构建脚本
@@ -170,7 +159,7 @@ def build_image() {
         mv Dockerfile Dockerfile.bak || true
         curl -C - --retry 5 --retry-delay 6 --retry-max-time 60 -o Dockerfile ${DOCKERFILE}
         cat Dockerfile
-        docker build --pull  -t ${imagePlaceHolder} . --build-arg BASE_IMG=${params.BASE_IMG}
+        docker build --pull -t ${imagePlaceHolder} . ${additionalArgs}
         """
     }
 }
