@@ -82,7 +82,7 @@ pipeline {
                     }
                     dir("build-docker-image") {
                         sh label: 'generate dockerfile', script: """
-                        curl -o tidb.Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb.Dockerfile
+                        curl -o tidb.Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/tidb.Dockerfile
                         cat tidb.Dockerfile
                         cp ../tidb/bin/tidb-server tidb-server
                         ./tidb-server -V
