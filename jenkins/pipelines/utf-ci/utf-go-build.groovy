@@ -88,5 +88,5 @@ def run(label, image, Closure main) {
 }
 
 catchError {
-    run('utf-go-build', 'hub.pingcap.net/chenpeng/golang:1.18') { main() }
+    run('utf-go-build', 'hub.pingcap.net/jenkins/centos7_golang-1.21:latest') { main() }
 }
