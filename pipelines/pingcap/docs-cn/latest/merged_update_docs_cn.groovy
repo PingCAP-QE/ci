@@ -85,7 +85,7 @@ pipeline {
                             target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
                             if [ "${REFS.base_ref}" = "master" ]; then
                                 python3 scripts/upload.py output.pdf tidb-dev-zh-manual.pdf;
-                            elif [ "${REFS.base_ref}" = "release-7.5" ]; then
+                            elif [ "${REFS.base_ref}" = "release-8.1" ]; then
                                 python3 scripts/upload.py output.pdf tidb-stable-zh-manual.pdf;
                             elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
                                 python3 scripts/upload.py output.pdf tidb-v\${target_version}-zh-manual.pdf;
