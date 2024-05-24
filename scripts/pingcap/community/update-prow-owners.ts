@@ -609,7 +609,12 @@ async function main(
         ownersMap,
         draft,
         force,
-      );
+      ).catch((error: any) => {
+        console.warn(
+          `❌ skiped for repo ${owner}/${repository}, error happened.`,
+          error,
+        );
+      });
 
       if (pr) {
         console.info(
