@@ -7,7 +7,7 @@
 
 > Only one site in our roadmap.
 
-- `do.pingcap.net` (in development)
+- `do.pingcap.net`
   - https://do.pingcap.net/jenkins is the backend CI worker(Jenkins).
 
 > Notices: when you develop new pipeplines or jobs, 
