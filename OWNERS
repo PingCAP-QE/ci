@@ -1,5 +1,6 @@
-reviewers:
-  - lijie0123
-  - purelind
+# See the OWNERS docs at https://go.k8s.io/owners
 approvers:
   - wuhuizuo
+  - purelind
+emeritus_reviewers:
+  - lijie0123

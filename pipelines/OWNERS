@@ -1,8 +1,5 @@
 labels:
   - area/jenkins-pipelines
-reviewers:
-  - purelind
-  - lijie0123
 approvers:
   - wuhuizuo
   - purelind
