@@ -34,11 +34,20 @@ presubmits:
         containers:
           - image: ticommunityinfra/checkconfig:v20230621-df5abce
             command:
-              - /ko-app/checkconfig
+              - sh
             args:
-              - --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml
-              - --config-path=../../ti-community-infra/configs/prow/config/config.yaml
-              - --job-config-path=prow-jobs/
+              - -c
+              - |
+                mkdir -p flatten-prow-jobs;
+                for f in $(find prow-jobs -name "*.yaml" -type f | sed 's|prow-jobs/||' | grep -v kustomization.yaml | sort); do
+                  flatten_f=$(echo $f | sed 's|/|-|g');
+                  cp -v prow-jobs/$f flatten-prow-jobs/$flatten_f;
+                done;
+
+                /ko-app/checkconfig \
+                --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml \
+                --config-path=../../ti-community-infra/configs/prow/config/config.yaml \
+                --job-config-path=flatten-prow-jobs/
     - name: pull-verify-gitops-for-prow-jobs
       decorate: true
       extra_refs:
