@@ -26,17 +26,20 @@ presubmits:
           repo: configs
           base_ref: main
           repo_link: https://github.com/ti-community-infra/configs
+        - org: PingCAP-QE
+          repo: ee-ops
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ee-ops
       max_concurrency: 1
       run_if_changed: "^prow-jobs/.*\\.(yaml|yml)"
       branches:
         - ^main$
       spec:
         containers:
-          - image: ticommunityinfra/checkconfig:v20230621-df5abce
-            command:
-              - sh
+          - name: checkconfig
+            image: ticommunityinfra/checkconfig:v20230621-df5abce
+            command: [sh, -c]
             args:
-              - -c
               - |
                 mkdir -p flatten-prow-jobs;
                 for f in $(find prow-jobs -name "*.yaml" -type f | sed 's|prow-jobs/||' | grep -v kustomization.yaml | sort); do
@@ -48,20 +51,7 @@ presubmits:
                 --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml \
                 --config-path=../../ti-community-infra/configs/prow/config/config.yaml \
                 --job-config-path=flatten-prow-jobs/
-    - name: pull-verify-gitops-for-prow-jobs
-      decorate: true
-      extra_refs:
-        - org: PingCAP-QE
-          repo: ee-ops
-          base_ref: main
-          repo_link: https://github.com/PingCAP-QE/ee-ops
-      max_concurrency: 1
-      run_if_changed: prow\-jobs/.*\.(yaml|yml)$
-      branches:
-        - main
-      spec:
-        containers:
-          - name: main
+          - name: verify-gitops
             image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
@@ -73,6 +63,13 @@ presubmits:
               - --path=prow-jobs
               - --kustomization-file=../ee-ops/apps/gcp/prow/pre/prow-jobs.yaml
               - --dry-run
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+          - name: verify-kustomization
+            image: mikefarah/yq:4.44.1
+            command: [sh, .ci/update-prow-job-kustomization.sh]
             resources:
               limits:
                 memory: 256Mi
