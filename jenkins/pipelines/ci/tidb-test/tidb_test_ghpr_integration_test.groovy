@@ -84,7 +84,7 @@ def run_test_with_ruby_pod(Closure body) {
             containers: [
                     containerTemplate(
                             name: 'ruby', alwaysPullImage: false,
-                            image: "hub-new.pingcap.net/jenkins/ruby27:latest", ttyEnabled: true,
+                            image: "hub.pingcap.net/jenkins/ruby27:latest", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                     )

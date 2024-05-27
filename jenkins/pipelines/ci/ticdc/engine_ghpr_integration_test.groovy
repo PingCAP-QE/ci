@@ -139,12 +139,12 @@ def prepare_binaries_and_images() {
     docker pull hub.pingcap.net/tiflow/etcd:latest
     docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
 
-    docker pull hub-new.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH}
-    docker tag hub-new.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH} pingcap/tidb:${TIDB_TEST_TAG} 
-    docker pull hub-new.pingcap.net/qa/tikv:${TIDB_CLUSTER_BRANCH}
-    docker tag hub-new.pingcap.net/qa/tikv:${TIDB_CLUSTER_BRANCH} pingcap/tikv:${TIDB_TEST_TAG}
-    docker pull hub-new.pingcap.net/qa/pd:${TIDB_CLUSTER_BRANCH}
-    docker tag hub-new.pingcap.net/qa/pd:${TIDB_CLUSTER_BRANCH} pingcap/pd:${TIDB_TEST_TAG}
+    docker pull hub.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH}
+    docker tag hub.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH} pingcap/tidb:${TIDB_TEST_TAG} 
+    docker pull hub.pingcap.net/qa/tikv:${TIDB_CLUSTER_BRANCH}
+    docker tag hub.pingcap.net/qa/tikv:${TIDB_CLUSTER_BRANCH} pingcap/tikv:${TIDB_TEST_TAG}
+    docker pull hub.pingcap.net/qa/pd:${TIDB_CLUSTER_BRANCH}
+    docker tag hub.pingcap.net/qa/pd:${TIDB_CLUSTER_BRANCH} pingcap/pd:${TIDB_TEST_TAG}
 
     docker pull hub.pingcap.net/tiflow/engine:${imageTag}
     docker tag hub.pingcap.net/tiflow/engine:${imageTag} ${ENGINE_TEST_TAG}
@@ -374,8 +374,8 @@ run_with_pod {
                         """
                     }
                     sh """
-                    docker pull hub-new.pingcap.net/tiflow/engine:${dummyImageTag} || true
-                    docker tag hub-new.pingcap.net/tiflow/engine:${dummyImageTag} hub.pingcap.net/tiflow/engine:${imageTag} || true
+                    docker pull hub.pingcap.net/tiflow/engine:${dummyImageTag} || true
+                    docker tag hub.pingcap.net/tiflow/engine:${dummyImageTag} hub.pingcap.net/tiflow/engine:${imageTag} || true
                     docker push hub.pingcap.net/tiflow/engine:${imageTag} || true
                     """
                 }
