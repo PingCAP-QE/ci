@@ -73,9 +73,7 @@ pipeline {
                         string(credentialsId: 'docs-cn-qiniu-sk', variable: 'QINIU_SECRET_KEY'),
                         string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME')
                     ]){
-                        // TODO: pre-install python3 packages(boto3, awscli) in the docker image
                         sh label: 'Build pdf', script: """#!/usr/bin/env bash
-                            sudo pip3 install --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host files.pythonhosted.org boto3 awscli
                             printf "%s\n" ${AWS_ACCESS_KEY} ${AWS_SECRET_KEY} ${AWS_REGION} "json" | aws configure
                             find -name '*.md' | xargs -d '\n' grep -P '\t' && exit 1
                             python3 scripts/merge_by_toc.py
