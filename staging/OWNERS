@@ -1,5 +1,4 @@
-reviewers: []
+# See the OWNERS docs at https://go.k8s.io/owners
 approvers:
   - wuhuizuo
-  - lijie0123
   - purelind

@@ -1,0 +1,7 @@
+# Sort the member alphabetically.
+aliases:
+  sig-approvers-docs: # approvers for CI scope of tidb document repository.
+    - hfxsd
+    - lilin90
+    - Oreoxmt
+    - qiancai
