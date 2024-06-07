@@ -125,7 +125,7 @@ pipeline {
                             }
                         }
                         post{
-                            failure {
+                            unsuccessful {
                                 sh label: "collect logs", script: """
                                     ls /tmp/lightning_test
                                     tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")
