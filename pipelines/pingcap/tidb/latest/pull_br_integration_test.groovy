@@ -129,7 +129,7 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/backup_restore_test
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")    
+                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")    
                                     ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
