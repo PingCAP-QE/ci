@@ -1,12 +1,12 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: wip-pull-build-release-6.1
+    - name: pull-build-release-6.1
       agent: kubernetes
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false # debug
-      context: wip-pull-build
+      always_run: true
+      context: idc-jenkins-ci/build
       branches:
         - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
       spec:

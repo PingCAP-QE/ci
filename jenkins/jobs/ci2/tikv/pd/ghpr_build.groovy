@@ -1,6 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pd_ghpr_build') {
-    disabled(true)
     logRotator {
         daysToKeep(30)
     }
