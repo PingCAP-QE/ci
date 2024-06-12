@@ -111,8 +111,11 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
                 ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True, check=True)
             # 假设成功执行命令返回非空结果即为有效
             # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
+            # issue https://github.com/pingcap/tidb/issues/53591
             if result.stdout.strip() or result.stderr.strip():
-                version_info = result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
+                # version_info = result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
+                version_info = '\n'.join(result.stdout.strip(), result.stderr.strip())
+
                 print(f"Version info ({tiup_component}):\n{version_info}")
                 version_check_passed = check_version(version_info, expected_version, expected_edition,
                                                      expected_commit_hash,
