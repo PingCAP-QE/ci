@@ -11,7 +11,7 @@ pipelineJob('pingcap/tidb-tools/pull_verify') {
         stringParam("JOB_SPEC")
     }
     properties {
-        githubProjectUrl("https://github.com/pingcap/tidb-binlog")
+        githubProjectUrl("https://github.com/pingcap/tidb-tools")
     }
 
     definition {
