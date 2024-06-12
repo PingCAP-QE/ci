@@ -17,7 +17,7 @@ pipelineJob('pingcap/tidb-tools/pull_verify') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb-binlog/latest/pull_verify.groovy")
+            scriptPath("pipelines/pingcap/tidb-tools/latest/pull_verify.groovy")
             scm {
                 git{
                     remote {
