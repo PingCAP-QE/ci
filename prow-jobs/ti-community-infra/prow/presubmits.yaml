@@ -1,7 +1,8 @@
 presubmits:
-  ti-community-infra/test-infra:
-    - name: pull-test-infra-unit-test
+  ti-community-infra/prow:
+    - name: pull-test
       branches:
+        - ^master$
         - ^release$
       always_run: true
       decorate: true
@@ -12,9 +13,10 @@ presubmits:
               - runner.sh
             args:
               - make
-              - go-unit
-    - name: pull-test-infra-prow-image-build-test
+              - test
+    - name: pull-build-images
       branches:
+        - ^master$
         - ^release$
       always_run: false
       # run_if_changed: '^(\.ko\.yaml|hack/(ts-rollup|make-rules|prowimagebuilder)|prow|ghproxy|label_sync/.+\.go|robots/commenter|robots/pr-creator|robots/issue-creator|testgrid/cmd|gcsweb)'
@@ -37,8 +39,9 @@ presubmits:
                 # This job is very CPU intensive as building prow images in
                 # parallel
                 cpu: "4"
-    - name: pull-test-infra-verify-lint
+    - name: pull-verify
       branches:
+        - ^master$
         - ^release$
       always_run: true
       decorate: true

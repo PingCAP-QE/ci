@@ -77,8 +77,8 @@ configMapGenerator:
       - 068.yaml=ti-community-infra/configs/postsubmits.yaml
       - 069.yaml=ti-community-infra/configs/presubmits.yaml
       - 070.yaml=ti-community-infra/periodics.yaml
-      - 071.yaml=ti-community-infra/test-infra/postsubmits.yaml
-      - 072.yaml=ti-community-infra/test-infra/presubmits.yaml
+      - 071.yaml=ti-community-infra/prow/postsubmits.yaml
+      - 072.yaml=ti-community-infra/prow/presubmits.yaml
       - 073.yaml=tikv/community/postsubmits.yaml
       - 074.yaml=tikv/migration/latest-presubmits.yaml
       - 075.yaml=tikv/pd/latest-presubmits.yaml
