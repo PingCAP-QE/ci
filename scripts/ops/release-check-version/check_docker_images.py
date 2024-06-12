@@ -31,7 +31,7 @@ def get_image_version_info(full_image_name, component, version, edition, git_com
             # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
             # issue https://github.com/pingcap/tidb/issues/53591
             if result.stdout.strip() or result.stderr.strip():
-                version_info = result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
+                version_info = result.stdout.strip() + "\n" + result.stderr.strip()
                 print(f"Version info ({entrypoint}): {version_info}")
                 version_check_passed = check_version(version_info, expected_version, expected_edition,
                                                      expected_commit_hash,
