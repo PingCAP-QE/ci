@@ -22,15 +22,15 @@ presubmits:
       # run_if_changed: '^(\.ko\.yaml|hack/(ts-rollup|make-rules|prowimagebuilder)|prow|ghproxy|label_sync/.+\.go|robots/commenter|robots/pr-creator|robots/issue-creator|testgrid/cmd|gcsweb)'
       decorate: true
       spec:
+        serviceAccountName: prow-pusher
         containers:
           - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240515-17c6d50e24-test-infra
             command:
               - runner.sh
             args:
               - make
-              - -C
-              - prow
               - build-images
+              - REGISTRY=ticommunityinfra
             # docker-in-docker needs privileged mode
             securityContext:
               privileged: true
@@ -38,7 +38,7 @@ presubmits:
               requests:
                 # This job is very CPU intensive as building prow images in
                 # parallel
-                cpu: "4"
+                cpu: "1"
     - name: pull-verify
       branches:
         - ^master$
