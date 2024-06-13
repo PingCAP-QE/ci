@@ -20,7 +20,7 @@ function gather_results() {
     local VERSION="$1"
     local oci_registry="$2"
 
-    : >results.yaml
+    yq -i '.images = {}' results.yaml
 
     # check docker
     for com in 'br' 'dm' 'dumpling' 'ng-monitoring' 'pd' 'ticdc' 'tidb' 'tidb-binlog' 'tidb-lightning' 'tidb-monitor-initializer' 'tiflash' 'tikv'; do
