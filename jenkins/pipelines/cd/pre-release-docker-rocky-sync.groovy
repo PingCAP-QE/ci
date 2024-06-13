@@ -81,7 +81,7 @@ pipeline {
                                             string(name: 'TARGET_IMAGE', value: target)
                                     ]
                                 source = "hub.pingcap.net/qa/${prod}-enterprise:${params.Version}-rocky-pre"
-                                target = "gcr.io/pingcap-public/dbaas/${prod}:${params.Version}-${day}-${ts10}"
+                                target = "gcr.io/pingcap-public/dbaas/${prod}:${params.Version}-pre"
                                 if (prod == "tidb-monitor-initializer"){
                                     target = "gcr.io/pingcap-public/dbaas/${prod}:${params.Version}"
                                 }
