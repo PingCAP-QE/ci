@@ -20,7 +20,7 @@ function gather_results() {
     local VERSION="$1"
     local oci_registry="$2"
 
-    : >results.yaml
+    yq -i '.tiup = {}' results.yaml
 
     # check tiup
     for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'pd' 'pd-recover' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
