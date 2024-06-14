@@ -4,10 +4,10 @@ presubmits:
     - name: pingcap/tidb-tools/pull_verify
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
+      always_run: true
       skip_report: false
-      optional: true # change this after test
-      context: wip-pull-verify
+      optional: false
+      context: pull-verify
       trigger: "(?m)^/test (?:.*? )?(pull-verify|all)(?: .*?)?$"
       rerun_command: "/test pull-verify"
       branches:
