@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tidb_tools_ghpr_integration_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
