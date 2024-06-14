@@ -5,3 +5,5 @@ aliases:
     - lilin90
     - Oreoxmt
     - qiancai
+  sig-approvers-tidb-tools: # approvers for CI scope of tidb-tools project.
+    - Benjamin2037

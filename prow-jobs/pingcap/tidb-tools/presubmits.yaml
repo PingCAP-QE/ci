@@ -1,0 +1,15 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+presubmits:
+  pingcap/docs:
+    - name: pingcap/tidb-tools/pull_verify
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_report: false
+      optional: true # change this after test
+      context: wip-pull-verify
+      trigger: "(?m)^/test (?:.*? )?(pull-verify|all)(?: .*?)?$"
+      rerun_command: "/test pull-verify"
+      branches:
+        - ^master$
+        - ^release-\d+\.\d+$
