@@ -20,6 +20,7 @@ pipelineJob('tidb_tools_ghpr_unit_test') {
                     onlyTriggerPhrase(false)
                     skipBuildPhrase(".*skip-ci.*")
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
+                    whitelist('')
                     orgslist("pingcap")
                     whiteListTargetBranches {
                         ghprbBranch { branch('master') }
