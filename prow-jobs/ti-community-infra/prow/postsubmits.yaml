@@ -1,6 +1,7 @@
 postsubmits:
   ti-community-infra/prow:
     - name: push-prow-images
+      cluster: gcp-prow-ksyun
       # Runs on more than just the Prow dir to include some additional images that we publish to gcr.io/k8s-prow.
       run_if_changed: '^(\.ko\.yaml|hack/(make-rules|prowimagebuilder)|.+\.go)'
       decorate: true
@@ -23,7 +24,7 @@ postsubmits:
               privileged: true
             resources:
               requests:
-                cpu: "1"
+                cpu: "4"
       annotations:
         description:
           builds and pushes all prow on each commit by running make -C prow

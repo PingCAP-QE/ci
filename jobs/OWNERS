@@ -1,6 +1,4 @@
 labels:
   - area/jobs/jenkins-DSL
-reviewers:
-  - purelind
 approvers:
-  - wuhuizuo
+  - sig-approvers-ee

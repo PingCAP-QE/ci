@@ -6,6 +6,7 @@ presubmits:
         - ^release$
       always_run: true
       decorate: true
+      clone_depth: 1
       spec:
         containers:
           - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240515-17c6d50e24-test-infra
@@ -15,12 +16,12 @@ presubmits:
               - make
               - test
     - name: pull-build-images
+      cluster: gcp-prow-ksyun
+      decorate: true
+      always_run: false
       branches:
         - ^master$
         - ^release$
-      always_run: false
-      # run_if_changed: '^(\.ko\.yaml|hack/(ts-rollup|make-rules|prowimagebuilder)|prow|ghproxy|label_sync/.+\.go|robots/commenter|robots/pr-creator|robots/issue-creator|testgrid/cmd|gcsweb)'
-      decorate: true
       spec:
         serviceAccountName: prow-pusher
         containers:
@@ -38,13 +39,14 @@ presubmits:
               requests:
                 # This job is very CPU intensive as building prow images in
                 # parallel
-                cpu: "1"
+                cpu: "4"
     - name: pull-verify
       branches:
         - ^master$
         - ^release$
       always_run: true
       decorate: true
+      clone_depth: 1
       spec:
         containers:
           - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240515-17c6d50e24-test-infra
