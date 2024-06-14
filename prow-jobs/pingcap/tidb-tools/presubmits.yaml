@@ -6,7 +6,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       skip_report: false
-      optional: false
+      optional: true # change this after test
       context: wip-pull-verify
       trigger: "(?m)^/test (?:.*? )?(pull-verify|all)(?: .*?)?$"
       rerun_command: "/test pull-verify"
