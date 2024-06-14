@@ -1,5 +1,4 @@
 labels:
   - area/jenkins-pipelines
 approvers:
-  - wuhuizuo
-  - purelind
+  - sig-approvers-ee

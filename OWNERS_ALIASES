@@ -7,3 +7,9 @@ aliases:
     - qiancai
   sig-approvers-tidb-tools: # approvers for CI scope of tidb-tools project.
     - Benjamin2037
+  sig-approvers-ee: # approvers for engineering efficiency scopes.
+    - wuhuizuo
+    - purelind
+
+  emeritus_reviewers: # emeritus reviewers will be keeped here, but will not be used.
+    - lijie0123 # ee reviewer

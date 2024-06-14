@@ -1,4 +1,4 @@
-reviewers:
-  - wuhuizuo
+labels:
+  - area/deprecated
 approvers:
-  - purelind
+  - sig-approvers-ee
