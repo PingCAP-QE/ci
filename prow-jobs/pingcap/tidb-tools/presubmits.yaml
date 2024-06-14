@@ -1,6 +1,6 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 presubmits:
-  pingcap/docs:
+  pingcap/tidb-tools:
     - name: pingcap/tidb-tools/pull_verify
       agent: jenkins
       decorate: false # need add this.
