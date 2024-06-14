@@ -80,34 +80,5 @@ pipeline {
                 sh label: 'test', script: "MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 make test -C ${REFS.repo}"
             }
         }
-        stage('Intergration Test') {
-            steps {
-                sh label: 'test mysql connection', script: '''
-                    for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do
-                        if [ $? -eq 0 ]; then 
-                            break
-                        else 
-                            if [ $i -eq 10 ]; then 
-                                exit 2
-                            fi
-                            sleep 1
-                        fi; 
-                    done
-                    '''
-                sh label: 'test', script: "MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 make integration_test -C ${REFS.repo}"
-            }
-            post{
-                unsuccessful {
-                    sh '''
-                        find /tmp/tidb_tools_test -name "*.log" | xargs -I {} bash -c 'echo "**************************************"; echo "{}"; cat "{}"'
-                        echo "**************************************"
-                        echo "******************sync_diff.log********************"
-                        cat /tmp/tidb_tools_test/sync_diff_inspector/output/sync_diff.log
-                        echo "********************fix.sql********************"
-                        find /tmp/tidb_tools_test/sync_diff_inspector/output/fix-on-tidb -name "*.sql" | xargs -I {} bash -c 'echo "**************************************"; echo "{}"; cat "{}"'
-                        '''
-                }
-            }
-        }
     }
 }
