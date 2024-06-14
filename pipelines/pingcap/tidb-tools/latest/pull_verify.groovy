@@ -29,7 +29,7 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    node -v
+                    go env
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -57,8 +57,8 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh "GOOS=darwin GOARCH=amd64 make build -C ${REFS.repo}"
-                sh "GOOS=darwin GOARCH=arm64 make build -C ${REFS.repo}"
+                // sh "GOOS=darwin GOARCH=amd64 make build -C ${REFS.repo}"
+                // sh "GOOS=darwin GOARCH=arm64 make build -C ${REFS.repo}"
                 sh "GOOS=linux GOARCH=arm64 make build -C ${REFS.repo}"
                 sh "GOOS=linux GOARCH=amd64 make build -C ${REFS.repo}" // be the last order to build, the unit test will use it.
             }
