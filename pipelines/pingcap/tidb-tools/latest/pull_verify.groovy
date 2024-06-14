@@ -59,25 +59,79 @@ pipeline {
             steps {
                 // sh "GOOS=darwin GOARCH=amd64 make build -C ${REFS.repo}"
                 // sh "GOOS=darwin GOARCH=arm64 make build -C ${REFS.repo}"
-                sh "GOOS=linux GOARCH=arm64 make build -C ${REFS.repo}"
+                // sh "GOOS=linux GOARCH=arm64 make build -C ${REFS.repo}"
                 sh "GOOS=linux GOARCH=amd64 make build -C ${REFS.repo}" // be the last order to build, the unit test will use it.
             }
         }
         stage('Unit Test') {
             steps {
-                sh label: 'test mysql connection', script: '''
-                    for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do
-                        if [ $? -eq 0 ]; then 
-                            break
-                        else 
-                            if [ $i -eq 10 ]; then 
-                                exit 2
-                            fi
-                            sleep 1
-                        fi; 
-                    done
-                '''
+                sh label: 'test mysql connection', script: """
+                for i in {1..10}; do
+                    if mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; then
+                        break
+                    elif [ \$i -eq 10 ]; then
+                        exit 2
+                    fi
+                    sleep 1
+                done
+                """
                 sh label: 'test', script: "MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 make test -C ${REFS.repo}"
+            }
+        }
+        stage('Integration Test') {
+            steps {
+                dir("tidb-tools") {
+                    script {
+                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
+                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
+                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
+                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin') 
+                    }
+                    sh label: "download enterprise-tools-nightly", script: """
+                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                        tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                        mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
+                        rm -r tidb-enterprise-tools-nightly-linux-amd64
+                    """
+                    sh label: "check", script: """
+                        which bin/tikv-server
+                        which bin/pd-server
+                        which bin/tidb-server
+                        which bin/dumpling
+                        which bin/importer
+                        ls -alh ./bin/
+                        chmod +x bin/*
+                        ./bin/dumpling --version
+                        ./bin/tikv-server -V
+                        ./bin/pd-server -V
+                        ./bin/tidb-server -V
+                    """
+                    sh label: 'integration test', script: """
+                    for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
+                    export MYSQL_HOST="127.0.0.1"
+                    export MYSQL_PORT=3306
+                    make integration_test
+                    """
+                }   
+            }
+            post{
+                unsuccessful {
+                    sh label: 'archive logs', script: """
+                    tar --warning=no-file-changed  -cvzf logs.tar.gz \$(find /tmp/tidb_tools_test/ -type f -name "*.log")
+                    tar --warning=no-file-changed  -cvzf fix_sqls.tar.gz \$(find /tmp/tidb_tools_test/sync_diff_inspector/output/fix-on-tidb/ -type f -name "*.sql")
+                    """
+                    archiveArtifacts artifacts: "logs.tar.gz", fingerprint: true
+                    archiveArtifacts artifacts: "fix_sqls.tar.gz", fingerprint: true
+
+                    sh label: 'print logs', script:'''
+                        find /tmp/tidb_tools_test -name "*.log" | xargs -I {} bash -c 'echo "**************************************"; echo "{}"; cat "{}"'
+                        echo ""
+                        echo "******************sync_diff.log********************"
+                        cat /tmp/tidb_tools_test/sync_diff_inspector/output/sync_diff.log
+                        echo "********************fix.sql********************"
+                        find /tmp/tidb_tools_test/sync_diff_inspector/output/fix-on-tidb -name "*.sql" | xargs -I {} bash -c 'echo "**************************************"; echo "{}"; cat "{}"'
+                    '''
+                }
             }
         }
     }
