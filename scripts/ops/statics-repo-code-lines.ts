@@ -1,36 +1,39 @@
-import { exec, OutputMode } from "https://deno.land/x/exec@0.0.5/mod.ts";
-
 async function dumpRepoCodes(repoDir: string): Promise<any> {
-  const command = `tokei -e node_modules -o json ${repoDir}`;
-  console.debug(command);
-  const output = await exec(command, {
-    output: OutputMode.Capture,
+  console.info("🚀 start statistic repo codes");
+  const command = new Deno.Command("tokei", {
+    args: ["-e", "node_modules", "-o", "json", repoDir],
   });
-  return JSON.parse(output.output);
+  const result = await command.output();
+  const textDecoder = new TextDecoder();
+
+  console.info("✅ finish statistic repo codes");
+  return JSON.parse(textDecoder.decode(result.stdout));
 }
 
 async function cloneRepo(
   fullRepoName: string,
   branch?: string,
 ): Promise<string> {
-  const cloneCommand =
-    `gh repo clone ${fullRepoName} ${fullRepoName} -- --depth 1${
-      branch ? ` --branch=${branch}` : ""
-    }`;
-  console.debug(cloneCommand);
-  await exec(cloneCommand);
-  return fullRepoName;
-}
-
-async function getOrgRepos(orgName: string): Promise<string[]> {
-  const command = `
-    gh repo list ${orgName} --source --no-archived -L 200 | awk '/${orgName}/ {print $1}'
-  `;
-  console.debug(command);
-  const output = await exec(command, {
-    output: OutputMode.Capture,
+  console.info("🚀 start clone repo:", fullRepoName, "with branch", branch);
+  const cloneCommand = new Deno.Command("gh", {
+    args: [
+      "repo",
+      "clone",
+      fullRepoName,
+      fullRepoName,
+      "--",
+      "--depth",
+      "1",
+      branch ? `--branch=${branch}` : "",
+    ],
   });
-  return output.output.split("\n").filter(Boolean);
+  const result = await cloneCommand.output();
+  if (!result.success) {
+    console.error("❌ clone repo failed:", fullRepoName, "with branch", branch);
+  }
+
+  console.info("✅ finish clone repo:", fullRepoName, "with branch", branch);
+  return fullRepoName;
 }
 
 function formatCloc(clocs: { [key: string]: any }) {
@@ -43,24 +46,6 @@ function formatCloc(clocs: { [key: string]: any }) {
     };
   }
 
-  return result;
-}
-
-function sumCloc(repoClocs: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {};
-  for (const cloc of Object.values(repoClocs)) {
-    for (const lan in cloc) {
-      if (!(lan in result)) {
-        result[lan] = {};
-      }
-      for (const lineType in cloc[lan]) {
-        if (!(lineType in result[lan])) {
-          result[lan][lineType] = 0;
-        }
-        result[lan][lineType] += cloc[lan][lineType];
-      }
-    }
-  }
   return result;
 }
 
@@ -121,21 +106,6 @@ async function main() {
     "master",
     "release-8.1",
     "release-8.0",
-    "release-7.6",
-    "release-7.5",
-    "release-7.4",
-    "release-7.3",
-    "release-7.2",
-    "release-7.1",
-    "release-7.0",
-    "release-6.6",
-    "release-6.5",
-    "release-6.4",
-    "release-6.3",
-    "release-6.2",
-    "release-6.1",
-    "release-6.0",
-    "release-5.4",
   ];
 
   for (const repo of repos) {
