@@ -11,6 +11,7 @@ periodics:
         skip_submodules: true
         clone_depth: 1
     spec:
+      activeDeadlineSeconds: 3600
       containers:
         - name: check
           image: golang:1.21.11
