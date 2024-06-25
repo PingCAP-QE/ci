@@ -94,3 +94,4 @@ configMapGenerator:
       - 085.yaml=tikv/tikv/release-7.1-presubmits.yaml
       - 086.yaml=tikv/tikv/release-7.5-presubmits.yaml
       - 087.yaml=tikv/tikv/release-8.1-presubmits.yaml
+      - 088.yaml=tikv/tikv/release-8.2-presubmits.yaml
