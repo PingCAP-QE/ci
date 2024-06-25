@@ -46,6 +46,48 @@ presubmits:
       rerun_command: "/test unit-test"
       branches:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.2/pull_integration_ddl_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-integration-ddl-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-ddl-test"
+      branches:
+        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.2/pull_mysql_client_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-mysql-client-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-client-test"
+      branches:
+        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.2/pull_br_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-br-integration-test
+      run_if_changed: "br/.*"
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-br-integration-test"
+      branches:
+        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.2/pull_lightning_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: pull-lightning-integration-test
+      run_if_changed: "(lightning|br/pkg/(checksum|httputil|membuf|pdutil|restore/split|storage))/.*"
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-lightning-integration-test"
+      branches:
+        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -89,28 +131,6 @@ presubmits:
       rerun_command: "/test pull-e2e-test"
       branches:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb/release-8.2/pullintegration_br_test
-      agent: jenkins
-      decorate: false # need add this.
-      context: pull-integration-br-test
-      always_run: false
-      optional: true
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-br-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-br-test"
-      branches:
-        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb/release-8.2/pull_lightning_integration_test
-      agent: jenkins
-      decorate: false # need add this.
-      context: pull-integration-lightning-test
-      always_run: false
-      optional: true
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-lightning-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-lightning-test"
-      branches:
-        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -133,17 +153,6 @@ presubmits:
       rerun_command: "/test pull-integration-common-test"
       branches:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb/release-8.2/pull_integration_ddl_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      optional: true
-      context: pull-integration-ddl-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-ddl-test"
-      branches:
-        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
@@ -164,16 +173,6 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
-      branches:
-        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap/tidb/release-8.2/pull_mysql_client_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      context: pull-mysql-client-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
-      rerun_command: "/test pull-mysql-client-test"
       branches:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_nodejs_test
