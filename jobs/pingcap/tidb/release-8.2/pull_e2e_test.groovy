@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/release-8.2/pull_e2e_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-8.2/pull_e2e_test.groovy')
+            scriptPath("pipelines/pingcap/tidb/release-8.2/pull_e2e_test.groovy")
             scm {
                 git{
                     remote {

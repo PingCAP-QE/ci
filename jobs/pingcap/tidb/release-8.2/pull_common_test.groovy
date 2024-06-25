@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/release-8.2/pull_common_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-8.2/pull_common_test.groovy')
+            scriptPath("pipelines/pingcap/tidb/release-8.2/pull_common_test.groovy")
             scm {
                 git{
                     remote {
