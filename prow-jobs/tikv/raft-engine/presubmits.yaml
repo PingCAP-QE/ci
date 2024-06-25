@@ -1,0 +1,51 @@
+presubmits:
+  tikv/raft-engine:
+    - name: rust-nightly
+      decorate: true
+      max_concurrency: 1
+      always_run: true
+      spec:
+        containers:
+          - name: rust
+            image: rust:1.75.0
+            command: ["/bin/sh", "-c"]
+            env:
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                set -ex
+                apk add --no-cache curl
+                rustup toolchain install nightly-2023-12-31
+                rustup default nightly-2023-12-31
+                rustup component add rustfmt clippy rust-src
+                cargo install grcov
+                make format && git diff --exit-code
+                make clippy
+
+                # Run tests
+                make test
+                # Run asan tests
+                RUSTFLAGS='-Zsanitizer=address' RUSTDOCFLAGS='-Zsanitizer=address' EXTRA_CARGO_ARGS='--verbose -Zbuild-std --target x86_64-unknown-linux-gnu' make test
+
+    - name: rust-stable
+      decorate: true
+      max_concurrency: 1
+      always_run: true
+      spec:
+        containers:
+          - name: rust
+            image: rust:1.75.0
+            command: ["/bin/sh", "-c"]
+            env:
+              - name: WITH_STABLE_TOOLCHAIN
+                value: "force"
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                set -ex
+                apk add --no-cache curl
+                rustup component add rustfmt clippy
+                make clippy
+                make test

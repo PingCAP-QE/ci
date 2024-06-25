@@ -87,9 +87,10 @@ configMapGenerator:
       - 078.yaml=tikv/pd/release-6.5-fips-presubmits.yaml
       - 079.yaml=tikv/pd/release-6.5-presubmits.yaml
       - 080.yaml=tikv/pd/release-7.1-presubmits.yaml
-      - 081.yaml=tikv/tikv/latest-presubmits.yaml
-      - 082.yaml=tikv/tikv/release-6.1-presubmits.yaml
-      - 083.yaml=tikv/tikv/release-6.5-presubmits.yaml
-      - 084.yaml=tikv/tikv/release-7.1-presubmits.yaml
-      - 085.yaml=tikv/tikv/release-7.5-presubmits.yaml
-      - 086.yaml=tikv/tikv/release-8.1-presubmits.yaml
+      - 081.yaml=tikv/raft-engine/presubmits.yaml
+      - 082.yaml=tikv/tikv/latest-presubmits.yaml
+      - 083.yaml=tikv/tikv/release-6.1-presubmits.yaml
+      - 084.yaml=tikv/tikv/release-6.5-presubmits.yaml
+      - 085.yaml=tikv/tikv/release-7.1-presubmits.yaml
+      - 086.yaml=tikv/tikv/release-7.5-presubmits.yaml
+      - 087.yaml=tikv/tikv/release-8.1-presubmits.yaml
