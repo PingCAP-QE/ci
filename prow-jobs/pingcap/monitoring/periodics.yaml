@@ -11,9 +11,10 @@ periodics:
         skip_submodules: true
         clone_depth: 1
     spec:
+      activeDeadlineSeconds: 3600
       containers:
         - name: check
-          image: golang:1.21.6
+          image: golang:1.21.11
           env:
             - name: TARGET
               value: master
@@ -88,6 +89,37 @@ periodics:
         - name: github-token
           secret:
             secretName: github-token
+  - name: periodic-update-pingcap-monitoring-dmr-8.2
+    decorate: true # need add this.
+    cron: "0 * * * *" # @hourly
+    skip_report: true
+    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
+      - org: pingcap
+        repo: monitoring
+        base_ref: release-8.2
+        skip_submodules: true
+        clone_depth: 1
+    spec:
+      containers:
+        - name: check
+          image: golang:1.21.11
+          command: [bash, -ce]
+          env:
+            - name: TARGET
+              value: release-8.2
+          resources:
+            limits:
+              memory: 4Gi
+              cpu: "1"
+          volumeMounts:
+            - name: github-token
+              mountPath: /etc/github
+              readOnly: true
+          args: *args
+      volumes:
+        - name: github-token
+          secret:
+            secretName: github-token
   - name: periodic-update-pingcap-monitoring-lts-8.1
     decorate: true # need add this.
     cron: "0 * * * *" # @hourly
@@ -101,7 +133,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.21.6
+          image: golang:1.21.11
           command: [bash, -ce]
           env:
             - name: TARGET
@@ -118,7 +150,7 @@ periodics:
       volumes:
         - name: github-token
           secret:
-            secretName: github-token  
+            secretName: github-token
   - name: periodic-update-pingcap-monitoring-lts-7.5
     decorate: true # need add this.
     cron: "5 7 * * *" # @daily
@@ -132,7 +164,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.21.6
+          image: golang:1.21.11
           command: [bash, -ce]
           env:
             - name: TARGET
@@ -163,7 +195,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.21.6
+          image: golang:1.21.11
           command: [bash, -ce]
           env:
             - name: TARGET
