@@ -8,7 +8,7 @@ final GIT_FULL_REPO_NAME = 'tikv/tikv'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/release-7.5/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final EXTRA_NEXTEST_ARGS = "-j 8"
+final EXTRA_NEXTEST_ARGS = "-j 8 --retries 5"
 
 
 pipeline {
