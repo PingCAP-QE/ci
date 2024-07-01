@@ -72,7 +72,7 @@ def runBuilderClosure(label, Closure body) {
                     alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
-            containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-llvm-base:amd64',
+            containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-17.0.6',
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
