@@ -2,9 +2,14 @@ apiVersion: "v1"
 kind: "Pod"
 spec:
   containers:
-  - image: "docker:18.09.6-dind"
+  - image: "hub.pingcap.net/jenkins/docker:20.10.14-dind"
     imagePullPolicy: "IfNotPresent"
     name: "dockerd"
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
+    - name: DOCKER_HOST
+      value: tcp://localhost:2375
     resources:
       limits:
         memory: "32Gi"
@@ -12,6 +17,11 @@ spec:
       requests:
         memory: "10Gi"
         cpu: "5000m"
+    readinessProbe:
+      exec:
+        command: ["docker", "info"]
+      initialDelaySeconds: 10
+      failureThreshold: 6
     securityContext:
       privileged: true
     tty: false
