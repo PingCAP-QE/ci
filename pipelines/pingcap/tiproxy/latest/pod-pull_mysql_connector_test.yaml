@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/golang-with-gcc11:1.20"
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
       securityContext:
         privileged: true
       tty: true
