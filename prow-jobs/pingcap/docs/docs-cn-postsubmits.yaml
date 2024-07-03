@@ -12,4 +12,4 @@ postsubmits:
         - ^release-5\.[1-4]$
         - ^release-6\.[15]$
         - ^release-7\.[156]$
-        - ^release-8\.[0-9]+$
+        - ^release-8\.[0-6]+$
