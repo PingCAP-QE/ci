@@ -110,6 +110,11 @@ def runCheckoutAndBuilderClosure(label, curws, Closure body) {
                     }
                 }
                 checkout()
+                sh """
+                git version
+                git config --global --add safe.directory ${curws}/tiflash/contrib/tiflash-proxy
+                git config --global --add safe.directory ${curws}/tiflash
+                """
             }
         }
         body()
