@@ -20,6 +20,7 @@ function gather_results() {
     local VERSION="$1"
     local oci_registry="$2"
 
+    touch results.yaml
     yq -i '.tiup = {}' results.yaml
 
     # check tiup
