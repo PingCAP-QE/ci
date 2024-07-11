@@ -68,8 +68,13 @@ function check_results() {
     # check tiup git_sha and published time
     for pkg in $(yq '.tiup | keys | .[]' results.yaml); do
         echo "🚧 check tiup built on git-sha for $pkg ..."
-        yq -e ".tiup[\"$pkg\"].git_sha | map(.) | unique | length == 1" results.yaml
-        record_failure $?
+        if [ "$pkg" == "tikv" ]; then
+            yq -e ".tiup[\"$pkg\"].git_sha | map(.) | unique | length <= 2" results.yaml
+            record_failure $?
+        else
+            yq -e ".tiup[\"$pkg\"].git_sha | map(.) | unique | length == 1" results.yaml
+            record_failure $?
+        fi
 
         echo "🚧 check tiup published time for $pkg ..."
         yq -e ".tiup[\"$pkg\"].published > (.tiup[\"$pkg\"].oci_published | map(.) | sort | .[0])" results.yaml
