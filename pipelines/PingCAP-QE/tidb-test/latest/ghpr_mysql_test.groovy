@@ -113,6 +113,9 @@ pipeline {
                             always {
                                 junit(testResults: "**/result.xml")
                             }
+                            unsuccessful {
+                                archiveArtifacts artifacts: "tidb-test/mysql_test/mysql-test.out", fingerprint: true, allowEmptyArchive: true
+                            }
                         }
                     }
                 }
