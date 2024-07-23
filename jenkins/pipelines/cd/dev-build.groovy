@@ -161,6 +161,7 @@ spec:
                                     string(name: "GITHUB_REPO", value: params.GithubRepo),
                                     string(name: "BUILD_ENV", value: params.BuildEnv),
                                     string(name: "BUILDER_IMG", value: params.BuilderImg),
+                                    string(name: "USE_TIFLASH_RUST_CACHE", value: 'true'),
                                     [$class: 'BooleanParameterValue', name: 'NEED_SOURCE_CODE', value: false],
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: true],
                                     [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: params.Features.contains('failpoint')],
