@@ -82,6 +82,7 @@ def startBuildBinary(arch, binary, actualRepo, repo, sha1, failpoint) {
             string(name: "GIT_HASH", value: sha1),
             string(name: "RELEASE_TAG", value: RELEASE_TAG),
             string(name: "TARGET_BRANCH", value: GIT_BRANCH),
+            string(name: "USE_TIFLASH_RUST_CACHE", value: 'true'),
             [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
             [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: failpoint],
     ]
@@ -97,6 +98,7 @@ def startBuildBinary(arch, binary, actualRepo, repo, sha1, failpoint) {
                 string(name: "GIT_HASH", value: sha1),
                 string(name: "RELEASE_TAG", value: RELEASE_TAG),
                 string(name: "TARGET_BRANCH", value: GIT_BRANCH),
+                string(name: "USE_TIFLASH_RUST_CACHE", value: 'true'),
                 [$class: 'BooleanParameterValue', name: 'TIFLASH_DEBUG', value: true],
                 [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                 [$class: 'BooleanParameterValue', name: 'FAILPOINT', value: failpoint],
