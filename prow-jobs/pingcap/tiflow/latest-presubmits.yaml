@@ -13,6 +13,7 @@ presubmits:
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^master$
+        - ^feature/.+
     # TODO: combine other CDC integration tests to a single one, 
     # Currently we keep the Jenkins job name.
     - name: pingcap/tiflow/pull_cdc_integration_test
@@ -27,6 +28,7 @@ presubmits:
       rerun_command: "/test cdc-integration-mysql-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
@@ -39,6 +41,7 @@ presubmits:
       rerun_command: "/test cdc-integration-storage-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
       agent: jenkins
       decorate: false # need add this.
@@ -51,6 +54,7 @@ presubmits:
       rerun_command: "/test cdc-integration-pulsar-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
@@ -63,6 +67,7 @@ presubmits:
       rerun_command: "/test dm-compatibility-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflow/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -75,6 +80,7 @@ presubmits:
       rerun_command: "/test dm-integration-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflow/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -87,6 +93,7 @@ presubmits:
       rerun_command: "/test engine-integration-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflow/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
@@ -97,4 +104,5 @@ presubmits:
       rerun_command: "/test verify"
       branches:
         - ^master$
+        - ^feature/.+
 

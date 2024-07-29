@@ -10,6 +10,7 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/ghpr_check
       agent: jenkins
       decorate: false # need add this.
@@ -19,6 +20,7 @@ presubmits:
       rerun_command: "/test check-dev"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
@@ -28,6 +30,7 @@ presubmits:
       rerun_command: "/test check-dev2"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -37,6 +40,7 @@ presubmits:
       rerun_command: "/test mysql-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -46,6 +50,7 @@ presubmits:
       rerun_command: "/test unit-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -56,6 +61,7 @@ presubmits:
       rerun_command: "/test pull-integration-mysql-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -67,6 +73,7 @@ presubmits:
       rerun_command: "/test pull-integration-copr-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
@@ -78,6 +85,7 @@ presubmits:
       rerun_command: "/test pull-integration-jdbc-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_e2e_test
       agent: jenkins
       decorate: false # need add this.
@@ -89,6 +97,7 @@ presubmits:
       rerun_command: "/test pull-e2e-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_br_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -100,6 +109,7 @@ presubmits:
       rerun_command: "/test pull-br-integration-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_lightning_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -111,6 +121,7 @@ presubmits:
       rerun_command: "/test pull-lightning-integration-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -122,6 +133,7 @@ presubmits:
       rerun_command: "/test pull-common-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -133,6 +145,7 @@ presubmits:
       rerun_command: "/test pull-integration-common-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
@@ -143,6 +156,7 @@ presubmits:
       rerun_command: "/test pull-integration-ddl-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
@@ -154,6 +168,7 @@ presubmits:
       rerun_command: "/test pull-sqllogic-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_tiflash_test
       agent: jenkins
       decorate: false # need add this.
@@ -165,6 +180,7 @@ presubmits:
       rerun_command: "/test pull-tiflash-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       decorate: false # need add this.
@@ -175,6 +191,7 @@ presubmits:
       rerun_command: "/test pull-mysql-client-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
@@ -186,3 +203,4 @@ presubmits:
       rerun_command: "/test pull-integration-nodejs-test"
       branches:
         - ^master$
+        - ^feature/.+

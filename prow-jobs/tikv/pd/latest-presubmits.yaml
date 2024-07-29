@@ -10,6 +10,7 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
+        - ^feature/.+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^release-8\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/pull_integration_copr_test
@@ -22,6 +23,7 @@ presubmits:
       rerun_command: "/test pull-integration-copr-test"
       branches:
         - ^master$
+        - ^feature/.+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^release-8\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: tikv/pd/pull_integration_realcluster_test
@@ -34,4 +36,4 @@ presubmits:
       rerun_command: "/test pull-integration-realcluster-test"
       branches:
         - ^master$
-
+        - ^feature/.+
