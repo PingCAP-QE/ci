@@ -16,7 +16,6 @@ presubmits:
             args:
               - |
                 set -ex
-                apk add --no-cache curl
                 rustup toolchain install nightly-2023-12-31
                 rustup default nightly-2023-12-31
                 rustup component add rustfmt clippy rust-src
@@ -47,7 +46,6 @@ presubmits:
             args:
               - |
                 set -ex
-                apk add --no-cache curl
                 rustup component add rustfmt clippy
                 make clippy
                 make test
