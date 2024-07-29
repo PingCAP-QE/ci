@@ -12,6 +12,7 @@ presubmits:
       rerun_command: "/test pull-unit-test"
       branches:
         - ^master$
+        - ^feature/.+
     - name: pingcap/tiflash/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -23,3 +24,4 @@ presubmits:
       rerun_command: "/test pull-integration-test"
       branches:
         - ^master$
+        - ^feature/.+
