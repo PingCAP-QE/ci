@@ -58,26 +58,8 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            chmod +x ../tidb/br/tests/*.sh
-                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
-                            rm -rf bin/ && mkdir -p bin
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
-                    }
-                }
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all tests added to group", script: """#!/usr/bin/env bash
-                            chmod +x br/tests/*.sh
-                            ./br/tests/run_group_br_tests.sh others
-                        """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -85,12 +67,6 @@ pipeline {
                             [ -f ./bin/br.test ] || make build_for_br_integration_test
                             ls -alh ./bin
                             ./bin/tidb-server -V
-                        """
-                    }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
                         """
                     }
                 }
@@ -112,17 +88,58 @@ pipeline {
                     }
                 }
                 stages {
+                    stage('Prepare') {
+                        steps {
+                            dir("tidb") {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                    sh 'ls -lh'
+                                }
+                            }
+                            dir("third_party_download") {
+                                retry(2) {
+                                    sh label: "download third_party", script: """
+                                        chmod +x ../tidb/br/tests/*.sh
+                                        ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
+                                        rm -rf bin/ && mkdir -p bin
+                                        mv third_bin/* bin/
+                                        ls -alh bin/
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tiflash --version
+                                    """
+                                }
+                            }
+                            dir('tidb') {
+                                sh label: "check all tests added to group", script: """#!/usr/bin/env bash
+                                    chmod +x br/tests/*.sh
+                                    ./br/tests/run_group_br_tests.sh others
+                                """
+                                // build br.test for integration test
+                                // only build binarys if not exist, use the cached binarys if exist
+                                cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
+                                    sh label: "prepare", script: """
+                                        [ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)
+                                        [ -f ./bin/br.test ] || make build_for_br_integration_test
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                    """
+                                }
+                                sh label: "prepare", script: """
+                                    cp -r ../third_party_download/bin/* ./bin/
+                                    ls -alh ./bin
+                                """
+                            }
+                        }
+                    }
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x br/tests/*.sh
-                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                    """  
-                                }
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x br/tests/*.sh
+                                    ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
+                                """  
                             }
                         }
                         post{
