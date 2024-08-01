@@ -72,13 +72,18 @@ pipeline {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                         sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                         retry(3) {
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
-                                ls -alh bin/
-                            """
+                            script {
+                                def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                sh label: 'download binary', script: """
+                                    chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                                    ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${pdBranch} --tikv=${tikvBranch}
+                                    mv third_bin/tikv-server bin/
+                                    mv third_bin/pd-server bin/
+                                    ls -alh bin/
+                                """
+                            }
+                            
                         }
                     }
                 }
