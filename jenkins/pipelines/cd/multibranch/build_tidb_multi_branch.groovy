@@ -168,6 +168,10 @@ def build_path = 'go/src/github.com/pingcap/tidb'
 def slackcolor = 'good'
 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
 def plugin_branch = branch
+if (branch.startsWith("feature/")) {
+    println "This is a feature branch, use master branch to build plugins"
+    plugin_branch = "master"
+}
 
 def release_one(repo,product,hash,arch,binary) {
     echo "release binary: ${FILE_SERVER_URL}/download/${binary}"
@@ -373,7 +377,7 @@ try {
 
             container("golang") {
                 dir("go/src/github.com/pingcap/enterprise-plugin") {
-                    println plugin_branch
+                    println "old enterprise-plugin branch: ${plugin_branch}"
                     git credentialsId: 'github-sre-bot-ssh', url: "git@github.com:pingcap/enterprise-plugin.git", branch: plugin_branch
                 }
                 dir("go/src/github.com/pingcap/enterprise-plugin/whitelist") {
