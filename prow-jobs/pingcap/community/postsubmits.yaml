@@ -10,7 +10,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.43.1
+            image: denoland/deno:1.45.5
             command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts]
             args:
               - --owner=pingcap

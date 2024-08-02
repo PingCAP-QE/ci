@@ -12,7 +12,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.42.4
+            image: denoland/deno:1.45.5
             command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
@@ -50,7 +50,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.42.4
+            image: denoland/deno:1.45.5
             command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
