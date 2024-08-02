@@ -33,7 +33,6 @@ function gather_results() {
             record_failure $?
             publish_time=$(yq .created tmp-image-config.yaml)
             git_sha=$(yq '.config.Labels["net.pingcap.tibuild.git-sha"]' tmp-image-config.yaml)
-            publish_time=$(echo "$platforms" | awk '{print $2}')
             yq -i ".images.community[\"${com}\"][\"$image\"][\"$platform\"].published = \"$publish_time\"" results.yaml
             yq -i ".images.community[\"${com}\"][\"$image\"][\"$platform\"].git_sha = \"$git_sha\"" results.yaml
             rm -rf tmp-image-config.yaml
@@ -48,7 +47,6 @@ function gather_results() {
                 record_failure $?
                 publish_time=$(yq .created tmp-image-config.yaml)
                 git_sha=$(yq '.config.Labels["net.pingcap.tibuild.git-sha"]' tmp-image-config.yaml)
-                publish_time=$(echo "$platforms" | awk '{print $2}')
                 yq -i ".images.enterprise[\"${com}\"][\"$image\"][\"$platform\"].published = \"$publish_time\"" results.yaml
                 yq -i ".images.enterprise[\"${com}\"][\"$image\"][\"$platform\"].git_sha = \"$git_sha\"" results.yaml
                 rm -rf tmp-image-config.yaml
@@ -66,7 +64,6 @@ function gather_results() {
             record_failure $?
             publish_time=$(yq .created tmp-image-config.yaml)
             git_sha=$(yq '.config.Labels["net.pingcap.tibuild.git-sha"]' tmp-image-config.yaml)
-            publish_time=$(echo "$platforms" | awk '{print $2}')
             yq -i ".images.failpoint[\"${com}\"][\"$image\"][\"$platform\"].published = \"$publish_time\"" results.yaml
             yq -i ".images.failpoint[\"${com}\"][\"$image\"][\"$platform\"].git_sha = \"$git_sha\"" results.yaml
             rm -rf tmp-image-config.yaml
