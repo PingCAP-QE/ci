@@ -105,7 +105,7 @@ def docker_amd64(repo, hash) {
     } else {
         release_tag = ""
     }
-
+    image_tag = "${env.BRANCH_NAME}".replaceAll("/", "-")
     def paramsBuild = [
         string(name: "ARCH", value: "amd64"),
         string(name: "OS", value: "linux"),
@@ -114,7 +114,7 @@ def docker_amd64(repo, hash) {
         string(name: "PRODUCT", value: repo),
         string(name: "RELEASE_TAG", value: release_tag),
         string(name: "DOCKERFILE", value: "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tiflash"),
-        string(name: "RELEASE_DOCKER_IMAGES", value: "hub.pingcap.net/tiflash/tiflash:${env.BRANCH_NAME},hub.pingcap.net/tiflash/tics:${env.BRANCH_NAME}")
+        string(name: "RELEASE_DOCKER_IMAGES", value: "hub.pingcap.net/tiflash/tiflash:${image_tag},hub.pingcap.net/tiflash/tics:${image_tag}")
     ]
 
     build job: "docker-common",
