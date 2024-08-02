@@ -1,0 +1,218 @@
+#!/usr/bin/env deno run --allow-run --allow-net --allow-write
+import * as yaml from "jsr:@std/yaml@^1.0.0";
+import { parseArgs } from "jsr:@std/cli@^1.0.1";
+
+const platforms = [
+  "linux/amd64",
+  "linux/arm64",
+];
+
+const ImageMap: Record<string, Record<string, string>> = {
+  "pingcap/tidb": {
+    "pingcap/tidb/images/tidb-server": "qa/tidb",
+    "pingcap/tidb/images/br": "qa/br",
+    "pingcap/tidb/images/dumpling": "qa/dumpling",
+    "pingcap/tidb/images/tidb-lightning": "qa/tidb-lightning",
+  },
+  "pingcap/tiflash": {
+    "pingcap/tiflash/image": "qa/tiflash",
+  },
+  "pingcap/tiflow": {
+    "pingcap/tiflow/images/cdc": "qa/ticdc",
+    "pingcap/tiflow/images/dm": "qa/dm",
+  },
+  "pingcap/tidb-binlog": {
+    "pingcap/tidb-binlog/image": "qa/tidb-binlog",
+  },
+  "tikv/pd": {
+    "tikv/pd/image": "qa/pd",
+  },
+  "tikv/tikv": {
+    "tikv/tikv/image": "qa/tikv",
+  },
+  "pingcap/monitoring": {
+    "pingcap/monitoring/image": "qa/tidb-monitor-initializer",
+  },
+  "pingcap/ng-monitoring": {
+    "pingcap/ng-monitoring/image": "qa/ng-monitoring",
+  },
+};
+
+interface CliParams {
+  tiup_mirror: string;
+  oci_registry: string;
+  version: string;
+  branch: string;
+  save_to: string;
+}
+
+interface ImageInfo {
+  error?: string;
+  ok?: boolean;
+  oci?: {
+    [key: string]: OciMetadata;
+  };
+  src_oci?: {
+    [key: string]: OciMetadata;
+  };
+  git_sha?: string;
+}
+
+interface OciMetadata {
+  git_sha: string;
+  published: string;
+}
+
+interface Results {
+  images: {
+    [key: string]: Record<string, ImageInfo>;
+  };
+}
+
+function validate(info: ImageInfo) {
+  info.ok = true;
+  // assert all git sha are same in oci files.
+  if (info.oci) {
+    // unique the gitSha
+    if (new Set(Object.values(info.oci).map((i) => i.git_sha)).size !== 1) {
+      info.ok = false;
+      info.error = (info.error || "") + "\n" +
+        "- git sha not same in platforms.";
+    }
+    // assert the oci.git_sha is all same with git_sha
+    if (info.git_sha) {
+      if (Object.values(info.oci).some((g) => g.git_sha !== info.git_sha)) {
+        info.ok = false;
+        info.error = (info.error || "") + "\n" +
+          "- git sha not same with git branch.";
+      }
+    }
+
+    // deep compare src_oci with oci
+    if (info.src_oci) {
+      if (JSON.stringify(info.oci) !== JSON.stringify(info.src_oci)) {
+        info.ok = false;
+        info.error = (info.error || "") + "\n" +
+          "- src_oci not same with oci.";
+      }
+    }
+  }
+}
+
+async function gatherOciMetadata(image: string, platform: string) {
+  const command = new Deno.Command("oras", {
+    args: ["manifest", "fetch-config", image, "--platform", platform],
+  });
+  const { code, stdout, stderr } = await command.output();
+  if (code !== 0) {
+    console.error(new TextDecoder().decode(stderr));
+    return;
+  }
+  const config = JSON.parse(new TextDecoder().decode(stdout));
+  const publishedTime = config["created"];
+  const gitSha = config["config"]["Labels"]["net.pingcap.tibuild.git-sha"];
+
+  const meta = { git_sha: gitSha, published: publishedTime } as OciMetadata;
+  console.info("got OCI metadata of", image, platform, meta);
+  return meta;
+}
+
+async function getMultiArchImageInfo(image: string) {
+  const ociInfos = {} as Record<string, OciMetadata>;
+  for (const platform of platforms) {
+    const metadata = await gatherOciMetadata(image, platform);
+    if (metadata) {
+      ociInfos[platform] = metadata;
+    }
+  }
+  return ociInfos;
+}
+
+async function gatheringGithubGitSha(repo: string, branch: string) {
+  const res = await fetch(
+    `https://api.github.com/repos/${repo}/commits/${branch}`,
+    {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+      },
+    },
+  );
+  const { sha } = await res.json();
+  console.info(`got github git sha of ${repo}@${branch}: ${sha}`);
+  return sha;
+}
+
+function checkTools() {
+  const command = new Deno.Command("oras", { args: ["version"] });
+  const { code } = command.outputSync();
+  if (code !== 0) {
+    throw new Error("oras not found in PATH");
+  }
+}
+
+async function main(
+  {
+    tiup_mirror,
+    version,
+    branch,
+    oci_registry = "hub.pingcap.net",
+    save_to = "results.yaml",
+  }: CliParams,
+) {
+  // check tools
+  checkTools();
+
+  const command = new Deno.Command("tiup", {
+    args: ["mirror", "set", tiup_mirror],
+  });
+  const { code } = await command.output();
+  if (code !== 0) {
+    throw new Error(`tiup mirror set ${tiup_mirror} failed`);
+  }
+
+  const results = { images: { community: {} } } as Results;
+  for (const [gitRepo, map] of Object.entries(ImageMap)) {
+    console.group(gitRepo);
+    const gitSha = await gatheringGithubGitSha(gitRepo, branch);
+
+    for (const [src, qa] of Object.entries(map)) {
+      const srcInfos = await getMultiArchImageInfo(
+        `${oci_registry}/${src}:${version}`,
+      );
+      const qaInfos = await getMultiArchImageInfo(
+        `${oci_registry}/${qa}:${version}`,
+      );
+      const info = {
+        oci: qaInfos,
+        src_oci: srcInfos,
+        git_sha: gitSha,
+      } as ImageInfo;
+      results.images.community[qa] = info;
+      validate(info);
+    }
+
+    console.groupEnd();
+  }
+
+  console.group("Validation Results");
+  const failedPkgs = [] as string[];
+  for (const [pkg, result] of Object.entries(results.images.community)) {
+    if (!result.ok) {
+      console.error("❌", pkg, result.error);
+      failedPkgs.push(pkg);
+    }
+  }
+  console.groupEnd();
+
+  // write the results to a yaml file.
+  await Deno.writeTextFile(save_to, yaml.stringify(results));
+  if (failedPkgs.length > 0) {
+    throw new Error(`some packages check failed: ${failedPkgs.join(", ")}`);
+  }
+
+  console.info("🏅🏅🏅 check success!");
+}
+
+// parase cli params with `CliParams` and pass to main
+const args = parseArgs(Deno.args) as CliParams;
+await main(args);
