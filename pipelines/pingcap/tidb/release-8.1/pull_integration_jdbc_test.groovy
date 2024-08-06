@@ -38,6 +38,7 @@ pipeline {
                     script {
                         prow.setPRDescription(REFS)
                     }
+                }
             }
         }
         stage('Checkout') {
