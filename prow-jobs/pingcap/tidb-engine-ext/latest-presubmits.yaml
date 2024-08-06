@@ -11,6 +11,7 @@ presubmits:
         - ^master$
         - ^raftstore-proxy$
         - ^(raftstore-proxy-)?6\.[2-9]\d*(\.\d+)?(\-.*)?$
+        - ^(raftstore-proxy-)?[789]\.[0-9]\d*(\.\d+)?(\-.*)?$
       spec:
         containers:
           - name: unit-test
