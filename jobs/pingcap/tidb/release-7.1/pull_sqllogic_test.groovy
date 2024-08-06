@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/release-7.5/pull_common_test') {
+pipelineJob('pingcap/tidb/release-7.1/pull_sqllogic_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/release-7.5/pull_common_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/release-7.5/pull_common_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/release-7.1/pull_sqllogic_test.groovy')
             scm {
                 git{
                     remote {
