@@ -59,7 +59,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-ddl-test
+      context: pull-integration-ddl-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
@@ -69,7 +69,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-mysql-test
+      context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
       branches: *branches
@@ -78,27 +78,17 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-copr-test
+      context: pull-integration-copr-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
-      branches: *branches
-    - name: pingcap/tidb/release-6.1/pull_integration_jdbc_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      optional: true
-      context: wip/pull-integration-jdbc-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-jdbc-test"
       branches: *branches
     - name: pingcap/tidb/release-6.1/pull_e2e_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-e2e-test
+      context: pull-e2e-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
@@ -108,7 +98,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-common-test
+      context: pull-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
@@ -118,7 +108,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-common-test
+      context: pull-integration-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
@@ -128,7 +118,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-sqllogic-test
+      context: pull-sqllogic-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
@@ -138,7 +128,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-tiflash-test
+      context: pull-tiflash-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
