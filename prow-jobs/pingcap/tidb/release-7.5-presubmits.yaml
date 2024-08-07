@@ -57,3 +57,135 @@ presubmits:
       rerun_command: "/test pull-br-integration-test"
       branches:
         - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+
+    - name: pingcap/tidb/release-7.5/pull_integration_ddl_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-ddl-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-ddl-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_mysql_client_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-mysql-client-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
+      rerun_command: "/test pull-mysql-client-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_integration_mysql_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-mysql-test
+      trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-mysql-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_integration_copr_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-copr-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-copr-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_integration_jdbc_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-jdbc-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-jdbc-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_e2e_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-e2e-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
+      rerun_command: "/test pull-e2e-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-common-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
+      rerun_command: "/test pull-common-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_integration_common_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-common-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-common-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_sqllogic_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-sqllogic-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
+      rerun_command: "/test pull-sqllogic-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_tiflash_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-tiflash-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
+      rerun_command: "/test pull-tiflash-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_integration_nodejs_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-nodejs-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-nodejs-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-7.5/pull_integration_python_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-python-orm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-python-orm-test"
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
