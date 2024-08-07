@@ -1,14 +1,37 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+
 presubmits:
   tikv/tikv:
     - name: tikv/tikv/release-7.5/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false  # update here after test passed
+      always_run: false # update here after test passed
       optional: true # update here after test passed
       skip_report: true # update here after test passed
       context: wip/pull-unit-test
       trigger: "(?m)^/debug (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/debug pull-unit-test"
-      branches:
-        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+    - name: tikv/tikv/release-7.5/pull_integration_copr_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false  # update here after test passed
+      optional: true # update here after test passed
+      skip_report: true # update here after test passed
+      context: wip/pull-integration-copr-test
+      trigger: "(?m)^/debug (?:.*? )?pull-integration-copr-test(?: .*?)?$"
+      rerun_command: "/debug pull-integration-copr-test"
+      branches: *branches
+    - name: tikv/tikv/release-7.5/pull_integration_compatibility_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false  # update here after test passed
+      optional: true # update here after test passed
+      skip_report: true # update here after test passed
+      context: wip/pull-integration-compatibility-test
+      trigger: "(?m)^/debug (?:.*? )?pull-integration-compatibility-test(?: .*?)?$"
+      rerun_command: "/debug pull-integration-compatibility-test"
+      branches: *branches
