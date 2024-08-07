@@ -54,16 +54,6 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
       branches: *branches
-    - name: pingcap/tidb/release-6.5/pull_lightning_integration_test
-      agent: jenkins
-      decorate: false # need add this.
-      context: pull-lightning-integration-test
-      always_run: false
-      optional: true
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
-      rerun_command: "/test pull-lightning-integration-test"
-      branches: *branches
     - name: pingcap/tidb/release-6.5/pull_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
