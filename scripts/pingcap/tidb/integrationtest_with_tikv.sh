@@ -56,6 +56,6 @@ exit_code=0
 # finally block:
 cleanup
 
-if [[ "exit_code" != '0' ]]; then
+if [[ "$exit_code" != '0' ]]; then
    exit ${exit_code}
 fi
