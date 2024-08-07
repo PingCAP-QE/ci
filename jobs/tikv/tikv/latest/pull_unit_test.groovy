@@ -1,6 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk branches.
-pipelineJob('tikv/tikv/pull_unit_test') {
+final folder = 'tikv/tikv'
+final jobName = 'pull_unit_test'
+
+pipelineJob("${folder}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -18,7 +20,7 @@ pipelineJob('tikv/tikv/pull_unit_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/tikv/tikv/latest/pull_unit_test.groovy")
+            scriptPath("pipelines/${folder}/latest/${jobName}.groovy")
             scm {
                 git{
                     remote {
