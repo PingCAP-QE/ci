@@ -1,5 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/release-6.1/ghpr_build') {
+final folder = 'pingcap/tidb/release-6.1'
+final jobName = 'ghpr_build'
+
+pipelineJob("${folder}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +19,7 @@ pipelineJob('pingcap/tidb/release-6.1/ghpr_build') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-6.1/ghpr_build.groovy")
+            scriptPath("pipelines/${folder}/${jobName}.groovy")
             scm {
                 git{
                     remote {

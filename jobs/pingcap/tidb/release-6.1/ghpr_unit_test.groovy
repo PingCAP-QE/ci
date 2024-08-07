@@ -1,5 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/release-6.1/ghpr_unit_test') {
+final folder = 'pingcap/tidb/release-6.1'
+final jobName = 'ghpr_unit_test'
+
+pipelineJob("${folder}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +19,7 @@ pipelineJob('pingcap/tidb/release-6.1/ghpr_unit_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-6.1/ghpr_unit_test.groovy")
+            scriptPath("pipelines/${folder}/${jobName}.groovy")
             scm {
                 git{
                     remote {
