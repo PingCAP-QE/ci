@@ -113,7 +113,7 @@ def docker_amd64(repo, hash) {
         string(name: "REPO", value: repo),
         string(name: "PRODUCT", value: repo),
         string(name: "RELEASE_TAG", value: release_tag),
-        string(name: "DOCKERFILE", value: "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tiflash"),
+        string(name: "DOCKERFILE", value: "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/tiflash_ci"),
         string(name: "RELEASE_DOCKER_IMAGES", value: "hub.pingcap.net/tiflash/tiflash:${image_tag},hub.pingcap.net/tiflash/tics:${image_tag}")
     ]
 
