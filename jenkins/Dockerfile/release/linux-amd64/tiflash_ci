@@ -1,0 +1,5 @@
+ARG BASE_IMG=hub.pingcap.net/tiflash/tiflash-ci-base:with-mysql-cli
+FROM $BASE_IMG
+ENV LD_LIBRARY_PATH /tiflash
+COPY tiflash /tiflash
+ENTRYPOINT ["/tiflash/tiflash", "server"]
