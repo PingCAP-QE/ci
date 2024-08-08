@@ -74,7 +74,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-ddl-test
+      context: pull-integration-ddl-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
@@ -85,7 +85,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-mysql-client-test
+      context: pull-mysql-client-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
       rerun_command: "/test pull-mysql-client-test"
@@ -96,7 +96,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-mysql-test
+      context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
       branches:
@@ -106,7 +106,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-copr-test
+      context: pull-integration-copr-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
@@ -117,7 +117,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-jdbc-test
+      context: pull-integration-jdbc-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
@@ -128,7 +128,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-e2e-test
+      context: pull-e2e-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
@@ -139,7 +139,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-common-test
+      context: pull-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
@@ -150,7 +150,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-common-test
+      context: pull-integration-common-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
@@ -161,7 +161,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-sqllogic-test
+      context: pull-sqllogic-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
@@ -172,7 +172,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-tiflash-test
+      context: pull-tiflash-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
@@ -183,7 +183,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-nodejs-test
+      context: pull-integration-nodejs-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
       rerun_command: "/test pull-integration-nodejs-test"
@@ -194,7 +194,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-python-orm-test
+      context: pull-integration-python-orm-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test pull-integration-python-orm-test"
