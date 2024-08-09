@@ -9,7 +9,8 @@ presubmits:
     - name: pingcap/tiflash/release-8.1/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      always_run: false
       context: wip/pull-unit-test
       skip_report: true
       optional: true
