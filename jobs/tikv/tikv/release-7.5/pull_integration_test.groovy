@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-final folder = 'tikv/tikv'
-final jobName = 'pull_unit_test'
+final folder = 'tikv/tikv/release-7.5'
+final jobName = 'pull_integration_copr_test'
 
 pipelineJob("${folder}/${jobName}") {
     logRotator {
@@ -20,7 +20,7 @@ pipelineJob("${folder}/${jobName}") {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/${folder}/latest/${jobName}.groovy")
+            scriptPath("pipelines/${folder}/${jobName}.groovy")
             scm {
                 git{
                     remote {

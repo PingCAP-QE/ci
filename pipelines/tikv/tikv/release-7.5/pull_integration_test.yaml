@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/jenkins/tikv-cached-release-7.5:latest"
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi
+          cpu: "6"
+        limits:
+          memory: 32Gi
+          cpu: "16"
+      securityContext:
+        privileged: true
+    - name: golang
+      image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi
+          cpu: '4'
+        limits:
+          memory: 32Gi
+          cpu: "16"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"

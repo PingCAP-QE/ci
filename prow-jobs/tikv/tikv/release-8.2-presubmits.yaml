@@ -1,4 +1,8 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+
 presubmits:
   tikv/tikv:
     - name: tikv/tikv/release-8.2/pull_unit_test
@@ -10,5 +14,4 @@ presubmits:
       context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
-      branches:
-        - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
