@@ -339,7 +339,7 @@ try {
                                     [$class: 'StringParameterValue', name: 'TIUP_ENV', value: "staging"],
                             ]
                 }
-				if (!(RELEASE_TAG >= "v6.6.0")){
+				if (RELEASE_TAG < "v6.6.0"){
                 publishs["publish community image"] = {
                     build job: "pre-release-docker",
                             wait: true,
@@ -361,7 +361,7 @@ try {
                             ]
                 }
                 }
-				if (RELEASE_TAG >= "v6.5.0"){
+				if (RELEASE_TAG >= "v6.5.0" && RELEASE_TAG < "v7.1.0"){
                     publishs["build community image rocky"] = {
                         build job: "pre-release-community-docker-rocky",
                                 wait: true,
@@ -387,7 +387,7 @@ try {
 
             stage("publish enterprise & sync images") {
 				def builds =[:]
-				if (!(RELEASE_TAG >= "v6.6.0")){
+				if (RELEASE_TAG < "v6.6.0"){
 				builds["publish enterprise image"] = {
                     build job: "pre-release-enterprise-docker",
                         wait: true,
@@ -404,7 +404,7 @@ try {
                         ]
 				}
                 }
-				if (RELEASE_TAG >= "v6.5.0"){
+				if (RELEASE_TAG >= "v6.5.0" && RELEASE_TAG < "v7.1.0"){
                     builds["build enterprise image rocky"] = {
                         build job: "pre-release-enterprise-docker-rocky",
                             wait: true,
@@ -430,7 +430,7 @@ try {
                     }
                 }
                 parallel builds
-                if (RELEASE_TAG >= "v6.6.0"){
+                if (RELEASE_TAG >= "v6.6.0" && RELEASE_TAG<"v7.1.0"){
                         build job: "pre-release-docker-rocky-sync",
                             wait: true,
                             parameters: [
