@@ -9,11 +9,23 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
+          memory: 12Gi
           cpu: "4"
         limits:
           memory: 16Gi
           cpu: "6"
+    - name: mysql-client-test
+      image: "hub.pingcap.net/tiproxy-team/mysql-client-test"
+      securityContext:
+        privileged: true
+      tty: true
+      resources:
+        requests:
+          memory: 1Gi
+          cpu: "4"
+        limits:
+          memory: 16Gi
+          cpu: "8"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
@@ -30,7 +42,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
