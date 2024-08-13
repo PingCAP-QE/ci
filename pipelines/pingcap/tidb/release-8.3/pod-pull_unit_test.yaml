@@ -5,17 +5,16 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
+      # TODO(wuhuizuo): using standard bazel build image to shrink the image size
+      # and keep image simple,so no need to refresh image to update basic bazel out data.
       image: "hub.pingcap.net/wangweizhen/tidb_image:go12120230809"
       securityContext:
         privileged: true
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "8"
-        limits:
           memory: 32Gi
-          cpu: "8"
+          cpu: "16"
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
@@ -28,6 +27,8 @@ spec:
           mountPath: /share/.cache/go-build
         - name: gopathcache
           mountPath: /share/.go
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -45,14 +46,7 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+          cpu: 100m              
   volumes:
     - name: gopathcache
       persistentVolumeClaim:
@@ -67,6 +61,9 @@ spec:
       emptyDir: {}
     - name: bazel-out-merged
       emptyDir: {}
+    - name: bazel-repository-cache
+      persistentVolumeClaim:
+        claimName: bazel-repository-cache
     - name: bazel-rc
       secret:
         secretName: bazel
@@ -98,3 +95,8 @@ spec:
                 operator: In
                 values:
                   - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
+

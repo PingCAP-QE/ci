@@ -9,11 +9,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
+          memory: 16Gi
           cpu: "4"
         limits:
           memory: 16Gi
-          cpu: "6"
+          cpu: "4"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true

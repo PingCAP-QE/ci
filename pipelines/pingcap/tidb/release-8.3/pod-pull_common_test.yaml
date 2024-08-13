@@ -9,11 +9,21 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
+          memory: 12Gi
           cpu: "4"
         limits:
           memory: 16Gi
           cpu: "6"
+    - name: java
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached"
+      tty: true
+      resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
+        limits:
+          memory: 16Gi
+          cpu: "4"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
@@ -30,7 +40,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
