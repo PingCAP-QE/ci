@@ -45,6 +45,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('release-8.2') }
+                        ghprbBranch { branch('release-8.3') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
