@@ -24,17 +24,16 @@ pipelineJob('release-all-images-by-branch-for-internal') {
         pipelineTriggers {
             triggers {
                 parameterizedCron {
-                    parameterizedSpecification(
-'''0 18 * * * % GIT_BRANCH=release-5.4;FORCE_REBUILD=false;NEED_MULTIARCH=false
+                    parameterizedSpecification('''
+0  18 * * * % GIT_BRANCH=release-5.4;FORCE_REBUILD=false;NEED_MULTIARCH=false
 10 18 * * * % GIT_BRANCH=release-6.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
 20 18 * * * % GIT_BRANCH=release-6.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
 30 18 * * * % GIT_BRANCH=release-7.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
 40 18 * * * % GIT_BRANCH=release-7.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
 50 18 * * * % GIT_BRANCH=release-8.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
-20 19 * * * % GIT_BRANCH=release-8.2;FORCE_REBUILD=false;NEED_MULTIARCH=true
-H 19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
-'''
-                    )
+20 19 * * * % GIT_BRANCH=release-8.3;FORCE_REBUILD=false;NEED_MULTIARCH=true
+H  19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
+''')
                 }
             }
         }
