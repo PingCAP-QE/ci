@@ -107,7 +107,7 @@ RUN cd tikv-src \
         }
         
         build_branch("master")
-        build_branch("release-8.2")
+        build_branch("release-8.3")
         build_branch("release-8.1")
         build_branch("release-7.5")
         build_branch("release-7.1")
