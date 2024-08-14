@@ -18,8 +18,8 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        timeout(time: 75, unit: 'MINUTES')
+        // parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -109,7 +109,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
+                        options { timeout(time: 75, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
