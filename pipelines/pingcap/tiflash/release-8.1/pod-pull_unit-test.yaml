@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvmorg-14.0.6"
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-13.0.0"
       command:
         - "cat"
       tty: true
