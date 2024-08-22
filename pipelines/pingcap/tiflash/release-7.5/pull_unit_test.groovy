@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-7.1/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 16
 final dependency_dir = "/home/jenkins/agent/dependency"
