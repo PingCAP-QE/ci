@@ -10,10 +10,10 @@ spec:
       resources:
         requests:
           memory: "32Gi"
-          cpu: "16000m"
+          cpu: "12000m"
         limits:
           memory: "32Gi"
-          cpu: "16000m"
+          cpu: "12000m"
       volumeMounts:
       - mountPath: "/home/jenkins/agent/rust"
         name: "volume-0"
