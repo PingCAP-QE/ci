@@ -7,39 +7,54 @@ const platforms = [
   "linux/arm64",
 ];
 
-const ImageMap: Record<string, Record<string, string>> = {
-  "pingcap/tidb": {
-    "pingcap/tidb/images/tidb-server": "qa/tidb",
-    "pingcap/tidb/images/br": "qa/br",
-    "pingcap/tidb/images/dumpling": "qa/dumpling",
-    "pingcap/tidb/images/tidb-lightning": "qa/tidb-lightning",
+const imageMap: Record<string, GitRepoImageMap> = {
+  comunity: {
+    "pingcap/tidb": {
+      "pingcap/tidb/images/tidb-server": "qa/tidb",
+      "pingcap/tidb/images/br": "qa/br",
+      "pingcap/tidb/images/dumpling": "qa/dumpling",
+      "pingcap/tidb/images/tidb-lightning": "qa/tidb-lightning",
+    },
+    "pingcap/tiflash": {
+      "pingcap/tiflash/image": "qa/tiflash",
+    },
+    "pingcap/tiflow": {
+      "pingcap/tiflow/images/cdc": "qa/ticdc",
+      "pingcap/tiflow/images/dm": "qa/dm",
+    },
+    "pingcap/tidb-binlog": {
+      "pingcap/tidb-binlog/image": "qa/tidb-binlog",
+    },
+    "tikv/pd": {
+      "tikv/pd/image": "qa/pd",
+    },
+    "tikv/tikv": {
+      "tikv/tikv/image": "qa/tikv",
+    },
+    "pingcap/monitoring": {
+      "pingcap/monitoring/image": "qa/tidb-monitor-initializer",
+    },
+    "pingcap/ng-monitoring": {
+      "pingcap/ng-monitoring/image": "qa/ng-monitoring",
+    },
   },
-  "pingcap/tiflash": {
-    "pingcap/tiflash/image": "qa/tiflash",
-  },
-  "pingcap/tiflow": {
-    "pingcap/tiflow/images/cdc": "qa/ticdc",
-    "pingcap/tiflow/images/dm": "qa/dm",
-  },
-  "pingcap/tidb-binlog": {
-    "pingcap/tidb-binlog/image": "qa/tidb-binlog",
-  },
-  "tikv/pd": {
-    "tikv/pd/image": "qa/pd",
-  },
-  "tikv/tikv": {
-    "tikv/tikv/image": "qa/tikv",
-  },
-  "pingcap/monitoring": {
-    "pingcap/monitoring/image": "qa/tidb-monitor-initializer",
-  },
-  "pingcap/ng-monitoring": {
-    "pingcap/ng-monitoring/image": "qa/ng-monitoring",
+  enterprise: {
+    "pingcap/tidb": {
+      "pingcap/tidb/images/tidb-server": "qa/tidb-enterprise",
+    },
+    "pingcap/tiflash": {
+      "pingcap/tiflash/image": "qa/tiflash-enterprise",
+    },
+    "tikv/pd": {
+      "tikv/pd/image": "qa/pd-enterprise",
+    },
+    "tikv/tikv": {
+      "tikv/tikv/image": "qa/tikv-enterprise",
+    },
   },
 };
 
 interface CliParams {
-  tiup_mirror: string;
   oci_registry: string;
   version: string;
   branch: string;
@@ -68,6 +83,8 @@ interface Results {
     [key: string]: Record<string, ImageInfo>;
   };
 }
+
+type GitRepoImageMap = Record<string, Record<string, string>>;
 
 function validate(info: ImageInfo) {
   info.ok = true;
@@ -150,64 +167,99 @@ function checkTools() {
   }
 }
 
-async function main(
-  {
-    tiup_mirror,
-    version,
-    branch,
-    oci_registry = "hub.pingcap.net",
-    save_to = "results.yaml",
-  }: CliParams,
+async function checkImages(
+  branch: string,
+  version: string,
+  oci_registry: string,
+  mm: GitRepoImageMap,
 ) {
-  // check tools
-  checkTools();
-
-  const command = new Deno.Command("tiup", {
-    args: ["mirror", "set", tiup_mirror],
-  });
-  const { code } = await command.output();
-  if (code !== 0) {
-    throw new Error(`tiup mirror set ${tiup_mirror} failed`);
-  }
-
-  const results = { images: { community: {} } } as Results;
-  for (const [gitRepo, map] of Object.entries(ImageMap)) {
+  const results = {} as Record<string, ImageInfo>;
+  for (const [gitRepo, map] of Object.entries(mm)) {
     console.group(gitRepo);
     const gitSha = await gatheringGithubGitSha(gitRepo, branch);
 
-    for (const [src, qa] of Object.entries(map)) {
+    for (const [src, dst] of Object.entries(map)) {
       const srcInfos = await getMultiArchImageInfo(
         `${oci_registry}/${src}:${version}`,
       );
       const qaInfos = await getMultiArchImageInfo(
-        `${oci_registry}/${qa}:${version}`,
+        `${oci_registry}/${dst}:${version}`,
       );
       const info = {
         oci: qaInfos,
         src_oci: srcInfos,
         git_sha: gitSha,
       } as ImageInfo;
-      results.images.community[qa] = info;
+      results[dst] = info;
       validate(info);
     }
 
     console.groupEnd();
   }
 
-  console.group("Validation Results");
   const failedPkgs = [] as string[];
-  for (const [pkg, result] of Object.entries(results.images.community)) {
+  for (const [pkg, result] of Object.entries(results)) {
     if (!result.ok) {
       console.error("❌", pkg, result.error);
       failedPkgs.push(pkg);
     }
   }
-  console.groupEnd();
+  return { results, failedPkgs };
+}
 
+async function main(
+  {
+    version,
+    branch,
+    oci_registry = "hub.pingcap.net",
+    save_to = "results.yaml",
+  }: CliParams,
+) {
+  checkTools();
+  const totalResults = {} as Record<string, any>;
+  const totalFailedPkgs = {} as Record<string, string[]>;
+
+  {
+    console.group("check community images:");
+    const { results, failedPkgs } = await checkImages(
+      branch,
+      version,
+      oci_registry,
+      imageMap.comunity,
+    );
+    console.groupEnd();
+    totalResults["community"] = results;
+    totalFailedPkgs["community"] = failedPkgs;
+  }
+
+  {
+    console.group("check enterprise images:");
+    const { results, failedPkgs } = await checkImages(
+      branch,
+      `${version}-enterprise`,
+      oci_registry,
+      imageMap.enterprise,
+    );
+    console.groupEnd();
+    totalResults["enterprise"] = results;
+    totalFailedPkgs["enterprise"] = failedPkgs;
+  }
   // write the results to a yaml file.
-  await Deno.writeTextFile(save_to, yaml.stringify(results));
-  if (failedPkgs.length > 0) {
-    throw new Error(`some packages check failed: ${failedPkgs.join(", ")}`);
+  await Deno.writeTextFile(save_to, yaml.stringify(totalResults));
+
+  if (totalFailedPkgs["community"].length > 0) {
+    throw new Error(
+      `some community images check failed: ${
+        totalFailedPkgs["community"].join(", ")
+      }`,
+    );
+  }
+  if (totalFailedPkgs["enterprise"].length > 0) {
+    throw new Error(
+      `some enterprise images check failed: ${
+        totalFailedPkgs["enterprise"].join(", ")
+      }`,
+    );
   }
 
   console.info("🏅🏅🏅 check success!");
