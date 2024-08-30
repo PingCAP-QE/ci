@@ -71,13 +71,13 @@ pipeline {
                     }
                 } 
                 stages {
-                    stage("Test") {
+                    stage("Test Index ${JOB_INDEX}") {
                         steps {
                             dir("pd") { 
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
                                     sh label: 'Test', script: """
-                                        make ci-test-job JOB_INDEX=$JOB_INDEX
-                                        mv covprofile covprofile_$JOB_INDEX
+                                        make ci-test-job JOB_INDEX=${JOB_INDEX}
+                                        mv covprofile covprofile_${JOB_INDEX}
                                         if [ -f junitfile ]; then
                                             cat junitfile
                                         fi
