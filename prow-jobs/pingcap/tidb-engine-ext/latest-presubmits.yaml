@@ -25,6 +25,8 @@ presubmits:
             env:
               - name: GO_PROXY
                 value: http://goproxy.pingcap.net,direct
+              - name: CARGO_NET_GIT_FETCH_WITH_CLI
+                value: "true"
             resources:
               limits:
                 memory: 32Gi
