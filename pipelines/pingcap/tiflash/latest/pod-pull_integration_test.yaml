@@ -48,6 +48,25 @@ spec:
     - mountPath: "/home/jenkins/agent"
       name: "workspace-volume"
       readOnly: false
+  - image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
+    name: "jnlp"    #  TODO: remove this default container
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "100m"
+    volumeMounts:
+    - mountPath: "/home/jenkins"
+      name: "volume-0"
+      readOnly: false
+    - mountPath: "/tmp"
+      name: "volume-3"
+      readOnly: false
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
   volumes:
   - emptyDir:
       medium: ""
