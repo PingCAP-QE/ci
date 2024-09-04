@@ -11,6 +11,7 @@ final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
+Boolean build_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
@@ -47,9 +48,32 @@ pipeline {
                         currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
                     }
                 }
+                script {
+                    // test build cache, if cache is exist, then skip the following steps
+                    try {
+                        dir("test-build-cache") { 
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS, 'it-build')){
+                                // if file README.md not exist, then build-cache-ready is false
+                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                                println "build_cache_ready: ${build_cache_ready}"
+                                // if build cache not ready, then throw error to avoid cache empty directory
+                                // for the same cache key, if throw error, will skip the cache step
+                                // the cache gets not stored if the key already exists or the inner-step has been failed
+                                if (!build_cache_ready) {
+                                    error "build cache not ready"
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        println "build cache not ready: ${e}"
+                    }
+                }
             }
         }
         stage('Checkout') {
+            when {
+                expression { !build_cache_ready }
+            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
@@ -90,6 +114,9 @@ pipeline {
             }
         }
         stage("Prepare Cache") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Ccache") {
                     steps {
@@ -170,6 +197,9 @@ pipeline {
             }
         }
         stage("Configure Project") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 script {
                     def toolchain = "llvm"
@@ -211,6 +241,9 @@ pipeline {
             }
         }
         stage("Format Check") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 script { 
                     def target_branch = REFS.base_ref 
@@ -234,6 +267,9 @@ pipeline {
             }
         }
         stage("Build TiFlash") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {  
                     sh """
@@ -250,6 +286,9 @@ pipeline {
             }
         }
         stage("License check") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     // TODO: add license-eye to docker image
@@ -267,8 +306,10 @@ pipeline {
                 }
             }
         }
-
         stage("Post Build") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Static Analysis"){
                     steps {
@@ -308,12 +349,14 @@ pipeline {
                 }
             }
         }
-
         stage("Cache code and artifact") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
-                        dir('tests/.build') { 
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS, 'it-build')){
+                       dir('tests/.build') { 
                             sh """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
@@ -326,8 +369,8 @@ pipeline {
                         rm -rf contrib
                         du -sh ./
                         ls -alh
-                        """
-                    }
+                        """ 
+                    }      
                 }
             }
         }
