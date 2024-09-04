@@ -1,6 +1,6 @@
 certifi==2024.7.4
 charset-normalizer==3.3.2
-idna==3.7
+idna==3.8
 multi-key-dict==2.0.3
 pbr==6.1.0
 python-jenkins==1.8.2
