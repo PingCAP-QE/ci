@@ -55,10 +55,10 @@ pipeline {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
                         dir("test-build-cache") { 
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS, 'ut-build')){
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('git', REFS, 'ut-build')}"
+                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
                                 println "skip build..."
                                 // if build cache not ready, then throw error to avoid cache empty directory
                                 // for the same cache key, if throw error, will skip the cache step
@@ -343,7 +343,7 @@ pipeline {
             steps {
                 script {
                     dir("${WORKSPACE}/tiflash") {
-                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS, 'ut-build')) {
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')) {
                             if (build_cache_ready) {
                                 println "build cache exist, restore from cache"
                                 sh """
