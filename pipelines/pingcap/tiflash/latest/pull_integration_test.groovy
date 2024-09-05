@@ -215,7 +215,7 @@ pipeline {
                 script { 
                     def target_branch = REFS.base_ref 
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
-                    def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.p && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                    def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                     if (!fileExists) {
                         echo "skipped format check because this branch does not support format"
                         return
@@ -280,6 +280,7 @@ pipeline {
                             dir("${WORKSPACE}/build") {
                                 sh """
                                 NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
+                                cat /tmp/tiflash-diff-files.json
                                 cmake "${WORKSPACE}/tiflash" \\
                                     -DENABLE_TESTS=false \\
                                     -DCMAKE_BUILD_TYPE=Debug \\
