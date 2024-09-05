@@ -346,10 +346,14 @@ pipeline {
                 stage("Upload Build Artifacts") {
                     steps {
                         dir("${WORKSPACE}/install") {
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
+                            sh """
+                            du -sh tiflash.tar.gz
+                            rm -rf tiflash.tar.gz
+                            """
                         }
                     }
                 }
@@ -363,12 +367,12 @@ pipeline {
                 dir("${WORKSPACE}/tiflash") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                        dir('tests/.build') { 
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
                             """
                         }
-                        sh """
+                        sh label: "clean unnecessary dirs", script: """
                         git status
                         git show --oneline -s
                         rm -rf .git
@@ -403,18 +407,22 @@ pipeline {
                         steps {
                             dir("${WORKSPACE}/tiflash") { 
                                 cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") { 
-                                    sh """
+                                    sh label: "debug info", script: """
                                     printenv
                                     pwd && ls -alh
                                     """
                                     dir("tests/${TEST_PATH}") {
                                         echo "path: ${pwd()}"
-                                        sh "docker ps -a && docker version"
+                                        sh label: "debug docker info", script: """
+                                        docker ps -a && docker version
+                                        """
                                         script {
                                             def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            sh "PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                                            sh label: "run integration tests", script: """
+                                            PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
+                                            """
                                         }
                                     }
                                 }
