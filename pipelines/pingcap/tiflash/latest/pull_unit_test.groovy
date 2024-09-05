@@ -10,6 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.y
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
 final dependency_dir = "/home/jenkins/agent/dependency"
+Boolean build_cache_ready = false
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 
@@ -50,9 +51,33 @@ pipeline {
                         currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
                     }
                 }
+                script {
+                    // test build cache, if cache is exist, then skip the following build steps
+                    try {
+                        dir("test-build-cache") { 
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')){
+                                // if file README.md not exist, then build-cache-ready is false
+                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
+                                println "skip build..."
+                                // if build cache not ready, then throw error to avoid cache empty directory
+                                // for the same cache key, if throw error, will skip the cache step
+                                // the cache gets not stored if the key already exists or the inner-step has been failed
+                                if (!build_cache_ready) {
+                                    error "build cache not exist, start build..."
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        println "build cache not ready: ${e}"
+                    }
+                }
             }
         }
         stage('Checkout') {
+            when {
+                expression { !build_cache_ready }
+            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
@@ -91,6 +116,9 @@ pipeline {
             }
         }
         stage("Prepare Cache") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Ccache") {
                     steps {
@@ -167,6 +195,9 @@ pipeline {
             }
         }
         stage("Build Dependency and Utils") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Cluster Manage") { 
                     steps {
@@ -188,6 +219,9 @@ pipeline {
             }
         }
         stage("Configure Project") {
+            when {
+                expression { !build_cache_ready }
+            }
             // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
@@ -230,6 +264,9 @@ pipeline {
             }
         }
         stage("Build TiFlash") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                 sh """
@@ -257,30 +294,45 @@ pipeline {
         }
 
         stage("Post Build") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Upload Build Artifacts") {
                     steps {
                         dir("${WORKSPACE}/install") {
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
+                            sh """
+                            du -sh tiflash.tar.gz
+                            rm -rf tiflash.tar.gz
+                            """
                         }
                     }
                 }
                 stage("Upload Build Data") {
                     steps {
                         dir("${WORKSPACE}/build") {
-                            sh """
+                            sh label: "archive build data", script: """
                             tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
                             """
                             archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
+                            sh """
+                            du -sh build-data.tar.xz
+                            rm -rf build-data.tar.xz
+                            """
                         }
                         dir("${WORKSPACE}/tiflash") {
-                            sh """
+                            sh label: "archive source patch", script: """
                             tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
                             """
                             archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
+                            sh """
+                            du -sh source-patch.tar.xz
+                            rm -rf source-patch.tar.xz
+                            """
                         }
                     }
                 }
@@ -289,11 +341,35 @@ pipeline {
 
         stage("Unit Test Prepare") {
             steps {
-                sh """
-                ln -sf ${WORKSPACE}/install/tiflash /tiflash
-                """
-                sh """
+                script {
+                    dir("${WORKSPACE}/tiflash") {
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')) {
+                            if (build_cache_ready) {
+                                println "build cache exist, restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
+                                sh """
+                                du -sh ./
+                                ls -alh ./
+                                ls -alh tests/.build/
+                                """
+                            } else {
+                                println "build cache not exist, clean git repo for cache"
+                                sh label: "clean git repo", script: """
+                                git status
+                                git show --oneline -s
+                                mkdir tests/.build
+                                cp -r ${WORKSPACE}/install/* tests/.build/
+                                rm -rf .git
+                                rm -rf contrib
+                                du -sh ./
+                                ls -alh
+                                """ 
+                            }
+                        }     
+                    }
+                }
+                sh label: "link tiflash and tests", script: """
                 ls -lha ${WORKSPACE}/tiflash
+                ln -sf ${WORKSPACE}/tiflash/tests/.build/tiflash /tiflash
                 ln -sf ${WORKSPACE}/tiflash/tests /tests
                 """
                 dir("${WORKSPACE}/tiflash") {
@@ -307,7 +383,7 @@ pipeline {
         stage("Run Tests") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    sh """
+                    sh label: "run tests", script: """
                     parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests

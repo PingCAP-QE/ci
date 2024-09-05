@@ -11,6 +11,7 @@ final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
+Boolean build_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
@@ -47,9 +48,33 @@ pipeline {
                         currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
                     }
                 }
+                script {
+                    // test build cache, if cache is exist, then skip the following build steps
+                    try {
+                        dir("test-build-cache") { 
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
+                                // if file README.md not exist, then build-cache-ready is false
+                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
+                                println "skip build..."
+                                // if build cache not ready, then throw error to avoid cache empty directory
+                                // for the same cache key, if throw error, will skip the cache step
+                                // the cache gets not stored if the key already exists or the inner-step has been failed
+                                if (!build_cache_ready) {
+                                    error "build cache not exist, start build..."
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        println "build cache not ready: ${e}"
+                    }
+                }
             }
         }
         stage('Checkout') {
+            when {
+                expression { !build_cache_ready }
+            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
@@ -90,6 +115,9 @@ pipeline {
             }
         }
         stage("Prepare Cache") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Ccache") {
                     steps {
@@ -170,6 +198,9 @@ pipeline {
             }
         }
         stage("Configure Project") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 script {
                     def toolchain = "llvm"
@@ -211,6 +242,9 @@ pipeline {
             }
         }
         stage("Format Check") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 script { 
                     def target_branch = REFS.base_ref 
@@ -228,12 +262,17 @@ pipeline {
                             --repo_path '${WORKSPACE}/tiflash' \\
                             --check_formatted \\
                             --diff_from \$(git merge-base origin/${target_branch} HEAD)
+
+                        cat /tmp/tiflash-diff-files.json
                         """
                     }
                 }
             }
         }
         stage("Build TiFlash") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {  
                     sh """
@@ -250,6 +289,9 @@ pipeline {
             }
         }
         stage("License check") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     // TODO: add license-eye to docker image
@@ -267,8 +309,10 @@ pipeline {
                 }
             }
         }
-
         stage("Post Build") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Static Analysis"){
                     steps {
@@ -278,7 +322,10 @@ pipeline {
                             def fix_compile_commands = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/fix_compile_commands.py"
                             def run_clang_tidy = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/run-clang-tidy.py"
                             dir("${WORKSPACE}/build") {
-                                sh """
+                                sh label: "debug diff files", script: """
+                                cat /tmp/tiflash-diff-files.json
+                                """
+                                sh label: "run clang tidy", script: """
                                 NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
                                 cat /tmp/tiflash-diff-files.json
                                 cmake "${WORKSPACE}/tiflash" \\
@@ -300,35 +347,41 @@ pipeline {
                 stage("Upload Build Artifacts") {
                     steps {
                         dir("${WORKSPACE}/install") {
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
+                            sh """
+                            du -sh tiflash.tar.gz
+                            rm -rf tiflash.tar.gz
+                            """
                         }
                     }
                 }
             }
         }
-
         stage("Cache code and artifact") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
-                        dir('tests/.build') { 
-                            sh """
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
+                       dir('tests/.build') { 
+                            sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
                             """
                         }
-                        sh """
+                        sh label: "clean unnecessary dirs", script: """
                         git status
                         git show --oneline -s
                         rm -rf .git
                         rm -rf contrib
                         du -sh ./
                         ls -alh
-                        """
-                    }
+                        """ 
+                    }      
                 }
             }
         }
@@ -354,19 +407,24 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") { 
-                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") { 
-                                    sh """
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
+                                    println "restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
+                                    sh label: "debug info", script: """
                                     printenv
                                     pwd && ls -alh
                                     """
                                     dir("tests/${TEST_PATH}") {
                                         echo "path: ${pwd()}"
-                                        sh "docker ps -a && docker version"
+                                        sh label: "debug docker info", script: """
+                                        docker ps -a && docker version
+                                        """
                                         script {
                                             def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            sh "PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                                            sh label: "run integration tests", script: """
+                                            PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
+                                            """
                                         }
                                     }
                                 }
