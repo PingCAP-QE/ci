@@ -49,7 +49,7 @@ pipeline {
                     }
                 }
                 script {
-                    // test build cache, if cache is exist, then skip the following steps
+                    // test build cache, if cache is exist, then skip the following build steps
                     try {
                         dir("test-build-cache") { 
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS, 'it-build')){
