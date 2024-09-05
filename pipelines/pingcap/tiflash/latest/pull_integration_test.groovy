@@ -55,12 +55,13 @@ pipeline {
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS, 'it-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}"
+                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('git', REFS, 'it-build')}"
+                                println "skip build..."
                                 // if build cache not ready, then throw error to avoid cache empty directory
                                 // for the same cache key, if throw error, will skip the cache step
                                 // the cache gets not stored if the key already exists or the inner-step has been failed
                                 if (!build_cache_ready) {
-                                    error "build cache not ready"
+                                    error "build cache not exist, start build..."
                                 }
                             }
                         }
