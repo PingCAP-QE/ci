@@ -344,7 +344,7 @@ pipeline {
                     dir("${WORKSPACE}/tiflash") {
                         cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')) {
                             if (build_cache_ready) {
-                                println "build cache exist, restore from cache"
+                                println "build cache exist, restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
                                 sh """
                                 du -sh ./
                                 ls -alh ./

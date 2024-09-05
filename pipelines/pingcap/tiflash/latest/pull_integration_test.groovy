@@ -406,7 +406,8 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") { 
-                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") { 
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
+                                    println "restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
                                     sh label: "debug info", script: """
                                     printenv
                                     pwd && ls -alh
