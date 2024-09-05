@@ -249,7 +249,7 @@ pipeline {
                 script { 
                     def target_branch = REFS.base_ref 
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
-                    def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.p && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                    def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                     if (!fileExists) {
                         echo "skipped format check because this branch does not support format"
                         return
@@ -262,6 +262,8 @@ pipeline {
                             --repo_path '${WORKSPACE}/tiflash' \\
                             --check_formatted \\
                             --diff_from \$(git merge-base origin/${target_branch} HEAD)
+
+                        cat /tmp/tiflash-diff-files.json
                         """
                     }
                 }
@@ -320,7 +322,10 @@ pipeline {
                             def fix_compile_commands = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/fix_compile_commands.py"
                             def run_clang_tidy = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/run-clang-tidy.py"
                             dir("${WORKSPACE}/build") {
-                                sh """
+                                sh label: "debug diff files", script: """
+                                cat /tmp/tiflash-diff-files.json
+                                """
+                                sh label: "run clang tidy", script: """
                                 NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
                                 cmake "${WORKSPACE}/tiflash" \\
                                     -DENABLE_TESTS=false \\
