@@ -83,12 +83,12 @@ pipeline {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        script {
-                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                            def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                            def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+                    script {
+                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        retry(2) {
                             sh label: "download third_party", script: """
                                 export TIDB_BRANCH=${tidbBranch}
                                 export PD_BRANCH=${pdBranch}

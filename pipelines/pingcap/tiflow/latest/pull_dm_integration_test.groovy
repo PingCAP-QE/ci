@@ -85,15 +85,23 @@ pipeline {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                            cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                        """
+                    script {
+                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                export TIDB_BRANCH=${tidbBranch}
+                                export PD_BRANCH=${pdBranch}
+                                export TIKV_BRANCH=${tikvBranch}
+                                cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                            """
+                        }
                     }
                 }
                 dir("tiflow") {
