@@ -108,7 +108,7 @@ def test = { start, end, extra, do_cache, use_tmp ->
                 ${export_test_tmpdir}
                 export ROCKSDBTESTS_START=${start}
                 export ROCKSDBTESTS_END=${end}
-                V=1 ${extra} make all_but_some_tests check_some -j 3
+                LIB_MODE=static V=1 ${extra} make all_but_some_tests check_some -j 3
             """
         }
     }
