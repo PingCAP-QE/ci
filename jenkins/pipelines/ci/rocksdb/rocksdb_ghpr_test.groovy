@@ -77,7 +77,7 @@ def build = { target, do_cache ->
             sh """
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
-                V=1 make ${target} -j 3
+                LIB_MODE=static V=1 make ${target} -j 3
             """
         }
         if (do_cache) {
