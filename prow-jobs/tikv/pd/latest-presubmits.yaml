@@ -13,6 +13,17 @@ presubmits:
         - ^feature/.+
         - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^release-8\.[0-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: tikv/pd/pull_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false # TODO: change to true after test pass
+      optional: true # TODO: change to false after test pass
+      skip_report: true # TODO: change to false after test pass
+      context: wip/pull-unit-test
+      trigger: "(?m)^/debug (?:.*? )?pull-unit-test(?: .*?)?$"
+      rerun_command: "/debug pull-unit-test"
+      branches:
+        - ^master$
     - name: tikv/pd/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
