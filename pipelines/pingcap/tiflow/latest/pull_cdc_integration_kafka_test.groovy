@@ -83,18 +83,28 @@ pipeline {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                            make check_third_party_binary
-                            cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                            ./bin/sync_diff_inspector --version
-                        """
+                    script {
+                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                export TIDB_BRANCH=${tidbBranch}
+                                export PD_BRANCH=${pdBranch}
+                                export TIKV_BRANCH=${tikvBranch}
+                                export TIFLASH_BRANCH=${tiflashBranch}
+                                cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                                make check_third_party_binary
+                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tiflash --version
+                                ./bin/sync_diff_inspector --version
+                            """
+                        } 
                     }
                 }
                 dir("tiflow") {

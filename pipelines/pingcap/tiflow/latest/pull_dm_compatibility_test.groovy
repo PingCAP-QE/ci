@@ -85,6 +85,8 @@ pipeline {
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
+                    script {
+                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
@@ -106,6 +108,7 @@ pipeline {
                                 ls -alh ./bin/
                             """
                             sh label: "download third_party", script: """
+                                export TIDB_BRANCH=${tidbBranch}
                                 pwd && ls -alh dm/tests/
                                 cd dm/tests && ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
                                 cd - && cp -r dm/tests/bin/* ./bin
@@ -115,6 +118,7 @@ pipeline {
                                 ./bin/mydumper -V
                             """
                         }
+                    }   
                 }
             }
         }
