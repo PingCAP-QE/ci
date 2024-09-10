@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 final folder = 'tikv/tikv/release-7.5'
-final jobName = 'pull_integration_copr_test'
+final jobName = 'pull_integration_test'
 
 pipelineJob("${folder}/${jobName}") {
     logRotator {
