@@ -32,6 +32,7 @@ pipelineJob('tikv_ghpr_test') {
                     orgslist('pingcap tikv')
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
+                        ghprbBranch { branch('release-8.1') }
                         ghprbBranch { branch('release-8.2') }
                         ghprbBranch { branch('release-8.3') }
                     }
