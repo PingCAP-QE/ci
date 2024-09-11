@@ -77,9 +77,9 @@ pipeline {
                             """
                             sh label: "check binary", script: """
                                 pwd && ls -alh
-                                ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                                ls bin/tidb-server && ./bin/tidb-server -V
+                                ls bin/pd-server && ./bin/pd-server -V
+                                ls bin/tikv-server && ./bin/tikv-server -V
                             """
                         }
                     }
@@ -112,9 +112,9 @@ pipeline {
                                 cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                                     sh label: "print version", script: """
                                         pwd && ls -alh
-                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                                        ls bin/tidb-server && ./bin/tidb-server -V
+                                        ls bin/pd-server && ./bin/pd-server -V
+                                        ls bin/tikv-server && ./bin/tikv-server -V
                                     """
                                 }
                             }
