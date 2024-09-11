@@ -67,13 +67,21 @@ pipeline {
             steps {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
-                            ls -alh bin/
-                        """
+                        sh label: 'tidb-server', script: 'make'
+                        retry(2) {
+                            sh label: 'download binary', script: """
+                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
+                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                mv third_bin/* bin/
+                                ls -alh bin/
+                            """
+                            sh label: "check binary", script: """
+                                pwd && ls -alh
+                                ls bin/tidb-server && ./bin/tidb-server -V
+                                ls bin/pd-server && ./bin/pd-server -V
+                                ls bin/tikv-server && ./bin/tikv-server -V
+                            """
+                        }
                     }
                 }
             }
@@ -108,9 +116,9 @@ pipeline {
                                 cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                                     sh label: "print version", script: """
                                         pwd && ls -alh
-                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                                        ls bin/tidb-server && ./bin/tidb-server -V
+                                        ls bin/pd-server && ./bin/pd-server -V
+                                        ls bin/tikv-server && ./bin/tikv-server -V
                                     """
                                 }
                             }
