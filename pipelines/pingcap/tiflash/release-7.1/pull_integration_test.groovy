@@ -45,7 +45,7 @@ pipeline {
                 container(name: 'net-tool') {
                     sh 'dig github.com'
                     script {
-                        currentbuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
                     }
                 }
             }
@@ -127,7 +127,7 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                         script {
-                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
+                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                             println "proxy_cache_ready: ${proxy_cache_ready}"
 
                             sh label: "copy proxy if exist", script: """
@@ -217,8 +217,9 @@ pipeline {
                 script { 
                     def target_branch = REFS.base_ref 
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
-                    if (!fileExists("${WORKSPACE}/tiflash/format-diff.py")) {
-                        echo "skipped because this branch does not support format"
+                    def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                    if (!fileExists) {
+                        echo "skipped format check because this branch does not support format"
                         return
                     }
                     // TODO: need to check format-diff.py for more details
