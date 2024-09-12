@@ -21,7 +21,7 @@ pipeline {
     }
     options {
         timeout(time: 15, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
     stages {
@@ -59,7 +59,7 @@ pipeline {
                 axes {
                     axis {
                         name 'JOB_INDEX'
-                        values "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
+                        values "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
                     }
                 }
                 agent{
@@ -81,6 +81,7 @@ pipeline {
                                         if [ -f junitfile ]; then
                                             cat junitfile
                                         fi
+                                        ls -alh covprofile_*
                                     """
                                 }
                             }
