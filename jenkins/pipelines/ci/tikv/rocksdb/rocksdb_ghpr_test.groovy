@@ -95,9 +95,6 @@ def test = { start, end, extra, do_cache ->
             unstash "rocksdb_build"
         }
         dir("rocksdb") {
-            // Physical hosts are used for ARM and MAC platform.
-            // We need to specify a temporary directory for testing and clean it up.
-            // However, setting tmporary test directory fail some RocksDB tests.
             sh """
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
