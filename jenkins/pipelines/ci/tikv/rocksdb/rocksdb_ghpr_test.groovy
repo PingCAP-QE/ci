@@ -98,7 +98,7 @@ def test = { start, end, extra, do_cache ->
             sh """
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
-                export TEST_TMPDIR=/home/jenks/tmp_dir
+                export TEST_TMPDIR=/home/jenkins/tmp_dir
                 export ROCKSDBTESTS_START=${start}
                 export ROCKSDBTESTS_END=${end}
                 LIB_MODE=static V=1 ${extra} make all_but_some_tests check_some -j 3
