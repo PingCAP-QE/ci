@@ -45,7 +45,7 @@ postsubmits:
             args:
               - --config=prow/config/labels.yaml
               - --confirm=true
-              - --only=ti-community-infra/tichi,ti-community-infra/configs,ti-community-infra/ti-community-bot,ti-community-infra/rfcs,pingcap/community,pingcap/docs,pingcap/docs-cn,pingcap/docs-tidb-operator,pingcap/tidb,pingcap/tiflow,pingcap/tiflash,tikv/community,tikv/pd,chaos-mesh/website
+              - --only=ti-community-infra/tichi,ti-community-infra/configs,ti-community-infra/rfcs,pingcap/community,pingcap/docs,pingcap/docs-cn,pingcap/docs-tidb-operator,pingcap/tidb,pingcap/tiflow,pingcap/tiflash,tikv/community,tikv/pd
               - --token=/etc/github/token
             volumeMounts:
               - name: github-token
