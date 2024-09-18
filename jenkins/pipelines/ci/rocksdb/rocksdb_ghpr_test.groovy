@@ -86,7 +86,7 @@ def build = { target, do_cache ->
     }
 }
 
-def test = { start, end, extra, do_cache, use_tmp ->
+def test = { start, end, extra, do_cache ->
     stage("Test") {
         if (do_cache) {
             dir("rocksdb") {
@@ -95,17 +95,10 @@ def test = { start, end, extra, do_cache, use_tmp ->
             unstash "rocksdb_build"
         }
         dir("rocksdb") {
-            // Physical hosts are used for ARM and MAC platform.
-            // We need to specify a temporary directory for testing and clean it up.
-            // However, setting tmporary test directory fail some RocksDB tests.
-            def export_test_tmpdir = ""
-            if (use_tmp) {
-                export_test_tmpdir = "export TEST_TMPDIR=./tmp_dir"
-            }
             sh """
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
-                ${export_test_tmpdir}
+                export TEST_TMPDIR=/home/jenkins/tmp_dir
                 export ROCKSDBTESTS_START=${start}
                 export ROCKSDBTESTS_END=${end}
                 LIB_MODE=static V=1 ${extra} make all_but_some_tests check_some -j 3
@@ -122,9 +115,8 @@ parallel(
     arm: {
         node("arm") {
             def do_cache = false
-            def use_tmp = true
             build("all", do_cache)
-            test("", "db_block_cache_test", "", do_cache, use_tmp)
+            test("", "db_block_cache_test", "", do_cache)
         }
     },
     /*
@@ -138,7 +130,6 @@ parallel(
     */
     x86: {
         def do_cache = true
-        def use_tmp = false
         run_with_x86_pod {
             container("rust") {
                 build("librocksdb_debug.a", do_cache)
@@ -148,42 +139,42 @@ parallel(
             platform_dependent: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("", "db_block_cache_test", "", do_cache, use_tmp)
+                        test("", "db_block_cache_test", "", do_cache)
                     }
                 }
             },
             group1: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("db_block_cache_test", "full_filter_block_test", "", do_cache, use_tmp)
+                        test("db_block_cache_test", "full_filter_block_test", "", do_cache)
                     }
                 }
             },
             group2: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("full_filter_block_test", "write_batch_with_index_test", "", do_cache, use_tmp)
+                        test("full_filter_block_test", "write_batch_with_index_test", "", do_cache)
                     }
                 }
             },
             group3: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("write_batch_with_index_test", "write_prepared_transaction_test", "", do_cache, use_tmp)
+                        test("write_batch_with_index_test", "write_prepared_transaction_test", "", do_cache)
                     }
                 }
             },
             group4: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("write_prepared_transaction_test", "", "", do_cache, use_tmp)
+                        test("write_prepared_transaction_test", "", "", do_cache)
                     }
                 }
             },
             encrypted_env: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("", "db_block_cache_test", "ENCRYPTED_ENV=1", do_cache, use_tmp)
+                        test("", "db_block_cache_test", "ENCRYPTED_ENV=1", do_cache)
                     }
                 }
             },
