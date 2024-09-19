@@ -140,7 +140,11 @@ def checkoutSupportBatch(gitUrl, keyInComment, prTargetBranch, prCommentBody, re
 
 def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeout=5) {
     def refSpec = "+refs/heads/*:refs/remotes/origin/*"
-    refSpec += " +refs/pull/*/head:refs/remotes/origin/pr/*"
+    // if branchOrCommit is sha1, then use it as refSpec
+    if (branchOrCommit.length() == 40) {
+        println("branchOrCommit is sha1, use it as refSpec")
+        refSpec += " +refs/pull/*/head:refs/remotes/origin/pr/*"
+    }
     checkout(
         changelog: false,
         poll: true,
