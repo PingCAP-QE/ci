@@ -142,7 +142,7 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
     def refSpec = "+refs/heads/*:refs/remotes/origin/*"
     // if branchOrCommit is sha1, then use it as refSpec
     if (branchOrCommit.length() == 40) {
-        println("branchOrCommit is sha1, use it as refSpec")
+        println("branchOrCommit is sha1, fetch pr refs and use it as refSpec")
         refSpec += " +refs/pull/*/head:refs/remotes/origin/pr/*"
     }
     checkout(
