@@ -166,21 +166,21 @@ COMPONENT_META = {
             "git_commit_hash": True
         }
     },
-    "tidb-dashboard": {
-        "entrypoints": ["/tidb-dashboard"],
-        "version_cmd": "--version",
-        "image_name": "tidb-dashboard",
-        "image_edition": {
-            "enterprise": False,
-            "community": True
-        },
-        "tiup_components": ["tidb-dashboard"],
-        "version_check": {
-            "version": False,
-            "edition": False,
-            "git_commit_hash": True
-        }
-    },
+    # "tidb-dashboard": {
+    #     "entrypoints": ["/tidb-dashboard"],
+    #     "version_cmd": "--version",
+    #     "image_name": "tidb-dashboard",
+    #     "image_edition": {
+    #         "enterprise": False,
+    #         "community": True
+    #     },
+    #     "tiup_components": ["tidb-dashboard"],
+    #     "version_check": {
+    #         "version": False,
+    #         "edition": False,
+    #         "git_commit_hash": True
+    #     }
+    # },
     "grafana": {
         "entrypoints": [],
         "version_cmd": "",
