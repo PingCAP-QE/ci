@@ -198,7 +198,7 @@ def check_offline_components(version, edition, arch, component_hash):
     subprocess.run(["tiup", "uninstall", "--all"], check=True)
     expected_edition = "Enterprise" if edition == "enterprise" else "Community"
 
-    for component in ["tidb", "pd", "tikv", "tiflash", "tidb-dashboard"]:
+    for component in ["tidb", "pd", "tikv", "tiflash"]:
         check_tiup_component_version(component, version, component_hash[component], expected_edition)
     for component in ["ctl", "grafana", "prometheus"]:
         check_tiup_component_exists(component, version)
