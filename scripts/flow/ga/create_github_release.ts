@@ -159,8 +159,7 @@ async function releaseNote(repo: RepoInfo, octokit: Octokit) {
     if (!repo.skip_issues_in_release_msg) {
         return releaseDescription.concat(
             "\n\n",
-            "See the difference from the issue perspective:",
-            "\n<details>\n\n",
+            "See the difference from the issue perspective:\n<details>\n\n",
             fixedIssues.map((i) => `- ${i}`).join("\n"),
             "\n\n</details>",
         );
