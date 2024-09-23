@@ -7,7 +7,7 @@ toolchain go1.23.1
 require (
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/rs/zerolog v1.33.0
-	golang.org/x/mod v0.20.0
+	golang.org/x/mod v0.21.0
 )
 
 require (
