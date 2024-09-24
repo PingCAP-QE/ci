@@ -60,6 +60,7 @@ pipelineJob('tiflash-ghpr-integration-tests') {
                     orgslist('pingcap')
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
+                        ghprbBranch { branch('release-7.5') }
                         ghprbBranch { branch('release-8.1') }
                         ghprbBranch { branch('release-8.2') }
                         ghprbBranch { branch('release-8.3') }
