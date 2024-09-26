@@ -10,22 +10,20 @@ presubmits:
     - name: pingcap/tiflash/release-7.1/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      # skip_if_only_changed: *skip_if_only_changed
-      context: wip/pull-unit-test
-      skip_report: true # need change this after test pass.
-      optional: true # need change this after test pass.
-      trigger: "(?m)^/debug (?:.*? )?(pull-unit-test)(?: .*?)?$"
-      rerun_command: "/debug pull-unit-test"
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-unit-test
+      skip_report: false
+      optional: false
+      trigger: "(?m)^/test (?:.*? )?(pull-unit-test)(?: .*?)?$"
+      rerun_command: "/test pull-unit-test"
       branches: *branches
     - name: pingcap/tiflash/release-7.1/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
-      # skip_if_only_changed: *skip_if_only_changed
-      context: wip/pull-integration-test
-      skip_report: true # need change this after test pass.
-      optional: true # need change this after test pass.
-      trigger: "(?m)^/debug (?:.*? )?(pull-integration-test)(?: .*?)?$"
-      rerun_command: "/debug pull-integration-test"
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-integration-test
+      skip_report: false
+      optional: false
+      trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
+      rerun_command: "/test pull-integration-test"
       branches: *branches
