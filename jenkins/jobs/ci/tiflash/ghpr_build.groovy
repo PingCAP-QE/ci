@@ -56,7 +56,6 @@ pipelineJob('tiflash-ghpr-build') {
                     orgslist('pingcap')
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
-                        // disable for trigger on any branch start with feature/
                         ghprbBranch { branch('feature/*') }
                         ghprbBranch { branch('release-7.1') }
                         ghprbBranch { branch('release-7.5') }
