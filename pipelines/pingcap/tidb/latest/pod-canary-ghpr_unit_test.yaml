@@ -15,11 +15,6 @@ spec:
         limits:
           memory: 128Gi
           cpu: "35"
-      env:
-        - name: GOPATH
-          value: /share/.go
-        - name: GOCACHE
-          value: /share/.cache/go-build
       volumeMounts:
         - name: bazel-repository-cache
           mountPath: /share/.cache/bazel-repository-cache
