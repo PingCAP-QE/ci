@@ -30,9 +30,6 @@ pipeline {
                             }
                         }
                     }
-                    container('golang') {
-                        sh 'git config --global --add safe.directory `pwd`'
-                    }
                 }
             }
         }

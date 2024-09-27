@@ -6,51 +6,10 @@ presubmits:
       decorate: false # need add this.
       max_concurrency: 2
       # run_if_changed: "pkg/executor"
-      always_run: false      
+      always_run: false
       skip_report: true
       optional: true
       context: canary-unit-test
       branches:
         - ^master$
         - ^feature[_/].+
-    - name: canary-notify-when-compatibility-sections-changed
-      decorate: true # need add this.
-      decoration_config:
-        skip_cloning: true
-      skip_report: true
-      optional: true
-      run_if_changed: "^(session/bootstrap\\.go|sessionctx/variable/(sysvar|session|tidb_vars)\\.go|config/(config\\.go|config\\.toml\\.example)|br/tidb-lightning\\.toml|parser/parser\\.y)$"
-      branches:
-        - ^master$
-      spec:
-        nodeSelector:
-          kubernetes.io/arch: amd64
-        containers:
-          - name: check
-            image: denoland/deno:1.45.5
-            command: [bash, -exec]
-            args:
-              - |
-                deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/notify-by-lark.ts \
-                  --title="TiDB pull request configuration change notify" \
-                  --message="Configuration or variable section file changes are detected, please review and check it." \
-                  --to_emails=yu.dong@pingcap.com \
-                  --to_emails=eason.n@pingcap.com \
-                  --to_emails=wuhui.zuo@pingcap.com \
-                  --to_emails=lifu.wu@pingcap.com \
-                  --links="https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${PULL_NUMBER}"
-            env:
-              - name: LARK_APP_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: chatops-lark
-                    key: app-id
-              - name: LARK_APP_SECRET
-                valueFrom:
-                  secretKeyRef:
-                    name: chatops-lark
-                    key: app-secret
-            resources:
-              limits:
-                memory: 1Gi
-                cpu: "500m"
