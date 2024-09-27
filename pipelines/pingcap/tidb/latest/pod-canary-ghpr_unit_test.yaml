@@ -10,7 +10,9 @@ spec:
       image: ghcr.io/pingcap-qe/ci/jenkins:v20240901-44-g1a06186-go1.23
       securityContext:
         privileged: true
-        fsGroup: 1000
+      env:
+        - name: BAZELISK_BASE_URL
+          value: https://mirrors.huaweicloud.com/bazel
       tty: true
       resources:
         limits:
