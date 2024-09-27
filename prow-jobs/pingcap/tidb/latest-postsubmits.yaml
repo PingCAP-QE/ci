@@ -100,6 +100,15 @@ postsubmits:
       skip_report: false
       branches:
         - ^master$
+    - name: pingcap/tidb/merged_unit_test_ddlv1
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: wip/unit-test-ddlv1 # TODO: change to ci/ after test.
+      max_concurrency: 1
+      skip_report: true
+      branches:
+        - ^master$
     - name: pingcap/tidb/merged_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
