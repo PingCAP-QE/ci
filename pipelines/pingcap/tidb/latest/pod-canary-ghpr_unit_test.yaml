@@ -5,9 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      # TODO(wuhuizuo): using standard bazel build image to shrink the image size
-      # and keep image simple,so no need to refresh image to update basic bazel out data.
-      image: ghcr.io/pingcap-qe/ci/jenkins:v20240901-44-g1a06186-go1.23
+      image: ghcr.io/pingcap-qe/ci/jenkins:v20240901-46-g07d1689-go1.23
       securityContext:
         privileged: true
       env:
