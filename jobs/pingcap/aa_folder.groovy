@@ -25,6 +25,8 @@ folder('pingcap') {
                         refreshTimeMinutes(1440)
                         // Space separated list of versions to exclude from caching via substring search using .contains() method.
                         excludedVersionsStr('feature/ fix/ bugfix/')
+                        //Space separated list of versions to include to allow caching via substring search using .contains() method. Ex: "release/ master".
+                        includedVersionsStr('main')
                     }
                     // A default version of the library to load if a script does not select another.
                     defaultVersion('main')
