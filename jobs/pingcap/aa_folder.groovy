@@ -22,7 +22,7 @@ folder('pingcap') {
                     // If checked, versions fetched using this library will be cached on the controller.
                     cachingConfiguration {
                         // Determines the amount of time until the cache is refreshed.
-                        refreshTimeMinutes(60)
+                        refreshTimeMinutes(1440)
                         // Space separated list of versions to exclude from caching via substring search using .contains() method.
                         excludedVersionsStr('feature/ fix/ bugfix/')
                     }
