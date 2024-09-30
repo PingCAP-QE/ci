@@ -51,6 +51,18 @@ presubmits:
       branches:
         - ^master$
         - ^feature/.+
+    - name: pingcap/tidb/pull_unit_test_ddlv1
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: wip/pull-unit-test-ddlv1
+      always_run: false
+      optional: true
+      trigger: "(?m)^/test (?:.*? )?pull-unit-test-ddlv1(?: .*?)?$"
+      rerun_command: "/test pull-unit-test-ddlv1"
+      branches:
+        - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
