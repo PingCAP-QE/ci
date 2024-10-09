@@ -60,11 +60,14 @@ def ifFileCacheExists() {
 
 // choose which go version to use. 
 def String needUpgradeGoVersion(String tag,String branch) {
-    goVersion="go1.21"
+    goVersion="go1.23"
     // tidb-tools only use branch master and use newest go version
     // only for version >= v5.3.0
     if (REPO=="tidb-tools" && tag>="v5.3"){
         return goVersion
+    }
+    if (tag.startsWith("v") && tag >= "v7.4" && tag < "v8.4") {
+        return "go1.21"
     }
     if (tag.startsWith("v") && tag >= "v7.0" && tag < "v7.4") {
         return "go1.20"
@@ -104,19 +107,26 @@ def String needUpgradeGoVersion(String tag,String branch) {
     if (branch.startsWith("release-") && branch >= "release-7.0" && branch < "release-7.4"){
         return "go1.20"
     }
+    if (branch.startsWith("release-") && branch >= "release-7.4" && branch < "release-8.4"){
+        return "go1.21"
+    }
     if (branch.startsWith("hz-poc") || branch.startsWith("arm-dup") ) {
         return "go1.16"
     }
     if (REPO == "tiem") {
         return "go1.16"
     }
-    return "go1.21"
+    return "go1.23"
 }
 
-def goBuildPod = "build_go1210"
-def GO_BIN_PATH = "/usr/local/go1.21/bin"
+def goBuildPod = "build_go1230"
+def GO_BIN_PATH = "/usr/local/go1.23/bin"
 goVersion = needUpgradeGoVersion(params.RELEASE_TAG,params.TARGET_BRANCH)
 switch (goVersion) {
+    case "go1.23":
+        goBuildPod = "build_go1230"
+        GO_BIN_PATH = "/usr/local/go1.23/bin"
+        break
     case "go1.21":
         goBuildPod = "build_go1210"
         GO_BIN_PATH = "/usr/local/go1.21/bin"
