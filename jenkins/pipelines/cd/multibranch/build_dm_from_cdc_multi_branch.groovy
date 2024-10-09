@@ -61,10 +61,14 @@ def upload_result_to_db() {
 
 }
 
-/// choose which go version to use. 
+// choose which go version to use. 
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        if (branchNameOrTag >= "v8.4") {
+            println "tag ${branchNameOrTag} use go 1.23"
+            return "go1.23"
+        }
         if (branchNameOrTag >= "v7.4") {
             println "tag ${branchNameOrTag} use go 1.21"
             return "go1.21"
@@ -98,8 +102,12 @@ def selectGoVersion(branchNameOrTag) {
     } else { 
         println "this is a branch"
         if (branchNameOrTag == "master") {
-            println("branchNameOrTag: master  use go1.21")
-            return "go1.21"
+            println("branchNameOrTag: master  use go1.23")
+            return "go1.23"
+        }
+        if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-8.4") {
+            println("branchNameOrTag: ${branchNameOrTag}  use go1.23")
+            return "go1.23"
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-7.4") {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.21")
@@ -126,15 +134,18 @@ def selectGoVersion(branchNameOrTag) {
             println("branchNameOrTag: ${branchNameOrTag}  use go1.13")
             return "go1.13"
         }
-        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.21"
-        return "go1.21"
+        println "branchNameOrTag: ${branchNameOrTag}  use default version go1.23"
+        return "go1.23"
     }
 }
 
 
-def GO_BUILD_SLAVE = "build_go1210"
+def GO_BUILD_SLAVE = "build_go1230"
 def goVersion = selectGoVersion(env.BRANCH_NAME)
 switch(goVersion) {
+    case "go1.23":
+        GO_BUILD_SLAVE = "build_go1230"
+        break
     case "go1.21":
         GO_BUILD_SLAVE = "build_go1210"
         break
