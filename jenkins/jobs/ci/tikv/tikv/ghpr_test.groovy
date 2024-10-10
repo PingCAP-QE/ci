@@ -32,12 +32,10 @@ pipelineJob('tikv_ghpr_test') {
                     orgslist('pingcap tikv')
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
-                        ghprbBranch { branch('feature/*') }
-                        ghprbBranch { branch('release-7.1') }
-                        ghprbBranch { branch('release-7.5') }
-                        ghprbBranch { branch('release-8.1') }
-                        ghprbBranch { branch('release-8.2') }
-                        ghprbBranch { branch('release-8.3') }
+                        ghprbBranch { branch('feature/.*') }
+                        ghprbBranch { branch('release-7.[1-9]') }
+                        ghprbBranch { branch('release-8.[0-9]+') }
+                        ghprbBranch { branch('release-9.[0-9]+') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
