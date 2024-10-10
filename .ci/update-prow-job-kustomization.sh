@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 
 yq -i ".configMapGenerator[0].files = []" prow-jobs/kustomization.yaml
-key_index=0
 for f in $(find prow-jobs -name "*.yaml" -type f | sed 's|prow-jobs/||' | grep -v kustomization.yaml | LC_COLLATE=C sort); do
-    # I want format the key_index with 3 char width.
-    ((++key_index))
-    key=$(printf "%03d.yaml" $key_index)
+    key=$(echo "$f" | sed 's|/|_|g')
     yq -i ".configMapGenerator[0].files += \"$key=$f\"" prow-jobs/kustomization.yaml
 done
 
