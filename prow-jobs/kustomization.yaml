@@ -81,6 +81,7 @@ configMapGenerator:
       - pingcap_tiflow_release-8.1-presubmits.yaml=pingcap/tiflow/release-8.1-presubmits.yaml
       - pingcap_tiflow_release-8.2-presubmits.yaml=pingcap/tiflow/release-8.2-presubmits.yaml
       - pingcap_tiflow_release-8.3-presubmits.yaml=pingcap/tiflow/release-8.3-presubmits.yaml
+      - pingcap_tiflow_release-8.4-presubmits.yaml=pingcap/tiflow/release-8.4-presubmits.yaml
       - pingcap_tiproxy_latest-postsubmits.yaml=pingcap/tiproxy/latest-postsubmits.yaml
       - pingcap_tiproxy_latest-presubmits.yaml=pingcap/tiproxy/latest-presubmits.yaml
       - ti-community-infra_configs_periodics.yaml=ti-community-infra/configs/periodics.yaml
