@@ -169,6 +169,14 @@ pipeline {
                         """
                     }
                 }
+                stage("clang-foramt-15") {
+                    steps {
+                        sh label: "install clang-format-15", script: """
+                            cp '${dependency_dir}/clang-format-15' '/usr/local/bin/clang-format-15'
+                            chmod +x '/usr/local/bin/clang-format-15'
+                        """
+                    }
+                }
             }
         }
         stage("Configure Project") {
