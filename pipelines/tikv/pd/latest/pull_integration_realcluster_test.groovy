@@ -58,11 +58,11 @@ pipeline {
                         sh label: 'other-server', script: """
                         chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
                         ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
-                        rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
+                        rm -rf third_bin/bin && ls -alh third_bin/
                         bin/pd-server -V
-                        bin/tikv-server -V
-                        bin/tidb-server -V
-                        bin/tiflash --version
+                        third_bin/tikv-server -V
+                        third_bin/tidb-server -V
+                        third_bin/tiflash --version
                         """
                     }
                 }
