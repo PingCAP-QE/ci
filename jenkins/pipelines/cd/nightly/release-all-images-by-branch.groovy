@@ -757,7 +757,12 @@ def getHash() {
             } else {
                 tidb_br_sha1 = fetch_hash("br")
             }
-            tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+            // from release-8.4, no longer build tidb-binlog
+            if ("${GIT_BRANCH}" == "master" || "${GIT_BRANCH}" < "release-8.4") {
+                tidb_binlog_sha1 = fetch_hash("tidb-binlog")
+            } else {
+                tidb_binlog_sha1 = ""
+            }
             tiflash_sha1 = fetch_hash("tiflash")
             cdc_sha1 = fetch_hash("ticdc")
 
