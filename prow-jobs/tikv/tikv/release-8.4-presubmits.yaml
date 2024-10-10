@@ -1,0 +1,17 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-8\.4(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+
+presubmits:
+  tikv/tikv:
+    - name: tikv/tikv/release-8.4/pull_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: true
+      optional: false
+      skip_report: false
+      context: pull-unit-test
+      trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
+      rerun_command: "/test pull-unit-test"
+      branches: *branches
