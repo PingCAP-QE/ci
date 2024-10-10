@@ -31,7 +31,7 @@ pipelineJob('release-all-images-by-branch-for-internal') {
 30 18 * * * % GIT_BRANCH=release-7.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
 40 18 * * * % GIT_BRANCH=release-7.5;FORCE_REBUILD=false;NEED_MULTIARCH=true
 50 18 * * * % GIT_BRANCH=release-8.1;FORCE_REBUILD=false;NEED_MULTIARCH=true
-20 19 * * * % GIT_BRANCH=release-8.3;FORCE_REBUILD=false;NEED_MULTIARCH=true
+20 19 * * * % GIT_BRANCH=release-8.4;FORCE_REBUILD=false;NEED_MULTIARCH=true
 H  19 * * * % GIT_BRANCH=master;FORCE_REBUILD=false;NEED_MULTIARCH=true
 ''')
                 }
