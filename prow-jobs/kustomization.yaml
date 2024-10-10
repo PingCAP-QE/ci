@@ -59,6 +59,7 @@ configMapGenerator:
       - pingcap_tiflash_release-8.1-presubmits.yaml=pingcap/tiflash/release-8.1-presubmits.yaml
       - pingcap_tiflash_release-8.2-presubmits.yaml=pingcap/tiflash/release-8.2-presubmits.yaml
       - pingcap_tiflash_release-8.3-presubmits.yaml=pingcap/tiflash/release-8.3-presubmits.yaml
+      - pingcap_tiflash_release-8.4-presubmits.yaml=pingcap/tiflash/release-8.4-presubmits.yaml
       - pingcap_tiflow_latest-postsubmits.yaml=pingcap/tiflow/latest-postsubmits.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
@@ -95,6 +96,7 @@ configMapGenerator:
       - tikv_pd_release-6.5-fips-presubmits.yaml=tikv/pd/release-6.5-fips-presubmits.yaml
       - tikv_pd_release-6.5-presubmits.yaml=tikv/pd/release-6.5-presubmits.yaml
       - tikv_pd_release-7.1-presubmits.yaml=tikv/pd/release-7.1-presubmits.yaml
+      - tikv_pd_release-8.1-presubmits.yaml=tikv/pd/release-8.1-presubmits.yaml
       - tikv_raft-engine_presubmits.yaml=tikv/raft-engine/presubmits.yaml
       - tikv_tikv_latest-presubmits.yaml=tikv/tikv/latest-presubmits.yaml
       - tikv_tikv_release-6.1-presubmits.yaml=tikv/tikv/release-6.1-presubmits.yaml
@@ -104,3 +106,4 @@ configMapGenerator:
       - tikv_tikv_release-8.1-presubmits.yaml=tikv/tikv/release-8.1-presubmits.yaml
       - tikv_tikv_release-8.2-presubmits.yaml=tikv/tikv/release-8.2-presubmits.yaml
       - tikv_tikv_release-8.3-presubmits.yaml=tikv/tikv/release-8.3-presubmits.yaml
+      - tikv_tikv_release-8.4-presubmits.yaml=tikv/tikv/release-8.4-presubmits.yaml
