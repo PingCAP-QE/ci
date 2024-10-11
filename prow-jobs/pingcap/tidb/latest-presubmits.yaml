@@ -54,7 +54,7 @@ presubmits:
     - name: pingcap/tidb/pull_unit_test_ddlv1
       agent: jenkins
       decorate: false # need add this.
-      run_if_changed: "pkg/ddl/.*"
+      run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-ddlv1(?: .*?)?$"
       rerun_command: "/test pull-unit-test-ddlv1"
