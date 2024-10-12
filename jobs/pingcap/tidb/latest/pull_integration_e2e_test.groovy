@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/pull__e2e_test') {
+pipelineJob('pingcap/tidb/pull_integration_e2e_test') {
     logRotator {
         daysToKeep(30)
     }
