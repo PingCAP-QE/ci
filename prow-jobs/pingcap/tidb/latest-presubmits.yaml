@@ -110,6 +110,18 @@ presubmits:
       branches:
         - ^master$
         - ^feature/.+
+    - name: pingcap/tidb/pull_integration_e2e_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: wip/pull-integration-e2e-test # TODO: change to pull-integration-e2e-test after test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-e2e-test"
+      branches:
+        - ^master$
+        - ^feature/.+
     - name: pingcap/tidb/pull_br_integration_test
       agent: jenkins
       decorate: false # need add this.
