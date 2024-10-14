@@ -3,7 +3,6 @@
 set -x
 set -e
 
-# 检查参数
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <directory> <output_file>"
     exit 1
