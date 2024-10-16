@@ -518,6 +518,7 @@ async function postDealPR(
   octokit: Octokit,
   owner: string,
   repo: string,
+  baseRef: string,
   prNumber: number,
 ) {
   // add "/release-note-none" comment.
@@ -532,6 +533,9 @@ async function postDealPR(
   const toAddLabels = ["skip-issue-check", "lgtm", "approved"];
   if (repo.startsWith("docs")) {
     toAddLabels.push("translation/no-need");
+  }
+  if (baseRef.startsWith("release-")) {
+    toAddLabels.push("cherry-pick-approved");
   }
   await octokit.rest.issues.addLabels({
     owner,
@@ -571,7 +575,7 @@ async function main(
   // Create a new Octokit instance using the provided token
   const octokit = new Octokit({ auth: github_private_token });
 
-  const pullRequests: { owner: string; repo: string; num: number }[] = [];
+  const pullRequests: { owner: string; repo: string; baseRef: string; num: number }[] = [];
   // Create or update the `OWNERS` files in each repository.
   await Promise.all(
     Array.from(owners).filter(([repository]) => {
@@ -620,7 +624,7 @@ async function main(
         console.info(
           `✅ Pull request created for repo ${owner}/${repository}: ${pr.html_url}`,
         );
-        pullRequests.push({ owner: owner, repo: repository, num: pr.number });
+        pullRequests.push({ owner: owner, repo: repository, baseRef, num: pr.number });
       } else {
         console.info(
           `🏃 for repo ${owner}/${repository}, no need to create PR.`,
