@@ -169,6 +169,15 @@ pipeline {
                         """
                     }
                 }
+                // for version <= 7.4, use clang-format-12
+                stage("clang-foramt-12") {
+                    steps {
+                        sh label: "install clang-format-12", script: """
+                            cp '${dependency_dir}/clang-format-12' '/usr/local/bin/clang-format'
+                            chmod +x '/usr/local/bin/clang-format'
+                        """
+                    }
+                }
             }
         }
         stage("Configure Project") {
