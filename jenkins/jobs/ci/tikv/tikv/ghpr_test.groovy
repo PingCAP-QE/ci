@@ -33,6 +33,7 @@ pipelineJob('tikv_ghpr_test') {
                     blackListTargetBranches {
                         ghprbBranch { branch('master') }
                         ghprbBranch { branch('feature/.*') }
+                        ghprbBranch { branch('release-6.[5-9]+') }
                         ghprbBranch { branch('release-7.[0-9]+') }
                         ghprbBranch { branch('release-8.[0-9]+') }
                         ghprbBranch { branch('release-9.[0-9]+') }
