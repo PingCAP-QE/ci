@@ -77,6 +77,19 @@ pipeline {
                     """
                 }
             }
+            post {
+                failure {
+                    sh label: "collect logs", script: """
+                        ls /tmp/real_cluster/playground
+                        tar -cvzf tiup-playground-output.tar.gz \$(find /tmp/real_cluster/playground -maxdepth 2 -type f -name "*.log")
+                        ls -alh tiup-playground-output.tar.gz
+
+                        tar -cvzf log-real-cluster-data.tar.gz /home/jenkins/.tiup/data
+                        ls -alh log-real-cluster-data.tar.gz
+                    """
+                    archiveArtifacts artifacts: "tiup-playground-output.tar.gz, log-real-cluster-data.tar.gz", fingerprint: true
+                }
+            }
         }
     }
 }
