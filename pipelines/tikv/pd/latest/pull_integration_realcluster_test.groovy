@@ -61,11 +61,11 @@ pipeline {
                         sh label: 'other-server', script: """
                         chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
                         ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
-                        rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
+                        rm -rf third_bin/bin && ls -alh third_bin/
                         bin/pd-server -V
-                        bin/tikv-server -V
-                        bin/tidb-server -V
-                        bin/tiflash --version
+                        third_bin/tikv-server -V
+                        third_bin/tidb-server -V
+                        third_bin/tiflash --version
                         """
                     }
                 }
@@ -78,6 +78,19 @@ pipeline {
                     sh label: "PD Real Cluster Check", script: """
                         make test-real-cluster
                     """
+                }
+            }
+            post {
+                failure {
+                    sh label: "collect logs", script: """
+                        ls /tmp/real_cluster/playground
+                        tar -cvzf tiup-playground-output.tar.gz \$(find /tmp/real_cluster/playground -maxdepth 2 -type f -name "*.log")
+                        ls -alh tiup-playground-output.tar.gz
+
+                        tar -cvzf log-real-cluster-data.tar.gz /home/jenkins/.tiup/data
+                        ls -alh log-real-cluster-data.tar.gz
+                    """
+                    archiveArtifacts artifacts: "tiup-playground-output.tar.gz, log-real-cluster-data.tar.gz", fingerprint: true
                 }
             }
         }
