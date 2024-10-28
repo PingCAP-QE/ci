@@ -37,6 +37,7 @@ pipeline {
                     hostname
                     df -h
                     free -hm
+                    gcc --version
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -89,8 +90,6 @@ pipeline {
                             export ROCKSDB_SYS_SSE=1
                             export RUST_BACKTRACE=1
                             export LOG_LEVEL=INFO
-                            echo using gcc 8
-                            source /opt/rh/devtoolset-8/enable
                             make clippy || (echo Please fix the clippy error; exit 1)
                         """
                     }
@@ -110,8 +109,6 @@ pipeline {
                             export LOG_LEVEL=INFO
                             export CARGO_INCREMENTAL=0
                             export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
-                            echo using gcc 8
-                            source /opt/rh/devtoolset-8/enable
                             set -e
                             set -o pipefail
 
