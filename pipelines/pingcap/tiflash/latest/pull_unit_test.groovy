@@ -38,10 +38,13 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    env
                     hostname
                     df -h
                     free -hm
+                    gcc --version
+                    cmake --version
+                    clang --version
+                    ccache --version
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -140,7 +143,6 @@ pipeline {
                             sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
-                            ccache -o limit_multiple=0.99
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
