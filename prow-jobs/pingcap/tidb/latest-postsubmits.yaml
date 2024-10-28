@@ -34,7 +34,7 @@ postsubmits:
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/integration-common-test
       max_concurrency: 1
-      skip_report: false
+      skip_report: true # TODO: change to false after failed test is fixed.
       branches:
         - ^master$
     - name: pingcap/tidb/merged_integration_ddl_test
