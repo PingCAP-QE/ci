@@ -345,6 +345,9 @@ pipeline {
             steps {
                 script {
                     dir("${WORKSPACE}/tiflash") {
+                        sh label: "change permission", script: """
+                    chown -R 1000:1000 ./
+                    """
                         cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')) {
                             if (build_cache_ready) {
                                 println "build cache exist, restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
