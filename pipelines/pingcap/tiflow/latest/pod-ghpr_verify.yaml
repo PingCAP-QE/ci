@@ -14,11 +14,6 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
       volumeMounts:
         - name: gocache
           mountPath: /share/.cache/go-build
