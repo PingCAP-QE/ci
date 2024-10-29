@@ -39,7 +39,13 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    go env
+                    hostname
+                    df -h
+                    free -hm
+                    gcc --version
+                    cmake --version
+                    clang --version
+                    ccache --version
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -94,7 +100,7 @@ pipeline {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
                             pwd & ls -alh
-                            ccache_tar_file="/home/jenkins/agent/ccache/pagetools-tests-amd64-linux-llvm-debug-master-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
@@ -132,6 +138,7 @@ pipeline {
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
                                 cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                                 chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                             else
                                 echo "proxy cache not found"
                             fi
@@ -277,6 +284,16 @@ pipeline {
                             """
                             archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
                         }
+                    }
+                }
+                stage("Upload Ccache") {
+                    steps {
+                        sh label: "upload ccache", script: """
+                            cd /tmp
+                            tar -cf ccache.tar .ccache
+                            cp ccache.tar /home/jenkins/agent/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
+                            cd -
+                        """
                     }
                 }
             }
