@@ -1,16 +1,23 @@
 apiVersion: v1
 kind: Pod
 spec:
+  securityContext:
+    fsGroup: 1000
   containers:
     - name: runner
       image: "hub.pingcap.net/tiflash/tiflash-llvm-base:llvm-17.0.6-rocky8"
       command:
+        - "/bin/bash"
+        - "-c"
         - "cat"
       tty: true
       resources:
         requests:
-          memory: "32Gi"
-          cpu: "12000m"
+          memory: 32Gi
+          cpu: "12"
+        limits:
+          memory: 32Gi
+          cpu: "12"
       volumeMounts:
       - mountPath: "/home/jenkins/agent/rust"
         name: "volume-0"
@@ -33,13 +40,6 @@ spec:
       - mountPath: "/tmp-memfs"
         name: "volume-7"
         readOnly: false
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
     - name: util
       image: hub.pingcap.net/jenkins/ks3util
       args: ["sleep", "infinity"]
@@ -50,6 +50,13 @@ spec:
         limits:
           cpu: "500m"
           memory: "500Mi"
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
   volumes:
     - name: "volume-0"
       nfs:
@@ -94,3 +101,4 @@ spec:
                 operator: In
                 values:
                   - "true"
+
