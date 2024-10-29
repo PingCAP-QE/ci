@@ -169,6 +169,7 @@ pipeline {
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
                                 cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                                 chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                             else
                                 echo "proxy cache not found"
                             fi
