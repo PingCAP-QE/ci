@@ -373,7 +373,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh label: "change permission", script: """
-                    chown -R 1000:1000 ./
+                        chown -R 1000:1000 ./
                     """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                        dir('tests/.build') { 
