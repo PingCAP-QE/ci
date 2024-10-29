@@ -1,6 +1,6 @@
-#!/usr/bin/env deno run --allow-run --allow-net --allow-write
-import * as yaml from "jsr:@std/yaml@^1.0.0";
-import { parseArgs } from "jsr:@std/cli@^1.0.1";
+#!/usr/bin/env -S deno run --allow-run --allow-net --allow-write
+import * as yaml from "jsr:@std/yaml@1.0.5";
+import { parseArgs } from "jsr:@std/cli@1.0.6";
 
 const TiupPlatforms = [
   "darwin/amd64",
@@ -205,6 +205,11 @@ async function main(
 
   const results = { tiup: {} } as Results;
   for (const [ociRepo, pkgs] of Object.entries(OCI2Tiup)) {
+    // tidb-binlog is deprecated since v8.4.0, skip it.
+    if (version >= "v8.4.0" && ociRepo === "pingcap/tidb-binlog/package") {
+      continue;
+    }
+
     console.group(ociRepo);
     const ociInfos = {} as Record<string, OciMetadata>;
     for (const platform of TiupPlatforms) {
