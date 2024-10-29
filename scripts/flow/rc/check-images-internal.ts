@@ -1,6 +1,6 @@
-#!/usr/bin/env deno run --allow-run --allow-net --allow-write
-import * as yaml from "jsr:@std/yaml@^1.0.0";
-import { parseArgs } from "jsr:@std/cli@^1.0.1";
+#!/usr/bin/env -S deno run --allow-run --allow-net --allow-write
+import * as yaml from "jsr:@std/yaml@1.0.5";
+import { parseArgs } from "jsr:@std/cli@1.0.6";
 
 const platforms = [
   "linux/amd64",
@@ -156,7 +156,7 @@ async function gatheringGithubGitSha(repo: string, branch: string) {
   );
   const { sha } = await res.json();
   console.info(`got github git sha of ${repo}@${branch}: ${sha}`);
-  return sha;
+  return sha || "";
 }
 
 function checkTools() {
@@ -175,6 +175,11 @@ async function checkImages(
 ) {
   const results = {} as Record<string, ImageInfo>;
   for (const [gitRepo, map] of Object.entries(mm)) {
+    // tidb-binlog is deprecated since v8.4.0, skip it.
+    if (version >= "v8.4.0" && gitRepo === "pingcap/tidb-binlog") {
+      continue;
+    }
+
     console.group(gitRepo);
     const gitSha = await gatheringGithubGitSha(gitRepo, branch);
 
@@ -216,7 +221,7 @@ async function main(
   }: CliParams,
 ) {
   checkTools();
-  const totalResults = {} as Record<string, any>;
+  const totalResults = {} as Record<string, Record<string, ImageInfo>>;
   const totalFailedPkgs = {} as Record<string, string[]>;
 
   {
@@ -244,6 +249,7 @@ async function main(
     totalResults["enterprise"] = results;
     totalFailedPkgs["enterprise"] = failedPkgs;
   }
+
   // write the results to a yaml file.
   await Deno.writeTextFile(save_to, yaml.stringify(totalResults));
 
