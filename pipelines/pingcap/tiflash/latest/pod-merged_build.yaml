@@ -71,7 +71,7 @@ spec:
     - name: "volume-1"
       nfs:
         path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: true
+        readOnly: false
         server: "10.2.12.82"
     - name: "volume-4"
       nfs:
@@ -81,7 +81,7 @@ spec:
     - name: "volume-5"
       nfs:
         path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: true
+        readOnly: false
         server: "10.2.12.82"
     - name: "volume-6"
       emptyDir: {}
