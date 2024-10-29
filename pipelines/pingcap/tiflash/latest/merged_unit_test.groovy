@@ -100,7 +100,7 @@ pipeline {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
                             pwd & ls -alh
-                            ccache_tar_file="/home/jenkins/agent/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
@@ -114,7 +114,6 @@ pipeline {
                             sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
-                            ccache -o limit_multiple=0.99
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
@@ -291,7 +290,7 @@ pipeline {
                         sh label: "upload ccache", script: """
                             cd /tmp
                             tar -cf ccache.tar .ccache
-                            cp ccache.tar /home/jenkins/agent/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
+                            cp ccache.tar /home/jenkins/agent/ccache/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
                             cd -
                         """
                     }
