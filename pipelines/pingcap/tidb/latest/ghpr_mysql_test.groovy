@@ -9,7 +9,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-// TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
     agent {
         kubernetes {
