@@ -289,7 +289,9 @@ pipeline {
                     steps {
                         sh label: "upload ccache", script: """
                             cd /tmp
+                            rm -rf ccache.tar
                             tar -cf ccache.tar .ccache
+                            ls -alh ccache.tar
                             cp ccache.tar /home/jenkins/agent/ccache/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
                             cd -
                         """
