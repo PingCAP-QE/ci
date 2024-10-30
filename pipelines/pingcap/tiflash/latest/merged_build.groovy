@@ -116,7 +116,7 @@ pipeline {
                                 ccache -o hash_dir=false
                                 ccache -o compression=true
                                 ccache -o compression_level=6
-                                ccache -o read_only=true
+                                ccache -o read_only=false
                                 ccache -z
                                 """
                             }
