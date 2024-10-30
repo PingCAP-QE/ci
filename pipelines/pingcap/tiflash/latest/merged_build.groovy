@@ -270,7 +270,7 @@ pipeline {
                             cd /tmp
                             rm -rf ccache.tar
                             tar -cf ccache.tar .ccache
-                            cp ccache.tar /home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.
+                            cp ccache.tar /home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
                             cd -
                             """
                         }
