@@ -234,7 +234,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                 sh """
-                    cmake --build '${WORKSPACE}/build' --target gtests_dbms gtests_libcommon gtests_libdaemon --parallel ${PARALLELISM}
+                    cmake --build '${WORKSPACE}/build' --target bench_dbms gtests_dbms gtests_libcommon gtests_libdaemon --parallel ${PARALLELISM}
                     """
                     sh """
                     cp '${WORKSPACE}/build/dbms/gtests_dbms' '${WORKSPACE}/install/tiflash/'
