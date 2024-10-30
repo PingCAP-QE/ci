@@ -38,7 +38,13 @@ pipeline {
                 sh label: 'Debug info', script: """
                     printenv
                     echo "-------------------------"
-                    go env
+                    hostname
+                    df -h
+                    free -hm
+                    gcc --version
+                    cmake --version
+                    clang --version
+                    ccache --version
                     echo "-------------------------"
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
@@ -124,7 +130,7 @@ pipeline {
                     script { 
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
-                            ccache_tar_file="/home/jenkins/agent/ccache/tiflash-amd64-linux-llvm-debug-master-failpoints.tar"
+                            ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
                                 cd /tmp
@@ -138,7 +144,6 @@ pipeline {
                             sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
-                            ccache -o limit_multiple=0.99
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
@@ -164,6 +169,7 @@ pipeline {
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
                                 cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                                 chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
+                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                             else
                                 echo "proxy cache not found"
                             fi
@@ -366,6 +372,9 @@ pipeline {
             }
             steps {
                 dir("${WORKSPACE}/tiflash") {
+                    sh label: "change permission", script: """
+                        chown -R 1000:1000 ./
+                    """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                        dir('tests/.build') { 
                             sh label: "archive tiflash binary", script: """
