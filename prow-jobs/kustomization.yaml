@@ -61,6 +61,8 @@ configMapGenerator:
       - pingcap_tiflash_release-8.2-presubmits.yaml=pingcap/tiflash/release-8.2-presubmits.yaml
       - pingcap_tiflash_release-8.3-presubmits.yaml=pingcap/tiflash/release-8.3-presubmits.yaml
       - pingcap_tiflash_release-8.4-presubmits.yaml=pingcap/tiflash/release-8.4-presubmits.yaml
+      - pingcap_tiflash_release-8.5-postsubmits.yaml=pingcap/tiflash/release-8.5-postsubmits.yaml
+      - pingcap_tiflash_release-8.5-presubmits.yaml=pingcap/tiflash/release-8.5-presubmits.yaml
       - pingcap_tiflow_latest-postsubmits.yaml=pingcap/tiflow/latest-postsubmits.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
@@ -110,3 +112,4 @@ configMapGenerator:
       - tikv_tikv_release-8.2-presubmits.yaml=tikv/tikv/release-8.2-presubmits.yaml
       - tikv_tikv_release-8.3-presubmits.yaml=tikv/tikv/release-8.3-presubmits.yaml
       - tikv_tikv_release-8.4-presubmits.yaml=tikv/tikv/release-8.4-presubmits.yaml
+      - tikv_tikv_release-8.5-presubmits.yaml=tikv/tikv/release-8.5-presubmits.yaml
