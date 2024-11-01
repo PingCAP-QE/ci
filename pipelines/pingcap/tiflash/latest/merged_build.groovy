@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-merged_build.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-merged_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
 final dependency_dir = "/home/jenkins/agent/dependency"
