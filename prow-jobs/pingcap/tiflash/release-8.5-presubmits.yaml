@@ -1,0 +1,25 @@
+# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+presubmits:
+  pingcap/tiflash:
+    - name: pingcap/tiflash/release-8.5/pull_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-unit-test
+      skip_report: false
+      optional: false
+      trigger: "(?m)^/test (?:.*? )?(pull-unit-test)(?: .*?)?$"
+      rerun_command: "/test pull-unit-test"
+      branches:
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflash/release-8.5/pull_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-integration-test
+      skip_report: false
+      optional: false
+      trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
+      rerun_command: "/test pull-integration-test"
+      branches:
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
