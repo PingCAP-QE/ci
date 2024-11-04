@@ -1,4 +1,5 @@
 pipelineJob('multi-arch-sync-docker') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

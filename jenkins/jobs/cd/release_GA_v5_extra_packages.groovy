@@ -1,4 +1,5 @@
 pipelineJob('release-GA-v5-extra-packages') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

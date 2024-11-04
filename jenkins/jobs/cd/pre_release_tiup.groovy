@@ -1,4 +1,5 @@
 pipelineJob('pre-release-tiup') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

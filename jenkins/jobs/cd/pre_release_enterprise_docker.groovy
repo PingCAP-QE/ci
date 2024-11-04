@@ -1,4 +1,5 @@
 pipelineJob('pre-release-enterprise-docker') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

@@ -1,4 +1,5 @@
 pipelineJob('tiup-mirror-test') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)
