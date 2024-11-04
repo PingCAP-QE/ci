@@ -169,6 +169,7 @@ pipeline {
                         """
                     }
                 }
+                // v7.5 ~ v8.1.0 use clang-format-15
                 stage("clang-foramt-15") {
                     steps {
                         sh label: "install clang-format-15", script: """
