@@ -6,6 +6,19 @@ presubmits:
       max_concurrency: 1
       always_run: false
       spec:
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-amd64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
         containers:
           - name: rust
             image: rust:1.75.0
@@ -13,6 +26,8 @@ presubmits:
             env:
               - name: RUST_BACKTRACE
                 value: "1"
+              - name: CARGO_HOME
+                value: /cargo-cache
             args:
               - |
                 set -ex
@@ -28,6 +43,9 @@ presubmits:
                 make test
                 # Run asan tests
                 RUSTFLAGS='-Zsanitizer=address' RUSTDOCFLAGS='-Zsanitizer=address' EXTRA_CARGO_ARGS='--verbose -Zbuild-std --target x86_64-unknown-linux-gnu' make test
+            volumeMounts:
+              - name: cargo-cache
+                mountPath: /cargo-cache
 
     - name: rust-stable
       cluster: gcp-prow-ksyun
@@ -35,6 +53,19 @@ presubmits:
       max_concurrency: 1
       always_run: false
       spec:
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-amd64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
         containers:
           - name: rust
             image: rust:1.75.0
@@ -44,6 +75,8 @@ presubmits:
                 value: "force"
               - name: RUST_BACKTRACE
                 value: "1"
+              - name: CARGO_HOME
+                value: /cargo-cache
             args:
               - |
                 set -ex
@@ -51,3 +84,6 @@ presubmits:
                 rustup component add rustfmt clippy
                 make clippy
                 make test
+            volumeMounts:
+              - name: cargo-cache
+                mountPath: /cargo-cache

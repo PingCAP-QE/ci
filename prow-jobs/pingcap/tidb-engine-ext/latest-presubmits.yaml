@@ -27,10 +27,15 @@ presubmits:
                 value: http://goproxy.pingcap.net,direct
               - name: CARGO_NET_GIT_FETCH_WITH_CLI
                 value: "true"
+              - name: CARGO_HOME
+                value: /cargo-cache
             resources:
               limits:
                 memory: 32Gi
                 cpu: "6"
+            volumeMounts:
+              - name: cargo-cache
+                mountPath: /cargo-cache
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -40,3 +45,7 @@ presubmits:
                   operator: In
                   values:
                     - amd64
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-amd64
