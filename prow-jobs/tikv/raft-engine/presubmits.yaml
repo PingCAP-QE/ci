@@ -4,7 +4,7 @@ presubmits:
       cluster: gcp-prow-ksyun
       decorate: true
       max_concurrency: 1
-      always_run: false
+      skip_if_only_changed: "(\\.(md)|OWNERS|OWNERS_ALIASES)$"
       spec:
         volumes:
           - name: cargo-cache
