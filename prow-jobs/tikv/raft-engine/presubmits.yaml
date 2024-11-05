@@ -10,6 +10,15 @@ presubmits:
           - name: cargo-cache
             persistentVolumeClaim:
               claimName: cargo-home-linux-amd64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
         containers:
           - name: rust
             image: rust:1.75.0
@@ -48,6 +57,15 @@ presubmits:
           - name: cargo-cache
             persistentVolumeClaim:
               claimName: cargo-home-linux-amd64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
         containers:
           - name: rust
             image: rust:1.75.0
