@@ -45,7 +45,7 @@ presubmits:
                   operator: In
                   values:
                     - amd64
-      volumes:
-        - name: cargo-cache
-          persistentVolumeClaim:
-            claimName: cargo-home-linux-amd64
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-amd64
