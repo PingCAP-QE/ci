@@ -26,8 +26,8 @@ presubmits:
             env:
               - name: RUST_BACKTRACE
                 value: "1"
-              - name: CARGO_HOME
-                value: /cargo-cache
+              # - name: CARGO_HOME
+              #   value: /cargo-cache
             args:
               - |
                 set -ex
@@ -43,9 +43,9 @@ presubmits:
                 make test
                 # Run asan tests
                 RUSTFLAGS='-Zsanitizer=address' RUSTDOCFLAGS='-Zsanitizer=address' EXTRA_CARGO_ARGS='--verbose -Zbuild-std --target x86_64-unknown-linux-gnu' make test
-            volumeMounts:
-              - name: cargo-cache
-                mountPath: /cargo-cache
+            # volumeMounts:
+            #   - name: cargo-cache
+            #     mountPath: /cargo-cache
 
     - name: rust-stable
       cluster: gcp-prow-ksyun
@@ -75,8 +75,8 @@ presubmits:
                 value: "force"
               - name: RUST_BACKTRACE
                 value: "1"
-              - name: CARGO_HOME
-                value: /cargo-cache
+              # - name: CARGO_HOME
+              #   value: /cargo-cache
             args:
               - |
                 set -ex
@@ -84,6 +84,6 @@ presubmits:
                 rustup component add rustfmt clippy
                 make clippy
                 make test
-            volumeMounts:
-              - name: cargo-cache
-                mountPath: /cargo-cache
+            # volumeMounts:
+            #   - name: cargo-cache
+            #     mountPath: /cargo-cache
