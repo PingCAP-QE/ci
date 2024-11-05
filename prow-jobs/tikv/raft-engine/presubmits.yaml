@@ -3,7 +3,7 @@ presubmits:
     - name: rust-nightly
       cluster: gcp-prow-ksyun
       decorate: true
-      max_concurrency: 1
+      # max_concurrency: 1
       skip_if_only_changed: "(\\.(md)|OWNERS|OWNERS_ALIASES)$"
       spec:
         volumes:
@@ -32,6 +32,7 @@ presubmits:
               - |
                 set -ex
                 apt-get update; apt-get install -y cmake
+                rustup show
                 rustup toolchain install nightly-2023-12-31
                 rustup default nightly-2023-12-31
                 rustup component add rustfmt clippy rust-src
