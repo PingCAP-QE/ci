@@ -11,6 +11,13 @@ folder('pingcap') {
                             scm {
                                 git {
                                     remote('https://github.com/PingCAP-QE/ci')
+                                    extensions {
+                                        cloneOptions {
+                                            depth(1)
+                                            shallow(true)
+                                            timeout(5)
+                                        } 
+                                    }
                                 }
                             }
                             // A relative path from the root of the SCM to the root of the library.
@@ -22,7 +29,8 @@ folder('pingcap') {
                     // If checked, versions fetched using this library will be cached on the controller.
                     cachingConfiguration {
                         // Determines the amount of time until the cache is refreshed.
-                        refreshTimeMinutes(1440)
+                        // 0 means disable auto refresh
+                        refreshTimeMinutes(0)
                         // Space separated list of versions to exclude from caching via substring search using .contains() method.
                         excludedVersionsStr('feature/ fix/ bugfix/')
                         //Space separated list of versions to include to allow caching via substring search using .contains() method. Ex: "release/ master".
