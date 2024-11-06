@@ -149,6 +149,8 @@ spec:
           value: "my_connect_offsets"
         - name: STATUS_STORAGE_TOPIC
           value: "my_connect_statuses"
+        - name: LANG
+          value: "C.UTF-8"
       resources:
         requests:
           cpu: 200m
