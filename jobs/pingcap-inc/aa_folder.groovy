@@ -12,6 +12,13 @@ folder('pingcap-inc') {
                                 git {
                                     remote('https://github.com/PingCAP-QE/ci')
                                 }
+                                extensions {
+                                    cloneOptions {
+                                        depth(1)
+                                        shallow(true)
+                                        timeout(5)
+                                    } 
+                                }
                             }
                             // A relative path from the root of the SCM to the root of the library.
                             libraryPath('libraries/tipipeline')
