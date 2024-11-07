@@ -34,7 +34,7 @@ presubmits:
             resources:
               limits:
                 memory: 32Gi
-                cpu: "6"
+                cpu: "12"
             volumeMounts:
               - name: cargo-cache
                 mountPath: /cargo-cache
