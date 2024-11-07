@@ -19,6 +19,10 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
+                rm -rf /root/.cargo/.git
+                rm -rf /root/.cargo/registry
+                ln -s /cargo-cache/git /root/.cargo/git
+                ln -s /cargo-cache/registry /root/.cargo/registry
                 set -euox pipefail
                 make ci_fmt_check
                 make ci_test
@@ -27,8 +31,6 @@ presubmits:
                 value: http://goproxy.pingcap.net,direct
               - name: CARGO_NET_GIT_FETCH_WITH_CLI
                 value: "true"
-              - name: CARGO_HOME
-                value: /cargo-cache
             resources:
               limits:
                 memory: 32Gi
