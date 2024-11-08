@@ -5,6 +5,8 @@ presubmits:
       decorate: true
       # max_concurrency: 1
       skip_if_only_changed: "(\\.(md)|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
       spec:
         volumes:
           - name: cargo-cache
@@ -53,6 +55,8 @@ presubmits:
       decorate: true
       max_concurrency: 1
       always_run: false
+      branches:
+        - ^master$
       spec:
         volumes:
           - name: cargo-cache
