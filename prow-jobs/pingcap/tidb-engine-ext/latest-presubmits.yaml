@@ -35,15 +35,12 @@ presubmits:
               - name: cargo-cache
                 mountPath: /root/.cargo/git/db
                 subPath: git/db
-                readOnly: false
               - name: cargo-cache
                 mountPath: /root/.cargo/registry/index
                 subPath: registry/index
-                readOnly: false
               - name: cargo-cache
                 mountPath: /root/.cargo/registry/cache
                 subPath: registry/cache
-                readOnly: false
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
