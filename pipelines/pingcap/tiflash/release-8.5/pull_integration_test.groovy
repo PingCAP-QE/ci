@@ -325,6 +325,7 @@ pipeline {
                         script {
                             def generator = "Ninja"
                             def include_flag = ""
+                            // TODO: #3217 replace "release-centos7-llvm" to "release-linux-llvm"
                             def fix_compile_commands = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/fix_compile_commands.py"
                             def run_clang_tidy = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/run-clang-tidy.py"
                             dir("${WORKSPACE}/build") {
