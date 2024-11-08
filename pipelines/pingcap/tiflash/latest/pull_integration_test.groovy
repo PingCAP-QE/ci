@@ -325,8 +325,8 @@ pipeline {
                         script {
                             def generator = "Ninja"
                             def include_flag = ""
-                            def fix_compile_commands = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/fix_compile_commands.py"
-                            def run_clang_tidy = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/run-clang-tidy.py"
+                            def fix_compile_commands = "${WORKSPACE}/tiflash/release-rocky8-llvm/scripts/fix_compile_commands.py"
+                            def run_clang_tidy = "${WORKSPACE}/tiflash/release-rocky8-llvm/scripts/run-clang-tidy.py"
                             dir("${WORKSPACE}/build") {
                                 sh label: "debug diff files", script: """
                                 cat /tmp/tiflash-diff-files.json
