@@ -13,12 +13,21 @@ interface FeishuConfig {
   secret?: string;
 }
 
+interface CleanupConfig {
+  enabled: boolean;
+  dryRun: boolean;  // Dry run mode, no actual deletion
+  minAge?: number;  // Minimum file age (days), optional
+}
+
 /**
  * CLI args
  * --path="path to monitor in s3"
  * --threshold-mb="size threshold in MB"
  * --feishu-webhook="feishu webhook url"
  * --feishu-secret="feishu webhook secret" (optional)
+ * --cleanup  Enable automatic cleanup (disabled by default)
+ * --dry-run  Cleanup dry run mode, no actual deletion (disabled by default)
+ * --min-age  Minimum file age for cleanup in days (disabled by default)
  */
 await main();
 
@@ -36,8 +45,15 @@ async function main() {
     }
     : undefined;
 
+  // 清理配置
+  const cleanupConfig: CleanupConfig = {
+    enabled: args["cleanup"] === true,
+    dryRun: args["dry-run"] === true,
+    minAge: args["min-age"] ? Number(args["min-age"]) : undefined,
+  };
+
   const bucket = getBucket();
-  await monitorObjectSizes(bucket, path, thresholdBytes, feishuConfig);
+  await monitorObjectSizes(bucket, path, thresholdBytes, feishuConfig, cleanupConfig);
 }
 
 function getBucket() {
@@ -60,6 +76,7 @@ async function monitorObjectSizes(
   prefix: string,
   thresholdBytes: number,
   feishuConfig?: FeishuConfig,
+  cleanupConfig?: CleanupConfig,
 ) {
   const objects: ObjectSizeInfo[] = [];
   
@@ -130,25 +147,40 @@ async function monitorObjectSizes(
     }
   }
 
-  // 如果有超大文件并且配置了飞书webhook，发送告警
-  if (oversizedObjects.length > 0 && feishuConfig) {
-    await sendFeishuAlert(oversizedObjects, thresholdBytes, prefix, feishuConfig);
+  let cleanupResults: Array<{ key: string; success: boolean; error?: string }> = [];
+  
+  // 如果启用了清理功能，处理超大对象
+  if (cleanupConfig?.enabled && oversizedObjects.length > 0) {
+    cleanupResults = await cleanupOversizedObjects(bucket, oversizedObjects, cleanupConfig);
+  }
+
+  // 如果配置了飞书webhook，发送综合报告
+  if (feishuConfig && oversizedObjects.length > 0) {
+    await sendFeishuReport(
+      oversizedObjects, 
+      thresholdBytes, 
+      prefix, 
+      cleanupConfig, 
+      cleanupResults, 
+      feishuConfig
+    );
   }
 }
 
-async function sendFeishuAlert(
+async function sendFeishuReport(
   oversizedObjects: ObjectSizeInfo[],
   thresholdBytes: number,
   prefix: string,
-  feishuConfig: FeishuConfig,
+  cleanupConfig?: CleanupConfig,
+  cleanupResults?: Array<{ key: string; success: boolean; error?: string }>,
+  feishuConfig?: FeishuConfig,
 ) {
-  console.log("\n=== Sending Feishu Alert ===");
+  console.log("\n=== Sending Feishu Report ===");
 
   const timestamp = Math.floor(Date.now() / 1000);
   let sign = "";
 
-  if (feishuConfig.secret) {
-    // 计算签名
+  if (feishuConfig?.secret) {
     const signString = `${timestamp}\n${feishuConfig.secret}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(signString);
@@ -162,34 +194,54 @@ async function sendFeishuAlert(
     content: {
       post: {
         zh_cn: {
-          title: "🚨 S3存储大小告警",
+          title: `🚨 S3 storage monitoring${cleanupConfig?.enabled ? ' and cleanup' : ''} report`,
           content: [
+            // 监控信息
             [
               {
                 tag: "text",
-                text: `检测到以下文件超过大小阈值 ${formatSize(thresholdBytes)}:\n`,
+                text: `The following files have exceeded the size threshold ${formatSize(thresholdBytes)}:\n`,
               },
             ],
             [
               {
                 tag: "text",
-                text: `📁 扫描路径: ${prefix}\n`,
+                text: `📁 Scan path: ${prefix}\n`,
               },
             ],
             [
               {
                 tag: "text",
-                text: `📊 超大文件数量: ${oversizedObjects.length}\n\n`,
+                text: `📊 Number of oversized files: ${oversizedObjects.length}\n\n`,
               },
             ],
-            ...oversizedObjects.map((obj) => [
-              {
-                tag: "text",
-                text: `📄 ${obj.key}\n大小: ${formatSize(obj.size)}\n修改时间: ${
-                  obj.lastModified.toISOString()
-                }\n\n`,
-              },
-            ]),
+            // 清理配置信息（如果启用）
+            ...(cleanupConfig?.enabled ? [
+              [
+                {
+                  tag: "text",
+                  text: `🧹 Cleanup configuration:\n` +
+                    `Mode: ${cleanupConfig.dryRun ? "Dry run mode" : "Active"}\n` +
+                    `${cleanupConfig.minAge ? `Minimum file age: ${cleanupConfig.minAge} days\n` : ''}\n`,
+                },
+              ],
+            ] : []),
+            // 文件列表
+            ...oversizedObjects.map((obj) => {
+              const cleanupResult = cleanupResults?.find(r => r.key === obj.key);
+              return [
+                {
+                  tag: "text",
+                  text: `📄 ${obj.key}\n` +
+                    `Size: ${formatSize(obj.size)}\n` +
+                    `Last Modified: ${obj.lastModified.toISOString()}\n` +
+                    (cleanupResult ? 
+                      `Cleanup status: ${cleanupResult.success ? '✅ Cleaned' : `❌ Cleanup failed (${cleanupResult.error})`}\n` 
+                      : '') +
+                    `\n`,
+                },
+              ];
+            }),
           ],
         },
       },
@@ -197,8 +249,8 @@ async function sendFeishuAlert(
   };
 
   try {
-    const url = new URL(feishuConfig.webhook);
-    if (feishuConfig.secret) {
+    const url = new URL(feishuConfig!.webhook);
+    if (feishuConfig?.secret) {
       url.searchParams.set("timestamp", timestamp.toString());
       url.searchParams.set("sign", sign);
     }
@@ -213,15 +265,68 @@ async function sendFeishuAlert(
 
     if (!response.ok) {
       throw new Error(
-        `Failed to send Feishu alert: ${response.status} ${response.statusText}`,
+        `Failed to send Feishu report: ${response.status} ${response.statusText}`,
       );
     }
 
     const responseData = await response.json();
-    console.log("Feishu alert sent successfully:", responseData);
+    console.log("Feishu report sent successfully:", responseData);
   } catch (error) {
-    console.error("Error sending Feishu alert:", error);
+    console.error("Error sending Feishu report:", error);
   }
+}
+
+async function cleanupOversizedObjects(
+  bucket: S3Bucket,
+  objects: ObjectSizeInfo[],
+  config: CleanupConfig,
+) {
+  console.log("\n=== Cleanup Process ===");
+  console.log(`Mode: ${config.dryRun ? "Dry Run (no actual deletion)" : "Active"}`);
+  if (config.minAge) {
+    console.log(`Minimum age requirement: ${config.minAge} days`);
+  }
+
+  const now = new Date();
+  let deletedCount = 0;
+  let skippedCount = 0;
+  const deletionResults: Array<{ key: string; success: boolean; error?: string }> = [];
+
+  for (const obj of objects) {
+    console.log(`\nProcessing: ${obj.key}`);
+
+    // 检查文件年龄
+    if (config.minAge) {
+      const ageInDays = (now.getTime() - obj.lastModified.getTime()) / (1000 * 60 * 60 * 24);
+      if (ageInDays < config.minAge) {
+        console.log(`Skipped: File age (${ageInDays.toFixed(1)} days) is less than minimum requirement (${config.minAge} days)`);
+        skippedCount++;
+        continue;
+      }
+    }
+
+    try {
+      if (!config.dryRun) {
+        await bucket.deleteObject(obj.key);
+        console.log(`Deleted: ${obj.key}`);
+        deletionResults.push({ key: obj.key, success: true });
+      } else {
+        console.log(`[DRY RUN] Would delete: ${obj.key}`);
+        deletionResults.push({ key: obj.key, success: true });
+      }
+      deletedCount++;
+    } catch (error) {
+      console.error(`Failed to delete ${obj.key}:`, error);
+      deletionResults.push({ key: obj.key, success: false, error: error.message });
+    }
+  }
+
+  console.log("\n=== Cleanup Summary ===");
+  console.log(`Total processed: ${objects.length}`);
+  console.log(`Deleted: ${deletedCount}`);
+  console.log(`Skipped: ${skippedCount}`);
+  
+  return deletionResults;
 }
 
 function formatSize(bytes: number): string {
