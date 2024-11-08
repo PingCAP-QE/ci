@@ -37,7 +37,7 @@ async function main() {
   const thresholdMB = args["threshold-mb"] || 100;
   const thresholdBytes = thresholdMB * 1024 * 1024;
 
-  // 飞书配置
+  // Feishu configuration
   const feishuConfig: FeishuConfig | undefined = args["feishu-webhook"]
     ? {
       webhook: args["feishu-webhook"] as string,
@@ -45,7 +45,7 @@ async function main() {
     }
     : undefined;
 
-  // 清理配置
+  // Cleanup configuration
   const cleanupConfig: CleanupConfig = {
     enabled: args["cleanup"] === true,
     dryRun: args["dry-run"] === true,
@@ -85,12 +85,12 @@ async function monitorObjectSizes(
   console.log(`Size threshold: ${formatSize(thresholdBytes)}`);
   
   try {
-    // 测试bucket访问
+    // Test bucket access
     console.log("\n=== Testing Bucket Access ===");
     const testList = await bucket.listObjects({ prefix, maxKeys: 1 });
     console.log(`Test list result: ${JSON.stringify(testList, null, 2)}`);
     
-    // 收集所有对象信息
+    // Collect all object information
     console.log("\n=== Starting Object Scan ===");
     for await (const obj of bucket.listAllObjects({ prefix, batchSize: 1000 })) {
       console.log(`Found object: ${obj.key} (${obj.size} bytes)`);
@@ -109,21 +109,21 @@ async function monitorObjectSizes(
     throw error;
   }
 
-  // 分离超过和未超过阈值的对象
+  // Separate objects that exceed and don't exceed the threshold
   const oversizedObjects = objects.filter((obj) => obj.size > thresholdBytes);
   const normalObjects = objects.filter((obj) => obj.size <= thresholdBytes);
 
-  // 按大小降序排序
+  // Sort by size in descending order
   oversizedObjects.sort((a, b) => b.size - a.size);
   normalObjects.sort((a, b) => b.size - a.size);
 
-  // 输出统计信息
+  // Output summary information
   console.log("\n=== Summary ===");
   console.log(`Total objects: ${objects.length}`);
   console.log(`Oversized objects: ${oversizedObjects.length}`);
   console.log(`Normal sized objects: ${normalObjects.length}`);
 
-  // 输出超过阈值的对象
+  // Output oversized objects
   if (oversizedObjects.length > 0) {
     console.log("\n=== Oversized Objects ===");
     for (const obj of oversizedObjects) {
@@ -135,7 +135,7 @@ async function monitorObjectSizes(
     }
   }
 
-  // 输出正常大小的对象
+  // Output normal sized objects
   if (normalObjects.length > 0) {
     console.log("\n=== Normal Sized Objects ===");
     for (const obj of normalObjects) {
@@ -149,12 +149,12 @@ async function monitorObjectSizes(
 
   let cleanupResults: Array<{ key: string; success: boolean; error?: string }> = [];
   
-  // 如果启用了清理功能，处理超大对象
+  // If cleanup is enabled, process oversized objects
   if (cleanupConfig?.enabled && oversizedObjects.length > 0) {
     cleanupResults = await cleanupOversizedObjects(bucket, oversizedObjects, cleanupConfig);
   }
 
-  // 如果配置了飞书webhook，发送综合报告
+  // If a Feishu webhook is configured, send a comprehensive report
   if (feishuConfig && oversizedObjects.length > 0) {
     await sendFeishuReport(
       oversizedObjects, 
@@ -188,7 +188,7 @@ async function sendFeishuReport(
     sign = base64Encode(hash);
   }
 
-  // 构建消息内容
+  // Build message content
   const content = {
     msg_type: "post",
     content: {
@@ -196,7 +196,7 @@ async function sendFeishuReport(
         zh_cn: {
           title: `🚨 S3 storage monitoring${cleanupConfig?.enabled ? ' and cleanup' : ''} report`,
           content: [
-            // 监控信息
+            // Monitoring information
             [
               {
                 tag: "text",
@@ -215,7 +215,7 @@ async function sendFeishuReport(
                 text: `📊 Number of oversized files: ${oversizedObjects.length}\n\n`,
               },
             ],
-            // 清理配置信息（如果启用）
+            // Cleanup configuration information (if enabled)
             ...(cleanupConfig?.enabled ? [
               [
                 {
@@ -226,7 +226,7 @@ async function sendFeishuReport(
                 },
               ],
             ] : []),
-            // 文件列表
+            // File list
             ...oversizedObjects.map((obj) => {
               const cleanupResult = cleanupResults?.find(r => r.key === obj.key);
               return [
@@ -295,7 +295,7 @@ async function cleanupOversizedObjects(
   for (const obj of objects) {
     console.log(`\nProcessing: ${obj.key}`);
 
-    // 检查文件年龄
+    // Check file age
     if (config.minAge) {
       const ageInDays = (now.getTime() - obj.lastModified.getTime()) / (1000 * 60 * 60 * 24);
       if (ageInDays < config.minAge) {
