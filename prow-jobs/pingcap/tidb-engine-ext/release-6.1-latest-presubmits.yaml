@@ -16,10 +16,6 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
-                rm -rf /root/.cargo/.git
-                rm -rf /root/.cargo/registry
-                ln -s /cargo-cache/git /root/.cargo/git
-                ln -s /cargo-cache/registry /root/.cargo/registry
                 set -euox pipefail
                 make ci_fmt_check
                 make ci_test
@@ -34,7 +30,17 @@ presubmits:
                 cpu: "12"
             volumeMounts:
               - name: cargo-cache
-                mountPath: /cargo-cache
+                mountPath: /root/.cargo/git/db
+                subPath: git/db
+                readOnly: false
+              - name: cargo-cache
+                mountPath: /root/.cargo/registry/index
+                subPath: registry/index
+                readOnly: false
+              - name: cargo-cache
+                mountPath: /root/.cargo/registry/cache
+                subPath: registry/cache
+                readOnly: false
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
