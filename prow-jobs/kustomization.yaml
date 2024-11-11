@@ -34,6 +34,7 @@ configMapGenerator:
       - pingcap_tidb_release-6.2-presubmits.yaml=pingcap/tidb/release-6.2-presubmits.yaml
       - pingcap_tidb_release-6.3-presubmits.yaml=pingcap/tidb/release-6.3-presubmits.yaml
       - pingcap_tidb_release-6.4-presubmits.yaml=pingcap/tidb/release-6.4-presubmits.yaml
+      - pingcap_tidb_release-6.5-20241101-v6.5.7-presubits.yaml=pingcap/tidb/release-6.5-20241101-v6.5.7-presubits.yaml
       - pingcap_tidb_release-6.5-fips-presubmits.yaml=pingcap/tidb/release-6.5-fips-presubmits.yaml
       - pingcap_tidb_release-6.5-presubmits.yaml=pingcap/tidb/release-6.5-presubmits.yaml
       - pingcap_tidb_release-6.5-with-kv-timeout-feature-presubmits.yaml=pingcap/tidb/release-6.5-with-kv-timeout-feature-presubmits.yaml
@@ -71,6 +72,7 @@ configMapGenerator:
       - pingcap_tiflow_release-6.0-presubmits.yaml=pingcap/tiflow/release-6.0-presubmits.yaml
       - pingcap_tiflow_release-6.1-presubmits.yaml=pingcap/tiflow/release-6.1-presubmits.yaml
       - pingcap_tiflow_release-6.2-presubmits.yaml=pingcap/tiflow/release-6.2-presubmits.yaml
+      - pingcap_tiflow_release-6.5-20241101-v6.5.7-presubmits.yaml=pingcap/tiflow/release-6.5-20241101-v6.5.7-presubmits.yaml
       - pingcap_tiflow_release-6.5-fips-presubmits.yaml=pingcap/tiflow/release-6.5-fips-presubmits.yaml
       - pingcap_tiflow_release-6.5-presubmits.yaml=pingcap/tiflow/release-6.5-presubmits.yaml
       - pingcap_tiflow_release-7.1-presubmits.yaml=pingcap/tiflow/release-7.1-presubmits.yaml
