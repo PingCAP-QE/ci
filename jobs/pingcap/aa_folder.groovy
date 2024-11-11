@@ -12,7 +12,7 @@ folder('pingcap') {
                                 git {
                                     remote('https://github.com/PingCAP-QE/ci')
                                     traits {
-                                        cloneOptions {
+                                        cloneOption {
                                             depth(1)
                                             shallow(true)
                                             timeout(5)
