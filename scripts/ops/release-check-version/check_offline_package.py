@@ -210,7 +210,11 @@ def check_offline_components(version, edition, arch, component_hash):
     subprocess.run(["tiup", "uninstall", "--all"], check=True)
     # those components will be checked:
     # [ br & cdc & dmctl & dm-master & dm-worker & drainer & dumpling & grafana & pd-recover & prometheus & pump & tidb-lightning ]
-    for component in ["dumpling", "dm", "br", "ticdc", "binlog", "lightning"]:
+    # Notice: from version v8.4, the repo tidb-binlog is deprecated, so we need to remove it from the components list
+    components = ["dumpling", "dm", "br", "ticdc", "lightning"]
+    if version >= "v8.4.0":
+        components.remove("binlog")
+    for component in components:
         # TODO: how to handle pd-recover, pd-recover is build from pd repo, but it is in toolkit package tarball
         check_tiup_component_version(component, version, component_hash[component], expected_edition)
     for component in ["grafana", "prometheus"]:
