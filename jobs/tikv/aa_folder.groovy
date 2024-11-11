@@ -15,8 +15,10 @@ folder('tikv') {
                                         cloneOption {
                                             depth(1)
                                             shallow(true)
+                                            noTags(true)
+                                            reference('/var/lib/scm-git/ci')
                                             timeout(5)
-                                        } 
+                                        }
                                     }
                                 }
                             }
