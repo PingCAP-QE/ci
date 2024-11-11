@@ -11,7 +11,7 @@ folder('pingcap-qe') {
                             scm {
                                 git {
                                     remote('https://github.com/PingCAP-QE/ci')
-                                    extensions {
+                                    traits {
                                         cloneOptions {
                                             depth(1)
                                             shallow(true)
