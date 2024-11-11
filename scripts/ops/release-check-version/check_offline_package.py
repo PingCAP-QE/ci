@@ -211,7 +211,7 @@ def check_offline_components(version, edition, arch, component_hash):
     # those components will be checked:
     # [ br & cdc & dmctl & dm-master & dm-worker & drainer & dumpling & grafana & pd-recover & prometheus & pump & tidb-lightning ]
     # Notice: from version v8.4, the repo tidb-binlog is deprecated, so we need to remove it from the components list
-    components = ["dumpling", "dm", "br", "ticdc", "lightning"]
+    components = ["dumpling", "dm", "br", "ticdc", "lightning", "binlog"]
     if version >= "v8.4.0":
         components.remove("binlog")
     for component in components:
