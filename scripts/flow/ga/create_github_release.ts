@@ -46,12 +46,12 @@ const REPO_LIST: RepoInfo[] = [
         repo: "tiflash",
         product_name: "TiFlash",
     },
-    {
-        owner: "pingcap",
-        repo: "tidb-binlog",
-        product_name: "Binlog",
-        skip_issues_in_release_msg: true,
-    },
+    // {
+    //     owner: "pingcap",
+    //     repo: "tidb-binlog",
+    //     product_name: "Binlog",
+    //     skip_issues_in_release_msg: true,
+    // },
     {
         owner: "pingcap",
         repo: "tidb-tools",
