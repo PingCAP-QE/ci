@@ -1,5 +1,5 @@
 pipelineJob('release-tidb-master-tiup-nightly') {
-    disabled()
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

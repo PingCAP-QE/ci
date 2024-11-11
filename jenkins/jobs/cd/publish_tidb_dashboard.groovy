@@ -1,4 +1,5 @@
 pipelineJob('publish-tidb-dashboard') {
+    disabled(true)
     parameters {
         stringParam('ReleaseTag', 'test', 'empty means the same with GitRef')
     }

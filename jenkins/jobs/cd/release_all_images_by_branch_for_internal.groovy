@@ -1,4 +1,5 @@
 pipelineJob('release-all-images-by-branch-for-internal') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

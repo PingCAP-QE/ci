@@ -1,4 +1,5 @@
 pipelineJob('community-docker-multi-products') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

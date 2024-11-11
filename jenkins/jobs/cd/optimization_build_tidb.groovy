@@ -1,4 +1,5 @@
 pipelineJob('optimization-build-tidb') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

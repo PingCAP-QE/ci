@@ -1,4 +1,5 @@
 pipelineJob('build-tidb-dashboard') {
+    disabled(true)
     parameters {
         stringParam('GitRef', 'master', 'branch or commit hash')
         stringParam('ReleaseTag', 'test', 'empty means the same with GitRef')

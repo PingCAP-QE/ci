@@ -1,4 +1,5 @@
 pipelineJob('build-tiflash-master') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)
