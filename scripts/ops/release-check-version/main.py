@@ -31,13 +31,10 @@ def check_docker_image(component_info, edition, registry, project, is_rc_build=F
     component = component_info["name"]
     if not COMPONENT_META[component]["image_name"]:
         print(f"Image for component {component} is not defined.")
-        return
-    # components have both enterprise and community edition: tidb & pd & tikv & tiflash
-    # other components only have enterprise edition
-    # example tidb-dashboard only have community edition
+        return True
     if not COMPONENT_META[component]["image_edition"][edition] and registry == "registry.hub.docker.com":
         print(f"Image for component {component} does not have {edition} edition.")
-        return
+        return True
     args = [
         "python3", "check_docker_images.py",
         component_info["name"],
@@ -49,7 +46,12 @@ def check_docker_image(component_info, edition, registry, project, is_rc_build=F
     ]
     if is_rc_build:
         args.append("--is_rc_build")
-    subprocess.run(args, check=True)
+    try:
+        subprocess.run(args, check=True)
+        return True
+    except subprocess.CalledProcessError:
+        print(f"Failed to check image: {component} ({edition}) on {registry}")
+        return False
 
 
 def check_tiup_package(component, is_rc_build=False):
@@ -78,23 +80,35 @@ if __name__ == "__main__":
     is_rc_build = os.environ.get("IS_RC_BUILD", "false") == "true"
     print(f"Checking components for {'RC' if is_rc_build else 'GA'} build.")
     if args.type == 'image':
+        all_results = []
         if is_rc_build:
-            # registry = "hub.pingcap.net"
-            # project = "qa"
             for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "hub.pingcap.net", "qa", is_rc_build)
-                check_docker_image(image, "community", "hub.pingcap.net", "qa", is_rc_build)
+                all_results.append(check_docker_image(image, "enterprise", "hub.pingcap.net", "qa", is_rc_build))
+                all_results.append(check_docker_image(image, "community", "hub.pingcap.net", "qa", is_rc_build))
         else:
             print("checking docker images on gcr.io")
             for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
+                all_results.append(check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas"))
             print("checking docker images on uhub.service.ucloud.cn")
             for image in components["docker_images"]:
-                check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
+                all_results.append(check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap"))
             print("checking docker images on registry.hub.docker.com")
             for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
-                check_docker_image(image, "community", "registry.hub.docker.com", "pingcap")
+                all_results.append(check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap"))
+                all_results.append(check_docker_image(image, "community", "registry.hub.docker.com", "pingcap"))
+        
+        # 输出汇总结果
+        failed_count = all_results.count(False)
+        total_count = len(all_results)
+        print(f"\nDocker image check summary:")
+        print(f"Total checks: {total_count}")
+        print(f"Successful: {total_count - failed_count}")
+        print(f"Failed: {failed_count}")
+        
+        # 如果有任何失败，退出程序
+        if failed_count > 0:
+            print("\nSome docker image checks failed!")
+            exit(1)
 
     elif args.type == 'tiup':
         for package in components["tiup_packages"]:
