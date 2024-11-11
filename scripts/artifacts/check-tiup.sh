@@ -24,7 +24,7 @@ function gather_results() {
     yq -i '.tiup = {}' results.yaml
 
     # check tiup
-    for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'pd' 'pd-recover' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
+    for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'dumpling' 'grafana' 'pd' 'pd-recover' 'prometheus' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
         echo "🚧 check tiup $com:$VERSION"
         platforms=$(tiup list $com | grep -E "^$VERSION\b\s+")
         echo $platforms
@@ -40,7 +40,6 @@ function gather_results() {
         pingcap/ctl/package \
         pingcap/monitoring/package \
         pingcap/ng-monitoring/package \
-        pingcap/tidb-binlog/package \
         pingcap/tidb-dashboard/package \
         pingcap/tidb/package \
         pingcap/tiflash/package \
