@@ -16,10 +16,10 @@ const OCI2Tiup: Record<string, string[]> = {
     "prometheus",
   ],
   "pingcap/ng-monitoring/package": [],
-  // "pingcap/tidb-binlog/package": [
-  //   "pump",
-  //   "drainer",
-  // ],
+  "pingcap/tidb-binlog/package": [
+    "pump",
+    "drainer",
+  ],
   "pingcap/tidb-dashboard/package": ["tidb-dashboard"],
   "pingcap/tidb/package": [
     "br",
