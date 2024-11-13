@@ -226,3 +226,15 @@ presubmits:
       branches:
         - ^master$
         - ^feature/.+
+    - name: pingcap/tidb/pull_integration_python_orm_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: pull-integration-python-orm-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-python-orm-test"
+      branches:
+        - ^master$
+        - ^feature/.+
