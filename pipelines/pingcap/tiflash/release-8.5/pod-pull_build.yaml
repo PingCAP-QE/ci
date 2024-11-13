@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:llvm-17.0.6-rocky8"
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:rocky8-llvm-17.0.6"
       command:
         - "/bin/bash"
         - "-c"
