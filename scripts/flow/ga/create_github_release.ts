@@ -5,6 +5,7 @@ import {
     maxSatisfying,
     parse,
     parseRange,
+    satisfies,
     type SemVer,
 } from "jsr:@std/semver";
 
@@ -46,12 +47,12 @@ const REPO_LIST: RepoInfo[] = [
         repo: "tiflash",
         product_name: "TiFlash",
     },
-    // {
-    //     owner: "pingcap",
-    //     repo: "tidb-binlog",
-    //     product_name: "Binlog",
-    //     skip_issues_in_release_msg: true,
-    // },
+    {
+        owner: "pingcap",
+        repo: "tidb-binlog",
+        product_name: "Binlog",
+        skip_issues_in_release_msg: true,
+    },
     {
         owner: "pingcap",
         repo: "tidb-tools",
@@ -62,6 +63,11 @@ const REPO_LIST: RepoInfo[] = [
         owner: "pingcap",
         repo: "tiflow",
         product_name: "TiFlow",
+    },
+    {
+        owner: "pingcap",
+        repo: "ticdc",
+        product_name: "TiCDC",
     },
     {
         owner: "pingcap",
@@ -86,9 +92,21 @@ async function fillRepoTagInfo(
     version: string,
     octokit: Octokit,
 ) {
-    const majorMinorVer = version.match(/^v(\d+\.\d+)/)![1]; // eg: 6.6
-    const releaseBranch = `release-${majorMinorVer}`;
-    console.dir({ majorMinorVer, releaseBranch });
+    const v = parse(version)
+    const releaseBranch = `release-${v.major}.${v.minor}`;
+    console.log("default create release on branch: ", releaseBranch);
+
+    // "tidb-binlog" repo stops to release since 8.4.0, but the history release branches is still there and keep releasing patches.
+    const binlogRemovedRange = parseRange(">=8.4.0-0");
+    if (satisfies(v, binlogRemovedRange)) {
+        repos = repos.filter((r) => r.repo !== "tidb-binlog");
+    }
+
+    // "ticdc" repo will release from from 8.6.0, it's a new repo for new CDC component.
+    const ticdcStartedRange = parseRange(">=8.6.0-0");
+    if (!satisfies(v, ticdcStartedRange)) {
+        repos = repos.filter((r) => r.repo !== "ticdc");
+    }
 
     return await Promise.all(
         repos.map(async (repo) => {
