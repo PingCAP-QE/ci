@@ -44,6 +44,12 @@ function tag_oci_artifact_repos() {
     "tikv/pd/package"
     "tikv/tikv/package"
   )
+  # binlog is stoped releasing since v8.4.0.
+  if [[ "$(printf '%s\n' "v8.4.0" "$ga_ver" | sort -V | head -n1)" == "$ga_ver" ]]; then
+    repos+=(
+      "pingcap/tidb-binlog/package"
+    )
+  fi
   platforms=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
 
   # enterprise
@@ -93,6 +99,13 @@ function tag_oci_image_repos() {
     "tikv/pd/image"
     "tikv/tikv/image"
   )
+  # binlog is stoped releasing since v8.4.0.
+  if [[ "$(printf '%s\n' "v8.4.0" "$ga_ver" | sort -V | head -n1)" == "$ga_ver" ]]; then
+    images+=(
+      "pingcap/tidb-binlog/image"
+    )
+  fi
+
   for img in "${images[@]}"; do
     tag_oci_repo "$registry/${img}" "$rc_ver" "$ga_ver" "$force"
   done
@@ -126,6 +139,7 @@ function publish_tiup_from_oci_artifact_repos() {
     "pingcap/ctl/package"
     "pingcap/monitoring/package"
     "pingcap/ng-monitoring/package"
+    "pingcap/tidb-binlog/package"
     "pingcap/tidb-dashboard/package"
     "pingcap/tiflash/package"
     "pingcap/tiflow/package"
