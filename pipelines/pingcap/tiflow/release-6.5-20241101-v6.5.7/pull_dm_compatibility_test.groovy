@@ -87,25 +87,31 @@ pipeline {
             steps {
                 dir("tiflow") {
                         retry(2) {
-                            sh label: "build previous", script: """
-                                echo "build binary for previous version"
-                                git fetch origin ${REFS.base_ref}:local
-                                git checkout local
-                                git rev-parse HEAD
-                                make dm_integration_test_build
-                                mv bin/dm-master.test bin/dm-master.test.previous
-                                mv bin/dm-worker.test bin/dm-worker.test.previous
-                                ls -alh ./bin/
-                            """
-                            sh label: "build current", script: """
-                                echo "build binary for current version"
-                                # reset to current version
-                                git checkout ${REFS.pulls[0].sha}
-                                make dm_integration_test_build
-                                mv bin/dm-master.test bin/dm-master.test.current
-                                mv bin/dm-worker.test bin/dm-worker.test.current
-                                ls -alh ./bin/
-                            """
+                            container(name: 'golang119') {
+                                sh label: "build previous", script: """
+                                    go version
+                                    echo "build binary for previous version"
+                                    git fetch origin ${REFS.base_ref}:local
+                                    git checkout local
+                                    git rev-parse HEAD
+                                    make dm_integration_test_build
+                                    mv bin/dm-master.test bin/dm-master.test.previous
+                                    mv bin/dm-worker.test bin/dm-worker.test.previous
+                                    ls -alh ./bin/
+                                """
+                            }
+                            container(name: 'golang') {
+                                sh label: "build current", script: """
+                                    go version
+                                    echo "build binary for current version"
+                                    # reset to current version
+                                    git checkout ${REFS.pulls[0].sha}
+                                    make dm_integration_test_build
+                                    mv bin/dm-master.test bin/dm-master.test.current
+                                    mv bin/dm-worker.test bin/dm-worker.test.current
+                                    ls -alh ./bin/
+                                """
+                            }
                             sh label: "download third_party", script: """
                                 chmod +x ../scripts/pingcap/tiflow/release-6.5/dm_download_compatibility_test_binaries.sh
                                 cp ../scripts/pingcap/tiflow/release-6.5/dm_download_compatibility_test_binaries.sh dm/tests/
