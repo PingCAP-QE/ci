@@ -45,7 +45,7 @@ function tag_oci_artifact_repos() {
     "tikv/tikv/package"
   )
   # binlog is stoped releasing since v8.4.0.
-  if [ "$ga_ver" \< "v8.4.0" ]; then
+  if [[ "$(printf '%s\n' "v8.4.0" "$ga_ver" | sort -V | head -n1)" == "$ga_ver" ]]; then
     repos+=(
       "pingcap/tidb-binlog/package"
     )
@@ -100,7 +100,7 @@ function tag_oci_image_repos() {
     "tikv/tikv/image"
   )
   # binlog is stoped releasing since v8.4.0.
-  if [ "$ga_ver" \< "v8.4.0" ]; then
+  if [[ "$(printf '%s\n' "v8.4.0" "$ga_ver" | sort -V | head -n1)" == "$ga_ver" ]]; then
     images+=(
       "pingcap/tidb-binlog/image"
     )
