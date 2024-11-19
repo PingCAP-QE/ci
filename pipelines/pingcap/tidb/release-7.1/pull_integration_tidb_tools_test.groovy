@@ -113,12 +113,14 @@ pipeline {
         stage('TiDB Tools Tests') {
             steps {
                 dir('tidb-tools') {
-                    sh label: 'integration test', script: """
-                        for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
-                        export MYSQL_HOST="127.0.0.1"
-                        export MYSQL_PORT=3306
-                        make integration_test
-                    """
+                    container(name: 'golang121') {
+                        sh label: 'integration test', script: """
+                            for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
+                            export MYSQL_HOST="127.0.0.1"
+                            export MYSQL_PORT=3306
+                            make integration_test
+                        """
+                    }
                 }
             }
             post{
