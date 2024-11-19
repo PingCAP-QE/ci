@@ -86,10 +86,14 @@ pipeline {
                         mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
                         rm -r tidb-enterprise-tools-nightly-linux-amd64
                     """
+                    container(name: 'golang121') {
+                        sh label: "build", script: """
+                            make build
+                        """
+                    }
                     sh label: "check", script: """
                         cp ../tidb/bin/tidb-server bin/
                         cp ../tidb/bin/dumpling bin/
-                        make build
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
