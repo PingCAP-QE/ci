@@ -57,7 +57,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb-binlog/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-binlog/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb-binlog.git', 'tidb-binlog', REFS.base_ref, REFS.pulls[0].title, "")
+                                component.checkout('https://github.com/pingcap/tidb-binlog.git', 'tidb-binlog', REFS.base_ref, REFS.pulls[0].title, "")
                                 sh """
                                     git status
                                     git log -1
@@ -71,7 +71,7 @@ pipeline {
                         retry(2) {
                             script {
                                 // from v6.0.0, tidb-tools only maintain master branch
-                                component.checkout('git@github.com:pingcap/tidb-tools.git', 'tidb-tools', master, REFS.pulls[0].title, "")
+                                component.checkout('https://github.com/pingcap/tidb-tools.git', 'tidb-tools', "master", REFS.pulls[0].title, "")
                                 sh """
                                     git status
                                     git log -1
@@ -85,7 +85,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    sh label: 'tidb-server', script: 'make server'
                 }
                 dir('tidb-binlog') {
                     sh label: 'prepare', script: """
@@ -103,7 +103,6 @@ pipeline {
                         ls -alh bin/
                         rm -f bin/{ddl_checker,importer}
                         ls -alh bin/
-                        cp -r bin/* ../tidb-binlog/bin/
                     """
                 }
             }
@@ -112,6 +111,8 @@ pipeline {
             steps {
                 dir('tidb-binlog') {
                     sh label: 'run test', script: """
+                        cp ../tidb-tools/bin/* bin/
+                        cp ../tidb/bin/tidb-server bin/
                         ls -alh bin/
                         KAFKA_ADDRS=127.0.0.1:9092  make integration_test
                     """

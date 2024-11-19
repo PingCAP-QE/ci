@@ -59,7 +59,7 @@ pipeline {
                         retry(2) {
                             script {
                                 // from v6.0.0, tidb-tools only maintain master branch
-                                component.checkout('git@github.com:pingcap/tidb-tools.git', 'tidb-tools', master, REFS.pulls[0].title, "")
+                                component.checkout('https://github.com/pingcap/tidb-tools.git', 'tidb-tools', "master", REFS.pulls[0].title, "")
                             }
                         }
                     }
@@ -89,6 +89,7 @@ pipeline {
                     sh label: "check", script: """
                         cp ../tidb/bin/tidb-server bin/
                         cp ../tidb/bin/dumpling bin/
+                        make build
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
@@ -106,15 +107,13 @@ pipeline {
         }
         stage('TiDB Tools Tests') {
             steps {
-                container('tidb-tools-test') {
-                    dir('tidb-tools') {
-                        sh label: 'integration test', script: """
-                            for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
-                            export MYSQL_HOST="127.0.0.1"
-                            export MYSQL_PORT=3306
-                            make integration_test
-                        """
-                    }
+                dir('tidb-tools') {
+                    sh label: 'integration test', script: """
+                        for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
+                        export MYSQL_HOST="127.0.0.1"
+                        export MYSQL_PORT=3306
+                        make integration_test
+                    """
                 }
             }
             post{
