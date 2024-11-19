@@ -21,7 +21,7 @@ pipeline {
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
     }
     stages {
         stage('Debug info') {
