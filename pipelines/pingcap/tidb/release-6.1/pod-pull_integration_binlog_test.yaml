@@ -5,6 +5,19 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      tty: true
+      resources:
+        requests:
+          memory: 12Gi
+          cpu: "4"
+        limits:
+          memory: 16Gi
+          cpu: "6"
+      volumeMounts:
+        - mountPath: /tmp
+          name: volume-0
+    - name: golang121
       image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
       tty: true
       resources:

@@ -1,11 +1,11 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-8.1 branches
+// should triggerd for release-6.5 branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.1/pod-pull_integration_tidb_tools_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.5/pod-pull_integration_tidb_tools_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
