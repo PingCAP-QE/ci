@@ -205,7 +205,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-tidb-tools-test
+      context: pull-integration-tidb-tools-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tidb-tools-test"
@@ -216,7 +216,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: wip/pull-integration-binlog-test
+      context: pull-integration-binlog-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-binlog-test(?: .*?)?$"
       rerun_command: "/test pull-integration-binlog-test"
