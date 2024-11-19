@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/release-8.1/pull_integration_tidb_tools_test') {
+pipelineJob('pingcap/tidb/release-6.1/pull_integration_tidb_tools_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +16,7 @@ pipelineJob('pingcap/tidb/release-8.1/pull_integration_tidb_tools_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/release-8.1/pull_integration_tidb_tools_test.groovy')
+            scriptPath('pipelines/pingcap/tidb/release-6.1/pull_integration_tidb_tools_test.groovy')
             scm {
                 git{
                     remote {
