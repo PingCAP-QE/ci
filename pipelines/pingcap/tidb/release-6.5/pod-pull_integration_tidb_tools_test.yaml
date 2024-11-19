@@ -14,6 +14,16 @@ spec:
         limits:
           memory: 8Gi
           cpu: "4"
+    - name: golang121
+      image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest
+      tty: true
+      env:
+        - name: GOPATH
+          value: /go
+      resources:
+        limits:
+          memory: 8Gi
+          cpu: "4"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
