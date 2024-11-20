@@ -14,16 +14,13 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
-      volumeMounts:
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
+    - name: codecov
+      image: python:3.11.10-bullseye
+      tty: true
+      resources:
+        limits:
+          memory: 4Gi
+          cpu: 2000m
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true

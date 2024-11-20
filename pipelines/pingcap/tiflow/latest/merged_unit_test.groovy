@@ -101,12 +101,16 @@ pipeline {
                             }
                             always {
                                 dir('tiflow') {
-                                    sh label: "upload junit report to codecov", script: """
+                                    container(name: 'codecov') {
+                                        sh label: "upload junit report to codecov", script: """
                                         JUNIT_REPORT=\$(ls *-junit-report.xml)
                                         wget -q -O codecovcli https://github.com/codecov/codecov-cli/releases/download/v0.9.4/codecovcli_linux
                                         chmod +x codecovcli
-                                        ./codecovcli do-upload --report-type test_results --file \${JUNIT_REPORT}
-                                    """
+                                        git config --global --add safe.directory '*'
+                                        ./codecovcli do-upload --report-type test_results --file \${JUNIT_REPORT} --branch origin/${REFS.base_ref} --sha ${REFS.base_sha}
+                                        """
+                                    }
+                                    
                                 }
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)  
                             }
