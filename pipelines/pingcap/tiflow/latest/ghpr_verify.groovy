@@ -103,18 +103,27 @@ pipeline {
                                 }
                             }
                             always {
+                                junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)
                                 dir('tiflow') {
                                     container(name: 'codecov') {
-                                        sh label: "upload junit report to codecov", script: """
-                                        JUNIT_REPORT=\$(ls *-junit-report.xml)
-                                        wget -q -O codecovcli https://github.com/codecov/codecov-cli/releases/download/v0.9.4/codecovcli_linux
-                                        chmod +x codecovcli
-                                        git config --global --add safe.directory '*'
-                                        ./codecovcli do-upload --report-type test_results --file \${JUNIT_REPORT} --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number}
-                                        """
+                                        script{
+                                            def testConfigs = [
+                                            dm_unit_test_in_verify_ci: [flags: "unit", test_results_file: "dm-junit-report.xml"],
+                                            unit_test_in_verify_ci: [flags: "unit", test_results_file: "cdc-junit-report.xml"],
+                                            engine_unit_test_in_verify_ci: [flags: "unit", test_results_file: "engine-junit-report.xml"]
+                                            ]
+                                            def config = testConfigs[TEST_CMD]
+                                            if (config && config.test_results_file) {
+                                                sh label: "upload junit report to codecov", script: """
+                                                    wget -q -O codecovcli http://fileserver.pingcap.net/download/cicd/tools/codecovcli_linux_amd64_v0.9.4
+                                                    chmod +x codecovcli
+                                                    git config --global --add safe.directory '*'
+                                                    ./codecovcli do-upload --report-type test_results --file ${config.test_results_file} --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number}
+                                                """
+                                            }
+                                        }
                                     }
                                 }
-                                junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)  
                             }
                         }
                     }
