@@ -1,5 +1,5 @@
 import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
-import { parseArgs } from "jsr:@std/cli@^1.0.1/parse-args";
+import { parseArgs } from "jsr:@std/cli@^1.0.1";
 import {
     format,
     maxSatisfying,
@@ -7,7 +7,7 @@ import {
     parseRange,
     satisfies,
     type SemVer,
-} from "jsr:@std/semver";
+} from "jsr:@std/semver@^1.0.3";
 
 interface RepoInfo {
     owner: string;
@@ -92,7 +92,7 @@ async function fillRepoTagInfo(
     version: string,
     octokit: Octokit,
 ) {
-    const v = parse(version)
+    const v = parse(version);
     const releaseBranch = `release-${v.major}.${v.minor}`;
     console.log("default create release on branch: ", releaseBranch);
 
