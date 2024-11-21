@@ -1,6 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-net --allow-write
 import * as yaml from "jsr:@std/yaml@1.0.5";
 import { parseArgs } from "jsr:@std/cli@1.0.6";
+import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
 
 const platforms = [
   "linux/amd64",
@@ -58,6 +59,7 @@ interface CliParams {
   oci_registry: string;
   version: string;
   branch: string;
+  github_token: string;
   save_to: string;
 }
 
@@ -145,18 +147,16 @@ async function getMultiArchImageInfo(image: string) {
   return ociInfos;
 }
 
-async function gatheringGithubGitSha(repo: string, branch: string) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/commits/${branch}`,
-    {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-      },
-    },
-  );
-  const { sha } = await res.json();
-  console.info(`got github git sha of ${repo}@${branch}: ${sha}`);
-  return sha || "";
+async function gatheringGithubGitSha(
+  ghClient: Octokit,
+  fullRepo: string,
+  branch: string,
+) {
+  const [owner, repo] = fullRepo.split("/", 2);
+  const res = await ghClient.rest.repos.getCommit({ owner, repo, ref: branch });
+  const sha = res.data.sha;
+  console.info(`got github git sha of ${fullRepo}@${branch}: ${sha}`);
+  return sha;
 }
 
 function checkTools() {
@@ -172,6 +172,7 @@ async function checkImages(
   version: string,
   oci_registry: string,
   mm: GitRepoImageMap,
+  ghClient: Octokit,
 ) {
   const results = {} as Record<string, ImageInfo>;
   for (const [gitRepo, map] of Object.entries(mm)) {
@@ -181,7 +182,7 @@ async function checkImages(
     }
 
     console.group(gitRepo);
-    const gitSha = await gatheringGithubGitSha(gitRepo, branch);
+    const gitSha = await gatheringGithubGitSha(ghClient, gitRepo, branch);
 
     for (const [src, dst] of Object.entries(map)) {
       const srcInfos = await getMultiArchImageInfo(
@@ -216,6 +217,7 @@ async function main(
   {
     version,
     branch,
+    github_token,
     oci_registry = "hub.pingcap.net",
     save_to = "results.yaml",
   }: CliParams,
@@ -223,6 +225,7 @@ async function main(
   checkTools();
   const totalResults = {} as Record<string, Record<string, ImageInfo>>;
   const totalFailedPkgs = {} as Record<string, string[]>;
+  const ghClient = new Octokit({ auth: github_token });
 
   {
     console.group("check community images:");
@@ -231,6 +234,7 @@ async function main(
       version,
       oci_registry,
       imageMap.comunity,
+      ghClient,
     );
     console.groupEnd();
     totalResults["community"] = results;
@@ -244,6 +248,7 @@ async function main(
       `${version}-enterprise`,
       oci_registry,
       imageMap.enterprise,
+      ghClient,
     );
     console.groupEnd();
     totalResults["enterprise"] = results;
