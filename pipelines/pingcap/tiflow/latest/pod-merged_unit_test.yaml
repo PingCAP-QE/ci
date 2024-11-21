@@ -14,6 +14,13 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
+    - name: codecov
+      image: python:3.11.10-bullseye
+      tty: true
+      resources:
+        limits:
+          memory: 4Gi
+          cpu: 2000m
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
