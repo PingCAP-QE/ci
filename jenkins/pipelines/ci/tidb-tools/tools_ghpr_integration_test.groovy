@@ -43,9 +43,9 @@ if (m3) {
 m3 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
-GO_VERSION = "go1.21"
-POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
-POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
+GO_VERSION = "go1.23"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
 
 node("master") {
     deleteDir()
@@ -54,9 +54,9 @@ node("master") {
     def goversion_lib = load('goversion-select-lib.groovy')
     if (params.containsKey("release_test") && ghprbTargetBranch >= "release-5.3") {
         echo "This build is triggered by qa for release testing, current branch is ${ghprbTargetBranch}(actual master), so use go1.21"
-        GO_VERSION = "go1.21"
-        POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
-        POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
+        GO_VERSION = "go1.23"
+        POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+        POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
     } else {
         GO_VERSION = goversion_lib.selectGoVersion(ghprbTargetBranch)
         POD_GO_IMAGE = goversion_lib.selectGoImage(ghprbTargetBranch)
@@ -240,4 +240,3 @@ catchError {
 
     currentBuild.result = "SUCCESS"
 }
-
