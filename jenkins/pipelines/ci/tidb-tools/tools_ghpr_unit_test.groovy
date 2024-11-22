@@ -1,6 +1,6 @@
-GO_VERSION = "go1.21"
-POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
-POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go121"
+GO_VERSION = "go1.23"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
 
 node("master") {
     deleteDir()
@@ -130,4 +130,3 @@ catchError {
 
     currentBuild.result = "SUCCESS"
 }
-
