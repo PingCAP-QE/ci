@@ -1,8 +1,9 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
 global_definitions:
   branches: &branches
     - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - ^feature/release-7\.5(.\d+)?-.+$ # for feature branch based on v7.5.x
 
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/tikv:
     - name: tikv/tikv/release-7.5/pull_unit_test

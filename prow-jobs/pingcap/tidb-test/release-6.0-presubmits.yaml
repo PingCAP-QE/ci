@@ -1,4 +1,4 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   PingCAP-QE/tidb-test:
     - name: pingcap-qe/tidb-test/release-6.0/ghpr_build
