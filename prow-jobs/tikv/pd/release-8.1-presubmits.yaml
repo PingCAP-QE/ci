@@ -1,4 +1,12 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - ^release-8\.[0-3](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    # for feature branch based on release versions
+    - ^feature/release-7.[4-9](.\d+)?-.+$
+    - ^feature/release-8.[0-3](.\d+)?-.+$
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
     - name: tikv/pd/release-8.1/ghpr_build
@@ -8,9 +16,7 @@ presubmits:
       context: idc-jenkins-ci/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
-      branches:
-        - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^release-8\.[0-3](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
     - name: tikv/pd/release-8.1/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -18,6 +24,4 @@ presubmits:
       context: pull-integration-copr-test
       trigger: "(?m)^/test (?:.*? )?integration-copr-test(?: .*?)?$"
       rerun_command: "/test integration-copr-test"
-      branches:
-        - ^release-7\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^release-8\.[0-3](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches

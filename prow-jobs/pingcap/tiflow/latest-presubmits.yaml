@@ -1,4 +1,9 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^master$
+    - ^feature/.+
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/pull_cdc_integration_kafka_test
@@ -11,10 +16,9 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-kafka-test"
-      branches:
-        - ^master$
-        - ^feature/.+
-    # TODO: combine other CDC integration tests to a single one, 
+      branches: *branches
+
+    # TODO: combine other CDC integration tests to a single one,
     # Currently we keep the Jenkins job name.
     - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
@@ -26,9 +30,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-mysql-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      branches: *branches
+
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
@@ -39,9 +42,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-storage-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      branches: *branches
+
     - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
       agent: jenkins
       decorate: false # need add this.
@@ -52,9 +54,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test|all)(?: .*?)?$"
       rerun_command: "/test cdc-integration-pulsar-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      branches: *branches
+
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
@@ -65,9 +66,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test dm-compatibility-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      branches: *branches
+
     - name: pingcap/tiflow/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -78,9 +78,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test dm-integration-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      branches: *branches
+
     - name: pingcap/tiflow/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -91,18 +90,14 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(engine-integration-test|all)(?: .*?)?$"
       rerun_command: "/test engine-integration-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      branches: *branches
+
     - name: pingcap/tiflow/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: jenkins-ticdc/verify 
+      context: jenkins-ticdc/verify
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?verify(?: .*?)?$"
       rerun_command: "/test verify"
-      branches:
-        - ^master$
-        - ^feature/.+
-
+      branches: *branches

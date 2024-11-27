@@ -1,4 +1,4 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
   branches: &branches
     - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$

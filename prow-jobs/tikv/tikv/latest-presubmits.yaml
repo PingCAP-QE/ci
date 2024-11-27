@@ -1,12 +1,16 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
-  branches: &branches
+  brancher: &brancher
+    branches:
     - ^master$
     - ^feature/.+
+    skip_branches:
+    - ^feature/release-\d+\.\d+(.\d+)?-.+$
 
 presubmits:
   tikv/tikv:
-    - name: tikv/tikv/pull_unit_test
+    - <<: *brancher
+      name: tikv/tikv/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -15,8 +19,9 @@ presubmits:
       context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
-      branches: *branches
-    - name: tikv/tikv/pull_integration_test
+
+    - <<: *brancher
+      name: tikv/tikv/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false  # update here after test passed
@@ -25,4 +30,3 @@ presubmits:
       context: wip/pull-integration-test
       trigger: "(?m)^/debug (?:.*? )?pull-integration-test(?: .*?)?$"
       rerun_command: "/debug pull-integration-test"
-      branches: *branches
