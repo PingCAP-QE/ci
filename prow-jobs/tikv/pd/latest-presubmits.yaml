@@ -1,3 +1,7 @@
+global_definitions:
+  skip_branches: &skip_branches
+    - ^feature/release-\d+\.\d+(.\d+)?-.+$
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
@@ -13,6 +17,8 @@ presubmits:
         - ^feature/.+
         - ^release-8\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
+      skip_branches: *skip_branches
+
     - name: tikv/pd/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -24,6 +30,7 @@ presubmits:
       rerun_command: "/debug pull-unit-test"
       branches:
         - ^master$
+        
     - name: tikv/pd/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -36,6 +43,8 @@ presubmits:
         - ^master$
         - ^feature/.+
         - ^release-8\.[4-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_branches: *skip_branches
+
     - name: tikv/pd/pull_integration_realcluster_test
       agent: jenkins
       decorate: false # need add this.
@@ -47,3 +56,4 @@ presubmits:
       branches:
         - ^master$
         - ^feature/.+
+      skip_branches: *skip_branches
