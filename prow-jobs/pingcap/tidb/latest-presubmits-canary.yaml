@@ -1,15 +1,20 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^feature/.+
+    skip_branches: # skip feature branches based on released version.
+      - ^feature/release-\d+\.\d+(.\d+)?-.+$
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tidb:
-    - name: pingcap/tidb/canary_ghpr_unit_test
+    - <<: *brancher
+      name: pingcap/tidb/canary_ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
       max_concurrency: 2
       # run_if_changed: "pkg/executor"
       always_run: false
-      skip_report: true
       optional: true
       context: canary-unit-test
-      branches:
-        - ^master$
-        - ^feature[_/].+
