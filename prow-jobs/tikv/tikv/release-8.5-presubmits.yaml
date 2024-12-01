@@ -1,5 +1,7 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
+  skip_if_only_changed: &skip_if_only_changed
+    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   branches: &branches
     - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
 
@@ -8,9 +10,7 @@ presubmits:
     - name: tikv/tikv/release-8.5/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
-      optional: false
-      skip_report: false
+      skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
