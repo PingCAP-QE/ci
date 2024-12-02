@@ -26,4 +26,5 @@ presubmits:
       context: wip/pull-integration-test
       trigger: "(?m)^/debug (?:.*? )?pull-integration-test(?: .*?)?$"
       rerun_command: "/debug pull-integration-test"
-      branches: *branches
+      branches:
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
