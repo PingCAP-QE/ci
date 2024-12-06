@@ -1,4 +1,4 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Postsubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiflash:
     - name: pingcap/tiflash/release-8.3/pull_unit_test

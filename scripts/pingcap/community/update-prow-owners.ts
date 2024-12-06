@@ -1,7 +1,7 @@
-import * as yaml from "https://deno.land/std@0.190.0/yaml/mod.ts";
-import * as flags from "https://deno.land/std@0.190.0/flags/mod.ts";
-import { dirname } from "https://deno.land/std@0.190.0/path/mod.ts";
-import { Octokit } from "npm:/octokit@3.1.0";
+import * as yaml from "jsr:@std/yaml@1.0.5";
+import { parseArgs } from "jsr:@std/cli@1.0.6";
+import { dirname } from "jsr:@std/path@1.0.8";
+import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
 
 /**
  * Ref:
@@ -575,7 +575,12 @@ async function main(
   // Create a new Octokit instance using the provided token
   const octokit = new Octokit({ auth: github_private_token });
 
-  const pullRequests: { owner: string; repo: string; baseRef: string; num: number }[] = [];
+  const pullRequests: {
+    owner: string;
+    repo: string;
+    baseRef: string;
+    num: number;
+  }[] = [];
   // Create or update the `OWNERS` files in each repository.
   await Promise.all(
     Array.from(owners).filter(([repository]) => {
@@ -624,7 +629,12 @@ async function main(
         console.info(
           `✅ Pull request created for repo ${owner}/${repository}: ${pr.html_url}`,
         );
-        pullRequests.push({ owner: owner, repo: repository, baseRef, num: pr.number });
+        pullRequests.push({
+          owner: owner,
+          repo: repository,
+          baseRef,
+          num: pr.number,
+        });
       } else {
         console.info(
           `🏃 for repo ${owner}/${repository}, no need to create PR.`,
@@ -653,6 +663,7 @@ async function main(
         octokit,
         pullRequest.owner,
         pullRequest.repo,
+        pullRequest.baseRef,
         pullRequest.num,
       );
       console.info(
@@ -673,7 +684,7 @@ async function main(
  * --only_repo.branch  optional only repo branch
  * --force optional.
  */
-const args = flags.parse<cliArgs>(Deno.args, {
+const args = parseArgs<cliArgs>(Deno.args, {
   collect: ["inputs"] as never[],
 });
 // console.debug(args);

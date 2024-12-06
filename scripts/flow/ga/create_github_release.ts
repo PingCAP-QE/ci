@@ -1,12 +1,13 @@
 import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
-import { parseArgs } from "jsr:@std/cli@^1.0.1/parse-args";
+import { parseArgs } from "jsr:@std/cli@^1.0.1";
 import {
     format,
     maxSatisfying,
     parse,
     parseRange,
+    satisfies,
     type SemVer,
-} from "jsr:@std/semver";
+} from "jsr:@std/semver@^1.0.3";
 
 interface RepoInfo {
     owner: string;
@@ -65,6 +66,11 @@ const REPO_LIST: RepoInfo[] = [
     },
     {
         owner: "pingcap",
+        repo: "ticdc",
+        product_name: "TiCDC",
+    },
+    {
+        owner: "pingcap",
         repo: "ng-monitoring",
         product_name: "NG-Monitoring",
     },
@@ -86,9 +92,21 @@ async function fillRepoTagInfo(
     version: string,
     octokit: Octokit,
 ) {
-    const majorMinorVer = version.match(/^v(\d+\.\d+)/)![1]; // eg: 6.6
-    const releaseBranch = `release-${majorMinorVer}`;
-    console.dir({ majorMinorVer, releaseBranch });
+    const v = parse(version);
+    const releaseBranch = `release-${v.major}.${v.minor}`;
+    console.log("default create release on branch: ", releaseBranch);
+
+    // "tidb-binlog" repo stops to release since 8.4.0, but the history release branches is still there and keep releasing patches.
+    const binlogRemovedRange = parseRange(">=8.4.0-0");
+    if (satisfies(v, binlogRemovedRange)) {
+        repos = repos.filter((r) => r.repo !== "tidb-binlog");
+    }
+
+    // "ticdc" repo will release from from 8.6.0, it's a new repo for new CDC component.
+    const ticdcStartedRange = parseRange(">=8.6.0-0");
+    if (!satisfies(v, ticdcStartedRange)) {
+        repos = repos.filter((r) => r.repo !== "ticdc");
+    }
 
     return await Promise.all(
         repos.map(async (repo) => {

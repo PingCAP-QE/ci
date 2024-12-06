@@ -1,28 +1,34 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
-  branches: &branches
-    - ^master$
-    - ^feature/.+
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^feature/.+
+    skip_branches:
+      - ^feature/release-\d+\.\d+(.\d+)?-.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   tikv/tikv:
-    - name: tikv/tikv/pull_unit_test
+    - <<: *brancher
+      name: tikv/tikv/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: true
+      skip_if_only_changed: *skip_if_only_changed
       optional: false
       skip_report: false
       context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
-      branches: *branches
-    - name: tikv/tikv/pull_integration_test
+
+    - <<: *brancher
+      name: tikv/tikv/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false  # update here after test passed
+      # skip_if_only_changed: *skip_if_only_changed
+      always_run: false # update here after test passed
       optional: true # update here after test passed
       skip_report: true # update here after test passed
       context: wip/pull-integration-test
       trigger: "(?m)^/debug (?:.*? )?pull-integration-test(?: .*?)?$"
       rerun_command: "/debug pull-integration-test"
-      branches: *branches

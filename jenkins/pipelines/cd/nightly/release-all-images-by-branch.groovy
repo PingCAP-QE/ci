@@ -764,7 +764,7 @@ def getHash() {
                 tidb_binlog_sha1 = ""
             }
             tiflash_sha1 = fetch_hash("tiflash")
-            cdc_sha1 = fetch_hash("ticdc")
+            cdc_sha1 = fetch_hash("tiflow")
 
             if (GIT_BRANCH == 'master' || GIT_BRANCH >= "release-5.3") {
                 dumpling_sha1 = tidb_sha1

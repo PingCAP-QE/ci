@@ -180,7 +180,7 @@ def buildBin={
 def buildDocker={
     sh 'printenv HUB_PSW | docker login -u $HUB_USR --password-stdin hub.pingcap.net'
     sh """
-        curl --fail --retry 3 -o Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash.Dockerfile
+        curl --fail --retry 3 -o Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/Dockerfile
         curl --fail --retry 3 -o tiflash.tar.gz ${getBinDownloadURL()}
         tar -xzvf tiflash.tar.gz
         rm -f tiflash.tar.gz

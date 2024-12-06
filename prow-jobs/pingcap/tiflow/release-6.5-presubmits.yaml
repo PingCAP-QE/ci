@@ -1,4 +1,4 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.5/ghpr_verify
@@ -11,6 +11,8 @@ presubmits:
       rerun_command: "/test verify"
       branches:
         - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_branches:
+        - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
@@ -23,6 +25,8 @@ presubmits:
       rerun_command: "/test cdc-integration-kafka-test"
       branches:
         - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_branches:
+        - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -35,6 +39,8 @@ presubmits:
       rerun_command: "/test cdc-integration-mysql-test"
       branches:
         - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_branches:
+        - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
     - name: pingcap/tiflow/release-6.5/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
@@ -47,6 +53,8 @@ presubmits:
       rerun_command: "/test dm-compatibility-test"
       branches:
         - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_branches:
+        - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
     - name: pingcap/tiflow/release-6.5/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -59,3 +67,5 @@ presubmits:
       rerun_command: "/test dm-integration-test"
       branches:
         - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_branches:
+        - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch

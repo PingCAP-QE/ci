@@ -1,4 +1,5 @@
 pipelineJob('tiflow-operator-docker') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

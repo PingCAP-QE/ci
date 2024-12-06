@@ -11,6 +11,15 @@ folder('pingcap-qe') {
                             scm {
                                 git {
                                     remote('https://github.com/PingCAP-QE/ci')
+                                    extensions {
+                                        cloneOption {
+                                            depth(1)
+                                            shallow(true)
+                                            noTags(true)
+                                            reference('/var/lib/scm-git/ci')
+                                            timeout(5)
+                                        } 
+                                    }
                                 }
                             }
                             // A relative path from the root of the SCM to the root of the library.
