@@ -3,7 +3,7 @@ periodics:
   - name: pingcap/tiflow/periodics_cdc_integration_kafka_test
     agent: jenkins
     decorate: false # need add this.
-    cron: "0 */3 * * *" # every 3 hour, change to 12 hour after test pass
+    cron: "0 */1 * * *" # every 1 hour, change to 12 hour after test pass
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
     - org: pingcap
       repo: tiflow
