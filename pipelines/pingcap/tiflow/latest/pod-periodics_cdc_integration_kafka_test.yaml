@@ -77,6 +77,19 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
+      readinessProbe:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - |
+              nc -z localhost 2181 && \
+              nc -z localhost 9092 && \
+              echo dump | nc localhost 2181 | grep brokers | grep -F -w "/brokers/ids/1"
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 30
     - env:
         - name: KAFKA_SERVER
           value: 127.0.0.1:9092
