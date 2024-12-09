@@ -117,18 +117,6 @@ pipeline {
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
-                                    }
                                     timeout(time: 45, unit: 'MINUTES') {
                                         sh label: "${TEST_GROUP}", script: """
                                             rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
@@ -151,6 +139,31 @@ pipeline {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                def status = currentBuild.result ?: 'SUCCESS'
+                def title = "CDC Kafka Integration Test: ${status}"
+                def content = "CDC Kafka Integration Test: ${status}\\n" +
+                    "Branch: ${TARGET_BRANCH}\\n" +
+                    "Build URL: ${BUILD_URL}\\n" +
+                    "Job Page: https://prow.tidb.net/?repo=pingcap%2Ftiflow&type=periodic\\n"
+                
+                withCredentials([string(credentialsId: 'cdc-feishu-webhook-url', variable: 'WEBHOOK_URL')]) {
+                    sh """
+                        curl -X POST ${WEBHOOK_URL} -H 'Content-Type: application/json' \
+                        -d '{
+                            "msg_type": "text",
+                            "content": {
+                              "text": "$content"
+                            }
+                        }'
+                    """
                 }
             }
         }
