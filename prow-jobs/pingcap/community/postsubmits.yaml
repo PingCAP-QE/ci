@@ -6,7 +6,7 @@ postsubmits:
       max_concurrency: 1
       run_if_changed: teams/.*/membership\.json
       branches:
-        - master
+        - ^master$
       spec:
         containers:
           - name: main
