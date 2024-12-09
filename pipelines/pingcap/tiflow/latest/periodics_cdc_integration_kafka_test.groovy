@@ -54,20 +54,15 @@ pipeline {
             }
         }
         stage("prepare") {
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     script {
-                        def tidbBranch = "master"
-                        def pdBranch = "master"
-                        def tikvBranch = "master"
-                        def tiflashBranch = "master"
                         retry(2) {
                             sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                export PD_BRANCH=${pdBranch}
-                                export TIKV_BRANCH=${tikvBranch}
-                                export TIFLASH_BRANCH=${tiflashBranch}
+                                export TIDB_BRANCH="master"
+                                export PD_BRANCH="master"
+                                export TIKV_BRANCH="master"
+                                export TIFLASH_BRANCH="master"
                                 cd ../tiflow && ./scripts/download-integration-test-binaries.sh master && ls -alh ./bin
                                 make check_third_party_binary
                                 cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
@@ -119,7 +114,6 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
@@ -135,11 +129,13 @@ pipeline {
                                             """
                                         }
                                     }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
-                                    """
+                                    timeout(time: 45, unit: 'MINUTES') {
+                                        sh label: "${TEST_GROUP}", script: """
+                                            rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                            chmod +x ./tests/integration_tests/run_group.sh
+                                            ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
+                                        """
+                                    } 
                                 }
                             }
                         }
@@ -150,12 +146,13 @@ pipeline {
                                     tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
                                     ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
+
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
