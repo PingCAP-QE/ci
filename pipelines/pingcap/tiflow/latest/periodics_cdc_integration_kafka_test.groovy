@@ -114,7 +114,6 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
@@ -130,11 +129,13 @@ pipeline {
                                             """
                                         }
                                     }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
-                                    """
+                                    timeout(time: 45, unit: 'MINUTES') {
+                                        sh label: "${TEST_GROUP}", script: """
+                                            rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                            chmod +x ./tests/integration_tests/run_group.sh
+                                            ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
+                                        """
+                                    } 
                                 }
                             }
                         }
@@ -145,12 +146,13 @@ pipeline {
                                     tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
                                     ls -alh  log-${TEST_GROUP}.tar.gz  
                                 """
+
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
