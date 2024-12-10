@@ -1,4 +1,5 @@
 pipelineJob('tiup-package-offline-mirror-v6.0.0') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

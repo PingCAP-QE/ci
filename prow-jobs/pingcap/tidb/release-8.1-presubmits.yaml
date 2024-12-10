@@ -1,4 +1,4 @@
-# struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tidb:
     - name: pingcap/tidb/release-8.1/ghpr_build
@@ -198,5 +198,27 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test pull-integration-python-orm-test"
+      branches:
+        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.1/pull_integration_tidb_tools_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: pull-integration-tidb-tools-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-tidb-tools-test"
+      branches:
+        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tidb/release-8.1/pull_integration_binlog_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: pull-integration-binlog-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-integration-binlog-test(?: .*?)?$"
+      rerun_command: "/test pull-integration-binlog-test"
       branches:
         - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$

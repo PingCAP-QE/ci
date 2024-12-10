@@ -1,8 +1,9 @@
-#!/usr/bin/env deno run --allow-run --allow-net --allow-write
-import * as yaml from "jsr:@std/yaml@^1.0.0";
-import { parseArgs } from "jsr:@std/cli@^1.0.1";
+#!/usr/bin/env -S deno run --allow-run --allow-net --allow-write
+import * as yaml from "jsr:@std/yaml@1.0.5";
+import { parseArgs } from "jsr:@std/cli@1.0.6";
+import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
 
-const TiupPlatforms = [
+const platforms = [
   "darwin/amd64",
   "darwin/arm64",
   "linux/amd64",
@@ -44,6 +45,7 @@ interface CliParams {
   version: string;
   branch: string;
   save_to: string;
+  github_token: string;
 }
 
 interface TiupPkgInfo {
@@ -115,7 +117,7 @@ async function gatherTiupPkgInfo(
 
   const publishedTime = lines[0].split(/\s+/)[1];
   const platforms = lines[0].split(/\s+/).pop()!.split(",").sort();
-  if (TiupPlatforms.every((arch) => platforms.includes(arch))) {
+  if (platforms.every((arch) => platforms.includes(arch))) {
     return { ok: true, published: publishedTime, platforms };
   } else {
     return {
@@ -155,17 +157,16 @@ async function gatheringOciMetadata(ociArtifact: string) {
   return meta;
 }
 
-async function gatheringGithubGitSha(repo: string, branch: string) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/commits/${branch}`,
-    {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-      },
-    },
-  );
-  const { sha } = await res.json();
-  console.info(`got github git sha of ${repo}@${branch}: ${sha}`);
+async function gatheringGithubGitSha(
+  ghClient: Octokit,
+  fullRepo: string,
+  branch: string,
+) {
+  const [owner, repo] = fullRepo.split("/", 2);
+  const res = await ghClient.rest.repos.getCommit({ owner, repo, ref: branch });
+  const sha = res.data.sha;
+  console.info(`got github git sha of ${fullRepo}@${branch}: ${sha}`);
+
   return sha;
 }
 
@@ -188,6 +189,7 @@ async function main(
     tiup_mirror,
     version,
     branch,
+    github_token,
     oci_registry = "hub.pingcap.net",
     save_to = "results.yaml",
   }: CliParams,
@@ -204,10 +206,16 @@ async function main(
   }
 
   const results = { tiup: {} } as Results;
+  const ghClient = new Octokit({ auth: github_token });
   for (const [ociRepo, pkgs] of Object.entries(OCI2Tiup)) {
+    // tidb-binlog is deprecated since v8.4.0, skip it.
+    if (version >= "v8.4.0" && ociRepo === "pingcap/tidb-binlog/package") {
+      continue;
+    }
+
     console.group(ociRepo);
     const ociInfos = {} as Record<string, OciMetadata>;
-    for (const platform of TiupPlatforms) {
+    for (const platform of platforms) {
       const ociArtifact = `${oci_registry}/${ociRepo}:${version}_${
         platform.replaceAll("/", "_")
       }`;
@@ -220,7 +228,7 @@ async function main(
     const gitRepo = ociRepo.split("/").slice(0, -1).join("/");
     const gitSha = gitRepo === "pingcap/ctl"
       ? undefined
-      : await gatheringGithubGitSha(gitRepo, branch);
+      : await gatheringGithubGitSha(ghClient, gitRepo, branch);
 
     for (const pkg of pkgs) {
       const result = await gatherTiupPkgInfo(pkg, version);

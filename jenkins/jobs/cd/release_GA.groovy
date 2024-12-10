@@ -1,4 +1,5 @@
 pipelineJob('release-GA') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

@@ -29,15 +29,22 @@ def load_components_from_url(url):
 
 def check_docker_image(component_info, edition, registry, project, is_rc_build=False):
     component = component_info["name"]
+    version = component_info["version"]
+    
     if not COMPONENT_META[component]["image_name"]:
         print(f"Image for component {component} is not defined.")
-        return
-    # components have both enterprise and community edition: tidb & pd & tikv & tiflash
-    # other components only have enterprise edition
-    # example tidb-dashboard only have community edition
+        return True, None
+    
     if not COMPONENT_META[component]["image_edition"][edition] and registry == "registry.hub.docker.com":
         print(f"Image for component {component} does not have {edition} edition.")
-        return
+        return True, None
+
+    # Generate the full image name
+    image_name = COMPONENT_META[component]["image_name"]
+    if edition == "enterprise":
+        image_name = f"{image_name}-enterprise"
+    full_image = f"{registry}/{project}/{image_name}:{version}"
+
     args = [
         "python3", "check_docker_images.py",
         component_info["name"],
@@ -49,7 +56,13 @@ def check_docker_image(component_info, edition, registry, project, is_rc_build=F
     ]
     if is_rc_build:
         args.append("--is_rc_build")
-    subprocess.run(args, check=True)
+    
+    try:
+        subprocess.run(args, check=True)
+        return True, None
+    except subprocess.CalledProcessError:
+        print(f"Failed to check image: {full_image}")
+        return False, full_image
 
 
 def check_tiup_package(component, is_rc_build=False):
@@ -65,7 +78,7 @@ def check_tiup_package(component, is_rc_build=False):
 
 
 if __name__ == "__main__":
-    # 定义命令行参数解析
+    # define the command line argument parser
     parser = argparse.ArgumentParser(description="Check Docker images and TiUP packages.")
     parser.add_argument("type", choices=['image', 'tiup'],
                         help="Specify the type of component to check: 'image' for Docker images, 'tiup' for TiUP packages.")
@@ -78,23 +91,57 @@ if __name__ == "__main__":
     is_rc_build = os.environ.get("IS_RC_BUILD", "false") == "true"
     print(f"Checking components for {'RC' if is_rc_build else 'GA'} build.")
     if args.type == 'image':
+        all_results = []
+        failed_images = []
         if is_rc_build:
-            # registry = "hub.pingcap.net"
-            # project = "qa"
             for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "hub.pingcap.net", "qa", is_rc_build)
-                check_docker_image(image, "community", "hub.pingcap.net", "qa", is_rc_build)
+                success, failure = check_docker_image(image, "enterprise", "hub.pingcap.net", "qa", is_rc_build)
+                all_results.append(success)
+                if not success:
+                    failed_images.append(failure)
+                success, failure = check_docker_image(image, "community", "hub.pingcap.net", "qa", is_rc_build)
+                all_results.append(success)
+                if not success:
+                    failed_images.append(failure)
         else:
             print("checking docker images on gcr.io")
             for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
+                success, failure = check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
+                all_results.append(success)
+                if not success:
+                    failed_images.append(failure)
+            
             print("checking docker images on uhub.service.ucloud.cn")
             for image in components["docker_images"]:
-                check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
+                success, failure = check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
+                all_results.append(success)
+                if not success:
+                    failed_images.append(failure)
+            
             print("checking docker images on registry.hub.docker.com")
             for image in components["docker_images"]:
-                check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
-                check_docker_image(image, "community", "registry.hub.docker.com", "pingcap")
+                success, failure = check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
+                all_results.append(success)
+                if not success:
+                    failed_images.append(failure)
+                success, failure = check_docker_image(image, "community", "registry.hub.docker.com", "pingcap")
+                all_results.append(success)
+                if not success:
+                    failed_images.append(failure)
+        
+        failed_count = all_results.count(False)
+        total_count = len(all_results)
+        print(f"\nDocker image check summary:")
+        print(f"Total checks: {total_count}")
+        print(f"Successful: {total_count - failed_count}")
+        print(f"Failed: {failed_count}")
+        
+        if failed_count > 0:
+            print("\nFailed images:")
+            for failed_image in failed_images:
+                print(f"- {failed_image}")
+            print("\nSome docker image checks failed!")
+            exit(1)
 
     elif args.type == 'tiup':
         for package in components["tiup_packages"]:

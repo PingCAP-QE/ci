@@ -19,34 +19,64 @@ function record_failure() {
 function gather_results() {
     local VERSION="$1"
     local oci_registry="$2"
+    local tiup_pkgs=(
+        br
+        cdc
+        ctl
+        dm-master
+        dm-worker
+        dmctl
+        dumpling
+        grafana
+        pd
+        pd-recover
+        prometheus
+        tidb
+        tidb-lightning
+        tiflash
+        tikv
+        tidb-dashboard
+    )
+    local source_oci_pkg_repos=(
+        pingcap/ctl/package
+        pingcap/monitoring/package
+        pingcap/ng-monitoring/package
+        pingcap/tidb-dashboard/package
+        pingcap/tidb/package
+        pingcap/tiflash/package
+        pingcap/tiflow/package
+        tikv/pd/package
+        tikv/tikv/package
+    )
+
+    # if VERSION is lower then v8.4.0, then we need add pump and drainer to the tiup pkgs
+    if [[ "$(printf '%s\n' "v8.4.0" "$VERSION" | sort -V | head -n1)" == "$VERSION" ]]; then
+        tiup_pkgs+=(
+            pump
+            drainer
+        )
+        source_oci_pkg_repos+=(
+            pingcap/tidb-binlog/package
+        )
+    fi
 
     touch results.yaml
     yq -i '.tiup = {}' results.yaml
 
-    # check tiup
-    for com in 'br' 'cdc' 'ctl' 'dm-master' 'dm-worker' 'dmctl' 'drainer' 'dumpling' 'grafana' 'pd' 'pd-recover' 'prometheus' 'pump' 'tidb' 'tidb-lightning' 'tiflash' 'tikv' 'tidb-dashboard'; do
-        echo "🚧 check tiup $com:$VERSION"
-        platforms=$(tiup list $com | grep -E "^$VERSION\b\s+")
+    # check tiup, loop for tiup_pkgs:
+    for pkg in "${tiup_pkgs[@]}"; do
+        echo "🚧 check tiup $pkg:$VERSION"
+        platforms=$(tiup list $pkg | grep -E "^$VERSION\b\s+")
         echo $platforms
         echo $platforms | grep "darwin/amd64" | grep "darwin/arm64" | grep "linux/amd64" | grep -q "linux/arm64"
         record_failure $?
         publish_time=$(echo "$platforms" | awk '{print $2}')
-        yq -i ".tiup[\"${com}\"].published = \"$publish_time\"" results.yaml
+        yq -i ".tiup[\"${pkg}\"].published = \"$publish_time\"" results.yaml
     done
 
     # record tiup built git-sha
     echo "📝 gather tiup metadata of oci artifacts from ${oci_registry}..."
-    for source_oci_pkg_repo in \
-        pingcap/ctl/package \
-        pingcap/monitoring/package \
-        pingcap/ng-monitoring/package \
-        pingcap/tidb-binlog/package \
-        pingcap/tidb-dashboard/package \
-        pingcap/tidb/package \
-        pingcap/tiflash/package \
-        pingcap/tiflow/package \
-        tikv/pd/package \
-        tikv/tikv/package; do
+    for source_oci_pkg_repo in "${source_oci_pkg_repos[@]}"; do
         for platform in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
             repo="${oci_registry}/${source_oci_pkg_repo}:${VERSION}_${platform}"
             oras manifest fetch-config $repo >tmp-oci-artifact-config.yaml

@@ -1,4 +1,5 @@
 pipelineJob('pre-release-community-docker-rocky') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

@@ -622,8 +622,19 @@ else
 
     # check if LLVM toolchain is provided
     echo "the new parameter of tiflash debug is : ${params.TIFLASH_DEBUG}"
-    
-    if [[ -d "release-centos7-llvm" && \$(which clang 2>/dev/null) ]]; then
+
+    # add a new condition branch for `release-linux-llvm` folder:
+    if [[ -d "release-linux-llvm" && \$(which clang 2>/dev/null) ]]; then
+        if [[ "${params.TIFLASH_DEBUG}" != 'true' ]]; then
+            echo "start release ..........."
+            NPROC=12 release-linux-llvm/scripts/build-release.sh
+        else
+            echo "start debug ..........."
+            NPROC=12 release-linux-llvm/scripts/build-debug.sh
+        fi
+        mkdir -p ${TARGET}
+        mv release-linux-llvm/tiflash ${TARGET}/tiflash        
+    elif [[ -d "release-centos7-llvm" && \$(which clang 2>/dev/null) ]]; then
         if [[ "${params.TIFLASH_DEBUG}" != 'true' ]]; then
             echo "start release ..........."
             NPROC=12 release-centos7-llvm/scripts/build-release.sh
@@ -827,15 +838,15 @@ def release(product, label) {
     }
     checkoutFinishTimeInMillis = System.currentTimeMillis()
 
-    if (PRODUCT == 'tics') {
-        if (fileExists('release-centos7-llvm/scripts/build-release.sh') && params.OS != "darwin") {
+    if (PRODUCT == 'tics' && params.OS != 'darwin') {
+        if (fileExists('release-linux-llvm/scripts/build-release.sh') || fileExists('release-centos7-llvm/scripts/build-release.sh')) {
             def image_tag_suffix = ""
             if (fileExists(".toolchain.yml")) {
                 def config = readYaml(file: ".toolchain.yml")
                 image_tag_suffix = config.image_tag_suffix
             }
             label = "tiflash-llvm${image_tag_suffix}".replaceAll('\\.', '-')
-        }else if (fileExists('release-centos7/Makefile') && params.OS != "darwin"){
+        } else if (fileExists('release-centos7/Makefile')){
             label = "tiflash"
         }
     }

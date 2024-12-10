@@ -3,7 +3,8 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-cached-release-8.4:latest"
+      image: "hub.pingcap.net/jenkins/tikv-ci:rocky8-base-cached-release-8.4"
+      imagePullPolicy: Always
       tty: true
       command:
         - "/bin/sh"

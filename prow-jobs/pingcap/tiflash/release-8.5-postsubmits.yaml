@@ -1,0 +1,19 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+postsubmits:
+  pingcap/tiflash:
+    - name: pingcap/tiflash/release-8.5/merged_unit_test
+      agent: jenkins
+      decorate: false # need add this.
+      context: merged-unit-test
+      max_concurrency: 1
+      skip_report: true # need change this after test pass.
+      branches:
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - name: pingcap/tiflash/release-8.5/merged_build
+      agent: jenkins
+      decorate: false # need add this.
+      context: merged-build
+      max_concurrency: 1
+      skip_report: true # need change this after test pass.
+      branches:
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$

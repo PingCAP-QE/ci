@@ -1,4 +1,5 @@
 pipelineJob('br-tiup-mirror-update') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)

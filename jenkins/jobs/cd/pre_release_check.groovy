@@ -1,4 +1,5 @@
 pipelineJob('pre-release-check') {
+    disabled(true)
     definition {
         cpsScm {
             lightweight(true)
