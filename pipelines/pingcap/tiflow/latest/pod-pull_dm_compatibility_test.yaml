@@ -3,6 +3,10 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
+  initContainers:
+    - name: init-mysql-config
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      command: ['sh', '-c', 'echo -e "[client]\nssl-mode=DISABLED" > /home/jenkins/.my.cnf']
   containers:
     - name: golang
       image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
