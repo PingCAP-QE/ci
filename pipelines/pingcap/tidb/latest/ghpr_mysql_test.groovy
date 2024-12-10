@@ -9,7 +9,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-// TODO(wuhuizuo): tidb-test should delivered by docker image.
 pipeline {
     agent {
         kubernetes {
@@ -109,7 +108,8 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh 'ls mysql_test' // if cache missed, fail it(should not miss).
                                     dir('mysql_test') {
-                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -backlist=1 -part=${PART}'
+                                        // TODO: fix the test.sh to correct the parameter parsing and numerical comparison.
+                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh 1 ${PART}'
                                     }
                                 }
                             }
