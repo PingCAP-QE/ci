@@ -1,0 +1,25 @@
+presubmits:
+  tikv/community:
+    - name: pull-verify
+      decorate: true
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: check
+            image: wbitt/network-multitool
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                for f in $(find teams -name "*.json" -type f); do
+                  echo -n "check file: $f ... "
+                  (jq . $f > /dev/null && echo "✅") || exit 1
+                done
+            resources:
+              limits:
+                cpu: "200m"
+                memory: 512Mi
+              requests:
+                cpu: "100m"
+                memory: 256Mi

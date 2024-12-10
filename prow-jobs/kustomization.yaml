@@ -11,6 +11,7 @@ configMapGenerator:
       - pingcap-inc_enterprise-extensions_presubmits.yaml=pingcap-inc/enterprise-extensions/presubmits.yaml
       - pingcap-qe_ci_presubmits.yaml=pingcap-qe/ci/presubmits.yaml
       - pingcap_community_postsubmits.yaml=pingcap/community/postsubmits.yaml
+      - pingcap_community_presubmits.yaml=pingcap/community/presubmits.yaml
       - pingcap_docs_docs-cn-latest-presubmits.yaml=pingcap/docs/docs-cn-latest-presubmits.yaml
       - pingcap_docs_docs-cn-postsubmits.yaml=pingcap/docs/docs-cn-postsubmits.yaml
       - pingcap_docs_docs-latest-presubmits.yaml=pingcap/docs/docs-latest-presubmits.yaml
@@ -98,6 +99,7 @@ configMapGenerator:
       - ti-community-infra_prow_postsubmits.yaml=ti-community-infra/prow/postsubmits.yaml
       - ti-community-infra_prow_presubmits.yaml=ti-community-infra/prow/presubmits.yaml
       - tikv_community_postsubmits.yaml=tikv/community/postsubmits.yaml
+      - tikv_community_presubmits.yaml=tikv/community/presubmits.yaml
       - tikv_migration_latest-presubmits.yaml=tikv/migration/latest-presubmits.yaml
       - tikv_pd_latest-presubmits.yaml=tikv/pd/latest-presubmits.yaml
       - tikv_pd_release-6.1-presubmits.yaml=tikv/pd/release-6.1-presubmits.yaml
