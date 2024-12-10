@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
       tty: true
       resources:
         requests:
@@ -35,13 +35,6 @@ spec:
         limits:
           memory: 256Mi
           cpu: 100m
-  volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
