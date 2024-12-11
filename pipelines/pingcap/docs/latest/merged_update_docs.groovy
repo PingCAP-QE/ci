@@ -88,6 +88,8 @@ pipeline {
                             elif [ "${REFS.base_ref}" = "release-8.1" ]; then
                                 python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud; scripts/generate_cloud_pdf.sh;
                                 python3 scripts/upload.py output_cloud.pdf tidbcloud-en-manual.pdf;
+                                python3 scripts/upload.py output.pdf tidb-v8.1-en-manual.pdf;
+                            elif [ "${REFS.base_ref}" = "release-8.5" ]; then
                                 python3 scripts/upload.py output.pdf tidb-stable-en-manual.pdf;
                             elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
                                 python3 scripts/upload.py output.pdf tidb-v\${target_version}-en-manual.pdf;
