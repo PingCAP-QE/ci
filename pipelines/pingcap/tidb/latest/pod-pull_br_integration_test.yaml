@@ -3,9 +3,21 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
+  initContainers:
+    - name: init-mysql-config
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      command:
+        - sh
+        - -c
+        - |
+          echo "[client]" > /mysql-config/.my.cnf
+          echo "ssl-mode=DISABLED" >> /mysql-config/.my.cnf
+      volumeMounts:
+        - mountPath: "/mysql-config"
+          name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
       tty: true
       resources:
         requests:
@@ -14,6 +26,10 @@ spec:
         limits:
           memory: 16Gi
           cpu: "4"
+      volumeMounts:
+        - mountPath: "/home/jenkins/.my.cnf"
+          name: "mysql-config-volume"
+          subPath: ".my.cnf"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
@@ -41,3 +57,6 @@ spec:
                 operator: In
                 values:
                   - "true"
+  volumes:
+    - name: mysql-config-volume
+      emptyDir: {}
