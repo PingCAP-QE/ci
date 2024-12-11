@@ -9,7 +9,8 @@ postsubmits:
       optional: true
       max_concurrency: 3
       branches:
-        - master
+        - ^master$
+        - ^feature/release-.*$
         - ^release-[0-9]+[.][0-9]+$
       spec:
         containers:
