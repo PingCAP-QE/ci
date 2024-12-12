@@ -3,6 +3,20 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
+  initContainers:
+    - name: download-sqllogic
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      command:
+        - /bin/sh
+        - -c
+        - |
+          cd /git && \
+          wget http://fileserver.pingcap.net/download/builds/pingcap/case-data/sqllogic/sqllogictest_v20241212.tar.gz && \
+          tar xzf sqllogictest_v20241212.tar.gz && \
+          rm sqllogictest_v20241212.tar.gz
+      volumeMounts:
+        - name: test-data
+          mountPath: /git
   containers:
     - name: golang
       image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
@@ -14,6 +28,9 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
+      volumeMounts:
+        - name: test-data
+          mountPath: /git
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
@@ -21,6 +38,9 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
+  volumes:
+    - name: test-data
+      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
