@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   PingCAP-QE/ee-apps:
-    - name: pull-security-scan
+    - name: pull-scan-deps
       decorate: true
       max_concurrency: 1
       run_if_changed: go\.mod
@@ -30,9 +30,9 @@ presubmits:
                   /app/secure-merge-check -prePath ../pre/$dir -afterPath $dir -type license || exit 1
                 done
             resources:
-              request:
+              requests:
                 memory: 128Mi
                 cpu: 200m
-              limit:
+              limits:
                 memory: 1Gi
                 cpu: 500m
