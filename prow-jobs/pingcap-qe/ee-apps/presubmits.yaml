@@ -1,0 +1,38 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  PingCAP-QE/ee-apps:
+    - name: pull-security-scan
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: go\.mod
+      branches:
+        - main
+      spec:
+        containers:
+          - name: main
+            image: ghcr.io/pingcap-qe/ci/secure-merge-check:v1.0.0_linux_amd64 # TODO: request a multi-arch image.
+            envFrom:
+              - secretRef:
+                  name: secuirty-scan
+            command: [/bin/bash, -lc]
+            args:
+              - |
+                git clone . ../pre
+                pushd ../pre
+                  git checkout ${PULL_BASE_SHA}
+                popd
+
+                find . -name 'go.mod' -exec dirname {} \; | while read dir; do
+                  echo "Checking in directory: $dir"
+                  echo "checking vulnerabilities ..."
+                  /app/secure-merge-check -prePath ../pre/$dir -afterPath $dir -type vul || exit 1
+                  echo "checking license ..."
+                  /app/secure-merge-check -prePath ../pre/$dir -afterPath $dir -type license || exit 1
+                done
+            resources:
+              request:
+                memory: 128Mi
+                cpu: 200m
+              limit:
+                memory: 1Gi
+                cpu: 500m
