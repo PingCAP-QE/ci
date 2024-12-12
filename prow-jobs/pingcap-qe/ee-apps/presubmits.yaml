@@ -22,10 +22,13 @@ presubmits:
                   git checkout ${PULL_BASE_SHA}
                 popd
 
-                echo "checking vulunerabilities ..."
-                /app/secure-merge-check -prePath ../pre -afterPath . -type vul || exit 1
-                echo "checking license ..."
-                /app/secure-merge-check -prePath ../pre -afterPath . -type license || exit 1
+                find . -name 'go.mod' -exec dirname {} \; | while read dir; do
+                  echo "Checking in directory: $dir"
+                  echo "checking vulnerabilities ..."
+                  /app/secure-merge-check -prePath ../pre/$dir -afterPath $dir -type vul || exit 1
+                  echo "checking license ..."
+                  /app/secure-merge-check -prePath ../pre/$dir -afterPath $dir -type license || exit 1
+                done
             resources:
               request:
                 memory: 128Mi
