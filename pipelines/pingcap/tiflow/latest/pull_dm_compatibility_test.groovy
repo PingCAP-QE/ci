@@ -110,12 +110,7 @@ pipeline {
                             sh label: "download third_party", script: """
                                 export TIDB_BRANCH=${tidbBranch}
                                 pwd && ls -alh dm/tests/
-
-                                cd dm/tests
-                                # NOTE: temporary fix for the download url(download from http://download.pingcap.org/ is blocked by the qiniuyun)
-                                sed -i 's|http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz|http://fileserver.pingcap.net/download/builds/pingcap/tiflow/tidb-enterprise-tools-nightly-linux-amd64.tar.gz|g' download-compatibility-test-binaries.sh
-                                sed -i 's|http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz|http://fileserver.pingcap.net/download/builds/pingcap/tiflow/tidb-enterprise-tools-latest-linux-amd64.tar.gz|g' download-compatibility-test-binaries.sh
-                                ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                                cd dm/tests && ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
                                 cd - && cp -r dm/tests/bin/* ./bin
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
