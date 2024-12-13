@@ -107,7 +107,7 @@ pipeline {
                                     sh label: "part ${PART}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh -backlist=1 -part=${PART}
+                                    ./test.sh 1 ${PART}
                                     """
                                 }
                             }
