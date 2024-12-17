@@ -14,5 +14,9 @@ aliases:
     - LykxSassinator
     - zhangjinpeng87
 
+  sig-reviewers-security: # reviewers for security scopes.
+    - TopScrew
+    - xiabee
+
   emeritus_reviewers: # emeritus reviewers will be keeped here, but will not be used.
     - lijie0123 # ee reviewer
