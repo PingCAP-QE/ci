@@ -2,3 +2,5 @@ labels:
   - area/jobs/jenkins-DSL
 approvers:
   - sig-approvers-ee
+reviewers:
+  - sig-reviewers-security
