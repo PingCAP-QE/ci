@@ -10,7 +10,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: ghcr.io/pingcap-qe/ci/secure-merge-check:v1.0.0 # TODO: request a multi-arch image.
+            image: ghcr.io/pingcap-qe/ci/secure-merge-check:v1.1.0 # TODO: request a multi-arch image.
             imagePullPolicy: Always
             envFrom:
               - secretRef:
