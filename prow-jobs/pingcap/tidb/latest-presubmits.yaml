@@ -233,8 +233,6 @@ presubmits:
       skip_report: true
       optional: true
       always_run: false
-      branches:
-        - main
       spec:
         containers:
           - name: vul
