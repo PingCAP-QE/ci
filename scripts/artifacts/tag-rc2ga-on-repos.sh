@@ -20,7 +20,7 @@ function tag_oci_repo() {
   else
     oras discover --distribution-spec v1.1-referrers-tag ${repo}:${base_tag} && oras tag ${repo}:${base_tag} ${dst_tag} || exit 1
   fi
-
+  
   echo "✅ Taged '$dst_tag' on '$registry/${repo}:${base_tag}'"
 }
 
@@ -31,6 +31,7 @@ function tag_oci_artifact_repos() {
   local ga_ver="$2"
   local registry="$3"
   local force="${4:-false}"
+  local save_results_file="${5:-results.yaml}"
 
   # community
   repos=(
@@ -64,11 +65,13 @@ function tag_oci_artifact_repos() {
   for repo in "${repos[@]}"; do
     for platform in "${platforms[@]}"; do
       tag_oci_repo "$registry/${repo}" "${rc_ver}_${platform}" "${ga_ver}_${platform}" "$force"
+      yq -i ".packages += \"$registry/${repo}:${ga_ver}_${platform}\"" $save_results_file
     done
   done
   for repo in "${enterprise_repos[@]}"; do
     for platform in "${enterprise_platforms[@]}"; do
       tag_oci_repo "$registry/${repo}" "${rc_ver}-enterprise_${platform}" "${ga_ver}-enterprise_${platform}" "$force"
+      yq -i ".packages += \"$registry/${repo}:${ga_ver}-enterprise_${platform}\"" $save_results_file      
     done
   done
 
@@ -108,6 +111,7 @@ function tag_oci_image_repos() {
 
   for img in "${images[@]}"; do
     tag_oci_repo "$registry/${img}" "$rc_ver" "$ga_ver" "$force"
+    yq -i ".images += \"$registry/${img}:${ga_ver}\"" $save_results_file
   done
 
   # enterprise
@@ -122,6 +126,7 @@ function tag_oci_image_repos() {
   )
   for img in "${enterprise_images[@]}"; do
     tag_oci_repo "$registry/${img}" "${rc_ver}-enterprise" "${ga_ver}-enterprise" "$force"
+    yq -i ".images += \"$registry/${img}:${ga_ver}-enterprise\"" $save_results_file
   done
 
   echo "✅ Taged for images."
@@ -179,9 +184,13 @@ function main() {
   local ga_ver="$2"
   local registry="${3:-hub.pingcap.net}"
   local force="${4:-false}"
+  local save_results_file="${5:-results.yaml}"
 
-  tag_oci_artifact_repos "$rc_ver" "$ga_ver" "$registry" "$force"
-  tag_oci_image_repos "$rc_ver" "$ga_ver" "$registry" "$force"
+  :> $save_results_file
+  yq -i '.packages=[]' $save_results_file
+  tag_oci_artifact_repos "$rc_ver" "$ga_ver" "$registry" "$force" "$save_results_file"
+  yq -i '.images=[]' $save_results_file
+  tag_oci_image_repos "$rc_ver" "$ga_ver" "$registry" "$force" "$save_results_file"
 
   # if you need republish the tiup packages, please uncomment it, and comment above two lines.
   #publish_tiup_from_oci_artifact_repos "$rc_ver" "$registry"
