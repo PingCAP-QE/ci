@@ -225,3 +225,61 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test pull-integration-python-orm-test"
 
+    - <<: *brancher
+      name: pull-scan-deps
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: go\.mod
+      skip_report: true
+      optional: true
+      always_run: false
+      spec:
+        containers:
+          - name: vul
+            image: ghcr.io/pingcap-qe/ci/secure-merge-check:v1.1.0 # TODO: request a multi-arch image.
+            imagePullPolicy: Always
+            envFrom:
+              - secretRef:
+                  name: secuirty-scan
+            command: [/bin/bash, -lc]
+            args:
+              - |
+                git clone . ../pre
+                pushd ../pre
+                  git checkout ${PULL_BASE_SHA}
+                popd
+
+                echo "checking vulnerabilities ..."
+                /app/secure-merge-check -prePath ../pre -afterPath . -type vul || exit 1
+                echo "🎉 checked successfully."
+            resources:
+              requests:
+                memory: 128Mi
+                cpu: 200m
+              limits:
+                memory: 1Gi
+                cpu: 500m
+          - name: license
+            image: ghcr.io/pingcap-qe/ci/secure-merge-check:v1.1.0 # TODO: request a multi-arch image.
+            imagePullPolicy: Always
+            envFrom:
+              - secretRef:
+                  name: secuirty-scan
+            command: [/bin/bash, -lc]
+            args:
+              - |
+                git clone . ../pre
+                pushd ../pre
+                  git checkout ${PULL_BASE_SHA}
+                popd
+
+                echo "checking license ..."
+                /app/secure-merge-check -prePath ../pre -afterPath . -type license || exit 1
+                echo "🎉 checked successfully."
+            resources:
+              requests:
+                memory: 128Mi
+                cpu: 200m
+              limits:
+                memory: 1Gi
+                cpu: 500m
