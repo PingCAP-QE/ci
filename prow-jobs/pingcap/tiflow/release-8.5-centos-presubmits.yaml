@@ -56,8 +56,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-dm-integration-test-centos
-      trigger: "(?m)^/test (?:.*? )?(dm-integration-test)(?: .*?)?$"
-      rerun_command: "/test dm-integration-test"
+      trigger: "(?m)^/test (?:.*? )?(dm-integration-test-centos)(?: .*?)?$"
+      rerun_command: "/test dm-integration-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_engine_integration_test_centos
       agent: jenkins
