@@ -63,14 +63,15 @@ pipeline {
             steps {
                 container('nodejs') {
                     dir('tidb') {
-                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                        sh label: 'tidb-server', script: 'make'
                         retry(2) {
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
-                                rm -rf bin/bin
+                                wget -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
+                                wget -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
+                                tar xzf tikv-server.tar.gz -C bin
+                                tar xzf pd-server.tar.gz -C bin
+                                rm -rf tikv-server.tar.gz pd-server.tar.gz
+
                                 ls -alh bin/
                                 chmod +x bin/*
                             """

@@ -66,6 +66,20 @@ pipeline {
                             rm -rf bin/ && mkdir -p bin
                             mv third_bin/* bin/
                             ls -alh bin/
+                            rm -f bin/pd-* bin/tikv-* bin/tiflash bin/cdc bin/lib*
+                            
+                            wget -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
+                            wget -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
+                            wget -O cdc.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflow/package?tag=v8.5.0-centos7_linux_amd64&file=cdc-v8.5.0-linux-amd64.tar.gz"
+                            wget -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflash/package?tag=v8.5.0-centos7_linux_amd64&file=tiflash-v8.5.0-linux-amd64.tar.gz"
+                            tar xzf tikv-server.tar.gz -C bin
+                            tar xzf pd-server.tar.gz -C bin
+                            tar xzf cdc.tar.gz -C bin
+                            tar xzf tiflash.tar.gz && mv tiflash/* bin/ && rm -rf tiflash/
+                            rm -rf tikv-server.tar.gz pd-server.tar.gz cdc.tar.gz tiflash.tar.gz
+                            ls -alh bin/
+                            
+                            ./bin/cdc --version
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
                             ./bin/tiflash --version

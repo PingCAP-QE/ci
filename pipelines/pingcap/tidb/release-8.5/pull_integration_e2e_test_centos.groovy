@@ -54,8 +54,19 @@ pipeline {
                 dir('tidb') {
                     retry(3) {
                         sh label: 'download binary', script: """
-                            cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${REFS.base_ref}
+                            # cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${REFS.base_ref}
+                            mkdir -p third_bin
+                            wget -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
+                            wget -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
+                            wget -O cdc.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflow/package?tag=v8.5.0-centos7_linux_amd64&file=cdc-v8.5.0-linux-amd64.tar.gz"
+                            wget -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflash/package?tag=v8.5.0-centos7_linux_amd64&file=tiflash-v8.5.0-linux-amd64.tar.gz"
+                            tar xzf tikv-server.tar.gz -C third_bin
+                            tar xzf pd-server.tar.gz -C third_bin
+                            tar xzf cdc.tar.gz -C third_bin
+                            tar xzf tiflash.tar.gz && mv tiflash/* third_bin/ && rm -rf tiflash/
+                            rm -rf tikv-server.tar.gz pd-server.tar.gz cdc.tar.gz tiflash.tar.gz
                             ls -alh third_bin/
+                            
                             ./third_bin/tikv-server -V
                             ./third_bin/pd-server -V
                             ./third_bin/tiflash --version

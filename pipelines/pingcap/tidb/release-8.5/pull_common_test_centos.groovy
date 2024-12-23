@@ -65,7 +65,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    sh label: 'tidb-server', script: 'make'
                 }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
