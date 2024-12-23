@@ -89,6 +89,21 @@ pipeline {
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
+
+                            rm -f bin/pd-* bin/tikv-* bin/tiflash bin/lib* bin/tidb*
+                            
+                            wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
+                            wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
+                            wget -q -O pd-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-ctl-v8.5.0-linux-amd64.tar.gz"
+                            wget -q -O tidb-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tidb/package?tag=v8.5.0-centos7_linux_amd64&file=tidb-v8.5.0-linux-amd64.tar.gz"
+                            wget -q -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflash/package?tag=v8.5.0-centos7_linux_amd64&file=tiflash-v8.5.0-linux-amd64.tar.gz"
+                            tar xzf tikv-server.tar.gz -C bin
+                            tar xzf pd-server.tar.gz -C bin
+                            tar xzf pd-ctl.tar.gz -C bin
+                            tar xzf tidb-server.tar.gz -C bin
+                            tar xzf tiflash.tar.gz && mv tiflash/* bin/ && rm -rf tiflash/
+                            rm -rf tikv-server.tar.gz pd-server.tar.gz pd-ctl.tar.gz tidb-server.tar.gz tiflash.tar.gz
+                            ls -alh bin/
                             ./bin/tidb-server -V
                             ./bin/pd-server -V
                             ./bin/tikv-server -V

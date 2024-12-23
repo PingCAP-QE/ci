@@ -164,12 +164,12 @@ pipeline {
                                         docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
                                         docker pull hub.pingcap.net/tiflow/etcd:latest
                                         docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
-                                        docker pull hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH} pingcap/tidb:\${TIDB_TEST_TAG} 
-                                        docker pull hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH} pingcap/tikv:\${TIDB_TEST_TAG}
-                                        docker pull hub.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH} pingcap/pd:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/devbuild/pingcap/tidb/package:v8.5.0-centos7_linux_amd64
+                                        docker tag hub.pingcap.net/devbuild/pingcap/tidb/package:v8.5.0-centos7_linux_amd64 pingcap/tidb:\${TIDB_TEST_TAG} 
+                                        docker pull hub.pingcap.net/devbuild/tikv/tikv/package:v8.5.0-centos7_linux_amd64
+                                        docker tag hub.pingcap.net/devbuild/tikv/tikv/package:v8.5.0-centos7_linux_amd64 pingcap/tikv:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/devbuild/tikv/pd/package:v8.5.0-centos7_linux_amd64
+                                        docker tag hub.pingcap.net/devbuild/tikv/pd/package:v8.5.0-centos7_linux_amd64 pingcap/pd:\${TIDB_TEST_TAG}
                                         docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                                         docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
                                         docker images
