@@ -164,12 +164,12 @@ pipeline {
                                         docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
                                         docker pull hub.pingcap.net/tiflow/etcd:latest
                                         docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
-                                        docker pull hub.pingcap.net/devbuild/pingcap/tidb/package:v8.5.0-centos7_linux_amd64
-                                        docker tag hub.pingcap.net/devbuild/pingcap/tidb/package:v8.5.0-centos7_linux_amd64 pingcap/tidb:\${TIDB_TEST_TAG} 
-                                        docker pull hub.pingcap.net/devbuild/tikv/tikv/package:v8.5.0-centos7_linux_amd64
-                                        docker tag hub.pingcap.net/devbuild/tikv/tikv/package:v8.5.0-centos7_linux_amd64 pingcap/tikv:\${TIDB_TEST_TAG}
-                                        docker pull hub.pingcap.net/devbuild/tikv/pd/package:v8.5.0-centos7_linux_amd64
-                                        docker tag hub.pingcap.net/devbuild/tikv/pd/package:v8.5.0-centos7_linux_amd64 pingcap/pd:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/devbuild/pingcap/tidb/images/tidb-server:v8.5.0-centos7_linux_amd64
+                                        docker tag hub.pingcap.net/devbuild/pingcap/tidb/images/tidb-server:v8.5.0-centos7_linux_amd64 pingcap/tidb:${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/devbuild/tikv/tikv/image:v8.5.0-centos7_linux_amd64
+                                        docker tag hub.pingcap.net/devbuild/tikv/tikv/image:v8.5.0-centos7_linux_amd64 pingcap/tikv:${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/devbuild/tikv/pd/image:v8.5.0-centos7_linux_amd64
+                                        docker tag hub.pingcap.net/devbuild/tikv/pd/image:v8.5.0-centos7_linux_amd64 pingcap/pd:${TIDB_TEST_TAG}
                                         docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                                         docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
                                         docker images
