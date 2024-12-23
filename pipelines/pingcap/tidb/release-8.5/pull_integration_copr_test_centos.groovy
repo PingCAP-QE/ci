@@ -71,6 +71,7 @@ pipeline {
                     container("golang") {
                         retry(2) {
                             sh label: 'download binary', script: """
+                            mkdir -p bin
                             wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
                             wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
                             tar xzf tikv-server.tar.gz -C bin
