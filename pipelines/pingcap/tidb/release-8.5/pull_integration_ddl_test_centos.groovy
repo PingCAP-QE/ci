@@ -73,8 +73,8 @@ pipeline {
                         sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                         retry(3) {
                             sh label: 'download binary', script: """
-                                wget -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
-                                wget -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
+                                wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
+                                wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
                                 tar xzf tikv-server.tar.gz -C bin
                                 tar xzf pd-server.tar.gz -C bin
                                 rm -rf tikv-server.tar.gz pd-server.tar.gz
