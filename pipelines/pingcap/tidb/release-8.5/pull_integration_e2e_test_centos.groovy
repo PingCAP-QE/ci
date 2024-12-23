@@ -54,7 +54,7 @@ pipeline {
                 dir('tidb') {
                     retry(3) {
                         sh label: 'download binary', script: """
-                            # cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${REFS.base_ref}
+                            cd tests/integrationtest2 
                             mkdir -p third_bin
                             wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
                             wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
