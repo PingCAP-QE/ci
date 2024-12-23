@@ -91,7 +91,7 @@ pipeline {
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             ls -alh ./bin
 
-                            rm -f bin/pd-* bin/tikv-* bin/tiflash bin/lib* bin/tidb*
+                            rm -rf bin/pd-* bin/tikv-* bin/tiflash bin/lib* bin/tidb*
                             
                             wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
                             wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
