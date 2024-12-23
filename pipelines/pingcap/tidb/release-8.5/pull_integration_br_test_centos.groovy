@@ -79,7 +79,7 @@ pipeline {
                             rm -rf tikv-server.tar.gz pd-server.tar.gz cdc.tar.gz tiflash.tar.gz
                             ls -alh bin/
                             
-                            ./bin/cdc --version
+                            ./bin/cdc version
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
                             ./bin/tiflash --version
