@@ -62,7 +62,7 @@ pipeline {
                     retry(2) {
                         sh label: "download third_party", script: """
                             chmod +x ../tidb/lightning/tests/*.sh
-                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh master
+                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh ${REFS.base_ref}
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
