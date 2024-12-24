@@ -95,6 +95,7 @@ pipeline {
                         }
                         sh label: "build binary for integration test", script: """
                             git config --global --add safe.directory '*'
+                            unset GOTOOLCHAIN && go env -w GOTOOLCHAIN=auto
                             make tiflow tiflow-demo
                             touch ./bin/tiflow-chaos-case
                             rm -rf .dockerignore
