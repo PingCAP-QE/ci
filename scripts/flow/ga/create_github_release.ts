@@ -102,8 +102,8 @@ async function fillRepoTagInfo(
         repos = repos.filter((r) => r.repo !== "tidb-binlog");
     }
 
-    // "ticdc" repo will release from from 8.6.0, it's a new repo for new CDC component.
-    const ticdcStartedRange = parseRange(">=8.6.0-0");
+    // "ticdc" repo will release from from 9.0.0, it's a new repo for new CDC component.
+    const ticdcStartedRange = parseRange(">=9.0.0-0");
     if (!satisfies(v, ticdcStartedRange)) {
         repos = repos.filter((r) => r.repo !== "ticdc");
     }
