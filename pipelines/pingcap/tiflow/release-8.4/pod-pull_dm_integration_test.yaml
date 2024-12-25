@@ -5,8 +5,10 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/golang-tini:1.23"
       tty: true
+      args:
+        - cat
       resources:
         requests:
           memory: 12Gi
