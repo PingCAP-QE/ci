@@ -17,8 +17,10 @@ spec:
           name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:tini"
       tty: true
+      args:
+        - cat
       resources:
         requests:
           memory: 12Gi
