@@ -11,12 +11,9 @@ const platforms = [
 ];
 
 const OCI2Tiup: Record<string, string[]> = {
+  "tikv/pd/package": ["pd", "pd-recover"],
+  "tikv/tikv/package": ["tikv"],
   "pingcap/ctl/package": ["ctl"],
-  "pingcap/monitoring/package": [
-    "grafana",
-    "prometheus",
-  ],
-  "pingcap/ng-monitoring/package": [],
   "pingcap/tidb-binlog/package": [
     "pump",
     "drainer",
@@ -35,8 +32,11 @@ const OCI2Tiup: Record<string, string[]> = {
     "dm-worker",
     "dmctl",
   ],
-  "tikv/pd/package": ["pd", "pd-recover"],
-  "tikv/tikv/package": ["tikv"],
+  "pingcap/ng-monitoring/package": [],
+  "pingcap/monitoring/package": [
+    "grafana",
+    "prometheus",
+  ],
 };
 
 interface CliParams {
@@ -163,10 +163,11 @@ async function gatheringGithubGitSha(
   branch: string,
 ) {
   const [owner, repo] = fullRepo.split("/", 2);
-  const res = await ghClient.rest.repos.getCommit({ owner, repo, ref: branch });
-  const sha = res.data.sha;
+  const sha = await Promise.race([
+    ghClient.rest.repos.getCommit({ owner, repo, ref: branch }).then(res => res.data.sha),
+    new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Timeout after 5 seconds')), 5000))
+  ]).catch(() => '');
   console.info(`got github git sha of ${fullRepo}@${branch}: ${sha}`);
-
   return sha;
 }
 

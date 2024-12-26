@@ -10,6 +10,12 @@ const platforms = [
 
 const imageMap: Record<string, GitRepoImageMap> = {
   comunity: {
+    "tikv/pd": {
+      "tikv/pd/image": "qa/pd",
+    },
+    "tikv/tikv": {
+      "tikv/tikv/image": "qa/tikv",
+    },    
     "pingcap/tidb": {
       "pingcap/tidb/images/tidb-server": "qa/tidb",
       "pingcap/tidb/images/br": "qa/br",
@@ -25,12 +31,6 @@ const imageMap: Record<string, GitRepoImageMap> = {
     },
     "pingcap/tidb-binlog": {
       "pingcap/tidb-binlog/image": "qa/tidb-binlog",
-    },
-    "tikv/pd": {
-      "tikv/pd/image": "qa/pd",
-    },
-    "tikv/tikv": {
-      "tikv/tikv/image": "qa/tikv",
     },
     "pingcap/monitoring": {
       "pingcap/monitoring/image": "qa/tidb-monitor-initializer",
@@ -153,8 +153,10 @@ async function gatheringGithubGitSha(
   branch: string,
 ) {
   const [owner, repo] = fullRepo.split("/", 2);
-  const res = await ghClient.rest.repos.getCommit({ owner, repo, ref: branch });
-  const sha = res.data.sha;
+  const sha = await Promise.race([
+    ghClient.rest.repos.getCommit({ owner, repo, ref: branch }).then(res => res.data.sha),
+    new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Timeout after 5 seconds')), 5000))
+  ]).catch(() => '');
   console.info(`got github git sha of ${fullRepo}@${branch}: ${sha}`);
   return sha;
 }
