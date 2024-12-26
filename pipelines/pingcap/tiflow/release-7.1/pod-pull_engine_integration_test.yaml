@@ -39,6 +39,7 @@ spec:
           mountPath: /tmp
     - name: docker
       image: 'hub.pingcap.net/tiflow/dind:alpine-docker-go1.20'
+      imagePullPolicy: Always
       tty: true
       env:
         - name: DOCKER_HOST

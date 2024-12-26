@@ -176,6 +176,7 @@ pipeline {
                                     """
                                     sh label: "${TEST_GROUP}", script: """
                                         git config --global --add safe.directory '*'
+                                        unset GOTOOLCHAIN && go env -w GOTOOLCHAIN=auto
                                         chmod +x engine/test/integration_tests/*.sh
                                         ./engine/test/integration_tests/run_group.sh ${TEST_GROUP}
                                     """
