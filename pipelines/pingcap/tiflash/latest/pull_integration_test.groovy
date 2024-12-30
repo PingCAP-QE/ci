@@ -332,7 +332,6 @@ pipeline {
                                 cat /tmp/tiflash-diff-files.json
                                 """
                                 sh label: "run clang tidy", script: """
-                                NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
                                 cat /tmp/tiflash-diff-files.json
                                 cmake "${WORKSPACE}/tiflash" \\
                                     -DENABLE_TESTS=false \\
@@ -344,7 +343,7 @@ pipeline {
                                 python3 ${fix_compile_commands} ${include_flag} \\
                                     --file_path=compile_commands.json \\
                                     --load_diff_files_from "/tmp/tiflash-diff-files.json"
-                                python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
+                                python3 ${run_clang_tidy} -p \$(realpath .) -j 12 --files ".*/tiflash/dbms/*"
                                 """
                             }
                         }
