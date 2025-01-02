@@ -19,7 +19,7 @@ presubmits:
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-cdc-integration-kafka-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-cdc-integration-kafka-test|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
       branches:
         - ^release-5\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
