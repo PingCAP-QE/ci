@@ -19,8 +19,8 @@ presubmits:
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-cdc-integration-kafka-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-kafka-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-kafka-test"
       branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_cdc_integration_test
@@ -31,8 +31,8 @@ presubmits:
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-mysql-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-mysql-test"
       branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_dm_compatibility_test
@@ -43,8 +43,8 @@ presubmits:
       run_before_merge: true
       context: pull-dm-compatibility-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
-      rerun_command: "/test dm-compatibility-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-compatibility-test"
       branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_dm_integration_test
@@ -55,7 +55,7 @@ presubmits:
       run_before_merge: true
       context: pull-dm-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
-      rerun_command: "/test dm-integration-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test"
       branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch

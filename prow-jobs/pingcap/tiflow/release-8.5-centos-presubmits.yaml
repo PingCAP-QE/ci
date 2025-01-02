@@ -11,8 +11,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-cdc-integration-kafka-test-centos
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test-centos)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-kafka-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-kafka-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_cdc_integration_mysql_test_centos
       agent: jenkins
@@ -20,8 +20,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-cdc-integration-mysql-test-centos
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test-centos)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-mysql-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-mysql-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_cdc_integration_pulsar_test_centos
       agent: jenkins
@@ -29,8 +29,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-cdc-integration-pulsar-test-centos
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test-centos)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-pulsar-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-pulsar-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_cdc_integration_storage_test_centos
       agent: jenkins
@@ -38,8 +38,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-cdc-integration-storage-test-centos
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test-centos)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-storage-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-storage-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_dm_compatibility_test_centos
       agent: jenkins
@@ -47,8 +47,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-dm-compatibility-test-centos
-      trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test-centos)(?: .*?)?$"
-      rerun_command: "/test dm-compatibility-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-dm-compatibility-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_dm_integration_test_centos
       agent: jenkins
@@ -56,8 +56,8 @@ presubmits:
       always_run: false
       optional: true
       context: pull-dm-integration-test-centos
-      trigger: "(?m)^/test (?:.*? )?(dm-integration-test-centos)(?: .*?)?$"
-      rerun_command: "/test dm-integration-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test-centos"
       branches: *branches
     - name: pingcap/tiflow/release-8.5/pull_engine_integration_test_centos
       agent: jenkins
@@ -65,6 +65,6 @@ presubmits:
       always_run: false
       optional: true
       context: pull-engine-integration-test-centos
-      trigger: "(?m)^/test (?:.*? )?(engine-integration-test-centos)(?: .*?)?$"
-      rerun_command: "/test engine-integration-test-centos"
+      trigger: "(?m)^/test (?:.*? )?(pull-engine-integration-test-centos)(?: .*?)?$"
+      rerun_command: "/test pull-engine-integration-test-centos"
       branches: *branches

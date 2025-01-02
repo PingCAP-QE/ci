@@ -14,8 +14,8 @@ presubmits:
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-kafka-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-kafka-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-kafka-test"
       branches: *branches
 
     # TODO: combine other CDC integration tests to a single one,
@@ -28,8 +28,8 @@ presubmits:
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-mysql-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-mysql-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-mysql-test"
       branches: *branches
 
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
@@ -40,8 +40,8 @@ presubmits:
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-storage-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-storage-test"
       branches: *branches
 
     - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
@@ -52,8 +52,8 @@ presubmits:
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-pulsar-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-pulsar-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-pulsar-test"
       branches: *branches
 
     - name: pingcap/tiflow/pull_dm_compatibility_test
@@ -64,8 +64,8 @@ presubmits:
       run_before_merge: true
       context: pull-dm-compatibility-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(dm-compatibility-test|all)(?: .*?)?$"
-      rerun_command: "/test dm-compatibility-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-compatibility-test"
       branches: *branches
 
     - name: pingcap/tiflow/pull_dm_integration_test
@@ -76,8 +76,8 @@ presubmits:
       run_before_merge: true
       context: pull-dm-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(dm-integration-test|all)(?: .*?)?$"
-      rerun_command: "/test dm-integration-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test"
       branches: *branches
 
     - name: pingcap/tiflow/pull_engine_integration_test
@@ -88,8 +88,8 @@ presubmits:
       run_before_merge: true
       context: pull-engine-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(engine-integration-test|all)(?: .*?)?$"
-      rerun_command: "/test engine-integration-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-engine-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-engine-integration-test"
       branches: *branches
 
     - name: pingcap/tiflow/ghpr_verify
