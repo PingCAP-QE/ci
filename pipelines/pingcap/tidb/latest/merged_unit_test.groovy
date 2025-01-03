@@ -1,6 +1,5 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -38,9 +37,8 @@ pipeline {
             }
         }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
@@ -52,31 +50,59 @@ pipeline {
                 }
             }
         }
-        stage('Tests') {
-            environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
+        stage('Test') {
+            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
-                dir('tidb') {
-                    sh './build/jenkins_unit_test.sh' 
+                dir(REFS.repo) {
+                    sh """
+                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                        git diff .
+                        git status
+                    """
+                    sh '''#! /usr/bin/env bash
+                        set -o pipefail
+
+                        ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
+                    '''
+                    sh(
+                        // Q: why this step is not existed in presubmit job?
+                        // A: we should not forbiden the community contrubutor on the unit test on private submodules.
+                        // if it failed, the enterprise extension owners should fix it.
+                        label: 'test enterprise extensions',
+                        script: 'go test --tags intest -coverprofile=coverage-extension.dat -covermode=atomic ./pkg/extension/enterprise/...'
+                    )
                 }
             }
             post {
                  success {
-                    dir("tidb") {
-                        sh label: "upload coverage to codecov", script: """
-                        mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
-                        chmod +x codecov
-                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} -B ${REFS.base_ref} -C ${REFS.base_sha}
-                        """
+                    dir(REFS.repo) {
+                        script {
+                            prow.uploadCoverageToCodecov(REFS, 'unit', 'coverage.dat')
+                            prow.uploadCoverageToCodecov(REFS, 'unit', 'coverage-extension.dat')
+                        }
                     }
                 }
                 always {
-                    dir('tidb') {
-                        // archive test report to Jenkins.
+                    dir(REFS.repo) {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                        archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
                     }
+                    sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                    sh label: 'Send event to cloudevents server', script: """timeout 10 \
+                        curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
+                        --header "ce-id: \$(uuidgen)" \
+                        --header "ce-source: \${JENKINS_URL}" \
+                        --header 'ce-type: test-case-run-report' \
+                        --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
+                        --header 'ce-branch: ${REFS.base_ref}' \
+                        --header "ce-buildurl: \${BUILD_URL}" \
+                        --header 'ce-specversion: 1.0' \
+                        --header 'content-type: application/json; charset=UTF-8' \
+                        --data @bazel-go-test-problem-cases.json || true
+                    """
+                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
-            }      
+            }
         }
     }
 }
