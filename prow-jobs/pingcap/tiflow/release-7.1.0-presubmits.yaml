@@ -8,7 +8,7 @@ presubmits:
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(cdc-integration-storage-test|all)(?: .*?)?$"
-      rerun_command: "/test cdc-integration-storage-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-storage-test"
       branches:
         - ^release-7\.1-\d{8}-v7\.1\.0(-\d+)?$  # only v7.1.0 hotfix branch
