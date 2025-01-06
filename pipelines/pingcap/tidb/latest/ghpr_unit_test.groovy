@@ -75,7 +75,7 @@ pipeline {
                  success {
                     dir(REFS.repo) {
                         script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', 'coverage.dat')
+                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
                         }
                     }
                 }
@@ -106,7 +106,7 @@ pipeline {
                 expression {
                     // Q: why this step is not existed in presubmit job of master branch?
                     // A: we should not forbiden the community contrubutor on the unit test on private submodules.
-                    // if it failed, the enterprise extension owners should fix it.                    
+                    // if it failed, the enterprise extension owners should fix it.
                     return REFS.base_ref != 'master' || REFS.pulls.size() == 0
                 }
             }
@@ -123,12 +123,12 @@ pipeline {
                 success {
                     dir(REFS.repo) {
                         script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', 'coverage-extension.dat')
+                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage-extension.dat')
                         }
                     }
                 }
             }
-        }        
+        }
     }
     post {
         success {

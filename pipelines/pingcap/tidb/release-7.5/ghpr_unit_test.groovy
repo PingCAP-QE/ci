@@ -75,7 +75,7 @@ pipeline {
                 success {
                     dir(REFS.repo) {
                         script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', 'coverage.dat')
+                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
                         }
                     }
                 }
@@ -123,7 +123,7 @@ pipeline {
                 success {
                     dir(REFS.repo) {
                         script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', 'coverage-extension.dat')
+                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage-extension.dat')
                         }
                     }
                 }
