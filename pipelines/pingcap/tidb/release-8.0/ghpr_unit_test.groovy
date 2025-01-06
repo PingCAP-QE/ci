@@ -103,7 +103,7 @@ pipeline {
         stage('Test Enterprise Extensions') {
             when {
                 expression {
-                    // Q: why this step is not existed in presubmit job?
+                    // Q: why this step is not existed in presubmit job of master branch?
                     // A: we should not forbiden the community contrubutor on the unit test on private submodules.
                     // if it failed, the enterprise extension owners should fix it.                    
                     return REFS.base_ref != 'master' || REFS.pulls.size() == 0
