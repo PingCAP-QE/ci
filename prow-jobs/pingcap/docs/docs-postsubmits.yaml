@@ -9,7 +9,7 @@ postsubmits:
       skip_report: false
       branches:
         - ^master$
-        - ^release-5.\4$
+        - ^release-5\.4$
         - ^release-6\.[15]$
         - ^release-7\.[15]$
         - ^release-8\.[1345]$
