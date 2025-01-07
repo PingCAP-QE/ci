@@ -107,7 +107,7 @@ pipeline {
                     // Q: why this step is not existed in presubmit job of master branch?
                     // A: we should not forbiden the community contrubutor on the unit test on private submodules.
                     // if it failed, the enterprise extension owners should fix it.
-                    return REFS.base_ref != 'master' || REFS.pulls.size() == 0
+                    return REFS.base_ref != 'master' || REFS.pulls == null || REFS.pulls.size() == 0
                 }
             }
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
