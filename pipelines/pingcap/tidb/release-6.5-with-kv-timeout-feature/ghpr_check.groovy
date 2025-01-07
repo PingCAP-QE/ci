@@ -55,6 +55,7 @@ pipeline {
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir('tidb') {
+                    sh label: 'fix bazel', script: 'rm -rf /home/jenkins/.cache/bazel/_bazel_jenkins/install/a09dbb90c658248f08f9aa0eba11997d'
                     sh script: 'make gogenerate check explaintest'
                 }
             }
