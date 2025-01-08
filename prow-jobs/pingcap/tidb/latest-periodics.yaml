@@ -3,7 +3,7 @@ periodics:
   - name: periodic-daily-tidb-unit-test
     cluster: gcp-prow-ksyun
     decorate: true # need add this.
-    cron: "0 2 * * *"
+    cron: "0 22 * * *"
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
     - org: pingcap
@@ -92,7 +92,7 @@ periodics:
   - name: periodic-daily-tidb-long-unit-test
     cluster: gcp-prow-ksyun
     decorate: true # need add this.
-    cron: "0 */3 * * *" # every 3 hour, change to "0 0 * * *" for daily after test.
+    cron: "0 22 * * *"
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
     - org: pingcap
