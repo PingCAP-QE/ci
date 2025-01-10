@@ -102,7 +102,6 @@ pipeline {
                                 ./bin/pd-server -V
                                 ./bin/tikv-server -V
                                 ./bin/tiflash --version
-                                ./bin/sync_diff_inspector --version
                             """
                         }
                     }   

@@ -114,7 +114,6 @@ pipeline {
                                 cd - && cp -r dm/tests/bin/* ./bin
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
-                                ./bin/sync_diff_inspector -V
                                 ./bin/mydumper -V
                             """
                         }

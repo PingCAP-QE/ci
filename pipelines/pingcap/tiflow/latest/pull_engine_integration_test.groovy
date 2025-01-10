@@ -136,11 +136,9 @@ pipeline {
                                         sh label: "prepare", script: """
                                             git rev-parse HEAD
                                             git status
-                                            sync_diff_download_url="http://fileserver.pingcap.net/download/test/tiflow/engine/ci/sync_diff.tar.gz"
-                                            mkdir -p ./bin/ && cd ./bin/
-                                            curl \${sync_diff_download_url} | tar -xz
-                                            ./sync_diff_inspector -V
-                                            cd -        
+                                            mkdir -p ./bin
+                                            make sync-diff-inspector
+                                            ./bin/sync_diff_inspector -V
                                         """
                                     }
                                     withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
