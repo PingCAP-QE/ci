@@ -66,38 +66,43 @@ pipeline {
             steps {
                 dir("docs-tidb-operator") {
                     withCredentials([
-                        string(credentialsId: 'docs-cn-aws-ak', variable: 'AWS_ACCESS_KEY'),
-                        string(credentialsId: 'docs-cn-aws-sk', variable: 'AWS_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-aws-region', variable: 'AWS_REGION'),
-                        string(credentialsId: 'docs-cn-aws-bn', variable: 'AWS_BUCKET_NAME'),
-                        string(credentialsId: 'docs-cn-qiniu-ak', variable: 'QINIU_ACCESS_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-sk', variable: 'QINIU_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME')
-                    ]){ 
-                        // TODO: pre-install python3 packages(boto3, awscli) in the docker image
-                        sh label: 'Build pdf', script: """#!/usr/bin/env bash
-                            sudo pip3 install --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host files.pythonhosted.org boto3 awscli
-                            printf "%s\n" ${AWS_ACCESS_KEY} ${AWS_SECRET_KEY} ${AWS_REGION} "json" | aws configure
+                        string(credentialsId: 'docs-cn-tencent-ak', variable: 'TENCENTCLOUD_RCLONE_CONN'),
+                        string(credentialsId: 'docs-cn-tencent-bn', variable: 'TENCENTCLOUD_BUCKET_ID')
+                    ]){
+                        sh label: 'Build pdf', script: """#!/usr/bin/env bash -e
                             grep -RP '\t' *  | tee | grep '.md' && exit 1; echo ok
                             python3 scripts/merge_by_toc.py en/; python3 scripts/merge_by_toc.py zh/;
                             scripts/generate_pdf.sh
                         """
-                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash
-                            target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
-                            echo "target_version: \${target_version}"
-                            if [ "${REFS.base_ref}" = "master" ]; then
-                                python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-dev-en-manual.pdf;
-                                python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-dev-zh-manual.pdf;
-                            elif [ "${REFS.base_ref}" = "release-1.6" ]; then
-                                python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-stable-en-manual.pdf;
-                                python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-stable-zh-manual.pdf;
-                            elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
-                                python3 scripts/upload.py output_en.pdf tidb-in-kubernetes-v\${target_version}-en-manual.pdf;
-                                python3 scripts/upload.py output_zh.pdf tidb-in-kubernetes-v\${target_version}-zh-manual.pdf;
-                            fi
+                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash -e
+                            // TODO: pre-install rclone in the docker image
+                            # Download and setup rclone
+                            curl -O https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip
+                            unzip rclone-v1.69.0-linux-amd64.zip
+                            mv rclone-v1.69.0-linux-amd64/rclone ./
+
+                            dst="\${TENCENTCLOUD_RCLONE_CONN}:\${TENCENTCLOUD_BUCKET_ID}/pdf"
+                            case "${REFS.base_ref}" in
+                                "master")
+                                    version="dev"
+                                    ;;
+                                "release-1.6")
+                                    version="stable"
+                                    ;;
+                                "release-*")
+                                    version="v\$(echo ${REFS.base_ref} | sed 's/release-//')"
+                                    ;;
+                                *)
+                                    echo "Error: Unexpected base ref: ${REFS.base_ref}"
+                                    exit 1
+                                    ;;
+                            esac
+                            # Upload TiDB Operator PDF to remote storage
+                            ./rclone copyto output_en.pdf "\${dst}/tidb-in-kubernetes-\${version}-en-manual.pdf"
+                            ./rclone copyto output_zh.pdf "\${dst}/tidb-in-kubernetes-\${version}-zh-manual.pdf"
                         """
                     }
-                } 
+                }
             }
         }
     }
