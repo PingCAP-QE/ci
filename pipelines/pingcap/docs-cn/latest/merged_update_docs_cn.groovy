@@ -90,7 +90,7 @@ pipeline {
                                 "release-8.5")
                                     version="stable"
                                     ;;
-                                "release-*")
+                                release-*)
                                     version="v\$(echo ${REFS.base_ref} | sed 's/release-//')"
                                     ;;
                                 *)

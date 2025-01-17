@@ -91,7 +91,7 @@ pipeline {
                                 "release-1.6")
                                     version="stable"
                                     ;;
-                                "release-*")
+                                release-*)
                                     version="v\$(echo ${REFS.base_ref} | sed 's/release-//')"
                                     ;;
                                 *)
