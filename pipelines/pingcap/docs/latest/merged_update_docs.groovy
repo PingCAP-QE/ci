@@ -21,7 +21,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 45, unit: 'MINUTES')
+        timeout(time: 100, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -84,11 +84,6 @@ pipeline {
                         """
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
                             set -e
-                            # TODO: pre-install rclone in the docker image
-                            # Download and setup rclone
-                            curl -O https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip
-                            unzip rclone-v1.69.0-linux-amd64.zip
-                            mv rclone-v1.69.0-linux-amd64/rclone ./
 
                             dst="\${TENCENTCLOUD_RCLONE_CONN}:\${TENCENTCLOUD_BUCKET_ID}/pdf"
                             case "${REFS.base_ref}" in
@@ -107,10 +102,10 @@ pipeline {
                                     ;;
                             esac
                             # Upload TiDB PDF to remote storage
-                            ./rclone copyto output.pdf "\${dst}/tidb-\${version}-en-manual.pdf"
+                            rclone copyto output.pdf "\${dst}/tidb-\${version}-en-manual.pdf"
                             # Upload TiDB Cloud PDF to remote storage if it exists
                             if [ -f "output_cloud.pdf" ]; then
-                                ./rclone copyto output_cloud.pdf "\${dst}/tidbcloud-en-manual.pdf"
+                                rclone copyto output_cloud.pdf "\${dst}/tidbcloud-en-manual.pdf"
                             fi
                         """
                     }

@@ -77,11 +77,6 @@ pipeline {
                         """
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
                             set -e
-                            # TODO: pre-install rclone in the docker image
-                            # Download and setup rclone
-                            curl -O https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip
-                            unzip rclone-v1.69.0-linux-amd64.zip
-                            mv rclone-v1.69.0-linux-amd64/rclone ./
 
                             dst="\${TENCENTCLOUD_RCLONE_CONN}:\${TENCENTCLOUD_BUCKET_ID}/pdf"
                             case "${REFS.base_ref}" in
@@ -100,8 +95,8 @@ pipeline {
                                     ;;
                             esac
                             # Upload TiDB Operator PDF to remote storage
-                            ./rclone copyto output_en.pdf "\${dst}/tidb-in-kubernetes-\${version}-en-manual.pdf"
-                            ./rclone copyto output_zh.pdf "\${dst}/tidb-in-kubernetes-\${version}-zh-manual.pdf"
+                            rclone copyto output_en.pdf "\${dst}/tidb-in-kubernetes-\${version}-en-manual.pdf"
+                            rclone copyto output_zh.pdf "\${dst}/tidb-in-kubernetes-\${version}-zh-manual.pdf"
                         """
                     }
                 }
