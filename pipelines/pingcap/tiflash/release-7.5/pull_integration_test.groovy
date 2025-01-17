@@ -375,7 +375,14 @@ pipeline {
                                         sh "docker ps -a && docker version"
                                         // TODO: check the env TAG, currently the tiflash_commmit_hash is not the pr latest commit hash
                                         // because we checkout tiflash pr code in pre-merge method.
-                                        sh "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh"
+                                        script {
+                                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                            def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                            sh label: "run integration tests", script: """
+                                            PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
+                                            """
+                                        }
                                     }
                                 }
                             }
