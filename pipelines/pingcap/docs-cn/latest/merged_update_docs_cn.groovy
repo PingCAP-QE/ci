@@ -65,32 +65,39 @@ pipeline {
             steps {
                 dir("docs-cn") {
                     withCredentials([
-                        string(credentialsId: 'docs-cn-aws-ak', variable: 'AWS_ACCESS_KEY'),
-                        string(credentialsId: 'docs-cn-aws-sk', variable: 'AWS_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-aws-region', variable: 'AWS_REGION'),
-                        string(credentialsId: 'docs-cn-aws-bn', variable: 'AWS_BUCKET_NAME'),
-                        string(credentialsId: 'docs-cn-qiniu-ak', variable: 'QINIU_ACCESS_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-sk', variable: 'QINIU_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME')
+                        string(credentialsId: 'docs-cn-tencent-ak', variable: 'TENCENTCLOUD_RCLONE_CONN'),
+                        string(credentialsId: 'docs-cn-tencent-bn', variable: 'TENCENTCLOUD_BUCKET_ID')
                     ]){
                         sh label: 'Build pdf', script: """#!/usr/bin/env bash
-                            printf "%s\n" ${AWS_ACCESS_KEY} ${AWS_SECRET_KEY} ${AWS_REGION} "json" | aws configure
+                            set -e
                             find -name '*.md' | xargs -d '\n' grep -P '\t' && exit 1
                             python3 scripts/merge_by_toc.py
                             scripts/generate_pdf.sh
                         """
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
-                            target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
-                            if [ "${REFS.base_ref}" = "master" ]; then
-                                python3 scripts/upload.py output.pdf tidb-dev-zh-manual.pdf;
-                            elif [ "${REFS.base_ref}" = "release-8.5" ]; then
-                                python3 scripts/upload.py output.pdf tidb-stable-zh-manual.pdf;
-                            elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
-                                python3 scripts/upload.py output.pdf tidb-v\${target_version}-zh-manual.pdf;
-                            fi
+                            set -e
+
+                            dst="\${TENCENTCLOUD_RCLONE_CONN}:\${TENCENTCLOUD_BUCKET_ID}/pdf"
+                            case "${REFS.base_ref}" in
+                                "master")
+                                    version="dev"
+                                    ;;
+                                "release-8.5")
+                                    version="stable"
+                                    ;;
+                                release-*)
+                                    version="v\$(echo ${REFS.base_ref} | sed 's/release-//')"
+                                    ;;
+                                *)
+                                    echo "Error: Unexpected base ref: ${REFS.base_ref}"
+                                    exit 1
+                                    ;;
+                            esac
+                            # Upload TiDB PDF to remote storage
+                            rclone copyto output.pdf "\${dst}/tidb-\${version}-zh-manual.pdf"
                         """
-                     }
-                } 
+                    }
+                }
             }
         }
     }

@@ -21,7 +21,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 45, unit: 'MINUTES')
+        timeout(time: 100, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -62,41 +62,54 @@ pipeline {
             }
         }
         stage('Build pdf') {
-            options { timeout(time: 45, unit: 'MINUTES') }
+            options { timeout(time: 90, unit: 'MINUTES') }
 
             steps {
                 dir("docs") {
                     withCredentials([
-                        string(credentialsId: 'docs-cn-aws-ak', variable: 'AWS_ACCESS_KEY'),
-                        string(credentialsId: 'docs-cn-aws-sk', variable: 'AWS_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-aws-region', variable: 'AWS_REGION'),
-                        string(credentialsId: 'docs-cn-aws-bn', variable: 'AWS_BUCKET_NAME'),
-                        string(credentialsId: 'docs-cn-qiniu-ak', variable: 'QINIU_ACCESS_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-sk', variable: 'QINIU_SECRET_KEY'),
-                        string(credentialsId: 'docs-cn-qiniu-bn', variable: 'QINIU_BUCKET_NAME')
-                    ]){ 
+                        string(credentialsId: 'docs-cn-tencent-ak', variable: 'TENCENTCLOUD_RCLONE_CONN'),
+                        string(credentialsId: 'docs-cn-tencent-bn', variable: 'TENCENTCLOUD_BUCKET_ID')
+                    ]){
                         sh label: 'Build pdf', script: """#!/usr/bin/env bash
-                            printf "%s\n" ${AWS_ACCESS_KEY} ${AWS_SECRET_KEY} ${AWS_REGION} "json" | aws configure
+                            set -e
                             find -name '*.md' | xargs -d '\n' grep -P '\t' && exit 1
+                            # Generate PDF for TiDB
                             python3 scripts/merge_by_toc.py
                             scripts/generate_pdf.sh
+                            # Generate PDF for TiDB Cloud
+                            if [ "${REFS.base_ref}" = "release-8.1" ]; then
+                                python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud
+                                scripts/generate_cloud_pdf.sh
+                            fi
                         """
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
-                            target_version=\$(echo ${REFS.base_ref} | sed 's/release-//')
-                            if [ "${REFS.base_ref}" = "master" ]; then
-                                python3 scripts/upload.py output.pdf tidb-dev-en-manual.pdf;
-                            elif [ "${REFS.base_ref}" = "release-8.1" ]; then
-                                python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud; scripts/generate_cloud_pdf.sh;
-                                python3 scripts/upload.py output_cloud.pdf tidbcloud-en-manual.pdf;
-                                python3 scripts/upload.py output.pdf tidb-v8.1-en-manual.pdf;
-                            elif [ "${REFS.base_ref}" = "release-8.5" ]; then
-                                python3 scripts/upload.py output.pdf tidb-stable-en-manual.pdf;
-                            elif case "${REFS.base_ref}" in release-*) ;; *) false;; esac; then
-                                python3 scripts/upload.py output.pdf tidb-v\${target_version}-en-manual.pdf;
+                            set -e
+
+                            dst="\${TENCENTCLOUD_RCLONE_CONN}:\${TENCENTCLOUD_BUCKET_ID}/pdf"
+                            case "${REFS.base_ref}" in
+                                "master")
+                                    version="dev"
+                                    ;;
+                                "release-8.5")
+                                    version="stable"
+                                    ;;
+                                release-*)
+                                    version="v\$(echo ${REFS.base_ref} | sed 's/release-//')"
+                                    ;;
+                                *)
+                                    echo "Error: Unexpected base ref: ${REFS.base_ref}"
+                                    exit 1
+                                    ;;
+                            esac
+                            # Upload TiDB PDF to remote storage
+                            rclone copyto output.pdf "\${dst}/tidb-\${version}-en-manual.pdf"
+                            # Upload TiDB Cloud PDF to remote storage if it exists
+                            if [ -f "output_cloud.pdf" ]; then
+                                rclone copyto output_cloud.pdf "\${dst}/tidbcloud-en-manual.pdf"
                             fi
                         """
                     }
-                } 
+                }
             }
         }
     }
