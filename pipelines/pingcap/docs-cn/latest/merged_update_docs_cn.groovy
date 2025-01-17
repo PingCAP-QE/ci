@@ -76,7 +76,7 @@ pipeline {
                         """
                         sh label: 'Upload pdf', script: """#!/usr/bin/env bash
                             set -e
-                            // TODO: pre-install rclone in the docker image
+                            # TODO: pre-install rclone in the docker image
                             # Download and setup rclone
                             curl -O https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip
                             unzip rclone-v1.69.0-linux-amd64.zip
