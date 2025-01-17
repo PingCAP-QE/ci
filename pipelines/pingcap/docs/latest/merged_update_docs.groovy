@@ -81,7 +81,8 @@ pipeline {
                                 scripts/generate_cloud_pdf.sh
                             fi
                         """
-                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash -e
+                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash
+                            set -e
                             // TODO: pre-install rclone in the docker image
                             # Download and setup rclone
                             curl -O https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip
