@@ -62,7 +62,7 @@ pipeline {
             }
         }
         stage('Build pdf') {
-            options { timeout(time: 45, unit: 'MINUTES') }
+            options { timeout(time: 90, unit: 'MINUTES') }
 
             steps {
                 dir("docs") {
