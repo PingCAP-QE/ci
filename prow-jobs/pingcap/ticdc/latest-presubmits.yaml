@@ -1,0 +1,50 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/ticdc:
+    - name: pull-unit-test
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug, change to true when ready
+      skip_report: false
+      optional: true
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: check
+            image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: &command [bash, -ce]
+            args:
+              - |
+                make unit_test_in_verify_ci
+            env: &env
+              - name: GO_PROXY
+                value: http://goproxy.pingcap.net,direct
+            resources: &resources
+              requests:
+                memory: 16Gi
+                cpu: "8"
+              limits:
+                memory: 16Gi
+                cpu: "8"            
+    - name: pull-build
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug, change to true when ready
+      skip_report: false
+      optional: true
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+      spec:
+        containers:                
+          - name: build
+            image: *image
+            command: *command
+            args:
+              - |
+                make cdc
+            env: *env
+            resources: *resources
+

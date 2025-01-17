@@ -20,6 +20,7 @@ configMapGenerator:
       - pingcap_docs_docs-tidb-operator-postsubmits.yaml=pingcap/docs/docs-tidb-operator-postsubmits.yaml
       - pingcap_monitoring_periodics.yaml=pingcap/monitoring/periodics.yaml
       - pingcap_ng-monitoring_postsubmits.yaml=pingcap/ng-monitoring/postsubmits.yaml
+      - pingcap_ticdc_latest-presubmits.yaml=pingcap/ticdc/latest-presubmits.yaml
       - pingcap_tidb-engine-ext_latest-presubmits.yaml=pingcap/tidb-engine-ext/latest-presubmits.yaml
       - pingcap_tidb-engine-ext_release-6.1-latest-presubmits.yaml=pingcap/tidb-engine-ext/release-6.1-latest-presubmits.yaml
       - pingcap_tidb-test_latest-presubmits.yaml=pingcap/tidb-test/latest-presubmits.yaml
