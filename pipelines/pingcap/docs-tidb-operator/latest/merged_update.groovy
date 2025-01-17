@@ -69,12 +69,14 @@ pipeline {
                         string(credentialsId: 'docs-cn-tencent-ak', variable: 'TENCENTCLOUD_RCLONE_CONN'),
                         string(credentialsId: 'docs-cn-tencent-bn', variable: 'TENCENTCLOUD_BUCKET_ID')
                     ]){
-                        sh label: 'Build pdf', script: """#!/usr/bin/env bash -e
+                        sh label: 'Build pdf', script: """#!/usr/bin/env bash
+                            set -e
                             grep -RP '\t' *  | tee | grep '.md' && exit 1; echo ok
                             python3 scripts/merge_by_toc.py en/; python3 scripts/merge_by_toc.py zh/;
                             scripts/generate_pdf.sh
                         """
-                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash -e
+                        sh label: 'Upload pdf', script: """#!/usr/bin/env bash
+                            set -e
                             // TODO: pre-install rclone in the docker image
                             # Download and setup rclone
                             curl -O https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip

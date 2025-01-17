@@ -70,7 +70,8 @@ pipeline {
                         string(credentialsId: 'docs-cn-tencent-ak', variable: 'TENCENTCLOUD_RCLONE_CONN'),
                         string(credentialsId: 'docs-cn-tencent-bn', variable: 'TENCENTCLOUD_BUCKET_ID')
                     ]){
-                        sh label: 'Build pdf', script: """#!/usr/bin/env bash -e
+                        sh label: 'Build pdf', script: """#!/usr/bin/env bash
+                            set -e
                             find -name '*.md' | xargs -d '\n' grep -P '\t' && exit 1
                             # Generate PDF for TiDB
                             python3 scripts/merge_by_toc.py
