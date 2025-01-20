@@ -141,18 +141,15 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
         if (componentBranch.startsWith("pr/")) {
             tidbTestRefs.add("PR:${componentBranch}") // Add as PR reference
         } else {
-            // some PR title contains a branch or commit
-            if (prTitle =~ componentParamReg) {
-                // example PR tiltes:
-                // - feat: add new faeture | tidb=release-8.1
-                // - feat: add new faeture | tidb=<tidb-repo-commit-sha1>
-                componentBranch = (prTitle =~ componentParamReg)[0][1]
+            // 1. some PR title contains a branch or commit
+            // 2. hotfix branch or feature branch
+            if (prTargetBranch != componentBranch) {
+                // TODO: may be a feature branch or hotfix branch, not specify the branch in PR title
+                // need more clearly handle the logic here.
+                // for hotfix branch batch merge, will encounter the error, incorrectly assumed that 
+                // branches were specified in multiple PR titles.
                 branchOrCommitSpecified = true
-                tidbTestRefs.add("Branch:${componentBranch}") // Add as branch reference specified in PR title
-                echo "current pr target branch ${prTargetBranch}, will checkout the specific branch ${componentBranch} of ${component} from PR title"
-            } else if (prTargetBranch != componentBranch) {
-                // current pr target branch a specifical branch, then need use the specific branch to checkout
-                echo "May be a hotfix branch or feature branch, current pr target branch ${prTargetBranch}, the component branch is ${componentBranch}"
+                tidbTestRefs.add("Branch:${componentBranch}")
             }
         }
     }
@@ -162,10 +159,11 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
         echo "No tidb-test refs specified in PR title, checkout the base branch ${componentBranch} of ${component}."
         checkoutSingle(gitUrl, componentBranch, componentBranch, credentialsId)
     } else if (tidbTestRefs.size() == 1 && tidbTestRefs[0].startsWith("Branch:")) {
-        // default branch or specific branch
-        // Single PR with branch specified
+        // 1. feature branch or hotfix branch
+        // 2. Single PR with branch or commit sha specified
         echo "Single PR with tidb-test branch specified: ${prTargetBranch}"
         def branch = tidbTestRefs[0].split(":")[1]
+        println("Checkout the branch: ${branch} of ${component}")
         checkoutSingle(gitUrl, prTargetBranch, branch, credentialsId)
     // if tidbTestRefs size > 1 and any of tidbTestRefs start with branch , then error and exit
     } else if (tidbTestRefs.size() > 1 && branchOrCommitSpecified) {
