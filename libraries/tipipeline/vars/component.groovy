@@ -1,6 +1,7 @@
 // compute component branch from pr info.
 def computeBranchFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     // pr title xxx | dep1=release-x.y
+    println("computeBranchFromPR component: ${component}, prTargetBranch: ${prTargetBranch}, prTitle: ${prTitle}, trunkBranch: ${trunkBranch}")
     final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
 
     // - release-6.2
@@ -9,7 +10,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     // - feature_release-8.1-abcdefg
     final wipReleaseFeatureBranchReg = /^feature[\/_]release\-(\d+\.\d+)-.+/
     // - release-6.2-20220801
-    final oldHotfixBranchReg = /^release\-(\d+\.\d+)-.+/
+    final oldHotfixBranchReg = /^release\-(\d+\.\d+)-(\d+)$/
 
     // - release-6.1-20230101-v6.1.2
     final newHotfixBranchReg = /^release\-\d+\.\d+\-\d+\-v((\d+\.\d+)\.\d+)/
@@ -130,25 +131,36 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
 def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, credentialsId="", trunkBranch="master", timeout=5) {
     def tidbTestRefs = [] // List of tidb-test refs PR:123, PR:456
     boolean branchOrCommitSpecified = false // Flag to check if a branch or commit is specified in any PR title
+    // pr title xxx | dep1=release-x.y
+    final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
+    def componentBranch = prTargetBranch
 
     // compute the branch.
     refs.pulls.each { pull ->
-        def componentBranch = computeBranchFromPR(component, prTargetBranch, pull.title,  trunkBranch)
+        componentBranch = computeBranchFromPR(component, prTargetBranch, pull.title,  trunkBranch)
         if (componentBranch.startsWith("pr/")) {
             tidbTestRefs.add("PR:${componentBranch}") // Add as PR reference
         } else {
             // some PR title contains a branch or commit
-            if ( prTargetBranch != componentBranch) {
+            if (prTitle =~ componentParamReg) {
+                // example PR tiltes:
+                // - feat: add new faeture | tidb=release-8.1
+                // - feat: add new faeture | tidb=<tidb-repo-commit-sha1>
+                componentBranch = (prTitle =~ componentParamReg)[0][1]
                 branchOrCommitSpecified = true
                 tidbTestRefs.add("Branch:${componentBranch}") // Add as branch reference specified in PR title
+                echo "current pr target branch ${prTargetBranch}, will checkout the specific branch ${componentBranch} of ${component} from PR title"
+            } else if (prTargetBranch != componentBranch) {
+                // current pr target branch a specifical branch, then need use the specific branch to checkout
+                echo "May be a hotfix branch or feature branch, current pr target branch ${prTargetBranch}, the component branch is ${componentBranch}"
             }
         }
     }
 
     // pre-merge for the PRs.
     if (tidbTestRefs.isEmpty()) {
-        echo "No tidb-test refs specified, defaulting to base branch ${prTargetBranch} of tidb-test."
-        checkoutSingle(gitUrl, prTargetBranch, prTargetBranch, credentialsId)
+        echo "No tidb-test refs specified in PR title, checkout the base branch ${componentBranch} of ${component}."
+        checkoutSingle(gitUrl, componentBranch, componentBranch, credentialsId)
     } else if (tidbTestRefs.size() == 1 && tidbTestRefs[0].startsWith("Branch:")) {
         // default branch or specific branch
         // Single PR with branch specified
