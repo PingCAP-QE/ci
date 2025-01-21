@@ -131,8 +131,7 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
 def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, credentialsId="", trunkBranch="master", timeout=5) {
     def tidbTestRefs = [] // List of tidb-test refs PR:123, PR:456
     boolean branchOrCommitSpecified = false // Flag to check if a branch or commit is specified in any PR title
-    // pr title xxx | dep1=release-x.y
-    final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
+
     def componentBranch = prTargetBranch
 
     // compute the branch.
@@ -144,13 +143,28 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
             // 1. some PR title contains a branch or commit
             // 2. hotfix branch or feature branch
             if (prTargetBranch != componentBranch) {
-                // TODO: may be a feature branch or hotfix branch, not specify the branch in PR title
-                // need more clearly handle the logic here.
-                // for hotfix branch batch merge, will encounter the error, incorrectly assumed that 
-                // branches were specified in multiple PR titles.
-                branchOrCommitSpecified = true
                 tidbTestRefs.add("Branch:${componentBranch}")
             }
+        }
+    }
+    def (valid, filteredRefs) = validateAndFilterRefs(tidbTestRefs)
+    if (!valid) {
+        echo "Error: invalid ${component} refs in multiple PRs: ${filteredRefs}"
+        throw new Exception("Error: invalid ${component} refs in multiple PRs.")
+    } else {
+        if (filteredRefs.isEmpty()) {
+            echo "No tidb-test refs specified in PR title, checkout the base branch ${componentBranch} of ${component}."
+            checkoutSingle(gitUrl, componentBranch, componentBranch, credentialsId)
+        } else if (filteredRefs.size() == 1 && filteredRefs[0].startsWith("Branch:")) {
+            // 1. feature branch or hotfix branch
+            // 2. Single PR with branch or commit sha specified
+            def branch = filteredRefs[0].split(":")[1]
+            println("Checkout the branch: ${branch} of ${component}")
+            checkoutSingle(gitUrl, prTargetBranch, branch, credentialsId)
+        } else if (filteredRefs.size() > 1) {
+            // multi PR specified component PR (notice: for batch merge with specific branch is not supported)
+            // single PR with specified PR
+            checkoutPRWithPreMerge(gitUrl, prTargetBranch, filteredRefs.collect { it.split(":")[1] } as List, credentialsId)
         }
     }
 
@@ -430,4 +444,31 @@ def ks3_download_fileserver(remote, local, credentialsId="ks3util-config"){
     ) {
         sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
     }
+}
+
+def validateAndFilterRefs(tidbTestRefs) {
+    if (tidbTestRefs.isEmpty()) {
+        return [true, []]
+    }
+
+    def prRefs = tidbTestRefs.findAll { it.startsWith("PR:") }
+    def branchRefs = tidbTestRefs.findAll { it.startsWith("Branch:") }
+    
+    // Check if all refs are PRs
+    if (prRefs.size() == tidbTestRefs.size()) {
+        return [true, prRefs.unique()]
+    }
+    
+    // Check if all refs are Branches and there's only one unique branch
+    if (branchRefs.size() == tidbTestRefs.size()) {
+        def uniqueBranches = branchRefs.unique()
+        if (uniqueBranches.size() > 1) {
+            // Multiple PR with different branches specified - not supported
+            return [false, uniqueBranches]
+        }
+        return [true, uniqueBranches]
+    }
+    
+    // Mixed refs - return false and the combined unique refs
+    return [false, (prRefs + branchRefs).unique()]
 }
