@@ -34,13 +34,13 @@ if (params.FAILPOINT) {
 }
 
 
-// check if binary already has been built. 
+// check if binary already has been built.
 def ifFileCacheExists() {
     // return false // to re-run force build
     node("light_curl") {
             if (params.FORCE_REBUILD){
                 return false
-            } 
+            }
             result = sh(script: "curl -I ${FILE_SERVER_URL}/download/${OUTPUT_BINARY} -X \"HEAD\"|grep \"200 OK\"", returnStatus: true)
             // result equal 0 mean cache file exists
             if (result == 0) {
@@ -58,7 +58,7 @@ def ifFileCacheExists() {
 //  release-5.1
 //  release-5.3
 
-// choose which go version to use. 
+// choose which go version to use.
 def String needUpgradeGoVersion(String tag,String branch) {
     goVersion="go1.23"
     // tidb-tools only use branch master and use newest go version
@@ -277,14 +277,14 @@ def checkoutCode() {
 
 
 // define build script here.
-TARGET = "output" 
+TARGET = "output"
 buildsh = [:]
 buildsh["tidb-ctl"] = """
 go version
 go build -o binarys/${PRODUCT}
 rm -rf ${TARGET}
 mkdir -p ${TARGET}/bin
-cp binarys/${PRODUCT} ${TARGET}/bin/            
+cp binarys/${PRODUCT} ${TARGET}/bin/
 """
 
 def BuildCmd = """
@@ -304,7 +304,7 @@ if [ ${OS} == 'linux' ]; then
         git checkout .
         make ddltest
     fi
-        
+
     if [ \$(grep -E '^importer:' Makefile) ]; then
         git checkout .
         make importer
@@ -334,9 +334,9 @@ make clean
 git checkout .
 ${BuildCmd}
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
+mkdir -p ${TARGET}/bin
 cp binarys/tidb-ctl ${TARGET}/bin/ || true
-cp bin/* ${TARGET}/bin/ 
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tidb-binlog"] = """
@@ -351,8 +351,8 @@ make clean
 git checkout .
 make
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["pd"] = """
@@ -375,8 +375,8 @@ fi;
 make
 make tools
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tidb-tools"] = """
@@ -390,8 +390,8 @@ go version
 make clean
 make build
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["ticdc"] = """
@@ -404,14 +404,14 @@ fi;
 go version
 make build
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 // only support dm version >= 5.3.0 (dm in repo tiflow)
 // start from 6.0.0, dm use webui is supported
 dmUseWebUI = "true"
-if ((params.RELEASE_TAG.startsWith("release-") && params.RELEASE_TAG <"release-6.0") || (params.RELEASE_TAG.startsWith("v") && params.RELEASE_TAG <"v6.0.0")) { 
+if ((params.RELEASE_TAG.startsWith("release-") && params.RELEASE_TAG <"release-6.0") || (params.RELEASE_TAG.startsWith("v") && params.RELEASE_TAG <"v6.0.0")) {
     dmUseWebUI = "false"
 }
 dmNodePackage = "node-v16.14.0-linux-x64"
@@ -448,7 +448,7 @@ fi;
 ls -alh bin/
 rm -rf ${TARGET}
 mkdir -p ${TARGET}/bin
-mkdir -p ${TARGET}/conf  
+mkdir -p ${TARGET}/conf
 
 if [[ -d "dm/dm" ]]; then
     mv dm/dm/master/task_basic.yaml ${TARGET}/conf/
@@ -522,8 +522,8 @@ else
     make build
 fi;
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["dumpling"] = """
@@ -540,8 +540,8 @@ else
     make build
 fi;
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["ng-monitoring"] = """
@@ -554,8 +554,8 @@ fi;
 go version
 make
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/  
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tidb-enterprise-tools"] = """
@@ -569,8 +569,8 @@ go version
 make syncer
 make loader
 rm -rf ${TARGET}
-mkdir -p ${TARGET}/bin    
-cp bin/* ${TARGET}/bin/   
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
 """
 
 buildsh["tics"] = """
@@ -610,12 +610,12 @@ else
         mkdir -p ~/.cargo/registry
         mkdir -p ~/.cargo/git
         mkdir -p /rust/registry/cache
-        mkdir -p /rust/registry/index 
+        mkdir -p /rust/registry/index
         mkdir -p /rust/git/db
         mkdir -p /rust/git/checkouts
-        
+
         rm -rf ~/.cargo/registry/cache && ln -s /rust/registry/cache ~/.cargo/registry/cache
-        rm -rf ~/.cargo/registry/index && ln -s /rust/registry/index ~/.cargo/registry/index 
+        rm -rf ~/.cargo/registry/index && ln -s /rust/registry/index ~/.cargo/registry/index
         rm -rf ~/.cargo/git/db && ln -s /rust/git/db ~/.cargo/git/db
         rm -rf ~/.cargo/git/checkouts && ln -s /rust/git/checkouts ~/.cargo/git/checkouts
     fi
@@ -633,7 +633,7 @@ else
             NPROC=12 release-linux-llvm/scripts/build-debug.sh
         fi
         mkdir -p ${TARGET}
-        mv release-linux-llvm/tiflash ${TARGET}/tiflash        
+        mv release-linux-llvm/tiflash ${TARGET}/tiflash
     elif [[ -d "release-centos7-llvm" && \$(which clang 2>/dev/null) ]]; then
         if [[ "${params.TIFLASH_DEBUG}" != 'true' ]]; then
             echo "start release ..........."
@@ -671,8 +671,7 @@ if [ ${EDITION} == 'enterprise' ]; then
     export TIKV_EDITION=Enterprise
     export ROCKSDB_SYS_SSE=0
 fi;
-if [ ${OS} == 'linux' ] && [ "${BUILDER_IMG}"x == ''x ]; then
-    echo using gcc 8
+if [ ${OS} == 'linux' ] && [ -f /opt/rh/devtoolset-8/enable ]; then
     source /opt/rh/devtoolset-8/enable
 fi;
 # compatibility: arm linux page sizes vary from 4k to 64k
@@ -709,7 +708,7 @@ mkdir -p ${TARGET}/bin
 cp target/release/tikv-importer ${TARGET}/bin
 """
 
-// NOTE: remove param --auto-push for pull-monitoring 
+// NOTE: remove param --auto-push for pull-monitoring
 //      we don't want to auto create pull request in repo https://github.com/pingcap/monitoring/pulls
 buildsh["monitoring"] = """
 go build -o pull-monitoring  cmd/monitoring.go
@@ -746,7 +745,7 @@ fi;
 buildsh["enterprise-plugin"] = """
 go version
 cd ../tidb/cmd/pluginpkg
-go build 
+go build
 cd ../../../enterprise-plugin
 cd whitelist
 go mod tidy
@@ -936,7 +935,7 @@ def run_with_pod(String builder, Closure body) {
                             resourceRequestCpu: builderRequestCpu, resourceRequestMemory: buidlerRequestMemory,
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [
-                                containerEnvVar(key: 'GOPATH', value: '/go'), 
+                                containerEnvVar(key: 'GOPATH', value: '/go'),
                                 containerEnvVar(key: 'CARGO_HOME', value: '/var/cache/cargohome')
                             ],
                     ),
@@ -964,7 +963,7 @@ def run_with_pod(String builder, Closure body) {
 
 try {
     stage("Build ${PRODUCT}") {
-        if (!ifFileCacheExists()) { 
+        if (!ifFileCacheExists()) {
             if (params.BUILDER_IMG && params.OS=="linux"){
                 run_with_pod(params.BUILDER_IMG,{
                         dir("go/src/github.com/pingcap/${PRODUCT}") {
