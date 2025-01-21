@@ -21,13 +21,13 @@ presubmits:
             env: &env
               - name: GO_PROXY
                 value: http://goproxy.pingcap.net,direct
-            resources: &resources
+            resources:
               requests:
-                memory: 16Gi
-                cpu: "8"
+                memory: 32Gi
+                cpu: "16"
               limits:
-                memory: 16Gi
-                cpu: "8"            
+                memory: 32Gi
+                cpu: "16"            
     - name: pull-build
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
@@ -46,5 +46,29 @@ presubmits:
               - |
                 make cdc
             env: *env
+            resources: &resources
+              requests:
+                memory: 16Gi
+                cpu: "8"
+              limits:
+                memory: 16Gi
+                cpu: "8" 
+    - name: pull-check
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      always_run: false # debug, change to true when ready
+      skip_report: false
+      optional: true
+      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      branches:
+        - ^master$
+      spec:
+        containers:                
+          - name: check
+            image: *image
+            command: *command
+            args:
+              - |
+                make check
+            env: *env
             resources: *resources
-
