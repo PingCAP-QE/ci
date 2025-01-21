@@ -455,11 +455,15 @@ def validateAndFilterRefs(tidbTestRefs) {
     def branchRefs = tidbTestRefs.findAll { it.startsWith("Branch:") }
     
     // Check if all refs are PRs
+    // if all refs are PRs, need to merge the PRs with the same base branch
     if (prRefs.size() == tidbTestRefs.size()) {
         return [true, prRefs.unique()]
     }
     
     // Check if all refs are Branches and there's only one unique branch
+    // 1. for hotfix branch batch merge, valid
+    // 2. for feature branch batch merge, valid
+    // 3. for multi PR with different branches, invalid
     if (branchRefs.size() == tidbTestRefs.size()) {
         def uniqueBranches = branchRefs.unique()
         if (uniqueBranches.size() > 1) {
@@ -469,6 +473,6 @@ def validateAndFilterRefs(tidbTestRefs) {
         return [true, uniqueBranches]
     }
     
-    // Mixed refs - return false and the combined unique refs
+    // Mixed refs is invalid - return false and the combined unique refs
     return [false, (prRefs + branchRefs).unique()]
 }
