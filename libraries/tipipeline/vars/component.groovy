@@ -153,7 +153,7 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
         throw new Exception("Error: invalid ${component} refs in multiple PRs.")
     } else {
         if (filteredRefs.isEmpty()) {
-            echo "No tidb-test refs specified in PR title, checkout the base branch ${componentBranch} of ${component}."
+            echo "No tidb-test refs specified in PR title, checkout the default branch ${componentBranch} of ${component}."
             checkoutSingle(gitUrl, componentBranch, componentBranch, credentialsId)
         } else if (filteredRefs.size() == 1 && filteredRefs[0].startsWith("Branch:")) {
             // 1. feature branch or hotfix branch
@@ -161,9 +161,14 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
             def branch = filteredRefs[0].split(":")[1]
             println("Checkout the branch: ${branch} of ${component}")
             checkoutSingle(gitUrl, prTargetBranch, branch, credentialsId)
-        } else if (filteredRefs.size() > 1) {
+        } else if (filteredRefs.size() == 1 && filteredRefs[0].startsWith("PR:")) {
+            // 1. single PR with PR specified
+            // 2. multi PR with the same PR of tidb-test specified
+            def componentPr = filteredRefs[0].split(":")[1]
+            println("Checkout the PR: ${componentPr} of ${component}")
+            checkoutPRWithPreMerge(gitUrl, prTargetBranch, filteredRefs, credentialsId)
+        } else {
             // multi PR specified component PR (notice: for batch merge with specific branch is not supported)
-            // single PR with specified PR
             checkoutPRWithPreMerge(gitUrl, prTargetBranch, filteredRefs.collect { it.split(":")[1] } as List, credentialsId)
         }
     }
