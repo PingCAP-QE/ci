@@ -166,9 +166,11 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
             // 2. multi PR with the same PR of tidb-test specified
             def componentPr = filteredRefs[0].split(":")[1]
             println("Checkout the PR: ${componentPr} of ${component}")
+            println("Note: When specifying tidb-test=pr/xxx in the PR title, the base branch of tidb-test pr must be the same as the base branch of tidb pr.If not, please specify tidb-test=<branch> or tidb-test=<commit-hash>.")
             checkoutPRWithPreMerge(gitUrl, prTargetBranch, filteredRefs, credentialsId)
         } else {
             // multi PR specified component PR (notice: for batch merge with specific branch is not supported)
+            println("Note: When specifying tidb-test=pr/xxx in the PR title, the base branch of tidb-test pr must be the same as the base branch of tidb pr.If not, please specify tidb-test=<branch> or tidb-test=<commit-hash>.")
             checkoutPRWithPreMerge(gitUrl, prTargetBranch, filteredRefs.collect { it.split(":")[1] } as List, credentialsId)
         }
     }
