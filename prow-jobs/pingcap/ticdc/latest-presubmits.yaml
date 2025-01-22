@@ -4,9 +4,9 @@ presubmits:
     - name: pull-unit-test
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false # debug, change to true when ready
+      always_run: true
       skip_report: false
-      optional: true
+      optional: false
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       branches:
         - ^master$
@@ -31,9 +31,9 @@ presubmits:
     - name: pull-build
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false # debug, change to true when ready
+      always_run: true
       skip_report: false
-      optional: true
+      optional: false
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       branches:
         - ^master$
@@ -56,9 +56,9 @@ presubmits:
     - name: pull-check
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false # debug, change to true when ready
+      always_run: true
       skip_report: false
-      optional: true
+      optional: false
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       branches:
         - ^master$
