@@ -167,27 +167,6 @@ def checkoutSupportBatch(gitUrl, component, prTargetBranch, prTitle, refs, crede
             checkoutPRWithPreMerge(gitUrl, prTargetBranch, filteredRefs.collect { it.split(":")[1] } as List, credentialsId)
         }
     }
-
-    // pre-merge for the PRs.
-    if (tidbTestRefs.isEmpty()) {
-        echo "No tidb-test refs specified in PR title, checkout the base branch ${componentBranch} of ${component}."
-        checkoutSingle(gitUrl, componentBranch, componentBranch, credentialsId)
-    } else if (tidbTestRefs.size() == 1 && tidbTestRefs[0].startsWith("Branch:")) {
-        // 1. feature branch or hotfix branch
-        // 2. Single PR with branch or commit sha specified
-        echo "Single PR with tidb-test branch specified: ${prTargetBranch}"
-        def branch = tidbTestRefs[0].split(":")[1]
-        println("Checkout the branch: ${branch} of ${component}")
-        checkoutSingle(gitUrl, prTargetBranch, branch, credentialsId)
-    // if tidbTestRefs size > 1 and any of tidbTestRefs start with branch , then error and exit
-    } else if (tidbTestRefs.size() > 1 && branchOrCommitSpecified) {
-        echo "Error: Specifying a tidb-test branch is not supported for multiple tidb PRs."
-        throw new Exception("Error: Specifying a tidb-test branch is not supported for multiple tidb PRs batch.")
-    } else {
-        // multi PR specified PR (notice: for batch merge with specific branch is not supported)
-        // single PR with specified PR
-        checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefs.collect { it.split(":")[1] } as List, credentialsId)
-    }
 }
 
 def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeout=5) {
