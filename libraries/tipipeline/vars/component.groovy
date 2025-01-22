@@ -446,17 +446,17 @@ def ks3_download_fileserver(remote, local, credentialsId="ks3util-config"){
     }
 }
 
-def validateAndFilterRefs(tidbTestRefs) {
-    if (tidbTestRefs.isEmpty()) {
+def validateAndFilterRefs(componentRefs) {
+    if (componentRefs.isEmpty()) {
         return [true, []]
     }
 
-    def prRefs = tidbTestRefs.findAll { it.startsWith("PR:") }
-    def branchRefs = tidbTestRefs.findAll { it.startsWith("Branch:") }
+    def prRefs = componentRefs.findAll { it.startsWith("PR:") }
+    def branchRefs = componentRefs.findAll { it.startsWith("Branch:") }
     
     // Check if all refs are PRs
     // if all refs are PRs, need to merge the PRs with the same base branch
-    if (prRefs.size() == tidbTestRefs.size()) {
+    if (prRefs.size() == componentRefs.size()) {
         return [true, prRefs.unique()]
     }
     
@@ -464,7 +464,7 @@ def validateAndFilterRefs(tidbTestRefs) {
     // 1. for hotfix branch batch merge, valid
     // 2. for feature branch batch merge, valid
     // 3. for multi PR with different branches, invalid
-    if (branchRefs.size() == tidbTestRefs.size()) {
+    if (branchRefs.size() == componentRefs.size()) {
         def uniqueBranches = branchRefs.unique()
         if (uniqueBranches.size() > 1) {
             // Multiple PR with different branches specified - not supported
