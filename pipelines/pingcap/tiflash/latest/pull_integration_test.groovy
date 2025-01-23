@@ -121,9 +121,6 @@ pipeline {
             }
         }
         stage("License check") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     // TODO: add license-eye to docker image
