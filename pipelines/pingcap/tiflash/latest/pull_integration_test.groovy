@@ -121,6 +121,9 @@ pipeline {
             }
         }
         stage("License check") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     // TODO: add license-eye to docker image
@@ -308,6 +311,27 @@ pipeline {
                     sh """
                     ccache -s
                     ls -lha ${WORKSPACE}/install/tiflash
+                    """
+                }
+            }
+        }
+        stage("License check") {
+            when {
+                expression { !build_cache_ready }
+            }
+            steps {
+                dir("${WORKSPACE}/tiflash") {
+                    // TODO: add license-eye to docker image
+                    sh label: "license header check", script: """
+                        echo "license check"
+                        if [[ -f .github/licenserc.yml ]]; then
+                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
+                            chmod +x license-eye
+                            ./license-eye -c .github/licenserc.yml header check
+                        else
+                            echo "skip license check"
+                            exit 0
+                        fi
                     """
                 }
             }
