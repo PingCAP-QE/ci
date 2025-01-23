@@ -16,7 +16,7 @@ spec:
           memory: 32Gi
           cpu: "12"
         limits:
-          memory: 32Gi
+          memory: 48Gi
           cpu: "12"
       volumeMounts:
       - mountPath: "/home/jenkins/agent/rust"
