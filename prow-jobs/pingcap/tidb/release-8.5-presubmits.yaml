@@ -65,9 +65,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       context: pull-br-integration-test
-      always_run: false
-      optional: true
-      skip_report: false
+      run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
 
