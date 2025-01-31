@@ -1,7 +1,38 @@
-final RepoDict = ["tiflash":"tics", "br":"tidb", "dumpling":"tidb", "tidb-lightning":"tidb", 
-    "ticdc":"tiflow", "dm":"tiflow", "drainer":"tidb-binlog", "pump":"tidb-binlog"]
-final ProductForBuildMapping = ["tiflash":"tics", "tidb-lightning":"br", "drainer":"tidb-binlog", "pump":"tidb-binlog"]
-final DockerMapping = ["drainer":"tidb-binlog", "pump":"tidb-binlog"]
+final RepoDict = [
+    "tiflash":"tics",
+    "br":"tidb",
+    "dumpling":"tidb",
+    "tidb-lightning":"tidb",
+    "ticdc":"tiflow",
+    "dm":"tiflow",
+    "drainer":"tidb-binlog",
+    "pump":"tidb-binlog",
+]
+final ProductForBuildMapping = [
+    "tiflash":"tics",
+    "tidb-lightning":"br",
+    "drainer":"tidb-binlog",
+    "pump":"tidb-binlog",
+]
+final DockerImgRepoMapping = [
+    "tidb-binlog": "pingcap/tidb-binlog/image",
+    "drainer":"pingcap/tidb-binlog/image",
+    "pump":"pingcap/tidb-binlog/image",
+    "tidb": "pingcap/tidb/images/tidb-server",
+    "tidb-lightning": "pingcap/tidb/images/tidb-lightning",
+    "br": "pingcap/tidb/images/br",
+    "dumpling": "pingcap/tidb/images/dumpling",
+    "tidb-tools": "pingcap/tidb-tools/image",
+    "tidb-dashboard": "pingcap/tidb-dashboard/image",
+    "tikv": "tikv/tikv/image",
+    "pd": "tikv/pd/image",
+    "tiflash": "pingcap/tiflash/image",
+    "dm": "pingcap/tiflow/images/dm"
+    "ticdc": "pingcap/tiflow/images/ticdc"
+    "ng-monitoring": "pingcap/ng-monitoring/image",
+    "tidb-dashboard": "pingcap/tidb-dashboard/image",
+]
+
 final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
 def GitHash = ''
@@ -23,20 +54,51 @@ def PrintedVersion = ''
 
 
 def get_dockerfile_url={arch ->
-    def fileName = ProductForDocker
     if (params.ProductDockerfile){
         return params.ProductDockerfile
     }
     if (Version>='v6.6.0'){
-        if (Product == "tidb" && Edition == "enterprise") { 
-            fileName = fileName + '-enterprise'
+        if (Product == "tidb" && Edition == "enterprise") {
+            return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
         }
-        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
-    }else{
-        if (Product == "tidb" && Edition == "enterprise") { 
-            fileName = "enterprise/${Product}"
+
+        return [
+            "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.Dockerfile",
+            "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb-lightning.Dockerfile",
+            "br":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/br.Dockerfile",
+            "dumpling":         "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/dumpling.Dockerfile",
+            "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/Dockerfile",
+            "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/dm.Dockerfile",
+            "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/ticdc.Dockerfile",
+            "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
+            "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
+            "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/Dockerfile",
+            "tidb-dashboard":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-dashboard/Dockerfile",
+            "tikv":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tikv/Dockerfile",
+            "pd":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/pd/Dockerfile",
+            "ng-monitoring":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ng-monitoring/Dockerfile",
+        ][Product]
+    } else {
+        if (Product == "tidb" && Edition == "enterprise") {
+            return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/tidb.enterprise.Dockerfile"
         }
-        return "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${fileName}"
+
+        return [
+            "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/tidb.Dockerfile",
+            "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/tidb-lightning.Dockerfile",
+            "br":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/br.Dockerfile",
+            "dumpling":         "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/dumpling.Dockerfile",
+            "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/lt6.5.12/Dockerfile",
+            "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/dm.Dockerfile",
+            "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/ticdc.Dockerfile",
+            "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
+            "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
+            "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/lt6.5.12/Dockerfile",
+            "tidb-dashboard":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-dashboard/lt6.5.12/Dockerfile",
+            "tikv":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tikv/lt6.5.12/Dockerfile",
+            "pd":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/pd/lt6.5.12/Dockerfile",
+            "ng-monitoring":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ng-monitoring/lt6.5.12/Dockerfile",
+        ][Product]
     }
 }
 pipeline{
@@ -87,7 +149,7 @@ spec:
                     BinBuildPathDict["amd64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-amd64.tar.gz"
                     BinBuildPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
                     ProductForBuild = ProductForBuildMapping.getOrDefault(Product, Product)
-                    ProductForDocker = DockerMapping.getOrDefault(Product, Product)
+                    ProductForDocker = DockerImgRepoMapping.getOrDefault(Product, Product)
                     def date = new Date()
                     PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                     Image = "hub.pingcap.net/devbuild/$ProductForDocker:$Version-$BUILD_NUMBER"
@@ -96,7 +158,7 @@ spec:
                     }
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version-$BUILD_NUMBER-dev"
                     if (params.IsHotfix.toBoolean()){
-                        Image = "hub.pingcap.net/qa/$ProductForDocker:$Version-$BUILD_NUMBER"
+                        Image = "hub.pingcap.net/$ProductForDocker:$Version-$BUILD_NUMBER"
                         if (params.Features != ""){
                             error "hotfix artifact but with extra features"
                         }
@@ -214,7 +276,7 @@ spec:
                             }
                         }
                         steps{
-                           sh "package_tiup.py $Product ${BinPathDict[arch]} ${BinBuildPathDict[arch]}" 
+                           sh "package_tiup.py $Product ${BinPathDict[arch]} ${BinBuildPathDict[arch]}"
                         }
                     }
                     stage("docker"){
