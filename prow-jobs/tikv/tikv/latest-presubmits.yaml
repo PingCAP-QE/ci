@@ -52,14 +52,6 @@ presubmits:
                 fi
                 make clippy
                 ENABLE_FEATURES="test-engines-panic nortcheck" NO_DEFAULT_TEST_ENGINES=1 make clippy
-            env: &env
-              - name: GO_PROXY
-                value: http://goproxy.apps.svc,direct
-              - name: GOMODCACHE
-                value: /share/go/pkg/mod
-            volumeMounts: &volumeMounts
-              - name: gomod-cache
-                mountPath: /share/go/pkg/mod
             resources: &resources
               request:
                 memory: 8Gi
@@ -67,10 +59,6 @@ presubmits:
               limits:
                 memory: 16Gi
                 cpu: "8"
-        volumes: &volumes
-          - name: gomod-cache
-            persistentVolumeClaim:
-              claimName: gomod-cache
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
