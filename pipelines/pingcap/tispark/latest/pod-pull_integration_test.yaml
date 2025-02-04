@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: golang
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.12:cached"
+      tty: true
+      resources:
+        requests:
+          memory: 12Gi
+          cpu: "4"
+        limits:
+          memory: 16Gi
+          cpu: "6"
+      env:
+        - name: DOCKER_HOST
+          value: tcp://localhost:2375
+    - name: java
+      image: hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached
+      tty: true
+      resources:
+        limits:
+          memory: 24Gi
+          cpu: "8"
+      env:
+        - name: DOCKER_HOST
+          value: tcp://localhost:2375
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
