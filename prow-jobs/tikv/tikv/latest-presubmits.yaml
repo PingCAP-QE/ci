@@ -48,7 +48,7 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
-                if [ -f source /opt/rh/devtoolset-8/enable ]; then
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
                   source /opt/rh/devtoolset-8/enable
                 fi
                 make clippy
