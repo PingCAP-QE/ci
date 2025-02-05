@@ -27,8 +27,8 @@ final DockerImgRepoMapping = [
     "tikv": "tikv/tikv/image",
     "pd": "tikv/pd/image",
     "tiflash": "pingcap/tiflash/image",
-    "dm": "pingcap/tiflow/images/dm"
-    "ticdc": "pingcap/tiflow/images/ticdc"
+    "dm": "pingcap/tiflow/images/dm",
+    "ticdc": "pingcap/tiflow/images/ticdc",
     "ng-monitoring": "pingcap/ng-monitoring/image",
     "tidb-dashboard": "pingcap/tidb-dashboard/image",
 ]
