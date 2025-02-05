@@ -38,7 +38,8 @@ presubmits:
       agent: kubernetes
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      always_run: false
       optional: true # update here after test passed
       spec:
         containers:
