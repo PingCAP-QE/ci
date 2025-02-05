@@ -32,3 +32,40 @@ presubmits:
       context: wip/pull-integration-test
       trigger: "(?m)^/debug (?:.*? )?pull-integration-test(?: .*?)?$"
       rerun_command: "/debug pull-integration-test"
+
+    - <<: *brancher
+      name: pull-clippy-linux-arm64
+      agent: kubernetes
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      always_run: false
+      optional: true # update here after test passed
+      spec:
+        containers:
+          - name: build
+            image: hub.pingcap.net/ee/ci/base:v20230803-go1.19.12
+            command: [bash, -ce]
+            args:
+              - |
+                if [ -f source /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                make clippy
+                ENABLE_FEATURES="test-engines-panic nortcheck" NO_DEFAULT_TEST_ENGINES=1 make clippy
+            resources: &resources
+              request:
+                memory: 8Gi
+                cpu: "4"
+              limits:
+                memory: 16Gi
+                cpu: "8"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - arm64
