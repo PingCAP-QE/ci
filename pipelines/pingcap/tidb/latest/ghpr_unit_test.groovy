@@ -82,6 +82,7 @@ pipeline {
                 always {
                     dir(REFS.repo) {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                        archiveArtifacts(artifacts: '**/bazel.xml',  allowEmptyArchive: true)
                         archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
                     }
                     sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
