@@ -11,6 +11,18 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.1/pod-pull_cdc_int
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
+// Extract hotfix version tag from branch name
+// Returns a map containing:
+//   - isHotfix: boolean indicating if this is a hotfix branch
+//   - versionTag: the version tag (e.g. 'v7.1.1') if it's a hotfix branch, null otherwise
+def extractHotfixInfo(String branchName) {
+    def hotfixPattern = ~/^release-\d+\.\d+-\d{8}-(v\d+\.\d+\.\d+)(?:-.*)?$/
+    def matcher = branchName =~ hotfixPattern
+    def isHotfix = matcher.matches()
+    def versionTag = isHotfix ? matcher[0][1] : null
+    return [isHotfix: isHotfix, versionTag: versionTag]
+}
+
 pipeline {
     agent {
         kubernetes {
@@ -84,17 +96,29 @@ pipeline {
             steps {
                 dir("third_party_download") {
                     retry(2) {
-                        sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                            make check_third_party_binary
-                            cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                            ./bin/sync_diff_inspector --version
-                        """
+                        script {
+                            def hotfixInfo = extractHotfixInfo(REFS.base_ref)
+                            
+                            sh label: "download third_party", script: """
+                                cd ../tiflow
+                                if [[ "${hotfixInfo.isHotfix}" == "true" ]]; then
+                                    echo "Hotfix version tag: ${hotfixInfo.versionTag}"
+                                    echo "This is a hotfix branch, download exact version ${hotfixInfo.versionTag} binaries of other components"
+                                    ./scripts/download-hotfix-test-binaries.sh ${hotfixInfo.versionTag}
+                                else
+                                    ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
+                                fi
+                                ls -alh ./bin
+                                make check_third_party_binary
+                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tiflash --version
+                                ./bin/sync_diff_inspector --version
+                            """
+                        }
                     }
                 }
                 dir("tiflow") {
@@ -180,7 +204,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
