@@ -14,6 +14,8 @@ final ProductForBuildMapping = [
     "drainer":"tidb-binlog",
     "pump":"tidb-binlog",
 ]
+
+// image prefix with `hub.pingcap.net/devbuild/` for no hotfix build and `hub.pingcap.net/` for hotfix build.
 final DockerImgRepoMapping = [
     "tidb-binlog": "pingcap/tidb-binlog/image",
     "drainer":"pingcap/tidb-binlog/image",
@@ -33,6 +35,9 @@ final DockerImgRepoMapping = [
     "tidb-dashboard": "pingcap/tidb-dashboard/image",
 ]
 
+// image prefix with `gcr.io/pingcap-public/dbaas/`
+final GcrDockerImgRepoMapping = ["drainer":"tidb-binlog", "pump":"tidb-binlog"]
+
 final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
 def GitHash = ''
@@ -49,6 +54,7 @@ def PipelineEndAt = ''
 def RepoForBuild = ''
 def ProductForBuild = ''
 def ProductForDocker = ''
+def ShortImageRepoForGCR = ''
 def NeedEnterprisePlugin = false
 def PrintedVersion = ''
 
@@ -150,19 +156,21 @@ spec:
                     BinBuildPathDict["arm64"] = "builds/devbuild/$BUILD_NUMBER/$Product-build-linux-arm64.tar.gz"
                     ProductForBuild = ProductForBuildMapping.getOrDefault(Product, Product)
                     ProductForDocker = DockerImgRepoMapping.getOrDefault(Product, Product)
+                    ShortImageRepoForGCR = GcrDockerImgRepoMapping.getOrDefault(Product, Product)
                     def date = new Date()
                     PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                     Image = "hub.pingcap.net/devbuild/$ProductForDocker:$Version-$BUILD_NUMBER"
                     if (params.TargetImg!=""){
                         Image = params.TargetImg
                     }
-                    ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version-$BUILD_NUMBER-dev"
+                    ImageForGcr = "gcr.io/pingcap-public/dbaas/$ShortImageRepoForGCR:$Version-$BUILD_NUMBER-dev"
+
                     if (params.IsHotfix.toBoolean()){
                         Image = "hub.pingcap.net/$ProductForDocker:$Version-$BUILD_NUMBER"
                         if (params.Features != ""){
                             error "hotfix artifact but with extra features"
                         }
-                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$ProductForDocker:$Version"
+                        ImageForGcr = "gcr.io/pingcap-public/dbaas/$ShortImageRepoForGCR:$Version"
                         BinPathDict["amd64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-amd64.tar.gz"
                         BinPathDict["arm64"] = "builds/hotfix/$Product/$Version/$BUILD_NUMBER/$Product-patch-linux-arm64.tar.gz"
                         PluginBinPathDict["amd64"] = "builds/hotfix/enterprise-plugin/$Version/$BUILD_NUMBER/enterprise-plugin-linux-amd64.tar.gz"
