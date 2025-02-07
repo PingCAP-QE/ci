@@ -100,7 +100,7 @@ presubmits:
       spec:
         containers:
           - name: build
-            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-81-gec616ff-go1.21
+            image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest # UID is 1000
             command: [bash, -ce]
             args:
               - |
@@ -115,12 +115,15 @@ presubmits:
                 mountPath: /share/go/pkg/mod
             resources:
               limits:
-                memory: 8Gi
-                cpu: "4"
+                memory: 16Gi
+                cpu: "8"
         volumes:
           - name: gomod-cache
             persistentVolumeClaim:
               claimName: gomod-cache
+        securityContext:
+          fsGroup: 1000
+          runAsUser: 1000
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
