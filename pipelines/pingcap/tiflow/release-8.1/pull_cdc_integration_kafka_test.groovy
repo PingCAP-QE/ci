@@ -11,18 +11,6 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.1/pod-pull_cdc_int
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
-// Extract hotfix version tag from branch name
-// Returns a map containing:
-//   - isHotfix: boolean indicating if this is a hotfix branch
-//   - versionTag: the version tag (e.g. 'v7.1.1') if it's a hotfix branch, null otherwise
-def extractHotfixInfo(String branchName) {
-    def hotfixPattern = ~/^release-\d+\.\d+-\d{8}-(v\d+\.\d+\.\d+)(?:-.*)?$/
-    def matcher = branchName =~ hotfixPattern
-    def isHotfix = matcher.matches()
-    def versionTag = isHotfix ? matcher[0][1] : null
-    return [isHotfix: isHotfix, versionTag: versionTag]
-}
-
 pipeline {
     agent {
         kubernetes {
@@ -97,14 +85,16 @@ pipeline {
                 dir("third_party_download") {
                     retry(2) {
                         script {
-                            def hotfixInfo = extractHotfixInfo(REFS.base_ref)
+                            def branchInfo = component.extractHotfixInfo(REFS.base_ref)
                             
                             sh label: "download third_party", script: """
                                 cd ../tiflow
-                                if [[ "${hotfixInfo.isHotfix}" == "true" ]]; then
-                                    echo "Hotfix version tag: ${hotfixInfo.versionTag}"
-                                    echo "This is a hotfix branch, download exact version ${hotfixInfo.versionTag} binaries of other components"
-                                    ./scripts/download-hotfix-test-binaries.sh ${hotfixInfo.versionTag}
+                                if [[ "${branchInfo.isHotfix}" == "true" ]]; then
+                                    echo "Hotfix version tag: ${branchInfo.versionTag}"
+                                    echo "This is a hotfix branch, download exact version ${branchInfo.versionTag} binaries of other components"
+                                    chmod +x ../scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh
+                                    cp ../scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh ./
+                                    ./ticdc_download_test_binaries_by_tag.sh ${branchInfo.versionTag}
                                 else
                                     ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
                                 fi
