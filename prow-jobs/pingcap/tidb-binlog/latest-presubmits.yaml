@@ -90,3 +90,46 @@ presubmits:
                       operator: In
                       values:
                         - amd64
+    - <<: *brancher
+      name: pull-unit-test
+      agent: kubernetes
+      cluster: gcp-prow-ksyun
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      context: idc-jenkins-ci-tidb-binlog/unit-test
+      spec:
+        containers:
+          - name: build
+            image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest # UID is 1000
+            command: [bash, -ce]
+            args:
+              - |
+                make test
+            env:
+              - name: GO_PROXY
+                value: http://goproxy.apps.svc,direct
+              - name: GOMODCACHE
+                value: /share/go/pkg/mod
+            volumeMounts:
+              - name: gomod-cache
+                mountPath: /share/go/pkg/mod
+            resources:
+              limits:
+                memory: 16Gi
+                cpu: "8"
+        volumes:
+          - name: gomod-cache
+            persistentVolumeClaim:
+              claimName: gomod-cache
+        securityContext:
+          fsGroup: 1000
+          runAsUser: 1000
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
