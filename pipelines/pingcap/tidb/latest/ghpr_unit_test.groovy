@@ -103,11 +103,13 @@ pipeline {
         }
         stage('Test Enterprise Extensions') {
             when {
+                // Only run the tests when there are changes in the `pkg/extension` folder.
                 expression {
-                    // Q: why this step is not existed in presubmit job of master branch?
-                    // A: we should not forbiden the community contrubutor on the unit test on private submodules.
-                    // if it failed, the enterprise extension owners should fix it.
-                    return REFS.base_ref != 'master' || REFS.pulls == null || REFS.pulls.size() == 0
+                    def changesInExtensionDir = false
+                    dir(REFS.repo) {
+                        changesInExtensionDir = sh(script: "git diff --name-only ${REFS.base_sha} HEAD | grep -qE '^pkg/extension/'", returnStatus: true) == 0
+                    }
+                    return changesInExtensionDir
                 }
             }
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
