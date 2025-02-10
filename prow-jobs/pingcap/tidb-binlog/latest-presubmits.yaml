@@ -171,15 +171,32 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
-                /usr/bin/start-zk.sh &
+                echo "🚩 This is the Zookeeper server."
 
-                # exit when /tmp/done file exists.
+                # Start Zookeeper in the background
+                /usr/bin/start-zk.sh > /logs/artifacts/container-output-zookeeper.log 2>&1 &
+                ZK_PID=$!
+
+                # Function to handle termination signal
+                terminate() {
+                  kill -9 $ZK_PID 2>/dev/null && echo "Killed Zookeeper process."
+                  wait $ZK_PID 2>/dev/null && echo "Zookeeper process stopped."
+                  echo "🏁 Zookeeper stopped."
+                  exit 0
+                }
+
+                # Trap termination signals
+                trap 'terminate' SIGTERM SIGINT
+
+                # Exit when /tools/run.done file exists.
                 while [ ! -f /tools/run.done ]; do
                   sleep 1
+                  echo -n '.'
                 done
 
-                echo "This is the zookeeper server."
-                exit 0
+                # Call the terminate function to stop Zookeeper
+                echo "👀 Saw termination flag, exiting."
+                terminate
             resources:
               requests:
                 memory: 4Gi
@@ -189,12 +206,32 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
-                start-kafka.sh &
+                echo "🚩 This is the Kafka server."
 
-                # exit when /tmp/done file exists.
+                # Start Kafka in the background
+                start-kafka.sh > /logs/artifacts/container-output-kafka.log 2>&1 &
+                KAFKA_PID=$!
+
+                # Function to handle termination signal
+                terminate() {
+                  kill -9 $KAFKA_PID 2>/dev/null && echo "Killed Kafka process."
+                  wait $KAFKA_PID 2>/dev/null && echo "Kafka process stopped."
+                  echo "🏁 Kafka stopped."
+                  exit 0
+                }
+
+                # Trap termination signals
+                trap 'terminate' SIGTERM SIGINT
+
+                # Exit when /tools/run.done file exists.
                 while [ ! -f /tools/run.done ]; do
                   sleep 1
+                  echo -n '.'
                 done
+
+                # Call the terminate function to stop Kafka
+                echo "👀 Saw termination flag, exiting."
+                terminate
             env:
               - name: KAFKA_MESSAGE_MAX_BYTES
                 value: "1073741824"
