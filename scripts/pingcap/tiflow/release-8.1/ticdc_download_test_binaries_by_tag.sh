@@ -40,7 +40,6 @@ download_file() {
 download_binaries() {
 	log_green "Downloading binaries..."
 
-	# Use version-based URLs
 	local pingcap_base_url="${FILE_SERVER_URL}/download/builds/pingcap"
 	local tikv_base_url="${FILE_SERVER_URL}/download/builds/tikv"
 	
@@ -51,7 +50,7 @@ download_binaries() {
 	local tikv_url="${tikv_base_url}/tikv/tag/${VERSION}/${OS}_${ARCH}/tikv.tar.gz"
 	local pd_url="${tikv_base_url}/pd/tag/${VERSION}/${OS}_${ARCH}/pd.tar.gz"
 
-	# Common URLs that don't depend on version
+	# Common URLs that are not frequently updated or changed.
 	local minio_download_url="${FILE_SERVER_URL}/download/minio.tar.gz"
 	local go_ycsb_download_url="${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb"
 	local etcd_download_url="${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz"
