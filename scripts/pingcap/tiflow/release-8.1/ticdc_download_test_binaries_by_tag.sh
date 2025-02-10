@@ -10,7 +10,8 @@ OS=${2:-linux}
 ARCH=${3:-amd64}
 
 # Constants
-FILE_SERVER_URL="http://fileserver.pingcap.net"
+# Allow override through environment variable, fall back to default if not set
+FILE_SERVER_URL="${FILE_SERVER_URL:-http://fileserver.pingcap.net}"
 TMP_DIR="tmp"
 THIRD_BIN_DIR="third_bin"
 BIN_DIR="bin"
@@ -40,15 +41,15 @@ download_binaries() {
 	log_green "Downloading binaries..."
 
 	# Use version-based URLs
-	local pingcap_base_url="${FILE_SERVER_URL}/download/builds/releases/${VERSION}/pingcap"
-	local tikv_base_url="${FILE_SERVER_URL}/download/builds/releases/${VERSION}/tikv"
+	local pingcap_base_url="${FILE_SERVER_URL}/download/builds/pingcap"
+	local tikv_base_url="${FILE_SERVER_URL}/download/builds/tikv"
 	
 	# Define download URLs for main components
-	local tidb_url="${pingcap_base_url}/tidb/${OS}_${ARCH}/tidb.tar.gz"
-	local tiflash_url="${pingcap_base_url}/tiflash/${OS}_${ARCH}/tiflash.tar.gz"
-	local ctl_url="${pingcap_base_url}/ctl/${OS}_${ARCH}/ctl.tar.gz"
-	local tikv_url="${tikv_base_url}/tikv/${OS}_${ARCH}/tikv.tar.gz"
-	local pd_url="${tikv_base_url}/pd/${OS}_${ARCH}/pd.tar.gz"
+	local tidb_url="${pingcap_base_url}/tidb/tag/${VERSION}/${OS}_${ARCH}/tidb.tar.gz"
+	local tiflash_url="${pingcap_base_url}/tiflash/tag/${VERSION}/${OS}_${ARCH}/tiflash.tar.gz"
+	local ctl_url="${pingcap_base_url}/ctl/tag/${VERSION}/${OS}_${ARCH}/ctl.tar.gz"
+	local tikv_url="${tikv_base_url}/tikv/tag/${VERSION}/${OS}_${ARCH}/tikv.tar.gz"
+	local pd_url="${tikv_base_url}/pd/tag/${VERSION}/${OS}_${ARCH}/pd.tar.gz"
 
 	# Common URLs that don't depend on version
 	local minio_download_url="${FILE_SERVER_URL}/download/minio.tar.gz"
