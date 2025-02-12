@@ -56,7 +56,6 @@ pipeline {
         stage('Integration Test') {
             steps {
                 dir("tidb-tools") {
-                    sh 'make sync-diff-inspector'
                     script {
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
@@ -87,7 +86,7 @@ pipeline {
                     for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
                     export MYSQL_HOST="127.0.0.1"
                     export MYSQL_PORT=3306
-                    make sync-diff-inspector-integration-test
+                    make sync_diff_inspector-integration_test
                     """
                 }
             }
