@@ -101,9 +101,8 @@ pipeline {
                                     rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/lib*
                                     
                                     # Then download and replace other components with exact versions
-                                    # wget -O ticdc_download_test_binaries_by_tag.sh https://raw.githubusercontent.com/PingCAP-QE/ci/59b5c2e6f692a6027710051757ef8e2cd2c3a311/scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh
-                                    cp ../scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh ./
-                                    chmod +x ticdc_download_test_binaries_by_tag.sh
+                                    cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./
+                                    chmod +x download_test_binaries_by_tag.sh
                                     
                                     # Save sync_diff_inspector and some other binaries
                                     mv bin tmp_bin
