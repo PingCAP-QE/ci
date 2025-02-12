@@ -56,7 +56,6 @@ BIN_DIR="bin"
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-# Functions
 log_green() {
 	echo -e "${GREEN}$1${NC}"
 }
@@ -124,7 +123,6 @@ download_and_extract() {
 	esac
 }
 
-# Main execution
 cleanup() {
 	rm -rf ${TMP_DIR} ${THIRD_BIN_DIR}
 }
