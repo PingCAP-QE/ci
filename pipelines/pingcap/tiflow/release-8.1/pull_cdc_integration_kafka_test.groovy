@@ -88,19 +88,41 @@ pipeline {
                             def branchInfo = component.extractHotfixInfo(REFS.base_ref)
                             
                             sh label: "download third_party", script: """
+                                mkdir -p bin
                                 cd ../tiflow
+                                
                                 if [[ "${branchInfo.isHotfix}" == "true" ]]; then
                                     echo "Hotfix version tag: ${branchInfo.versionTag}"
-                                    echo "This is a hotfix branch, download exact version ${branchInfo.versionTag} binaries of other components"
-                                    chmod +x ../scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh
+                                    echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
+                                    
+                                    # First download binary using the release branch script
+                                    ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
+                                    # remove binarys of tidb-server, pd-server, tikv-server, tiflash
+                                    rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/lib*
+                                    
+                                    # Then download and replace other components with exact versions
+                                    # wget -O ticdc_download_test_binaries_by_tag.sh https://raw.githubusercontent.com/PingCAP-QE/ci/59b5c2e6f692a6027710051757ef8e2cd2c3a311/scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh
                                     cp ../scripts/pingcap/tiflow/release-8.1/ticdc_download_test_binaries_by_tag.sh ./
+                                    chmod +x ticdc_download_test_binaries_by_tag.sh
+                                    
+                                    # Save sync_diff_inspector and some other binaries
+                                    mv bin tmp_bin
+                                    
+                                    # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
                                     ./ticdc_download_test_binaries_by_tag.sh ${branchInfo.versionTag}
+                                    
+                                    # Restore some binaries
+                                    mv tmp_bin/* bin/ && rm -rf tmp_bin
                                 else
+                                    echo "Release branch, downloading binaries from ${REFS.base_ref}"
                                     ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
                                 fi
-                                ls -alh ./bin
+                                
                                 make check_third_party_binary
-                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                                cd - && mv ../tiflow/bin/* ./bin/
+                                
+                                # Verify all required binaries
+                                echo "Verifying downloaded binaries..."
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
                                 ./bin/pd-server -V
