@@ -50,25 +50,12 @@ download_binaries() {
 	local tikv_url="${tikv_base_url}/tikv/tag/${VERSION}/${OS}_${ARCH}/tikv.tar.gz"
 	local pd_url="${tikv_base_url}/pd/tag/${VERSION}/${OS}_${ARCH}/pd.tar.gz"
 
-	# Common URLs that are not frequently updated or changed.
-	local minio_download_url="${FILE_SERVER_URL}/download/minio.tar.gz"
-	local go_ycsb_download_url="${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb"
-	local etcd_download_url="${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz"
-	local jq_download_url="${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64"
-	local schema_registry_url="${FILE_SERVER_URL}/download/builds/pingcap/cdc/schema-registry.tar.gz"
-
 	# Download and extract binaries
 	download_and_extract "$tidb_url" "tidb.tar.gz" "tidb-server"
 	download_and_extract "$pd_url" "pd.tar.gz" "pd-server"
 	download_and_extract "$tikv_url" "tikv.tar.gz" "tikv-server"
 	download_and_extract "$tiflash_url" "tiflash.tar.gz"
 	download_and_extract "$ctl_url" "ctl.tar.gz" "pd-ctl"
-	download_and_extract "$minio_download_url" "minio.tar.gz"
-	download_and_extract "$etcd_download_url" "etcd.tar.gz" "etcd-v3.4.7-linux-amd64/etcdctl"
-	download_and_extract "$schema_registry_url" "schema-registry.tar.gz"
-
-	download_file "$go_ycsb_download_url" "go-ycsb" "${THIRD_BIN_DIR}/go-ycsb"
-	download_file "$jq_download_url" "jq" "${THIRD_BIN_DIR}/jq"
 
 	chmod a+x ${THIRD_BIN_DIR}/*
 }
@@ -90,14 +77,6 @@ download_and_extract() {
 	"tiflash.tar.gz")
 		mv ${THIRD_BIN_DIR}/tiflash ${THIRD_BIN_DIR}/_tiflash
 		mv ${THIRD_BIN_DIR}/_tiflash/* ${THIRD_BIN_DIR}/ && rm -rf ${THIRD_BIN_DIR}/_tiflash
-		;;
-	"etcd.tar.gz")
-		mv ${THIRD_BIN_DIR}/etcd-v3.4.7-linux-amd64/etcdctl ${THIRD_BIN_DIR}/
-		rm -rf ${THIRD_BIN_DIR}/etcd-v3.4.7-linux-amd64
-		;;
-	"schema-registry.tar.gz")
-		mv ${THIRD_BIN_DIR}/schema-registry ${THIRD_BIN_DIR}/_schema_registry
-		mv ${THIRD_BIN_DIR}/_schema_registry/* ${THIRD_BIN_DIR}/ && rm -rf ${THIRD_BIN_DIR}/_schema_registry
 		;;
 	esac
 }
