@@ -2,6 +2,8 @@
 global_definitions:
   branches: &branches
     - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - ^feature/release-6\.1(.\d+)?-.+$
+
 presubmits:
   pingcap/tidb:
     - name: pingcap/tidb/release-6.1/ghpr_build
@@ -12,6 +14,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/ghpr_check
       agent: jenkins
       decorate: false # need add this.
@@ -20,6 +23,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
@@ -28,6 +32,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -36,6 +41,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -44,6 +50,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_br_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -54,6 +61,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
@@ -64,6 +72,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -73,6 +82,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -83,6 +93,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_e2e_test
       agent: jenkins
       decorate: false # need add this.
@@ -93,6 +104,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -103,6 +115,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_integration_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -113,6 +126,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
@@ -123,6 +137,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_tiflash_test
       agent: jenkins
       decorate: false # need add this.
@@ -133,6 +148,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
       branches: *branches
+
     - name: pingcap/tidb/release-6.1/pull_integration_tidb_tools_test
       agent: jenkins
       decorate: false # need add this.
@@ -143,6 +159,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tidb-tools-test"
       branches: *branches
+      
     - name: pingcap/tidb/release-6.1/pull_integration_binlog_test
       agent: jenkins
       decorate: false # need add this.

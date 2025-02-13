@@ -1,3 +1,9 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      - ^feature/release-7\.1(.\d+)?-.+$
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tidb:
@@ -8,8 +14,8 @@ presubmits:
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/ghpr_check
       agent: jenkins
       decorate: false # need add this.
@@ -17,8 +23,8 @@ presubmits:
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/ghpr_check2
       agent: jenkins
       decorate: false # need add this.
@@ -26,8 +32,8 @@ presubmits:
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/ghpr_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -35,8 +41,8 @@ presubmits:
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/ghpr_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -44,8 +50,8 @@ presubmits:
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_br_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -55,8 +61,7 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
 
     - name: pingcap/tidb/release-7.1/pull_integration_ddl_test
       agent: jenkins
@@ -67,8 +72,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -77,8 +82,8 @@ presubmits:
       context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
@@ -88,8 +93,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
@@ -99,8 +104,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_e2e_test
       agent: jenkins
       decorate: false # need add this.
@@ -110,8 +115,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -121,8 +126,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_integration_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -132,8 +137,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
@@ -143,8 +148,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_tiflash_test
       agent: jenkins
       decorate: false # need add this.
@@ -154,8 +159,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_integration_tidb_tools_test
       agent: jenkins
       decorate: false # need add this.
@@ -165,8 +170,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tidb-tools-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher
+
     - name: pingcap/tidb/release-7.1/pull_integration_binlog_test
       agent: jenkins
       decorate: false # need add this.
@@ -176,5 +181,4 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-binlog-test(?: .*?)?$"
       rerun_command: "/test pull-integration-binlog-test"
-      branches:
-        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      <<: *brancher

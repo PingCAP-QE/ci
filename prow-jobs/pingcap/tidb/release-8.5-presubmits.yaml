@@ -3,6 +3,7 @@ global_definitions:
     branches:
       - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
       - ^feature/release-8\.5(.\d+)?-.+$
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tidb:
