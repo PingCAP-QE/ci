@@ -93,14 +93,14 @@ pipeline {
                                         echo "Hotfix version tag: ${branchInfo.versionTag}"
                                         echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
                                         
-                                        cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ../tilfow
-                                        chmod +x ../tiflow/download_test_binaries_by_tag.sh
+                                        cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
+                                        chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
                                         # First download binary using the release branch script
                                         cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.1
                                         rm -rf bin/tidb-server bin/pd-* bin/tikv-server
                                         mv bin tmp_bin
                                         # Then download and replace other components with exact versions
-                                        ./download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb pd tikv ctl
+                                        ./dm/tests/download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb pd tikv ctl
                                         mv tmp_bin/* bin/ && rm -rf tmp_bin
                                         cd -
                                     else
