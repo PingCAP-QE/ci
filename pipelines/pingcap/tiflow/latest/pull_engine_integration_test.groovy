@@ -136,7 +136,7 @@ pipeline {
                                         sh label: "prepare", script: """
                                             git rev-parse HEAD
                                             git status
-                                            make sync-diff-inspector
+                                            make sync_diff_inspector
                                             ./bin/sync_diff_inspector -V
                                         """
                                     }
