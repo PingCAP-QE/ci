@@ -108,7 +108,7 @@ pipeline {
                                     mv bin tmp_bin
                                     
                                     # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
-                                    ./ticdc_download_test_binaries_by_tag.sh ${branchInfo.versionTag}
+                                    ./download_test_binaries_by_tag.sh ${branchInfo.versionTag}
                                     
                                     # Restore some binaries
                                     mv tmp_bin/* bin/ && rm -rf tmp_bin
