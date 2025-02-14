@@ -3,8 +3,8 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 final K8S_NAMESPACE = "jenkins-tidb"
-final GIT_FULL_REPO_NAME = 'pingcap/tidb-tools'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-tools/latest/pod-pull_verify.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_syncdiff_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 pipeline {
     agent {
@@ -55,7 +55,7 @@ pipeline {
         }
         stage('Integration Test') {
             steps {
-                dir("tidb-tools") {
+                dir("REFS.repo") {
                     script {
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
