@@ -12,7 +12,7 @@ spec:
           memory: 12Gi
           cpu: "4"
         limits:
-          memory: 16Gi
+          memory: 32Gi
           cpu: "6"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
