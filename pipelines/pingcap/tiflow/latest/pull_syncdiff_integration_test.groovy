@@ -55,7 +55,7 @@ pipeline {
         }
         stage('Integration Test') {
             steps {
-                dir("REFS.repo") {
+                dir(REFS.repo) {
                     script {
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
