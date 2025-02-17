@@ -86,7 +86,10 @@ pipeline {
                     for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
                     export MYSQL_HOST="127.0.0.1"
                     export MYSQL_PORT=3306
-                    make sync_diff_inspector-integration_test
+                    make failpoint-enable
+                    make sync-diff-inspector
+                    make failpoint-disable
+                    cd sync_diff_inspector && ln -sf ../bin . && ./tests/run.sh
                     """
                 }
             }
