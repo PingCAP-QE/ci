@@ -462,3 +462,15 @@ def validateAndFilterRefs(componentRefs) {
     // Mixed refs is invalid - return false and the combined unique refs
     return [false, (prRefs + branchRefs).unique()]
 }
+
+// Extract hotfix version tag from branch name
+// Returns a map containing:
+//   - isHotfix: boolean indicating if this is a hotfix branch
+//   - versionTag: the version tag (e.g. 'v7.1.1') if it's a hotfix branch, null otherwise
+def extractHotfixInfo(String branchName) {
+    def hotfixPattern = ~/^release-\d+\.\d+-\d{8}-(v\d+\.\d+\.\d+)(?:-.*)?$/
+    def matcher = branchName =~ hotfixPattern
+    def isHotfix = matcher.matches()
+    def versionTag = isHotfix ? matcher[0][1] : null
+    return [isHotfix: isHotfix, versionTag: versionTag]
+}

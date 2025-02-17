@@ -84,17 +84,52 @@ pipeline {
             steps {
                 dir("third_party_download") {
                     retry(2) {
-                        sh label: "download third_party", script: """
-                            cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                            make check_third_party_binary
-                            cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                            ./bin/sync_diff_inspector --version
-                        """
+                        script {
+                            def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+                            
+                            sh label: "download third_party", script: """
+                                mkdir -p bin
+                                cd ../tiflow
+                                
+                                if [[ "${branchInfo.isHotfix}" == "true" ]]; then
+                                    echo "Hotfix version tag: ${branchInfo.versionTag}"
+                                    echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
+                                    
+                                    # First download binary using the release branch script
+                                    ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
+                                    # remove binarys of tidb-server, pd-server, tikv-server, tiflash
+                                    rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/lib*
+                                    
+                                    # Then download and replace other components with exact versions
+                                    cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./
+                                    chmod +x download_test_binaries_by_tag.sh
+                                    
+                                    # Save sync_diff_inspector and some other binaries
+                                    mv bin tmp_bin
+                                    
+                                    # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
+                                    ./download_test_binaries_by_tag.sh ${branchInfo.versionTag}
+                                    
+                                    # Restore some binaries
+                                    mv tmp_bin/* bin/ && rm -rf tmp_bin
+                                else
+                                    echo "Release branch, downloading binaries from ${REFS.base_ref}"
+                                    ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
+                                fi
+                                
+                                make check_third_party_binary
+                                cd - && mv ../tiflow/bin/* ./bin/
+                                
+                                # Verify all required binaries
+                                echo "Verifying downloaded binaries..."
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tiflash --version
+                                ./bin/sync_diff_inspector --version
+                            """
+                        }
                     }
                 }
                 dir("tiflow") {
