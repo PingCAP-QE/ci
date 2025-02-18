@@ -152,9 +152,16 @@ pipeline {
                                         """
                                     }
                                     script {
-                                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def pdImageTag = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                        def tikvImageTag = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                        def tidbImageTag = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                        def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+                                        if (branchInfo.isHotfix) {
+                                            println "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} components"
+                                            pdImageTag = branchInfo.versionTag
+                                            tikvImageTag = branchInfo.versionTag
+                                            tidbImageTag = branchInfo.versionTag
+                                        }
                                         sh label: "prepare image", script: """
                                             TIDB_TEST_TAG=nightly
 
@@ -168,12 +175,12 @@ pipeline {
                                             docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
                                             docker pull hub.pingcap.net/tiflow/etcd:latest
                                             docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
-                                            docker pull hub.pingcap.net/qa/tidb:${tidbBranch}
-                                            docker tag hub.pingcap.net/qa/tidb:${tidbBranch} pingcap/tidb:\${TIDB_TEST_TAG} 
-                                            docker pull hub.pingcap.net/qa/tikv:${tikvBranch}
-                                            docker tag hub.pingcap.net/qa/tikv:${tikvBranch} pingcap/tikv:\${TIDB_TEST_TAG}
-                                            docker pull hub.pingcap.net/qa/pd:${pdBranch}
-                                            docker tag hub.pingcap.net/qa/pd:${pdBranch} pingcap/pd:\${TIDB_TEST_TAG}
+                                            docker pull hub.pingcap.net/qa/tidb:${tidbImageTag}
+                                            docker tag hub.pingcap.net/qa/tidb:${tidbImageTag} pingcap/tidb:\${TIDB_TEST_TAG} 
+                                            docker pull hub.pingcap.net/qa/tikv:${tikvImageTag}
+                                            docker tag hub.pingcap.net/qa/tikv:${tikvImageTag} pingcap/tikv:\${TIDB_TEST_TAG}
+                                            docker pull hub.pingcap.net/qa/pd:${pdImageTag}
+                                            docker tag hub.pingcap.net/qa/pd:${pdImageTag} pingcap/pd:\${TIDB_TEST_TAG}
                                             docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                                             docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
                                             docker images
