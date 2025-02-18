@@ -152,9 +152,9 @@ pipeline {
                                         """
                                     }
                                     script {
-                                        def pdImageTag = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
-                                        def tikvImageTag = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
-                                        def tidbImageTag = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                        def pdImageTag = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def tikvImageTag = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def tidbImageTag = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
                                         def branchInfo = component.extractHotfixInfo(REFS.base_ref)
                                         if (branchInfo.isHotfix) {
                                             println "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} components"
