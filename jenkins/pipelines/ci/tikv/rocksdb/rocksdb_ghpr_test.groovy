@@ -15,7 +15,7 @@ def run_with_x86_pod(Closure body) {
                     containerTemplate(
                         name: 'rust', alwaysPullImage: true,
                         image: rust_image, ttyEnabled: true,
-                        resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
+                        resourceRequestCpu: '16000m', resourceRequestMemory: '32Gi',
                         command: '/bin/sh -c', args: 'cat'    
                     )
             ],
@@ -67,8 +67,8 @@ def checkout = {
     }
 }
 
-def build = { target, do_cache ->
-    stage("Build") {
+def test = { extra ->
+    stage("Test") {
         dir("rocksdb") {
             deleteDir()
         }
@@ -77,31 +77,7 @@ def build = { target, do_cache ->
             sh """
                 echo using gcc 8
                 source /opt/rh/devtoolset-8/enable
-                LIB_MODE=static V=1 make ${target} -j 3
-            """
-        }
-        if (do_cache) {
-            stash includes: "rocksdb/**", name: "rocksdb_build"
-        }
-    }
-}
-
-def test = { start, end, extra, do_cache ->
-    stage("Test") {
-        if (do_cache) {
-            dir("rocksdb") {
-                deleteDir()
-            }
-            unstash "rocksdb_build"
-        }
-        dir("rocksdb") {
-            sh """
-                echo using gcc 8
-                source /opt/rh/devtoolset-8/enable
-                export TEST_TMPDIR=/home/jenkins/tmp_dir
-                export ROCKSDBTESTS_START=${start}
-                export ROCKSDBTESTS_END=${end}
-                LIB_MODE=static V=1 ${extra} make all_but_some_tests check_some -j 3
+                TEST_TMPDIR=/home/jenkins/tmp_dir LIB_MODE=static V=1 ${extra} make J=32 -j32 check
             """
         }
     }
@@ -114,78 +90,25 @@ stage("Checkout") {
 parallel(
     arm: {
         node("arm") {
-            def do_cache = false
-            build("all", do_cache)
-            test("", "db_block_cache_test", "", do_cache)
+            test("")
         }
     },
-    /*
-    mac: {
-        node("mac-i7") {
-            def do_cache = false
-            build("all", do_cache)
-            test("", "db_block_cache_test", "", do_cache)
-        }
-    },
-    */
     x86: {
-        def do_cache = true
-        run_with_x86_pod {
-            container("rust") {
-                build("librocksdb_debug.a", do_cache)
-            }
-        }
         parallel(
-            platform_dependent: {
+            basic: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("", "db_block_cache_test", "", do_cache)
-                    }
-                }
-            },
-            group1: {
-                run_with_x86_pod {
-                    container("rust") {
-                        test("db_block_cache_test", "full_filter_block_test", "", do_cache)
-                    }
-                }
-            },
-            group2: {
-                run_with_x86_pod {
-                    container("rust") {
-                        test("full_filter_block_test", "write_batch_with_index_test", "", do_cache)
-                    }
-                }
-            },
-            group3: {
-                run_with_x86_pod {
-                    container("rust") {
-                        test("write_batch_with_index_test", "write_prepared_transaction_test", "", do_cache)
-                    }
-                }
-            },
-            group4: {
-                run_with_x86_pod {
-                    container("rust") {
-                        test("write_prepared_transaction_test", "", "", do_cache)
+                        test("")
                     }
                 }
             },
             encrypted_env: {
                 run_with_x86_pod {
                     container("rust") {
-                        test("", "db_block_cache_test", "ENCRYPTED_ENV=1", do_cache)
+                        test("ENCRYPTED_ENV=1")
                     }
                 }
-            },
-        )
-    },
-    x86_release: {
-        run_with_x86_pod {
-            container("rust") {
-                def do_cache = false
-                build("release", do_cache)
             }
-        }
+        )
     },
 )
