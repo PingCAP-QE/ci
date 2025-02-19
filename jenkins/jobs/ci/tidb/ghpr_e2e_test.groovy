@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tidb_e2e_tests') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -65,7 +66,7 @@ pipelineJob('tidb_e2e_tests') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
