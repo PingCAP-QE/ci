@@ -106,18 +106,38 @@ pipeline {
                                 mv bin/dm-worker.test bin/dm-worker.test.current
                                 ls -alh ./bin/
                             """
-                            sh label: "download third_party", script: """
-                                chmod +x ../scripts/pingcap/tiflow/release-6.5/dm_download_compatibility_test_binaries.sh
-                                cp ../scripts/pingcap/tiflow/release-6.5/dm_download_compatibility_test_binaries.sh dm/tests/
-
-                                pwd && ls -alh dm/tests/
-                                cd dm/tests && ./dm_download_compatibility_test_binaries.sh && ls -alh ./bin
-                                cd - && cp -r dm/tests/bin/* ./bin
-                                ls -alh ./bin
-                                ./bin/tidb-server -V
-                                ./bin/sync_diff_inspector -V
-                                ./bin/mydumper -V
-                            """
+                            script {
+                                def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+                                sh label: "download third_party", script: """
+                                    cp ${WORKSPACE}/scripts/pingcap/tiflow/release-6.5/dm_download_compatibility_test_binaries.sh dm/tests/
+                                    chmod +x dm/tests/dm_download_compatibility_test_binaries.sh
+                                    if [[ "${branchInfo.isHotfix}" == "true" ]]; then
+                                        echo "Hotfix version tag: ${branchInfo.versionTag}"
+                                        echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
+                                        cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh dm/tests/
+                                        chmod +x dm/tests/download_test_binaries_by_tag.sh
+                                        # First download binary using the release branch script
+                                        cd dm/tests && ./dm_download_compatibility_test_binaries.sh
+                                        rm -rf bin/tidb-server
+                                        mv bin tmp_bin
+                                        # Then download and replace other components with exact versions
+                                        ./download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb
+                                        mv tmp_bin/* bin/ && rm -rf tmp_bin
+                                        cd -
+                                    else
+                                        echo "Release branch, downloading binaries from ${REFS.base_ref}"
+                                        cd dm/tests && ./dm_download_compatibility_test_binaries.sh
+                                        cd -
+                                    fi
+                                    # Verify all required binaries
+                                    cp dm/tests/bin/* ./bin/
+                                    pwd && ls -alh ./bin
+                                    ls -alh dm/tests/bin
+                                    ./bin/tidb-server -V
+                                    ./bin/sync_diff_inspector -V
+                                    ./bin/mydumper -V
+                                """
+                            }
                         }
                 }
             }
