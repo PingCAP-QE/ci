@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tidb_ghpr_common_test') {
+    disabled(true)
     logRotator {
         daysToKeep(90)
     }
@@ -65,7 +66,7 @@ pipelineJob('tidb_ghpr_common_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

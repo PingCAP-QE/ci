@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tidb_ghpr_build') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -64,7 +65,7 @@ pipelineJob('tidb_ghpr_build') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

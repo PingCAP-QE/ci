@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pingcap/tiflow/release-5.3/pull_cdc_integration_kafka_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -12,7 +13,7 @@ pipelineJob('pingcap/tiflow/release-5.3/pull_cdc_integration_kafka_test') {
     properties {
         githubProjectUrl("https://github.com/pingcap/tiflow")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -28,7 +29,7 @@ pipelineJob('pingcap/tiflow/release-5.3/pull_cdc_integration_kafka_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

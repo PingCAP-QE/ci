@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('cdc_ghpr_kafka_integration_test') {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -64,7 +65,7 @@ pipelineJob('cdc_ghpr_kafka_integration_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
