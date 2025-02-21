@@ -4,6 +4,7 @@ final RepoDict = [
     "dumpling":"tidb",
     "tidb-lightning":"tidb",
     "ticdc":"tiflow",
+    "ticdc-newarch": "ticdc",
     "dm":"tiflow",
     "drainer":"tidb-binlog",
     "pump":"tidb-binlog",
@@ -31,6 +32,7 @@ final DockerImgRepoMapping = [
     "tiflash": "pingcap/tiflash/image",
     "dm": "pingcap/tiflow/images/dm",
     "ticdc": "pingcap/tiflow/images/ticdc",
+    "ticdc-newarch": "pingcap/ticdc/image",
     "ng-monitoring": "pingcap/ng-monitoring/image",
     "tidb-dashboard": "pingcap/tidb-dashboard/image",
 ]
@@ -67,7 +69,7 @@ def get_dockerfile_url={arch ->
         if (Product == "tidb" && Edition == "enterprise") {
             return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
         }
-
+        // note new ticdc only supports from v9.0.0
         return [
             "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.Dockerfile",
             "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb-lightning.Dockerfile",
@@ -76,6 +78,7 @@ def get_dockerfile_url={arch ->
             "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/Dockerfile",
             "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/dm.Dockerfile",
             "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/ticdc.Dockerfile",
+            "ticdc-newarch":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ticdc/Dockerfile",
             "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
             "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
             "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/Dockerfile",
