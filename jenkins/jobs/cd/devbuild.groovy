@@ -24,7 +24,7 @@ pipelineJob('devbuild') {
     parameters {
         choiceParam {
             name('Product')
-            choices(['tidb', 'tikv', 'pd', 'tiflash', 'br', 'dumpling', 'tidb-lightning', 'ticdc', 'dm', 'tidb-binlog', 'tidb-tools', 'ng-monitoring', 'tidb-dashboard', 'drainer', 'pump'])
+            choices(['tidb', 'tikv', 'pd', 'tiflash', 'br', 'dumpling', 'tidb-lightning', 'ticdc', 'ticdc-newarch', 'dm', 'tidb-binlog', 'tidb-tools', 'ng-monitoring', 'tidb-dashboard', 'drainer', 'pump'])
             description('the product to build, e.g., tidb/tikv/pd')
         }
         stringParam {
