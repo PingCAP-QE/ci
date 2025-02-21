@@ -69,7 +69,7 @@ def get_dockerfile_url={arch ->
         if (Product == "tidb" && Edition == "enterprise") {
             return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
         }
-
+        // note new ticdc only supports from v9.0.0
         return [
             "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.Dockerfile",
             "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb-lightning.Dockerfile",
@@ -78,7 +78,7 @@ def get_dockerfile_url={arch ->
             "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/Dockerfile",
             "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/dm.Dockerfile",
             "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/ticdc.Dockerfile",
-            "ticdc-newarch":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/ticdc.Dockerfile",
+            "ticdc-newarch":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ticdc/Dockerfile",
             "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
             "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
             "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/Dockerfile",
@@ -100,7 +100,6 @@ def get_dockerfile_url={arch ->
             "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/lt6.5.12/Dockerfile",
             "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/dm.Dockerfile",
             "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/ticdc.Dockerfile",
-            "ticdc-newarch":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/ticdc.Dockerfile",
             "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
             "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
             "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/lt6.5.12/Dockerfile",
