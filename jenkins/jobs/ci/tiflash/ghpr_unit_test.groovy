@@ -42,13 +42,8 @@ pipelineJob('tiflash-ghpr-unit-tests') {
                     buildDescTemplate('PR #$pullId: $abbrTitle\n$url')
                     whitelist('ming-relax LiangShang hsqlu yangwenmai qxhy123 mccxj dreamquster MyonKeminta colinback spongedu lzmhhh123 bb7133 dbjoa')
                     orgslist('pingcap')
-                    blackListTargetBranches {
-                        ghprbBranch { branch('master') }
-                        ghprbBranch { branch('feature/.*') }
-                        ghprbBranch { branch('release-6.[5-9]+.*') }
-                        ghprbBranch { branch('release-7.[0-9]+.*') }
-                        ghprbBranch { branch('release-8.[0-9]+.*') }
-                        ghprbBranch { branch('release-2[5-9].[0-9]+.*') }
+                    whiteListTargetBranches {
+                        ghprbBranch { branch('^release-6\\.[0-4](\\.\\d+)?(\\-.*)?$') }
                     }
                     // ignore when only those file changed.(
                     //   multi line regex
@@ -88,7 +83,7 @@ pipelineJob('tiflash-ghpr-unit-tests') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

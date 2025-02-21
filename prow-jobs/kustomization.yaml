@@ -75,8 +75,6 @@ configMapGenerator:
       - pingcap_tiflow_latest-postsubmits.yaml=pingcap/tiflow/latest-postsubmits.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
-      - pingcap_tiflow_release-5.3-presubmits.yaml=pingcap/tiflow/release-5.3-presubmits.yaml
-      - pingcap_tiflow_release-5.4-presubmits.yaml=pingcap/tiflow/release-5.4-presubmits.yaml
       - pingcap_tiflow_release-6.0-presubmits.yaml=pingcap/tiflow/release-6.0-presubmits.yaml
       - pingcap_tiflow_release-6.1-presubmits.yaml=pingcap/tiflow/release-6.1-presubmits.yaml
       - pingcap_tiflow_release-6.2-presubmits.yaml=pingcap/tiflow/release-6.2-presubmits.yaml
@@ -109,7 +107,6 @@ configMapGenerator:
       - tikv_community_presubmits.yaml=tikv/community/presubmits.yaml
       - tikv_migration_latest-presubmits.yaml=tikv/migration/latest-presubmits.yaml
       - tikv_pd_latest-presubmits.yaml=tikv/pd/latest-presubmits.yaml
-      - tikv_pd_release-5.4-presubmits.yaml=tikv/pd/release-5.4-presubmits.yaml
       - tikv_pd_release-6.1-presubmits.yaml=tikv/pd/release-6.1-presubmits.yaml
       - tikv_pd_release-6.5-fips-presubmits.yaml=tikv/pd/release-6.5-fips-presubmits.yaml
       - tikv_pd_release-6.5-presubmits.yaml=tikv/pd/release-6.5-presubmits.yaml
