@@ -408,6 +408,20 @@ mkdir -p ${TARGET}/bin
 cp bin/* ${TARGET}/bin/
 """
 
+buildsh["ticdc-newarch"] = """
+if [ ${RELEASE_TAG}x != ''x ];then
+    for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
+    git tag -f ${RELEASE_TAG} ${GIT_HASH}
+    git branch -D refs/tags/${RELEASE_TAG} || true
+    git checkout -b refs/tags/${RELEASE_TAG}
+fi;
+go version
+make cdc
+rm -rf ${TARGET}
+mkdir -p ${TARGET}/bin
+cp bin/* ${TARGET}/bin/
+"""
+
 // only support dm version >= 5.3.0 (dm in repo tiflow)
 // start from 6.0.0, dm use webui is supported
 dmUseWebUI = "true"
