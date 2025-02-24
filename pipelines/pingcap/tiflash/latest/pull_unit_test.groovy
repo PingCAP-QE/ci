@@ -12,6 +12,7 @@ final PARALLELISM = 12
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean build_cache_ready = false
 Boolean proxy_cache_ready = false
+Boolean use_gtest_10x = false
 String proxy_commit_hash = null
 
 pipeline {
@@ -56,7 +57,7 @@ pipeline {
                 script {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
-                        dir("test-build-cache") { 
+                        dir("test-build-cache") {
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
@@ -87,7 +88,7 @@ pipeline {
                         container("util") {
                             withCredentials(
                                 [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) { 
+                            ) {
                                 sh "rm -rf ./*"
                                 sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                 sh """
@@ -191,7 +192,7 @@ pipeline {
                                 ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                                 ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                             """
-                        }   
+                        }
                     }
                 }
             }
@@ -201,7 +202,7 @@ pipeline {
                 expression { !build_cache_ready }
             }
             parallel {
-                stage("Cluster Manage") { 
+                stage("Cluster Manage") {
                     steps {
                     // NOTE: cluster_manager is deprecated since release-6.0 (include)
                     echo "cluster_manager is deprecated"
@@ -367,25 +368,31 @@ pipeline {
                                 rm -rf contrib
                                 du -sh ./
                                 ls -alh
-                                """ 
+                                """
                             }
-                        }     
+                        }
                     }
-                }
-                sh label: "link tiflash and tests", script: """
-                ls -lha ${WORKSPACE}/tiflash
-                ln -sf ${WORKSPACE}/tiflash/tests/.build/tiflash /tiflash
-                ln -sf ${WORKSPACE}/tiflash/tests /tests
-                """
-                dir("${WORKSPACE}/tiflash") {
-                    echo "temp skip here"
-                }
-                dir("${WORKSPACE}/build") {
-                    echo "temp skip here"
+                    sh label: "link tiflash and tests", script: """
+                    ls -lha ${WORKSPACE}/tiflash
+                    ln -sf ${WORKSPACE}/tiflash/tests/.build/tiflash /tiflash
+                    ln -sf ${WORKSPACE}/tiflash/tests /tests
+                    """
+
+                    use_gtest_10x = sh(script: "test -f /tests/gtest_10x.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+
+                    dir("${WORKSPACE}/tiflash") {
+                        echo "temp skip here"
+                    }
+                    dir("${WORKSPACE}/build") {
+                        echo "temp skip here"
+                    }
                 }
             }
         }
         stage("Run Tests") {
+            when {
+                expression { !use_gtest_10x }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh label: "run tests", script: """
@@ -400,6 +407,62 @@ pipeline {
                     show_env
                     ENV_VARS_PATH=/tests/docker/_env.sh OUTPUT_XML=true NPROC=\${parallelism} /tests/run-gtest.sh
                     """
+                }
+            }
+        }
+        stage("Run Tests (10x)") {
+            when {
+                expression { use_gtest_10x }
+            }
+            steps {
+                script {
+                    sh """
+                    mkdir -p ${WORKSPACE}/tiflash-ut-10x
+                    chown -R 1000:1000 ${WORKSPACE}/tiflash-ut-10x
+                    """
+                    dir("${WORKSPACE}/tiflash-ut-10x") {
+                        try {
+                            cache(
+                                path: './',
+                                includes: 'history.json',
+                                key: prow.getCacheKey('tiflash', REFS, 'ut-10x'),
+                                restoreKeys: prow.getRestoreKeys('tiflash', REFS, 'ut-10x')
+                            ) {
+                                // For some reason cache doesn't work when path is /tmp-memfs/
+                                // So we have to move files around workspace and /tmp-memfs/
+
+                                sh label: "Loading cached ut history", script: """
+                                mkdir -p /tmp-memfs/tiflash-ut-10x
+                                cp ./history.json /tmp-memfs/tiflash-ut-10x/ || true
+                                """
+
+                                sh label: "Run tests", script: """
+                                export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/tiflash
+                                python3 /tests/gtest_10x.py \
+                                    --working_dir=/tmp-memfs/tiflash-ut-10x \
+                                    --workers=${PARALLELISM} \
+                                        /tiflash/gtests_dbms \
+                                        /tiflash/gtests_libcommon \
+                                        /tiflash/gtests_libdaemon
+                                """
+
+                                sh label: "Prepare for saving ut history cache", script: """
+                                cp /tmp-memfs/tiflash-ut-10x/history.json ./ || true
+                                chown -R 1000:1000 ${WORKSPACE}/tiflash-ut-10x
+                                """
+                            }
+                        } catch (error) {
+                            sh label: "Test Failure Details (Stdout)", script: """
+                            cat /tmp-memfs/tiflash-ut-10x/test_stdout.log || true
+                            """
+
+                            sh label: "Test Failure Details (Stderr)", script: """
+                            cat /tmp-memfs/tiflash-ut-10x/test_stderr.log || true
+                            """
+
+                            throw error
+                        }
+                    }
                 }
             }
         }
