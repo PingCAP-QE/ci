@@ -127,7 +127,7 @@ pipeline {
                                         cd -
                                     fi
                                     # Verify all required binaries
-                                    cp dm/tests/bin/* ./bin/
+                                    cp -r dm/tests/bin/* ./bin/
                                     pwd && ls -alh ./bin
                                     ls -alh dm/tests/bin
                                     ./bin/tidb-server -V
