@@ -156,7 +156,7 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                         script {
-                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
                             println "proxy_cache_ready: ${proxy_cache_ready}"
 
                             sh label: "copy proxy if exist", script: """
@@ -378,14 +378,7 @@ pipeline {
                     ln -sf ${WORKSPACE}/tiflash/tests /tests
                     """
 
-                    use_gtest_10x = sh(script: "test -f /tests/gtest_10x.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-
-                    dir("${WORKSPACE}/tiflash") {
-                        echo "temp skip here"
-                    }
-                    dir("${WORKSPACE}/build") {
-                        echo "temp skip here"
-                    }
+                    use_gtest_10x = fileExists("${WORKSPACE}/tiflash/tests/gtest_10x.py")
                 }
             }
         }
