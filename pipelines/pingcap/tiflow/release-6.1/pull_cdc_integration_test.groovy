@@ -89,7 +89,7 @@ pipeline {
                             sh label: "download third_party", script: """
                                 mkdir -p bin
                                 cd ../tiflow
-                                cp ${WORKSPACE}/scripts/pingcap/tiflow/release-6.5/ticdc_download_integration_test_binaries.sh ./
+                                cp ${WORKSPACE}/scripts/pingcap/tiflow/release-6.1/ticdc_download_integration_test_binaries.sh ./
                                 chmod +x ticdc_download_integration_test_binaries.sh
 
                                 if [[ "${branchInfo.isHotfix}" == "true" ]]; then
