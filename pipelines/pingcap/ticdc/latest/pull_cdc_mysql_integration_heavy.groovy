@@ -85,14 +85,12 @@ pipeline {
                     }   
                 }
                 dir("ticdc") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'ticdc-integration')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-mysql-integration')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
