@@ -82,7 +82,7 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 25, unit: 'MINUTES') }
+            options { timeout(time: 35, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
                         retry(2) {
@@ -127,7 +127,7 @@ pipeline {
                                         cd -
                                     fi
                                     # Verify all required binaries
-                                    cp dm/tests/bin/* ./bin/
+                                    cp -r dm/tests/bin/* ./bin/
                                     pwd && ls -alh ./bin
                                     ls -alh dm/tests/bin
                                     ./bin/tidb-server -V

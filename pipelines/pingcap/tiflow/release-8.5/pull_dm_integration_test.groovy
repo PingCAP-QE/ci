@@ -86,14 +86,36 @@ pipeline {
             steps {
                 dir("third_party_download") {
                     retry(2) {
-                        sh label: "download third_party", script: """
-                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                            cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                            ls -alh ./bin
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                        """
+                        script {
+                                def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+                                sh label: "download third_party", script: """
+                                    if [[ "${branchInfo.isHotfix}" == "true" ]]; then
+                                        echo "Hotfix version tag: ${branchInfo.versionTag}"
+                                        echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
+                                        
+                                        cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
+                                        chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
+                                        # First download binary using the release branch script
+                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
+                                        rm -rf bin/tidb-server bin/pd-* bin/tikv-server
+                                        mv bin tmp_bin
+                                        # Then download and replace other components with exact versions
+                                        ./dm/tests/download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb pd tikv ctl
+                                        mv tmp_bin/* bin/ && rm -rf tmp_bin
+                                        cd -
+                                    else
+                                        echo "Release branch, downloading binaries from ${REFS.base_ref}"
+                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
+                                        cd -
+                                    fi
+                                    # Verify all required binaries
+                                    mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                """
+                            }
                     }
                 }
                 dir("tiflow") {

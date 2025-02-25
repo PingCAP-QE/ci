@@ -151,30 +151,41 @@ pipeline {
                                             echo "$HARBOR_CRED_PSW" | docker login -u $HARBOR_CRED_USR --password-stdin hub.pingcap.net
                                         """
                                     }
-                                    sh label: "prepare image", script: """
-                                        TIDB_CLUSTER_BRANCH=release-7.1
-                                        TIDB_TEST_TAG=nightly
-                                        
-                                        docker pull hub.pingcap.net/tiflow/minio:latest
-                                        docker tag hub.pingcap.net/tiflow/minio:latest minio/minio:latest
-                                        docker pull hub.pingcap.net/tiflow/minio:mc
-                                        docker tag hub.pingcap.net/tiflow/minio:mc minio/mc:latest
-                                        docker pull hub.pingcap.net/tiflow/mysql:5.7
-                                        docker tag hub.pingcap.net/tiflow/mysql:5.7 mysql:5.7
-                                        docker pull hub.pingcap.net/tiflow/mysql:8.0
-                                        docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
-                                        docker pull hub.pingcap.net/tiflow/etcd:latest
-                                        docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
-                                        docker pull hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub.pingcap.net/qa/tidb:\${TIDB_CLUSTER_BRANCH} pingcap/tidb:\${TIDB_TEST_TAG} 
-                                        docker pull hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub.pingcap.net/qa/tikv:\${TIDB_CLUSTER_BRANCH} pingcap/tikv:\${TIDB_TEST_TAG}
-                                        docker pull hub.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH}
-                                        docker tag hub.pingcap.net/qa/pd:\${TIDB_CLUSTER_BRANCH} pingcap/pd:\${TIDB_TEST_TAG}
-                                        docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
-                                        docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
-                                        docker images
-                                    """
+                                    script {
+                                        def pdImageTag = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-7.1')
+                                        def tikvImageTag = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-7.1')
+                                        def tidbImageTag = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-7.1')
+                                        def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+                                        if (branchInfo.isHotfix) {
+                                            println "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} components"
+                                            pdImageTag = branchInfo.versionTag
+                                            tikvImageTag = branchInfo.versionTag
+                                            tidbImageTag = branchInfo.versionTag
+                                        }
+                                        sh label: "prepare image", script: """
+                                            TIDB_TEST_TAG=nightly
+
+                                            docker pull hub.pingcap.net/tiflow/minio:latest
+                                            docker tag hub.pingcap.net/tiflow/minio:latest minio/minio:latest
+                                            docker pull hub.pingcap.net/tiflow/minio:mc
+                                            docker tag hub.pingcap.net/tiflow/minio:mc minio/mc:latest
+                                            docker pull hub.pingcap.net/tiflow/mysql:5.7
+                                            docker tag hub.pingcap.net/tiflow/mysql:5.7 mysql:5.7
+                                            docker pull hub.pingcap.net/tiflow/mysql:8.0
+                                            docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
+                                            docker pull hub.pingcap.net/tiflow/etcd:latest
+                                            docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
+                                            docker pull hub.pingcap.net/qa/tidb:${tidbImageTag}
+                                            docker tag hub.pingcap.net/qa/tidb:${tidbImageTag} pingcap/tidb:\${TIDB_TEST_TAG} 
+                                            docker pull hub.pingcap.net/qa/tikv:${tikvImageTag}
+                                            docker tag hub.pingcap.net/qa/tikv:${tikvImageTag} pingcap/tikv:\${TIDB_TEST_TAG}
+                                            docker pull hub.pingcap.net/qa/pd:${pdImageTag}
+                                            docker tag hub.pingcap.net/qa/pd:${pdImageTag} pingcap/pd:\${TIDB_TEST_TAG}
+                                            docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
+                                            docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
+                                            docker images
+                                        """
+                                    }
                                     sh label: "${TEST_GROUP}", script: """
                                         git config --global --add safe.directory '*'
                                         
