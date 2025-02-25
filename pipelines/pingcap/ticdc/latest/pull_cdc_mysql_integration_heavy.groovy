@@ -46,7 +46,7 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir("ticdc") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -127,7 +127,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tiflow') {
+                            dir('ticdc') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         ./tests/integration_tests/run_heavy_it_in_ci.sh mysql ${TEST_GROUP}
@@ -147,7 +147,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
