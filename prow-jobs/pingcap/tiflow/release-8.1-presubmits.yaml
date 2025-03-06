@@ -1,4 +1,11 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+  skip_if_only_changed: &skip_if_only_changed
+    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+
 presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-8.1/pull_cdc_integration_kafka_test
@@ -11,8 +18,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/pull_cdc_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
@@ -23,8 +30,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-mysql-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/pull_cdc_integration_pulsar_test
       agent: jenkins
       decorate: false # need add this.
@@ -35,8 +42,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-pulsar-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
@@ -47,8 +54,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-storage-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
@@ -59,8 +66,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-compatibility-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -71,8 +78,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-integration-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
@@ -83,8 +90,8 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-engine-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-engine-integration-test"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
+
     - name: pingcap/tiflow/release-8.1/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
@@ -93,5 +100,4 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
       rerun_command: "/test pull-verify"
-      branches:
-        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches

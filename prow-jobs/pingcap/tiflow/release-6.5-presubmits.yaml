@@ -1,71 +1,76 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+  skip_if_only_changed: &skip_if_only_changed
+    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
 presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.5/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: pull-verify 
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
       rerun_command: "/test pull-verify"
-      branches:
-        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
+
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
       run_before_merge: true
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: pull-cdc-integration-kafka-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
-      branches:
-        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
+
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-mysql-test"
-      branches:
-        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
+
     - name: pingcap/tiflow/release-6.5/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-dm-compatibility-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-compatibility-test"
-      branches:
-        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
+
     - name: pingcap/tiflow/release-6.5/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-dm-integration-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-integration-test"
-      branches:
-        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
