@@ -311,7 +311,7 @@ def check_offline_components(version, edition, arch, component_hash):
 
     components_need_check_version = ["tidb", "pd", "tikv", "tiflash"]
     if version >= "v6.6.0":
-        components_need_check_version.append("tidb_dashboard")
+        components_need_check_version.append("tidb-dashboard")
     for component in components_need_check_version:
         check_tiup_component_version(component, version, component_hash[component], expected_edition)
     for component in ["ctl", "grafana", "prometheus"]:
