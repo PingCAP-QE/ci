@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
   branches: &branches
-    - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     - ^feature/release-6\.5(.\d+)?-.+$
   skip_branches: &skip_branches
     - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch

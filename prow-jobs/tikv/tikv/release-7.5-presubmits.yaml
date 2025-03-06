@@ -2,7 +2,7 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   branches: &branches
-    - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     - ^feature/release-7\.5(.\d+)?-.+$ # for feature branch based on v7.5.x
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
@@ -16,6 +16,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
       branches: *branches
+      
     - name: tikv/tikv/release-7.5/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
