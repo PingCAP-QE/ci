@@ -30,32 +30,6 @@ def get_base_url(is_internal=None):
     return public_base_url, internal_base_url, use_internal
 
 
-def check_url_existence_and_size(url_template, edition, version, arch):
-    # 使用传入的参数格式化 URL
-    url = url_template.format(edition=edition, version=version, arch=arch)
-
-    # 发起 HEAD 请求
-    response = requests.head(url)
-
-    # 检查响应状态码
-    if response.status_code == 200:
-        # 文件存在
-        # 尝试从响应头中获取文件大小
-        content_length = response.headers.get('Content-Length')
-        print(f"URL: {url}, Valid: True, Size: {content_length}")
-        return {
-            'exists': True,
-            'size': int(content_length) if content_length is not None else 'Unknown'
-        }
-    else:
-        # 文件不存在或无法访问
-        print(f"URL: {url}, Valid: False")
-        return {
-            'exists': False,
-            'size': 0
-        }
-
-
 def get_components_hash(url):
     components_hash = {}
     response = requests.get(url)
@@ -88,42 +62,6 @@ def compare_package_sizes(url1, url2):
     if exists1 and exists2 and size1 == size2:
         return True, size1  # 包存在且大小一致
     return False, None
-
-
-def get_file_size_v2(url):
-    """获取文件大小，以字节为单位返回。"""
-    response = requests.head(url)
-    if response.status_code != 200:
-        # 如果 HEAD 请求失败，尝试 GET 请求但不下载内容
-        response = requests.get(url, stream=True)
-    if response.status_code == 200:
-        content_length = response.headers.get('Content-Length')
-        if content_length:
-            return int(content_length), True
-    return 0, False
-
-
-def compare_and_display_package_sizes(url1, url2):
-    """比较两个包的大小，并显示它们的大小以及体积差异（以 MB 显示）。"""
-    size1, exists1 = get_file_size_v2(url1)
-    size2, exists2 = get_file_size_v2(url2)
-
-    if not exists1 or not exists2:
-        return "One or both URLs do not exist."
-
-    # 将大小从字节转换为 MB，并计算差异
-    size1_mb = size1 / (1024 * 1024)
-    size2_mb = size2 / (1024 * 1024)
-    difference_mb = abs(size1_mb - size2_mb)
-
-    max_diff_mb = 30
-    result = {
-        'size1_mb': size1_mb,
-        'size2_mb': size2_mb,
-        'difference_mb': difference_mb,
-        'within_tolerance': difference_mb <= max_diff_mb
-    }
-    return result
 
 
 def check_offline_package(version):
